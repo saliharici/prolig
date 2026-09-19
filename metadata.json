@@ -1,0 +1,7 @@
+{
+  "name": "PRO LİG - Profesyoneller Karması",
+  "description": "Modern Türk eğitim yayıncılığı, yazar ağı, proje, görev, telif ve kurum yönetim platformu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

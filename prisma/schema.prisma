@@ -1,13 +1,16 @@
-generator client {
-  provider = "prisma-client-js"
-}
+// Prisma schema for PRO LİG - Profesyoneller Karması
+// Designed for PostgreSQL on Vercel (Neon / Supabase / RDS)
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-enum Role {
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum RoleCode {
   GENEL_KOORDINATOR
   IL_KOORDINATORU
   EDITOR
@@ -17,248 +20,326 @@ enum Role {
 }
 
 enum AuthorStatus {
-  AKTIF
-  PASIF
-  BEKLEMEDE
-  ARSIV
+  Aktif
+  Pasif
+  Beklemede
+  Arsiv
 }
 
 enum ProjectStatus {
-  TASLAK
-  PLANLAMA
-  DEVAM_EDIYOR
-  KONTROL
-  TAMAMLANDI
-  ARSIV
+  Taslak
+  Planlama
+  Devam_Ediyor
+  Kontrol
+  Tamamlandi
+  Arsiv
 }
 
 enum TaskStatus {
-  BEKLIYOR
-  DEVAM_EDIYOR
-  KONTROL_BEKLIYOR
-  TAMAMLANDI
-  GECIKTI
+  Bekliyor
+  Devam_Ediyor
+  Kontrol_Bekliyor
+  Tamamlandi
+  Gecikti
 }
 
 enum Priority {
-  DUSUK
-  NORMAL
-  YUKSEK
-  ACIL
+  Dusuk
+  Normal
+  Yuksek
+  Acil
 }
 
 enum PaymentStatus {
-  BEKLIYOR
-  ONAYLANDI
-  ODENDI
-  IPTAL
+  Bekliyor
+  Onaylandi
+  Odendi
+  Iptal
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  code        RoleCode @unique
+  name        String
+  description String?
+  users       User[]
+
+  @@map("roles")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String
-  firstName     String
-  lastName      String
-  role          Role      @default(YAZAR)
-  profilePhoto  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           Int           @id @default(autoincrement())
+  username     String        @unique
+  email        String        @unique
+  fullName     String
+  roleId       Int
+  role         Role          @relation(fields: [roleId], references: [id])
+  provinceId   Int?
+  province     Province?     @relation(fields: [provinceId], references: [id])
+  avatarUrl    String?
+  phone        String?
+  status       String        @default("Aktif")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  sentMessages     Message[]      @relation("SentMessages")
+  receivedMessages Message[]      @relation("ReceivedMessages")
+  notifications    Notification[]
+  activityLogs     ActivityLog[]
+  assignedTasks    Task[]         @relation("CoordinatorTasks")
 
-  authorProfile Author?   
-  assignedTasks Task[]    @relation("CoordinatorTasks")
-  messagesSent  Message[] @relation("SentMessages")
-  messagesRecv  Message[] @relation("ReceivedMessages")
-  notifications Notification[]
-  activityLogs  ActivityLog[]
+  @@index([email])
+  @@map("users")
 }
 
 model Province {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  authors   Author[]
-  districts District[]
+  id           Int           @id
+  code         String        @unique
+  name         String        @unique
+  region       String
+  districts    District[]
+  authors      Author[]
+  institutions Institution[]
+  users        User[]
+
+  @@index([name])
+  @@map("provinces")
 }
 
 model District {
   id         Int      @id @default(autoincrement())
-  name       String
   provinceId Int
-  province   Province @relation(fields: [provinceId], references: [id])
+  province   Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  name       String
   authors    Author[]
+
+  @@index([provinceId])
+  @@map("districts")
 }
 
 model Branch {
-  id      Int      @id @default(autoincrement())
-  name    String   @unique
-  authors Author[]
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  category  String
+  color     String    @default("#2563eb")
+  authors   Author[]
+  projects  Project[]
+
+  @@map("branches")
 }
 
 model Institution {
-  id      Int      @id @default(autoincrement())
-  name    String
-  authors Author[]
+  id         Int       @id @default(autoincrement())
+  name       String
+  provinceId Int
+  province   Province  @relation(fields: [provinceId], references: [id])
+  type       String    @default("Devlet Okulu")
+  authors    Author[]
+
+  @@map("institutions")
 }
 
 model Author {
-  id            String       @id @default(cuid())
-  userId        String       @unique
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provinceId    Int?
-  province      Province?    @relation(fields: [provinceId], references: [id])
-  districtId    Int?
-  district      District?    @relation(fields: [districtId], references: [id])
-  branchId      Int?
-  branch        Branch?      @relation(fields: [branchId], references: [id])
-  institutionId Int?
-  institution   Institution? @relation(fields: [institutionId], references: [id])
+  id              Int            @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  email           String         @unique
+  phone           String
+  profilePhoto    String?
+  provinceId      Int
+  province        Province       @relation(fields: [provinceId], references: [id])
+  districtId      Int?
+  district        District?      @relation(fields: [districtId], references: [id])
+  branchId        Int
+  branch          Branch         @relation(fields: [branchId], references: [id])
+  institutionId   Int?
+  institution     Institution?   @relation(fields: [institutionId], references: [id])
+  title           String         @default("Yazar / Öğretmen")
+  experienceYears Int            @default(5)
+  status          AuthorStatus   @default(Aktif)
+  biography       String?
+  iban            String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  title         String?
-  experience    Int?         
-  status        AuthorStatus @default(BEKLEMEDE)
-  biography     String?      @db.Text
-  phone         String?
+  projectAuthors ProjectAuthor[]
+  tasks          Task[]
+  payments       Payment[]
+  files          FileRecord[]
 
-  projects      ProjectAuthor[]
-  tasks         Task[]       @relation("AuthorTasks")
-  payments      Payment[]
-  files         File[]
-
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  @@index([provinceId])
+  @@index([branchId])
+  @@index([status])
+  @@map("authors")
 }
 
 model Project {
-  id          String    @id @default(cuid())
-  title       String
-  description String?   @db.Text
-  type        String    
-  status      ProjectStatus @default(TASLAK)
-  priority    Priority  @default(NORMAL)
-  deadline    DateTime?
-  progress    Int       @default(0) 
+  id             Int            @id @default(autoincrement())
+  title          String
+  code           String         @unique
+  projectType    String         @default("Soru Bankası")
+  coordinatorId  Int?
+  progress       Int            @default(0)
+  deadline       DateTime
+  status         ProjectStatus  @default(Devam_Ediyor)
+  priority       Priority       @default(Normal)
+  targetGrade    String         @default("8. Sınıf")
+  branchId       Int
+  branch         Branch         @relation(fields: [branchId], references: [id])
+  description    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  authors     ProjectAuthor[]
-  tasks       Task[]
-  payments    Payment[]
-  files       File[]
+  books          Book[]
+  projectAuthors ProjectAuthor[]
+  tasks          Task[]
+  payments       Payment[]
+  files          FileRecord[]
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  @@index([status])
+  @@index([deadline])
+  @@map("projects")
+}
+
+model Book {
+  id              Int      @id @default(autoincrement())
+  projectId       Int
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title           String
+  isbn            String?
+  pageCount       Int      @default(240)
+  status          String   @default("Dizgi Aşamasında")
+  publicationDate DateTime?
+
+  @@map("books")
 }
 
 model ProjectAuthor {
-  id        String  @id @default(cuid())
-  projectId String
-  authorId  String
-  roleInProject String? 
-
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  author    Author  @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
+  id               Int      @id @default(autoincrement())
+  projectId        Int
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId         Int
+  author           Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  roleInProject    String   @default("Yazar")
+  assignedChapters String?
+  createdAt        DateTime @default(now())
 
   @@unique([projectId, authorId])
+  @@map("project_authors")
 }
 
 model Task {
-  id            String     @id @default(cuid())
-  title         String
-  description   String?    @db.Text
-  projectId     String
-  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  authorId      String?
-  author        Author?    @relation("AuthorTasks", fields: [authorId], references: [id])
-  coordinatorId String?
-  coordinator   User?      @relation("CoordinatorTasks", fields: [coordinatorId], references: [id])
+  id                   Int        @id @default(autoincrement())
+  title                String
+  description          String?
+  assignedAuthorId     Int?
+  assignedAuthor       Author?    @relation(fields: [assignedAuthorId], references: [id])
+  assignedCoordinatorId Int?
+  assignedCoordinator  User?      @relation("CoordinatorTasks", fields: [assignedCoordinatorId], references: [id])
+  projectId            Int
+  project              Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  priority             Priority   @default(Normal)
+  status               TaskStatus @default(Bekliyor)
+  startDate            DateTime   @default(now())
+  dueDate              DateTime
+  completionDate       DateTime?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
 
-  status        TaskStatus @default(BEKLIYOR)
-  priority      Priority   @default(NORMAL)
-  startDate     DateTime?
-  dueDate       DateTime?
-  completedDate DateTime?
-
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  @@index([status])
+  @@index([dueDate])
+  @@map("tasks")
 }
 
 model Payment {
-  id          String    @id @default(cuid())
-  authorId    String
-  author      Author    @relation(fields: [authorId], references: [id])
-  projectId   String?
-  project     Project?  @relation(fields: [projectId], references: [id])
-  amount      Decimal   @db.Decimal(10, 2)
-  status      PaymentStatus @default(BEKLIYOR)
+  id          Int           @id @default(autoincrement())
+  authorId    Int
+  author      Author        @relation(fields: [authorId], references: [id])
+  projectId   Int
+  project     Project       @relation(fields: [projectId], references: [id])
+  contractNo  String
+  amount      Float
+  status      PaymentStatus @default(Bekliyor)
   paymentDate DateTime?
-  notes       String?   @db.Text
-  documentUrl String?
+  invoiceNo   String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  @@index([status])
+  @@map("payments")
 }
 
-model File {
-  id        String   @id @default(cuid())
-  filename  String
-  url       String
-  type      String
-  size      Int      
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
-  authorId  String?
-  author    Author?  @relation(fields: [authorId], references: [id])
+model FileRecord {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  fileSize     Int
+  fileType     String
+  fileUrl      String
+  uploaderName String
+  projectId    Int?
+  project      Project? @relation(fields: [projectId], references: [id])
+  authorId     Int?
+  author       Author?  @relation(fields: [authorId], references: [id])
+  category     String   @default("Taslak Soru")
+  uploadDate   DateTime @default(now())
 
-  createdAt DateTime @default(now())
+  @@map("files")
 }
 
 model Message {
-  id         String   @id @default(cuid())
-  senderId   String
+  id         Int      @id @default(autoincrement())
+  senderId   Int
   sender     User     @relation("SentMessages", fields: [senderId], references: [id])
-  receiverId String
+  receiverId Int
   receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  subject    String?
-  content    String   @db.Text
+  subject    String
+  body       String
   isRead     Boolean  @default(false)
   isArchived Boolean  @default(false)
-
   createdAt  DateTime @default(now())
+
+  @@index([receiverId, isRead])
+  @@map("messages")
 }
 
 model Announcement {
-  id           String   @id @default(cuid())
-  title        String
-  content      String   @db.Text
-  priority     Priority @default(NORMAL)
-  publishDate  DateTime @default(now())
-  isArchived   Boolean  @default(false)
-  targetAudience String? 
+  id          Int      @id @default(autoincrement())
+  title       String
+  content     String
+  priority    Priority @default(Normal)
+  audience    String   @default("Tümü")
+  publishedAt DateTime @default(now())
+  isArchived  Boolean  @default(false)
+  createdBy   String   @default("Yönetim")
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  @@map("announcements")
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
+  id        Int      @id @default(autoincrement())
+  userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
-  content   String
-  isRead    Boolean  @default(false)
+  message   String
+  type      String   @default("system")
   link      String?
-
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
 }
 
 model ActivityLog {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  action    String   
-  entityType String  
-  entityId   String
-  details   String?  @db.Text
+  id         Int      @id @default(autoincrement())
+  userName   String
+  action     String
+  entityType String
+  entityId   Int?
+  details    String?
+  createdAt  DateTime @default(now())
 
-  createdAt DateTime @default(now())
+  @@index([createdAt])
+  @@map("activity_logs")
 }
