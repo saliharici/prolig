@@ -21,6 +21,7 @@ import {
 export type TabKey =
   | 'dashboard'
   | 'map'
+  | 'roles'
   | 'questions'
   | 'authors'
   | 'projects'
@@ -56,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const allMenuItems = [
     { key: 'dashboard' as TabKey, label: 'Ana Sayfa', icon: LayoutDashboard },
     { key: 'map' as TabKey, label: 'Türkiye Haritası', icon: MapPin },
+    { key: 'roles' as TabKey, label: 'Yetki ve Rol Yönetimi', icon: ShieldCheck },
     { key: 'questions' as TabKey, label: 'Soru Havuzu', icon: PenTool },
     { key: 'authors' as TabKey, label: 'Yazarlar', icon: Users },
     { key: 'projects' as TabKey, label: 'Projeler / Kitaplar', icon: BookOpen },

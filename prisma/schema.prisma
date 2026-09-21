@@ -70,9 +70,8 @@ model Role {
   code        RoleCode @unique
   name        String
   description String?
+  permissions String[] @default([])
   users       User[]
-
-  
 }
 
 model User {

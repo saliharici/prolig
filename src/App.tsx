@@ -26,6 +26,7 @@ import { ReportsView } from './components/views/ReportsView';
 import { MessagesView } from './components/views/MessagesView';
 import { AnnouncementsView } from './components/views/AnnouncementsView';
 import { FilesView } from './components/views/FilesView';
+import { RolesView } from './components/views/RolesView';
 import { SettingsView } from './components/views/SettingsView';
 import { QuestionsView } from './components/QuestionsView';
 import { UserRole, Author, Province } from './types';
@@ -465,6 +466,7 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
           {activeTab === 'map' && canAccess('map') && (
             <TurkeyMap mapData={mapData} onAddAuthorClick={handleOpenAddAuthorFromMap} onAuthorClick={(a) => setSelectedAuthorForModal(a)} />
           )}
+          {activeTab === 'roles' && canAccess('settings') && <RolesView />}
           {activeTab === 'questions' && <QuestionsView userRole={currentRole} userEmail="admin@prolig.com" />}
           {activeTab === 'authors' && <AuthorsView onAddAuthor={() => handleQuickAction('author')} onSelectAuthor={(a) => setSelectedAuthorForModal(a)} />}
           {activeTab === 'projects' && <ProjectsView onAddProject={() => handleQuickAction('project')} />}
