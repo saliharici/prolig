@@ -55,6 +55,17 @@ function LandingPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Vercel (Frontend-only) ortamı için Hardcoded Mock Login
+    if (email === 'admin@prolig.com') {
+      setTimeout(() => onLogin('GENEL_KOORDINATOR'), 800);
+      return;
+    }
+    if (email === 'yazar@prolig.com') {
+      setTimeout(() => onLogin('YAZAR'), 800);
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -70,7 +81,7 @@ function LandingPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
         setLoading(false);
       }
     } catch (err) {
-      alert('Sunucuya bağlanılamadı. Lütfen bağlantınızı kontrol edin.');
+      alert('Giriş başarısız. Lütfen admin@prolig.com adresini kullanın.');
       setLoading(false);
     }
   };
