@@ -14,12 +14,14 @@ import {
   Sparkles,
   ChevronRight,
   ShieldCheck,
-  X
+  X,
+  PenTool
 } from 'lucide-react';
 
 export type TabKey =
   | 'dashboard'
   | 'map'
+  | 'questions'
   | 'authors'
   | 'projects'
   | 'tasks'
@@ -40,6 +42,7 @@ interface SidebarProps {
     unreadMessages?: number;
     unreadAnnouncements?: number;
   };
+  userRole?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -48,10 +51,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenMobile,
   onCloseMobile,
   counts = {},
+  userRole = 'YAZAR',
 }) => {
-  const menuItems = [
+  const allMenuItems = [
     { key: 'dashboard' as TabKey, label: 'Ana Sayfa', icon: LayoutDashboard },
     { key: 'map' as TabKey, label: 'Türkiye Haritası', icon: MapPin },
+    { key: 'questions' as TabKey, label: 'Soru Havuzu', icon: PenTool },
     { key: 'authors' as TabKey, label: 'Yazarlar', icon: Users },
     { key: 'projects' as TabKey, label: 'Projeler / Kitaplar', icon: BookOpen },
     {
@@ -80,6 +85,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { key: 'files' as TabKey, label: 'Dosyalar', icon: FolderArchive },
     { key: 'settings' as TabKey, label: 'Ayarlar', icon: Settings },
   ];
+
+  const menuItems = allMenuItems.filter(item => {
+    if (userRole === 'GENEL_KOORDINATOR' || userRole === 'YONETICI') return true;
+    if (userRole === 'YAZAR' && (item.key === 'payments' || item.key === 'reports' || item.key === 'settings')) return false;
+    if (userRole === 'MUHASEBE' && (item.key === 'map' || item.key === 'tasks')) return false;
+    return true;
+  });
 
   return (
     <>

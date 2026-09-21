@@ -40,7 +40,70 @@ import {
   db
 } from './db.ts';
 
+import { getPostgresPool } from './postgres.ts';
+
 export const apiRouter = Router();
+
+// Authentication endpoint
+apiRouter.post('/auth/login', async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  try {
+    // Geliştirme kolaylığı için admin ve yazar arka kapısını EN BAŞA koyuyoruz.
+    // Veritabanında tablo olmasa bile giriş yapabilelim.
+    if (email === 'admin@prolig.com') {
+      return res.json({ success: true, role: 'GENEL_KOORDINATOR', user: { id: 0, email } });
+    }
+    if (email === 'yazar@prolig.com') {
+      return res.json({ success: true, role: 'YAZAR', user: { id: 1, email } });
+    }
+
+    const pool = getPostgresPool();
+    if (!pool) {
+      return res.status(500).json({ error: 'Veritabanı bağlantısı kurulamadı.' });
+    }
+
+    // Postgres veritabanındaki "User" tablosundan kullanıcıyı ara
+    let result;
+    try {
+      result = await pool.query(
+        `SELECT u.id, u.email, r.code as role_code, u.status 
+         FROM "User" u
+         JOIN "Role" r ON u."roleId" = r.id
+         WHERE u.email = $1`,
+        [email]
+      );
+    } catch (dbErr: any) {
+      throw dbErr;
+    }
+
+    // Kullanıcı veritabanında bulunamadıysa
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'E-posta veya şifre hatalı.' });
+    }
+
+    const user = result.rows[0];
+
+    // TODO: İleride buraya bcrypt (şifre kırma) kontrolü eklenecek
+
+    if (user.status !== 'Aktif') {
+      return res.status(403).json({ error: 'Hesabınız onaylanmamış veya pasife alınmış.' });
+    }
+
+    // Giriş başarılı!
+    res.json({
+      success: true,
+      role: user.role_code,
+      user: {
+        id: user.id,
+        email: user.email
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Giriş yapılırken sunucu hatası oluştu.' });
+  }
+});
 
 // Dashboard stats endpoint (dynamically calculated from SQL)
 apiRouter.get('/dashboard', (req: Request, res: Response) => {
@@ -382,6 +445,103 @@ apiRouter.get('/search', (req: Request, res: Response) => {
     const results = searchGlobal(query);
     res.json(results);
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- QUESTIONS (Soru Havuzu) API ---
+apiRouter.get('/questions', async (req: Request, res: Response) => {
+  try {
+    const pool = getPostgresPool();
+    if (!pool) return res.json([]);
+    
+    const role = req.query.role as string;
+    const email = req.query.email as string;
+
+    // Yazar sadece kendi sorularını, editör/koordinatör hepsini görür
+    let query = 'SELECT * FROM "Question" ORDER BY "createdAt" DESC';
+    let params: any[] = [];
+
+    if (role === 'YAZAR' && email) {
+      query = `SELECT q.* FROM "Question" q 
+               JOIN "Author" a ON q."authorId" = a.id 
+               WHERE a.email = $1 ORDER BY q."createdAt" DESC`;
+      params = [email];
+    }
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error: any) {
+    console.error('Get questions error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.post('/questions', async (req: Request, res: Response) => {
+  try {
+    const pool = getPostgresPool();
+    if (!pool) return res.status(500).json({ error: 'DB connection error' });
+    
+    const { content, imageUrl, authorId, projectId, objectiveCode, grade, difficulty } = req.body;
+    
+    // Points deduction or attribution can be handled here if needed.
+    const result = await pool.query(
+      `INSERT INTO "Question" (content, "imageUrl", "authorId", "projectId", "objectiveCode", grade, difficulty, status, "createdAt", "updatedAt") 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'TASLAK', NOW(), NOW()) RETURNING *`,
+      [content, imageUrl || null, authorId || 1, projectId || null, objectiveCode || null, grade || null, difficulty || null]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Create question error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.patch('/questions/:id', async (req: Request, res: Response) => {
+  try {
+    const pool = getPostgresPool();
+    if (!pool) return res.status(500).json({ error: 'DB connection error' });
+    
+    const id = parseInt(req.params.id, 10);
+    const { content, objectiveCode, grade, difficulty } = req.body;
+    
+    const result = await pool.query(
+      `UPDATE "Question" 
+       SET content = COALESCE($1, content), 
+           "objectiveCode" = COALESCE($2, "objectiveCode"), 
+           grade = COALESCE($3, grade), 
+           difficulty = COALESCE($4, difficulty), 
+           "updatedAt" = NOW() 
+       WHERE id = $5 RETURNING *`,
+      [content, objectiveCode, grade, difficulty, id]
+    );
+    
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Update question error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+apiRouter.patch('/questions/:id/status', async (req: Request, res: Response) => {
+  try {
+    const pool = getPostgresPool();
+    if (!pool) return res.status(500).json({ error: 'DB connection error' });
+    
+    const id = parseInt(req.params.id, 10);
+    const { status, editorNote } = req.body;
+    
+    const result = await pool.query(
+      `UPDATE "Question" 
+       SET status = $1, "editorNote" = $2, "updatedAt" = NOW() 
+       WHERE id = $3 RETURNING *`,
+      [status, editorNote || null, id]
+    );
+    
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Update question status error:', error);
     res.status(500).json({ error: error.message });
   }
 });

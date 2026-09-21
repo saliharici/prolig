@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, Users, BookOpen, CheckSquare, MapPin, ChevronRight, Loader2 } from 'lucide-react';
 import { TabKey } from './Sidebar';
 
+import { motion, AnimatePresence } from 'motion/react';
+
 interface GlobalSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -67,8 +69,6 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const totalResults =
     results.authors.length +
     results.projects.length +
@@ -76,28 +76,45 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     results.provinces.length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        {/* Search Input Bar */}
-        <div className="flex items-center border-b border-slate-100 px-4 py-3 bg-slate-50/50">
-          <Search className="h-5 w-5 text-slate-400 mr-3" />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Yazar adı, branş, kitap, görev veya il arayın..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden"
-          />
-          {loading && <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />}
-          {query && (
-            <button onClick={() => setQuery('')} className="p-1 text-slate-400 hover:text-slate-600 mr-2">
-              <X className="h-4 w-4" />
-            </button>
-          )}
-          <kbd
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 font-sans">
+          {/* Arka Plan Bulanıklığı (Backdrop) */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={onClose}
-            className="cursor-pointer rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 shadow-2xs hover:bg-slate-100"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+          />
+
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: -10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="relative w-full max-w-3xl rounded-2xl border border-white/20 bg-white/70 backdrop-blur-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[80vh]"
+          >
+            {/* Search Input Bar */}
+            <div className="flex items-center border-b border-slate-200/50 px-5 py-4 bg-white/50">
+              <Search className="h-6 w-6 text-indigo-500 mr-4" />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Yazar adı, branş, kitap, görev veya il arayın..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 bg-transparent text-lg font-medium text-slate-800 placeholder-slate-400 focus:outline-none"
+              />
+              {loading && <Loader2 className="h-5 w-5 animate-spin text-indigo-500 mr-3" />}
+              {query && (
+                <button onClick={() => setQuery('')} className="p-1 text-slate-400 hover:text-slate-600 mr-3 transition-colors bg-slate-100 rounded-full">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              <kbd
+                onClick={onClose}
+                className="cursor-pointer rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1 text-xs font-bold text-slate-500 shadow-sm hover:bg-slate-50 transition-colors"
           >
             ESC
           </kbd>
@@ -233,7 +250,9 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
             Kapat
           </button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };

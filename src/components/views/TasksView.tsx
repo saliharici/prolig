@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task } from '../../types';
 import { CheckSquare, Plus, Clock, AlertTriangle, CheckCircle2, ChevronRight, User } from 'lucide-react';
+import { PageBanner } from '../PageBanner';
 
 interface TasksViewProps {
   onAddTask: () => void;
@@ -58,23 +59,34 @@ export const TasksView: React.FC<TasksViewProps> = ({ onAddTask }) => {
 
   return (
     <div className="space-y-5">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-5 rounded-xl border border-slate-200/80 shadow-2xs">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Görev ve İş Takibi</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Yazarlara ve editörlere atanan soru yazımı, tashih ve dizgi görevleri
-          </p>
-        </div>
-
-        <button
-          onClick={onAddTask}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Yeni Görev Ata</span>
-        </button>
-      </div>
+      {/* Header */}
+      <PageBanner
+        title={
+          <><span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-300">Görev</span> ve İş Takibi</>
+        }
+        description={`Yazarlara, dizgicilere ve editörlere atanan güncel soru yazımı, tashih ve mizanpaj görevleri.`}
+        badge={
+          <>
+            <span className="relative flex h-2 w-2 mr-1">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+            </span>
+            GÖREV YÖNETİMİ
+          </>
+        }
+        gradient="from-slate-900 via-rose-950 to-slate-900"
+        orb1Color="bg-rose-500"
+        orb2Color="bg-pink-500"
+        actions={
+          <button
+            onClick={onAddTask}
+            className="flex items-center gap-1.5 rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-lg hover:bg-slate-100 hover:scale-105 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Yeni Görev Ata</span>
+          </button>
+        }
+      />
 
       {/* Status Filter Tabs */}
       <div className="flex gap-2 bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">

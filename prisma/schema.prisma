@@ -57,6 +57,14 @@ enum PaymentStatus {
   Iptal
 }
 
+enum QuestionStatus {
+  TASLAK
+  INCELEMEDE
+  REVIZYON
+  ONAYLANDI
+  REDDEDILDI
+}
+
 model Role {
   id          Int      @id @default(autoincrement())
   code        RoleCode @unique
@@ -64,7 +72,7 @@ model Role {
   description String?
   users       User[]
 
-  @@map("roles")
+  
 }
 
 model User {
@@ -85,11 +93,10 @@ model User {
   sentMessages     Message[]      @relation("SentMessages")
   receivedMessages Message[]      @relation("ReceivedMessages")
   notifications    Notification[]
-  activityLogs     ActivityLog[]
   assignedTasks    Task[]         @relation("CoordinatorTasks")
 
   @@index([email])
-  @@map("users")
+  
 }
 
 model Province {
@@ -103,7 +110,7 @@ model Province {
   users        User[]
 
   @@index([name])
-  @@map("provinces")
+  
 }
 
 model District {
@@ -114,7 +121,7 @@ model District {
   authors    Author[]
 
   @@index([provinceId])
-  @@map("districts")
+  
 }
 
 model Branch {
@@ -125,7 +132,7 @@ model Branch {
   authors   Author[]
   projects  Project[]
 
-  @@map("branches")
+  
 }
 
 model Institution {
@@ -136,7 +143,7 @@ model Institution {
   type       String    @default("Devlet Okulu")
   authors    Author[]
 
-  @@map("institutions")
+  
 }
 
 model Author {
@@ -166,11 +173,15 @@ model Author {
   tasks          Task[]
   payments       Payment[]
   files          FileRecord[]
+  questions      Question[]
+
+  // Havuz sistemi hakedişleri için Puan/Kredi sistemi
+  points          Int            @default(0)
 
   @@index([provinceId])
   @@index([branchId])
   @@index([status])
-  @@map("authors")
+  
 }
 
 model Project {
@@ -195,10 +206,11 @@ model Project {
   tasks          Task[]
   payments       Payment[]
   files          FileRecord[]
+  questions      Question[]
 
   @@index([status])
   @@index([deadline])
-  @@map("projects")
+  
 }
 
 model Book {
@@ -211,7 +223,7 @@ model Book {
   status          String   @default("Dizgi Aşamasında")
   publicationDate DateTime?
 
-  @@map("books")
+  
 }
 
 model ProjectAuthor {
@@ -225,7 +237,7 @@ model ProjectAuthor {
   createdAt        DateTime @default(now())
 
   @@unique([projectId, authorId])
-  @@map("project_authors")
+  
 }
 
 model Task {
@@ -248,16 +260,16 @@ model Task {
 
   @@index([status])
   @@index([dueDate])
-  @@map("tasks")
+  
 }
 
 model Payment {
   id          Int           @id @default(autoincrement())
   authorId    Int
   author      Author        @relation(fields: [authorId], references: [id])
-  projectId   Int
-  project     Project       @relation(fields: [projectId], references: [id])
-  contractNo  String
+  projectId   Int?
+  project     Project?      @relation(fields: [projectId], references: [id])
+  contractNo  String?
   amount      Float
   status      PaymentStatus @default(Bekliyor)
   paymentDate DateTime?
@@ -267,7 +279,7 @@ model Payment {
   updatedAt   DateTime      @updatedAt
 
   @@index([status])
-  @@map("payments")
+  
 }
 
 model FileRecord {
@@ -284,7 +296,7 @@ model FileRecord {
   category     String   @default("Taslak Soru")
   uploadDate   DateTime @default(now())
 
-  @@map("files")
+  
 }
 
 model Message {
@@ -300,7 +312,7 @@ model Message {
   createdAt  DateTime @default(now())
 
   @@index([receiverId, isRead])
-  @@map("messages")
+  
 }
 
 model Announcement {
@@ -313,7 +325,7 @@ model Announcement {
   isArchived  Boolean  @default(false)
   createdBy   String   @default("Yönetim")
 
-  @@map("announcements")
+  
 }
 
 model Notification {
@@ -328,7 +340,7 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, isRead])
-  @@map("notifications")
+  
 }
 
 model ActivityLog {
@@ -341,5 +353,32 @@ model ActivityLog {
   createdAt  DateTime @default(now())
 
   @@index([createdAt])
-  @@map("activity_logs")
+  
+}
+
+model Question {
+  id          Int            @id @default(autoincrement())
+  content     String         // Metin veya Soru içeriği
+  imageUrl    String?        // İsteğe bağlı soru resmi
+  authorId    Int
+  author      Author         @relation(fields: [authorId], references: [id])
+  
+  // Havuz sistemi: Soru havuza bağımsız düşer, sonradan kitaba çekilir.
+  projectId   Int?
+  project     Project?       @relation(fields: [projectId], references: [id])
+  
+  // Taksonomi (MEB Kategorizasyonu)
+  objectiveCode String?      // Kazanım Kodu (Örn: M.8.1.2.1)
+  grade         String?      // Sınıf (Örn: 8. Sınıf)
+  difficulty    String?      // Zorluk (Örn: Kolay, Orta, Zor)
+
+  status      QuestionStatus @default(TASLAK)
+  editorNote  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([authorId])
+  @@index([projectId])
+  @@index([status])
+  
 }

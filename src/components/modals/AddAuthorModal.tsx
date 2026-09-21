@@ -105,9 +105,9 @@ export const AddAuthorModal: React.FC<AddAuthorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="relative w-full max-w-xl rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-xl flex flex-col max-h-full rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/60">
+        <div className="shrink-0 flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/60">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs">
               <UserPlus className="h-5 w-5" />
@@ -123,14 +123,15 @@ export const AddAuthorModal: React.FC<AddAuthorModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-          {error && (
-            <div className="rounded-lg bg-rose-50 p-3 text-xs font-semibold text-rose-700 border border-rose-200">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden min-h-0">
+          <div className="p-6 space-y-4 overflow-y-auto">
+            {error && (
+              <div className="rounded-lg bg-rose-50 p-3 text-xs font-semibold text-rose-700 border border-rose-200">
+                {error}
+              </div>
+            )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Ad *</label>
               <input
@@ -155,7 +156,7 @@ export const AddAuthorModal: React.FC<AddAuthorModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">E-Posta *</label>
               <input
@@ -179,7 +180,7 @@ export const AddAuthorModal: React.FC<AddAuthorModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">İl (Şehir) *</label>
               <select
@@ -211,7 +212,7 @@ export const AddAuthorModal: React.FC<AddAuthorModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Ana Branş *</label>
               <select
@@ -261,9 +262,10 @@ export const AddAuthorModal: React.FC<AddAuthorModalProps> = ({
               className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
             />
           </div>
+        </div>
 
-          {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+        {/* Footer Actions */}
+          <div className="shrink-0 flex items-center justify-end gap-3 p-4 bg-slate-50 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}

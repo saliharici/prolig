@@ -33,13 +33,13 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
 
   // Region colors for 'region' view mode (Professional institutional palette)
   const regionColors: Record<string, { fill: string; border: string; bgBadge: string; textBadge: string }> = {
-    'Marmara': { fill: '#E0E7FF', border: '#818CF8', bgBadge: 'bg-indigo-50', textBadge: 'text-indigo-700' },
-    'Ege': { fill: '#DCFCE7', border: '#4ADE80', bgBadge: 'bg-emerald-50', textBadge: 'text-emerald-700' },
-    'Akdeniz': { fill: '#FEF3C7', border: '#FBBF24', bgBadge: 'bg-amber-50', textBadge: 'text-amber-700' },
-    'İç Anadolu': { fill: '#FFEDD5', border: '#FB923C', bgBadge: 'bg-orange-50', textBadge: 'text-orange-700' },
-    'Karadeniz': { fill: '#CFFAFE', border: '#38BDF8', bgBadge: 'bg-sky-50', textBadge: 'text-sky-700' },
-    'Doğu Anadolu': { fill: '#F3E8FF', border: '#C084FC', bgBadge: 'bg-purple-50', textBadge: 'text-purple-700' },
-    'Güneydoğu Anadolu': { fill: '#FFE4E6', border: '#FB7185', bgBadge: 'bg-rose-50', textBadge: 'text-rose-700' },
+    'Marmara': { fill: '#312e81', border: '#4f46e5', bgBadge: 'bg-indigo-900/50', textBadge: 'text-indigo-300' },
+    'Ege': { fill: '#064e3b', border: '#10b981', bgBadge: 'bg-emerald-900/50', textBadge: 'text-emerald-300' },
+    'Akdeniz': { fill: '#78350f', border: '#f59e0b', bgBadge: 'bg-amber-900/50', textBadge: 'text-amber-300' },
+    'İç Anadolu': { fill: '#7c2d12', border: '#f97316', bgBadge: 'bg-orange-900/50', textBadge: 'text-orange-300' },
+    'Karadeniz': { fill: '#0c4a6e', border: '#0ea5e9', bgBadge: 'bg-sky-900/50', textBadge: 'text-sky-300' },
+    'Doğu Anadolu': { fill: '#4c1d95', border: '#8b5cf6', bgBadge: 'bg-purple-900/50', textBadge: 'text-purple-300' },
+    'Güneydoğu Anadolu': { fill: '#881337', border: '#f43f5e', bgBadge: 'bg-rose-900/50', textBadge: 'text-rose-300' },
   };
 
   // Map province counts from database records
@@ -105,46 +105,46 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
     ).slice(0, 8);
   }, [searchQuery]);
 
-  // Determine fill color for political vector map
+  // Determine fill color for political vector map (DARK HOLOGRAPHIC THEME)
   const getProvinceColor = (prov: ProvinceMapItem, isSelected: boolean, isHovered: boolean) => {
     if (isSelected) {
-      return { fill: '#1D4ED8', stroke: '#0F172A', strokeWidth: 2 };
+      return { fill: '#3b82f6', stroke: '#ffffff', strokeWidth: 1.8 };
     }
 
     if (colorMode === 'region') {
-      const regStyle = regionColors[prov.region] || { fill: '#F1F5F9', border: '#CBD5E1' };
+      const regStyle = regionColors[prov.region] || { fill: '#334155', border: '#475569' };
       if (selectedRegion !== 'Tümü' && prov.region !== selectedRegion) {
-        return { fill: '#F8FAFC', stroke: '#E2E8F0', strokeWidth: 0.8 };
+        return { fill: '#0f172a', stroke: '#1e293b', strokeWidth: 0.8 };
       }
       return {
-        fill: isHovered ? '#60A5FA' : regStyle.fill,
-        stroke: isHovered ? '#1D4ED8' : '#94A3B8',
-        strokeWidth: isHovered ? 1.8 : 0.9,
+        fill: isHovered ? '#60a5fa' : regStyle.fill,
+        stroke: isHovered ? '#bfdbfe' : '#475569',
+        strokeWidth: isHovered ? 1.5 : 0.9,
       };
     }
 
-    // Default: Density Heatmap mode
+    // Default: Density Heatmap mode (Dark)
     const count = countsByProvinceId.get(prov.id)?.count || 0;
 
     if (selectedRegion !== 'Tümü' && prov.region !== selectedRegion) {
-      return { fill: '#F8FAFC', stroke: '#E2E8F0', strokeWidth: 0.8 };
+      return { fill: '#0f172a', stroke: '#1e293b', strokeWidth: 0.8 };
     }
 
     if (isHovered) {
-      return { fill: '#3B82F6', stroke: '#1E3A8A', strokeWidth: 2 };
+      return { fill: '#3b82f6', stroke: '#bfdbfe', strokeWidth: 1.8 };
     }
 
     if (count === 0) {
-      return { fill: '#F1F5F9', stroke: '#CBD5E1', strokeWidth: 0.9 };
+      return { fill: '#1e293b', stroke: '#475569', strokeWidth: 0.9 };
     }
 
     const ratio = count / maxCount;
-    if (ratio >= 0.7) return { fill: '#1E3A8A', stroke: '#172554', strokeWidth: 1.2 }; // Top tier
-    if (ratio >= 0.4) return { fill: '#2563EB', stroke: '#1E40AF', strokeWidth: 1.1 };
-    if (ratio >= 0.2) return { fill: '#3B82F6', stroke: '#2563EB', strokeWidth: 1 };
-    if (ratio >= 0.1) return { fill: '#60A5FA', stroke: '#3B82F6', strokeWidth: 0.9 };
-    if (ratio >= 0.04) return { fill: '#93C5FD', stroke: '#60A5FA', strokeWidth: 0.9 };
-    return { fill: '#DBEAFE', stroke: '#93C5FD', strokeWidth: 0.9 };
+    if (ratio >= 0.7) return { fill: '#93c5fd', stroke: '#bfdbfe', strokeWidth: 1.2 }; // Top tier (brightest soft blue)
+    if (ratio >= 0.4) return { fill: '#60a5fa', stroke: '#93c5fd', strokeWidth: 1.1 };
+    if (ratio >= 0.2) return { fill: '#3b82f6', stroke: '#60a5fa', strokeWidth: 1 };
+    if (ratio >= 0.1) return { fill: '#2563eb', stroke: '#3b82f6', strokeWidth: 0.9 };
+    if (ratio >= 0.04) return { fill: '#1d4ed8', stroke: '#2563eb', strokeWidth: 0.9 };
+    return { fill: '#1e3a8a', stroke: '#1d4ed8', strokeWidth: 0.9 };
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -159,20 +159,28 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
   const allRegions = ['Tümü', 'Marmara', 'Ege', 'Akdeniz', 'İç Anadolu', 'Karadeniz', 'Doğu Anadolu', 'Güneydoğu Anadolu'];
 
   return (
-    <div id="turkey-map-container" className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs">
+    <div id="turkey-map-container" className="rounded-3xl border border-indigo-900/30 bg-[#0B1120] p-6 shadow-2xl relative overflow-hidden">
+      {/* Background glowing effects for the whole widget */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+
       {/* Top Header & Interactive Filtering Tools */}
-      <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="relative z-10 flex flex-col gap-4 border-b border-white/5 pb-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-2xs">
-              <Compass className="h-4 w-4" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+              <Compass className="h-5 w-5" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Türkiye Siyasi Yazar Haritası</h2>
-            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60">
-              81 İl İdari Sınırları
+            <h2 className="text-xl font-extrabold text-white tracking-tight">Türkiye Yazar Ağı Radarı</h2>
+            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-[11px] font-bold text-blue-400 border border-blue-500/20 flex items-center gap-1.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+              </span>
+              Canlı Radar
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <p className="mt-1.5 text-xs text-slate-300 font-light">
             Resmi il mülki sınırları üzerinden gerçek zamanlı yazar kadroları, branş yoğunluğu ve bölgesel dağılım
           </p>
         </div>
@@ -181,16 +189,16 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           {/* Search Input with Autocomplete */}
           <div className="relative min-w-[180px]">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-300" />
             <input
               type="text"
               placeholder="İl Ara (Örn: Ankara, 06)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-8 pr-3 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden"
+              className="h-9 w-full rounded-lg border border-slate-600/80 bg-[#1e293b]/60 pl-8 pr-3 text-xs text-white placeholder-slate-400 focus:border-blue-400 focus:bg-[#1e293b] focus:outline-hidden"
             />
             {searchResults.length > 0 && (
-              <div className="absolute top-10 left-0 z-30 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+              <div className="absolute top-10 left-0 z-30 w-full overflow-hidden rounded-lg border border-slate-600 bg-slate-800 shadow-xl">
                 {searchResults.map((p) => {
                   const c = countsByProvinceId.get(p.id)?.count || 0;
                   return (
@@ -200,10 +208,10 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
                         setSelectedProvinceId(p.id);
                         setSearchQuery('');
                       }}
-                      className="flex w-full items-center justify-between px-3 py-2 text-left text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 border-b border-slate-50 last:border-0"
+                      className="flex w-full items-center justify-between px-3 py-2 text-left text-xs text-slate-200 hover:bg-blue-500/20 hover:text-blue-200 border-b border-slate-700/50 last:border-0"
                     >
                       <span className="font-semibold">{p.name} ({p.code})</span>
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+                      <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-bold text-slate-200">
                         {c} Yazar
                       </span>
                     </button>
@@ -214,13 +222,13 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
           </div>
 
           {/* Color Mode Toggle */}
-          <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+          <div className="flex rounded-lg border border-slate-600/80 p-0.5 bg-[#1e293b]/60">
             <button
               onClick={() => setColorMode('density')}
               className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all ${
                 colorMode === 'density'
-                  ? 'bg-white text-blue-700 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.4)]'
+                  : 'text-slate-300 hover:text-white'
               }`}
             >
               <Users className="h-3.5 w-3.5" />
@@ -230,8 +238,8 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
               onClick={() => setColorMode('region')}
               className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all ${
                 colorMode === 'region'
-                  ? 'bg-white text-blue-700 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.4)]'
+                  : 'text-slate-300 hover:text-white'
               }`}
             >
               <Layers className="h-3.5 w-3.5" />
@@ -242,7 +250,7 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
           {/* Add Author Action */}
           <button
             onClick={() => onAddAuthorClick(selectedProvinceId || undefined)}
-            className="flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors"
+            className="flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 text-xs font-bold text-white shadow-[0_0_10px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Yeni Yazar Ekle</span>
@@ -251,16 +259,16 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
       </div>
 
       {/* Region Filter Bar */}
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-b border-slate-100 pb-3">
-        <span className="text-[11px] font-bold text-slate-400 mr-1 uppercase tracking-wider">Bölge Filtresi:</span>
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-b border-white/5 pb-4 relative z-10">
+        <span className="text-[11px] font-bold text-slate-300 mr-2 uppercase tracking-wider">Bölge Filtresi:</span>
         {allRegions.map((region) => (
           <button
             key={region}
             onClick={() => setSelectedRegion(region)}
-            className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
+            className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition-all ${
               selectedRegion === region
-                ? 'bg-slate-900 text-white shadow-2xs'
-                : 'bg-slate-100/70 text-slate-600 hover:bg-slate-200/70'
+                ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.4)]'
+                : 'bg-[#1e293b]/80 text-slate-300 border border-slate-600/50 hover:bg-[#334155] hover:text-white'
             }`}
           >
             {region}
@@ -274,10 +282,14 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
         <div
           ref={mapContainerRef}
           onMouseMove={handleMouseMove}
-          className="relative flex flex-col items-center justify-between rounded-xl border border-slate-200/80 bg-gradient-to-b from-[#F0F5FA]/80 via-white to-[#F0F5FA]/60 p-4 lg:col-span-8 overflow-hidden"
+          className="relative flex flex-col items-center justify-between rounded-2xl border border-indigo-500/20 bg-gradient-to-b from-[#020617] via-[#0f172a] to-[#020617] p-4 lg:col-span-8 overflow-hidden shadow-2xl shadow-blue-900/10"
         >
+          {/* Decorative glowing orbs */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600 rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-600 rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
+
           {/* Top Bar: Marine Labels & Legend */}
-          <div className="flex w-full items-center justify-between text-xs text-slate-500 z-10">
+          <div className="flex w-full items-center justify-between text-xs text-slate-300 z-10">
             {/* Marine water body identifier */}
             <div className="flex items-center gap-3 text-[11px] font-medium text-slate-400 italic select-none">
               <span>⚓ Karadeniz</span>
@@ -290,45 +302,45 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
             {colorMode === 'density' ? (
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] text-slate-400">Az (0-2)</span>
-                <div className="flex h-2.5 w-28 overflow-hidden rounded-full border border-slate-200 shadow-2xs">
-                  <div className="h-full w-1/5 bg-[#DBEAFE]" title="1-3 Yazar" />
-                  <div className="h-full w-1/5 bg-[#93C5FD]" title="4-6 Yazar" />
-                  <div className="h-full w-1/5 bg-[#60A5FA]" title="7-10 Yazar" />
-                  <div className="h-full w-1/5 bg-[#2563EB]" title="11-15 Yazar" />
-                  <div className="h-full w-1/5 bg-[#1E3A8A]" title="16+ Yazar" />
+                <div className="flex h-2.5 w-28 overflow-hidden rounded-full border border-slate-600 shadow-2xs">
+                  <div className="h-full w-1/5 bg-[#172554]" title="1-3 Yazar" />
+                  <div className="h-full w-1/5 bg-[#1e3a8a]" title="4-6 Yazar" />
+                  <div className="h-full w-1/5 bg-[#1d4ed8]" title="7-10 Yazar" />
+                  <div className="h-full w-1/5 bg-[#3b82f6]" title="11-15 Yazar" />
+                  <div className="h-full w-1/5 bg-[#60a5fa]" title="16+ Yazar" />
                 </div>
-                <span className="text-[10px] font-bold text-slate-800">Çok (16+)</span>
+                <span className="text-[10px] font-bold text-slate-200">Çok (16+)</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500">
-                <span className="inline-block h-2 w-2 rounded-full bg-indigo-500" /> Marmara
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" /> Ege
-                <span className="inline-block h-2 w-2 rounded-full bg-amber-500" /> Akdeniz
-                <span className="inline-block h-2 w-2 rounded-full bg-sky-500" /> Karadeniz
+              <div className="flex items-center gap-2 text-[10px] font-medium text-slate-300">
+                <span className="inline-block h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" /> Marmara
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" /> Ege
+                <span className="inline-block h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" /> Akdeniz
+                <span className="inline-block h-2 w-2 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.6)]" /> Karadeniz
               </div>
             )}
           </div>
 
           {/* Zoom controls float on upper-right */}
-          <div className="absolute right-4 top-12 z-20 flex flex-col gap-1 rounded-lg border border-slate-200 bg-white/90 p-1 shadow-xs backdrop-blur-xs">
+          <div className="absolute right-4 top-12 z-20 flex flex-col gap-1 rounded-lg border border-slate-700/80 bg-[#0f172a]/90 p-1 shadow-xl backdrop-blur-md">
             <button
               onClick={() => setZoomLevel(prev => Math.min(prev + 0.2, 1.8))}
               title="Yakınlaştır"
-              className="flex h-7 w-7 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              className="flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
             >
               <ZoomIn className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => setZoomLevel(prev => Math.max(prev - 0.2, 0.8))}
               title="Uzaklaştır"
-              className="flex h-7 w-7 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              className="flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
             >
               <ZoomOut className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => setZoomLevel(1)}
               title="Sıfırla"
-              className="flex h-7 w-7 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-t border-slate-100"
+              className="flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-slate-800 hover:text-white border-t border-slate-700/50 mt-1 pt-1 transition-colors"
             >
               <RotateCcw className="h-3.5 w-3.5" />
             </button>
@@ -344,23 +356,23 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
               <defs>
                 {/* Subtle sea pattern grid */}
                 <pattern id="sea-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E2E8F0" strokeWidth="0.4" strokeDasharray="2,2" />
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="3,3" />
                 </pattern>
                 {/* Active province glow filter */}
                 <filter id="glow-selected" x="-10%" y="-10%" width="120%" height="120%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#1D4ED8" floodOpacity="0.4" />
+                  <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#60a5fa" floodOpacity="0.7" />
                 </filter>
               </defs>
 
               {/* Water background layer */}
-              <rect x="0" y="100" width="1050" height="500" fill="url(#sea-grid)" opacity="0.6" />
+              <rect x="0" y="100" width="1050" height="500" fill="url(#sea-grid)" opacity="0.4" />
 
               {/* Lakes (Van Gölü and Tuz Gölü for genuine political geography) */}
-              <ellipse cx="945" cy="385" rx="18" ry="14" fill="#DBEAFE" stroke="#93C5FD" strokeWidth="0.8" pointerEvents="none" />
-              <text x="945" y="388" fontSize="7px" fill="#3B82F6" textAnchor="middle" fontStyle="italic" pointerEvents="none">Van G.</text>
+              <ellipse cx="945" cy="385" rx="18" ry="14" fill="#0f172a" stroke="#1e3a8a" strokeWidth="0.8" pointerEvents="none" />
+              <text x="945" y="388" fontSize="7px" fill="#3b82f6" textAnchor="middle" fontStyle="italic" pointerEvents="none">Van G.</text>
 
-              <ellipse cx="445" cy="360" rx="14" ry="24" fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="0.8" strokeDasharray="2,2" pointerEvents="none" />
-              <text x="445" y="363" fontSize="6px" fill="#94A3B8" textAnchor="middle" fontStyle="italic" pointerEvents="none">Tuz G.</text>
+              <ellipse cx="445" cy="360" rx="14" ry="24" fill="#0f172a" stroke="#1e293b" strokeWidth="0.8" strokeDasharray="2,2" pointerEvents="none" />
+              <text x="445" y="363" fontSize="6px" fill="#475569" textAnchor="middle" fontStyle="italic" pointerEvents="none">Tuz G.</text>
 
               {/* 81 Turkish Provinces (Detailed Political Boundaries) */}
               {TURKEY_MAP_PROVINCES.map((prov) => {
@@ -447,8 +459,8 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
           </div>
 
           {/* Quick Jump Hotspot Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 border-t border-slate-100 pt-3 w-full">
-            <span className="text-[11px] text-slate-400 font-medium">Önemli Merkezler:</span>
+          <div className="flex flex-wrap items-center justify-center gap-2 border-t border-slate-700/50 pt-3 w-full relative z-10">
+            <span className="text-[11px] text-slate-300 font-medium">Önemli Merkezler:</span>
             {[
               { id: 34, name: 'İstanbul' },
               { id: 6, name: 'Ankara' },
@@ -468,13 +480,13 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
                   onClick={() => setSelectedProvinceId(item.id)}
                   className={`flex items-center gap-1 rounded-full px-2.5 py-0.8 text-[11px] font-semibold transition-all ${
                     selectedProvinceId === item.id
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40'
+                      ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.5)]'
+                      : 'bg-[#1e293b]/80 text-slate-200 border border-slate-600/50 hover:border-blue-400 hover:bg-blue-900/50'
                   }`}
                 >
                   <span>{item.name}</span>
-                  <span className={`rounded-full px-1.2 py-0.2 text-[9px] ${
-                    selectedProvinceId === item.id ? 'bg-blue-800 text-white' : 'bg-slate-100 text-slate-600'
+                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${
+                    selectedProvinceId === item.id ? 'bg-blue-800 text-white' : 'bg-slate-700 text-slate-300'
                   }`}>
                     {c}
                   </span>
@@ -485,20 +497,23 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
         </div>
 
         {/* Selected Province Details Inspector (4 cols) */}
-        <div className="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs lg:col-span-4">
-          <div>
+        <div className="flex flex-col justify-between rounded-2xl border border-indigo-500/20 bg-[#0f172a]/80 p-5 shadow-2xl backdrop-blur-md lg:col-span-4 relative overflow-hidden">
+          {/* Subtle inner glow */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full blur-[80px] opacity-10 pointer-events-none"></div>
+          
+          <div className="relative z-10">
             {/* Province Header */}
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+            <div className="flex items-start justify-between border-b border-slate-700/50 pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-lg bg-blue-600 px-2 py-0.5 font-mono text-xs font-bold text-white shadow-2xs">
+                  <span className="rounded-lg bg-blue-500/20 px-2 py-0.5 font-mono text-xs font-bold text-blue-300 border border-blue-500/30">
                     {selectedProvinceData?.code || '34'}
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+                  <h3 className="text-xl font-bold text-white tracking-tight">
                     {selectedProvinceData?.name || 'İstanbul'}
                   </h3>
                 </div>
-                <span className="mt-1 inline-flex items-center gap-1 text-xs text-slate-500 font-medium">
+                <span className="mt-1 inline-flex items-center gap-1 text-xs text-slate-300 font-medium">
                   <MapPin className="h-3 w-3 text-slate-400" />
                   {selectedProvinceData?.region || 'Marmara'} Bölgesi
                 </span>
@@ -506,7 +521,7 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
 
               <button
                 onClick={() => onAddAuthorClick(selectedProvinceId || undefined)}
-                className="flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200/60"
+                className="flex items-center gap-1 rounded-lg bg-blue-500/20 px-2.5 py-1.5 text-xs font-bold text-blue-300 hover:bg-blue-500/30 transition-colors border border-blue-500/30"
                 title="Bu İle Yazar Ekle"
               >
                 <UserPlus className="h-3.5 w-3.5" />
@@ -515,87 +530,83 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
             </div>
 
             {/* Key Statistics for Selected Province */}
-            <div className="grid grid-cols-2 gap-3 py-4 border-b border-slate-100">
-              <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kayıtlı Yazar</span>
-                <div className="mt-0.5 text-2xl font-black text-slate-900">
+            <div className="grid grid-cols-2 gap-3 py-4 border-b border-slate-700/50">
+              <div className="rounded-xl bg-slate-800/80 p-3 border border-slate-600/50 backdrop-blur-sm">
+                <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Kayıtlı Yazar</span>
+                <div className="mt-0.5 text-2xl font-black text-white">
                   {selectedStats?.count || 0}
                 </div>
-                <span className="text-[10px] text-slate-500">Milli Eğitim ve Özel</span>
+                <span className="text-[10px] text-slate-400">Milli Eğitim ve Özel</span>
               </div>
 
-              <div className="rounded-lg bg-emerald-50/60 p-3 border border-emerald-100/80">
-                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Aktif Görevde</span>
-                <div className="mt-0.5 text-2xl font-black text-emerald-700">
+              <div className="rounded-xl bg-emerald-900/40 p-3 border border-emerald-500/30 backdrop-blur-sm">
+                <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider">Aktif Görevde</span>
+                <div className="mt-0.5 text-2xl font-black text-emerald-400">
                   {selectedStats?.active || 0}
                 </div>
-                <span className="text-[10px] text-emerald-600 font-medium">Komisyon Üyesi</span>
+                <span className="text-[10px] text-emerald-400/80 font-medium">Komisyon Üyesi</span>
               </div>
             </div>
 
             {/* Province Authors List */}
             <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
                   Yerel Yazar Kadrosu ({provinceAuthors.length})
                 </h4>
                 {provinceAuthors.length > 0 && (
-                  <span className="text-[11px] text-blue-600 font-semibold">Tümünü İncele</span>
+                  <span className="text-[11px] text-blue-300 font-semibold cursor-pointer hover:text-blue-200">Tümünü İncele</span>
                 )}
               </div>
 
               {isLoadingAuthors ? (
-                <div className="py-8 text-center text-xs text-slate-400">Yazar listesi yükleniyor...</div>
+                <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                  <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  Yazar listesi taranıyor...
+                </div>
               ) : provinceAuthors.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
-                  <Info className="mx-auto h-6 w-6 text-slate-300" />
-                  <p className="mt-2 text-xs font-semibold text-slate-700">Henüz Kayıtlı Yazar Yok</p>
+                <div className="rounded-xl border border-dashed border-slate-600 bg-slate-800/50 p-6 text-center backdrop-blur-sm">
+                  <Info className="mx-auto h-6 w-6 text-slate-400" />
+                  <p className="mt-2 text-xs font-semibold text-slate-200">Henüz Kayıtlı Yazar Yok</p>
                   <p className="mt-0.5 text-[11px] text-slate-400">
                     Bu ilde henüz zümre yazarı görevlendirilmedi.
                   </p>
                   <button
                     onClick={() => onAddAuthorClick(selectedProvinceId || undefined)}
-                    className="mt-3 inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700"
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-[0_0_10px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition-all"
                   >
                     <Plus className="h-3 w-3" />
                     <span>İlk Yazarı Ekle</span>
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
                   {provinceAuthors.map((author) => (
                     <div
                       key={author.id}
                       onClick={() => onAuthorClick && onAuthorClick(author)}
-                      className="group flex items-center justify-between rounded-xl border border-slate-200/60 bg-white p-2.5 transition-all hover:border-blue-300 hover:bg-blue-50/30 cursor-pointer shadow-2xs"
+                      className="group flex items-center justify-between rounded-xl border border-slate-600/50 bg-slate-800/60 p-2.5 transition-all hover:border-blue-400/50 hover:bg-blue-900/30 cursor-pointer shadow-lg backdrop-blur-sm"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={author.profile_photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                          alt={author.first_name}
-                          referrerPolicy="no-referrer"
-                          className="h-8 w-8 rounded-full object-cover border border-slate-200"
-                        />
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <img
+                            src={author.profile_photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                            alt={author.first_name}
+                            referrerPolicy="no-referrer"
+                            className="h-9 w-9 rounded-full object-cover border border-slate-600"
+                          />
+                          <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-800 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
+                        </div>
                         <div>
-                          <div className="text-xs font-bold text-slate-900 group-hover:text-blue-600">
+                          <div className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors">
                             {author.first_name} {author.last_name}
                           </div>
-                          <div className="text-[10px] text-slate-500 font-medium">
-                            {author.branch_name} {author.district_name ? `• ${author.district_name}` : ''}
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            {author.branch?.name || 'Branş Belirtilmemiş'}
                           </div>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-1">
-                        <span className={`rounded-full px-2 py-0.2 text-[9px] font-bold ${
-                          author.status === 'Aktif'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-amber-50 text-amber-700'
-                        }`}>
-                          {author.status}
-                        </span>
-                        <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600" />
-                      </div>
+                      <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-blue-400 transition-colors" />
                     </div>
                   ))}
                 </div>
@@ -603,10 +614,16 @@ export const TurkeyMap: React.FC<TurkeyMapProps> = ({
             </div>
           </div>
 
-          {/* Quick Footer Action */}
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          {/* Footer of Inspector */}
+          <div className="mt-4 border-t border-slate-700/50 pt-3 flex items-center justify-between text-[10px] text-slate-500 font-medium">
             <span>Türkiye Mülki İdare Ağı</span>
-            <span className="font-bold text-slate-800">81 İl Aktif</span>
+            <span className="flex items-center gap-1 text-slate-300 font-bold">
+              <span className="relative flex h-2 w-2 mr-0.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              81 İl Aktif Sistem
+            </span>
           </div>
         </div>
       </div>

@@ -29,6 +29,7 @@ interface HeaderProps {
   onQuickAction: (action: 'author' | 'project' | 'task' | 'payment' | 'announcement') => void;
   notifications: any[];
   onMarkNotificationsRead: () => void;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -39,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   onQuickAction,
   notifications,
   onMarkNotificationsRead,
+  onLogout,
 }) => {
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
@@ -387,12 +389,12 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <img
               src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80"
-              alt="Dr. Selim Yavuz"
+              alt="Sedat AKBULUT"
               referrerPolicy="no-referrer"
               className="h-7 w-7 rounded-lg object-cover border border-slate-200"
             />
             <div className="hidden text-left xl:block">
-              <p className="text-xs font-bold text-slate-800 leading-none">Dr. Selim Yavuz</p>
+              <p className="text-xs font-bold text-slate-800 leading-none">Sedat AKBULUT</p>
               <p className="text-[10px] text-slate-400 font-medium mt-0.5">
                 {roles.find(r => r.key === currentRole)?.title}
               </p>
@@ -403,8 +405,8 @@ export const Header: React.FC<HeaderProps> = ({
           {isProfileMenuOpen && (
             <div className="absolute right-0 mt-2 w-52 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl z-50">
               <div className="px-3 py-2 border-b border-slate-100">
-                <p className="text-xs font-bold text-slate-900">Dr. Selim Yavuz</p>
-                <p className="text-[10px] text-slate-500">selim.yavuz@prolig.com.tr</p>
+                <p className="text-xs font-bold text-slate-900">Sedat AKBULUT</p>
+                <p className="text-[10px] text-slate-500">sedat.akbulut@prolig.com.tr</p>
               </div>
               <div className="py-1">
                 <button
@@ -420,6 +422,18 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <Settings className="h-3.5 w-3.5 text-slate-400" />
                   <span>Hesap Ayarları</span>
+                </button>
+              </div>
+              <div className="py-1 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    if (onLogout) onLogout();
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="h-3.5 w-3.5 text-red-500" />
+                  <span>Güvenli Çıkış Yap</span>
                 </button>
               </div>
             </div>
