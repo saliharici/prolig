@@ -195,58 +195,74 @@ export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
         </form>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Yükleniyor...</div>
+          <div className="p-8 flex justify-center items-center">
+            <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          </div>
         ) : questions.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">Henüz hiç soru eklenmemiş.</div>
+          <div className="p-12 flex flex-col items-center justify-center text-slate-400">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+              <Pencil className="w-8 h-8 text-slate-300" />
+            </div>
+            <p className="font-medium text-sm">Henüz hiç soru eklenmemiş.</p>
+          </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-slate-100/80">
             {questions.map((q, index) => (
               <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
+                initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
                 key={q.id} 
-                className="p-6 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
+                className="p-6 hover:bg-slate-50/80 transition-all border-b border-slate-100 last:border-0 group relative overflow-hidden"
               >
-                <div className="flex justify-between items-start mb-3">
+                {/* Sol vurgu çizgisi */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+                  q.status === 'ONAYLANDI' ? 'bg-emerald-500' : 
+                  q.status === 'REDDEDILDI' ? 'bg-rose-500' : 
+                  'bg-amber-500'
+                }`} />
+
+                <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium 
-                      ${q.status === 'ONAYLANDI' ? 'bg-green-100 text-green-700' : 
-                        q.status === 'REDDEDILDI' ? 'bg-red-100 text-red-700' : 
-                        'bg-yellow-100 text-yellow-700'}`}
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-sm border
+                      ${q.status === 'ONAYLANDI' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-emerald-500/10' : 
+                        q.status === 'REDDEDILDI' ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-rose-500/10' : 
+                        'bg-amber-50 text-amber-700 border-amber-200 shadow-amber-500/10'}`}
                     >
                       {q.status}
                     </span>
-                    <span className="text-xs text-gray-400">{new Date(q.createdAt).toLocaleDateString('tr-TR')}</span>
+                    <span className="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                      {new Date(q.createdAt).toLocaleDateString('tr-TR')}
+                    </span>
                   </div>
                   
                   {/* EDITÖR AKSİYONLARI */}
                   {userRole !== 'YAZAR' && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                       {q.status === 'ONAYLANDI' ? (
                         <button 
                           onClick={() => handleUpdateStatus(q.id, 'TASLAK')} 
-                          className="px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-100 hover:bg-slate-200 hover:text-slate-700 rounded-lg flex items-center gap-1.5 transition-colors" 
+                          className="px-3 py-1.5 text-xs font-bold text-slate-500 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 hover:text-slate-800 rounded-lg flex items-center gap-1.5 transition-all hover:shadow-md" 
                           title="Onayı Geri Al"
                         >
-                          <RotateCcw className="w-4 h-4" />
+                          <RotateCcw className="w-3.5 h-3.5" />
                           Geri Al
                         </button>
                       ) : (
                         <>
-                          <button onClick={() => startEditing(q)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Soruyu Düzenle">
-                            <Pencil className="w-5 h-5" />
+                          <button onClick={() => startEditing(q)} className="p-2 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-xl transition-colors" title="Soruyu Düzenle">
+                            <Pencil className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleUpdateStatus(q.id, 'ONAYLANDI')} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Onayla">
-                            <CheckCircle className="w-5 h-5" />
+                          <button onClick={() => handleUpdateStatus(q.id, 'ONAYLANDI')} className="p-2 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors" title="Onayla">
+                            <CheckCircle className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleUpdateStatus(q.id, 'REVIZYON')} className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg" title="Revizyon İste">
-                            <Edit3 className="w-5 h-5" />
+                          <button onClick={() => handleUpdateStatus(q.id, 'REVIZYON')} className="p-2 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-xl transition-colors" title="Revizyon İste">
+                            <Edit3 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleUpdateStatus(q.id, 'REDDEDILDI')} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Reddet">
-                            <XCircle className="w-5 h-5" />
+                          <button onClick={() => handleUpdateStatus(q.id, 'REDDEDILDI')} className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors" title="Reddet">
+                            <XCircle className="w-4 h-4" />
                           </button>
                         </>
                       )}
