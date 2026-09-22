@@ -1,6 +1,7 @@
 // Shared TypeScript types for PRO LİG platform
 
 export type RoleCode = 
+  | 'SUPER_ADMIN'
   | 'GENEL_KOORDINATOR'
   | 'IL_KOORDINATORU'
   | 'EDITOR'

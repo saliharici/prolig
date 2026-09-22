@@ -198,17 +198,18 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Role Switcher Pill (Interactive Demo Tool) */}
+        {/* Role Switcher Pill (Interactive Demo Tool) - SADECE SÜPER ADMIN */}
+        {currentRole === 'SUPER_ADMIN' && (
         <div className="relative" ref={roleMenuRef}>
           <button
             id="btn-role-switcher"
             onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
             className="flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 sm:px-3 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50/50"
-            title="Aktif Rolü Değiştir"
+            title="Aktif Rolü Değiştir (Sadece Süper Admin)"
           >
             <Shield className="h-3.5 w-3.5 text-blue-600" />
             <span className="hidden md:inline font-bold">
-              {roles.find(r => r.key === currentRole)?.title || 'Genel Koordinatör'}
+              Rol Simüle Et
             </span>
             <span className="md:hidden">Rol</span>
             <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
@@ -257,6 +258,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/* Quick Add Button with Action Dropdown */}
         <div className="relative" ref={quickMenuRef}>
@@ -389,14 +391,16 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <img
               src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80"
-              alt="Sedat AKBULUT"
+              alt={currentRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}
               referrerPolicy="no-referrer"
               className="h-7 w-7 rounded-lg object-cover border border-slate-200"
             />
             <div className="hidden text-left xl:block">
-              <p className="text-xs font-bold text-slate-800 leading-none">Sedat AKBULUT</p>
+              <p className="text-xs font-bold text-slate-800 leading-none">
+                {currentRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}
+              </p>
               <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                {roles.find(r => r.key === currentRole)?.title}
+                {currentRole === 'SUPER_ADMIN' ? 'Süper Admin' : (roles.find(r => r.key === currentRole)?.title || 'Yazar')}
               </p>
             </div>
             <ChevronDown className="h-3 w-3 text-slate-400" />
@@ -405,12 +409,19 @@ export const Header: React.FC<HeaderProps> = ({
           {isProfileMenuOpen && (
             <div className="absolute right-0 mt-2 w-52 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl z-50">
               <div className="px-3 py-2 border-b border-slate-100">
-                <p className="text-xs font-bold text-slate-900">Sedat AKBULUT</p>
-                <p className="text-[10px] text-slate-500">sedat.akbulut@prolig.com.tr</p>
+                <p className="text-xs font-bold text-slate-900">
+                  {currentRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  {currentRole === 'SUPER_ADMIN' ? 'salih@prolig.com' : 'sedat.akbulut@prolig.com.tr'}
+                </p>
               </div>
               <div className="py-1">
                 <button
-                  onClick={() => setIsProfileMenuOpen(false)}
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    onQuickAction('author'); // For now, we mock profile edit with author modal
+                  }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
                 >
                   <User className="h-3.5 w-3.5 text-slate-400" />

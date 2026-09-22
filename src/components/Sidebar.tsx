@@ -31,7 +31,8 @@ export type TabKey =
   | 'messages'
   | 'announcements'
   | 'files'
-  | 'settings';
+  | 'settings'
+  | 'logs';
 
 interface SidebarProps {
   activeTab: TabKey;
@@ -74,21 +75,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       key: 'messages' as TabKey,
       label: 'Mesajlar',
       icon: Mail,
-      badge: counts.unreadMessages || 3,
+      badge: counts.unreadMessages,
       badgeColor: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
     },
     {
       key: 'announcements' as TabKey,
       label: 'Duyurular',
       icon: Bell,
-      badge: counts.unreadAnnouncements || 2,
+      badge: counts.unreadAnnouncements,
       badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
     },
     { key: 'files' as TabKey, label: 'Dosyalar', icon: FolderArchive },
     { key: 'settings' as TabKey, label: 'Ayarlar', icon: Settings },
+    ...(userRole === 'SUPER_ADMIN' ? [{ key: 'logs' as TabKey, label: 'Log Kayıtları', icon: ShieldCheck }] : []),
   ];
 
   const menuItems = allMenuItems.filter(item => {
+    if (userRole === 'SUPER_ADMIN') return true;
+    if (item.key === 'logs') return false;
     if (userRole === 'GENEL_KOORDINATOR' || userRole === 'YONETICI') return true;
     if (userRole === 'YAZAR' && (item.key === 'payments' || item.key === 'reports' || item.key === 'settings')) return false;
     if (userRole === 'MUHASEBE' && (item.key === 'map' || item.key === 'tasks')) return false;

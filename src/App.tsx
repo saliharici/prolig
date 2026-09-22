@@ -29,6 +29,7 @@ import { FilesView } from './components/views/FilesView';
 import { RolesView } from './components/views/RolesView';
 import { SettingsView } from './components/views/SettingsView';
 import { QuestionsView } from './components/QuestionsView';
+import { AuditLogsView } from './components/views/AuditLogsView';
 import { UserRole, Author, Province } from './types';
 import { Users, MapPin, BookOpen, CheckCircle, Award, Shield, Key, Search } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -68,8 +69,10 @@ function LandingPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
     }
 
     // Vercel (Frontend-only) ortamı için Hardcoded Mock Login
-    if (email === 'admin@prolig.com') {
-      setTimeout(() => onLogin('GENEL_KOORDINATOR'), 800);
+    if (email === 'salih@prolig.com' || email === 'admin@prolig.com') {
+      setTimeout(() => {
+        onLogin(email === 'salih@prolig.com' ? 'SUPER_ADMIN' : 'GENEL_KOORDINATOR');
+      }, 800);
       return;
     }
     if (email === 'yazar@prolig.com') {
@@ -379,9 +382,9 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         userRole={currentRole}
         counts={{
-          tasksCount: dashboardStats?.upcomingDeadlines?.length || 5,
-          unreadMessages: 3,
-          unreadAnnouncements: 2,
+          tasksCount: undefined,
+          unreadMessages: undefined,
+          unreadAnnouncements: undefined,
         }}
       />
 
@@ -429,7 +432,7 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
                       SİSTEM AKTİF
                     </motion.div>
                     <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-                      Hoş Geldiniz, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">Sedat AKBULUT</span> 👋
+                      Hoş Geldiniz, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">{currentRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}</span> 👋
                     </h2>
                     <p className="text-slate-400 text-base md:text-lg max-w-2xl font-light">
                       {currentRole === 'YAZAR' 
@@ -477,6 +480,7 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
             <TurkeyMap mapData={mapData} onAddAuthorClick={handleOpenAddAuthorFromMap} onAuthorClick={(a) => setSelectedAuthorForModal(a)} />
           )}
           {activeTab === 'roles' && canAccess('settings') && <RolesView />}
+          {activeTab === 'logs' && currentRole === 'SUPER_ADMIN' && <AuditLogsView />}
           {activeTab === 'questions' && <QuestionsView userRole={currentRole} userEmail="admin@prolig.com" />}
           {activeTab === 'authors' && <AuthorsView onAddAuthor={() => handleQuickAction('author')} onSelectAuthor={(a) => setSelectedAuthorForModal(a)} />}
           {activeTab === 'projects' && <ProjectsView onAddProject={() => handleQuickAction('project')} />}
