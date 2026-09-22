@@ -157,6 +157,34 @@ export const AuthorsView: React.FC<AuthorsViewProps> = ({ onAddAuthor, onSelectA
         </div>
       </div>
 
+      {/* Pending Authors Widget */}
+      {authors.filter(a => a.status === 'Beklemede').length > 0 && selectedStatus !== 'Aktif' && selectedStatus !== 'Pasif' && (
+        <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-3 w-3 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+              </span>
+              <h3 className="text-sm font-bold text-amber-900">Onay Bekleyen Başvurular ({authors.filter(a => a.status === 'Beklemede').length})</h3>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {authors.filter(a => a.status === 'Beklemede').map(author => (
+              <div key={author.id} onClick={() => onSelectAuthor(author)} className="bg-white rounded-lg p-4 border border-amber-200 hover:shadow-md cursor-pointer transition-shadow flex items-center justify-between group">
+                <div className="flex flex-col">
+                  <span className="font-bold text-slate-800 text-sm group-hover:text-amber-700 transition-colors">{author.first_name} {author.last_name}</span>
+                  <span className="text-[11px] text-slate-500">{author.branch_name} • {author.province_name}</span>
+                </div>
+                <button className="text-xs bg-amber-100 text-amber-800 hover:bg-amber-200 font-semibold px-3 py-1.5 rounded-md transition-colors">
+                  İncele
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Authors Table */}
       <div className="rounded-xl border border-slate-200/80 bg-white shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">

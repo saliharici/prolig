@@ -57,6 +57,16 @@ function LandingPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
     e.preventDefault();
     setLoading(true);
     
+    // Yazar Kayıt (Onboarding) Bypass
+    if (!isLogin) {
+      setTimeout(() => {
+        setLoading(false);
+        alert('Kayıt başvurunuz alınmıştır. Genel Koordinatör onayından sonra giriş yapabilirsiniz.');
+        setIsLogin(true); // form modunu girişe çevir
+      }, 1000);
+      return;
+    }
+
     // Vercel (Frontend-only) ortamı için Hardcoded Mock Login
     if (email === 'admin@prolig.com') {
       setTimeout(() => onLogin('GENEL_KOORDINATOR'), 800);

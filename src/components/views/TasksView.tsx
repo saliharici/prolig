@@ -105,96 +105,87 @@ export const TasksView: React.FC<TasksViewProps> = ({ onAddTask }) => {
         ))}
       </div>
 
-      {/* Task List Table */}
-      <div className="rounded-xl border border-slate-200/80 bg-white shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3 px-4">Görev & İlgili Proje</th>
-                <th className="py-3 px-4">Atanan Yazar</th>
-                <th className="py-3 px-4">Öncelik</th>
-                <th className="py-3 px-4">Teslim Tarihi</th>
-                <th className="py-3 px-4">Aşama / Durum</th>
-                <th className="py-3 px-4 text-right">Durum Değiştir</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-xs text-slate-400">
-                    Görevler yükleniyor...
-                  </td>
-                </tr>
-              ) : tasks.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-xs text-slate-400">
-                    Kayıtlı görev bulunmuyor.
-                  </td>
-                </tr>
-              ) : (
-                tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-slate-900">{task.title}</div>
-                      <div className="text-[11px] text-blue-600 font-medium">
-                        {task.project_title || 'Genel Proje'}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      {task.author_first_name ? (
-                        <div className="flex items-center gap-1.5 font-medium text-slate-800">
-                          <User className="h-3.5 w-3.5 text-slate-400" />
-                          <span>
-                            {task.author_first_name} {task.author_last_name}
-                          </span>
+      {/* Kanban Board */}
+      <div className="flex gap-4 overflow-x-auto pb-4 pt-2">
+        {['Yapılacak', 'Devam Ediyor', 'Kontrol', 'Tamamlandı'].map((columnStatus) => {
+          const columnTasks = tasks.filter(t => t.status === columnStatus);
+          
+          return (
+            <div key={columnStatus} className="flex flex-col min-w-[300px] w-[300px] bg-slate-50/50 rounded-2xl border border-slate-200/60 p-3 h-[calc(100vh-250px)]">
+              {/* Column Header */}
+              <div className="flex items-center justify-between mb-4 px-1">
+                <h3 className="font-bold text-sm text-slate-700">{columnStatus}</h3>
+                <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {columnTasks.length}
+                </span>
+              </div>
+              
+              {/* Task Cards */}
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1 pb-2">
+                {columnTasks.length === 0 ? (
+                  <div className="h-24 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-xl text-xs text-slate-400 font-medium">
+                    Görev yok
+                  </div>
+                ) : (
+                  columnTasks.map((task) => (
+                    <div key={task.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-blue-200 transition-all group">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${getPriorityBadge(task.priority)}`}>
+                          {task.priority}
+                        </span>
+                        <div className="relative group/menu">
+                          <select
+                            value={task.status}
+                            onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                            className="opacity-0 group-hover:opacity-100 absolute right-0 top-0 h-6 w-6 cursor-pointer"
+                          >
+                            <option value="Yapılacak">Yapılacak</option>
+                            <option value="Devam Ediyor">Devam Ediyor</option>
+                            <option value="Kontrol">Kontrol</option>
+                            <option value="Tamamlandı">Tamamlandı</option>
+                          </select>
+                          <button className="text-slate-400 hover:text-slate-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
                         </div>
-                      ) : (
-                        <span className="text-slate-400 italic">Atanmadı</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${getPriorityBadge(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-600 font-medium">
-                      <div className="flex items-center gap-1 text-[11px]">
-                        <Clock className="h-3 w-3 text-slate-400" />
-                        <span>{task.due_date}</span>
                       </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                        task.status === 'Tamamlandı'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : task.status === 'Kontrol'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : task.status === 'Devam Ediyor'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}>
-                        {task.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <select
-                        value={task.status}
-                        onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                        className="h-7 rounded-md border border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 focus:border-emerald-500 focus:outline-hidden"
-                      >
-                        <option value="Yapılacak">Yapılacak</option>
-                        <option value="Devam Ediyor">Devam Ediyor</option>
-                        <option value="Kontrol">Kontrol</option>
-                        <option value="Tamamlandı">Tamamlandı</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                      
+                      <h4 className="font-bold text-sm text-slate-800 leading-snug mb-1">{task.title}</h4>
+                      <p className="text-[11px] text-blue-600 font-semibold mb-4 line-clamp-1">
+                        {task.project_title || 'Genel Proje'}
+                      </p>
+                      
+                      <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                            {task.author_first_name ? (
+                              <span className="text-[10px] font-bold text-slate-600">
+                                {task.author_first_name[0]}{task.author_last_name?.[0] || ''}
+                              </span>
+                            ) : (
+                              <User className="w-3 h-3 text-slate-400" />
+                            )}
+                          </div>
+                          {task.author_first_name ? (
+                            <span className="text-[10px] font-medium text-slate-600">
+                              {task.author_first_name} {task.author_last_name?.substring(0, 1)}.
+                            </span>
+                          ) : (
+                            <span className="text-[10px] italic text-slate-400">Atanmadı</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500">
+                          <Clock className="w-3 h-3" />
+                          {task.due_date}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
