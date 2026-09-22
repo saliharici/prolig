@@ -336,7 +336,21 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    
+    // Header navigasyonunu dinle
+    const handleHeaderNavigate = (e: any) => {
+      if (e.detail) setActiveTab(e.detail);
+    };
+    const headerEl = document.getElementById('app-header');
+    if (headerEl) {
+      headerEl.addEventListener('navigate', handleHeaderNavigate);
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      const hEl = document.getElementById('app-header');
+      if (hEl) hEl.removeEventListener('navigate', handleHeaderNavigate);
+    };
   }, []);
 
   const handleQuickAction = (action: 'author' | 'project' | 'task' | 'payment' | 'announcement') => {
@@ -392,6 +406,7 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
         <Header
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           currentRole={currentRole}
+          loggedInRole={userRole}
           onRoleChange={setCurrentRole} 
           onOpenGlobalSearch={() => setIsGlobalSearchOpen(true)}
           onQuickAction={handleQuickAction}
@@ -432,7 +447,7 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
                       SİSTEM AKTİF
                     </motion.div>
                     <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-                      Hoş Geldiniz, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">{currentRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}</span> 👋
+                      Hoş Geldiniz, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">{userRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}</span> 👋
                     </h2>
                     <p className="text-slate-400 text-base md:text-lg max-w-2xl font-light">
                       {currentRole === 'YAZAR' 

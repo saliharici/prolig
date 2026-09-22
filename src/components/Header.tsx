@@ -24,6 +24,7 @@ import { UserRole } from '../types';
 interface HeaderProps {
   onOpenMobileSidebar: () => void;
   currentRole: UserRole;
+  loggedInRole: UserRole;
   onRoleChange: (role: UserRole) => void;
   onOpenGlobalSearch: () => void;
   onQuickAction: (action: 'author' | 'project' | 'task' | 'payment' | 'announcement') => void;
@@ -35,6 +36,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   onOpenMobileSidebar,
   currentRole,
+  loggedInRole,
   onRoleChange,
   onOpenGlobalSearch,
   onQuickAction,
@@ -199,7 +201,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Role Switcher Pill (Interactive Demo Tool) - SADECE SÜPER ADMIN */}
-        {currentRole === 'SUPER_ADMIN' && (
+        {loggedInRole === 'SUPER_ADMIN' && (
         <div className="relative" ref={roleMenuRef}>
           <button
             id="btn-role-switcher"
@@ -391,16 +393,16 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <img
               src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80"
-              alt={currentRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}
+              alt={loggedInRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}
               referrerPolicy="no-referrer"
               className="h-7 w-7 rounded-lg object-cover border border-slate-200"
             />
             <div className="hidden text-left xl:block">
               <p className="text-xs font-bold text-slate-800 leading-none">
-                {currentRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}
+                {loggedInRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}
               </p>
               <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                {currentRole === 'SUPER_ADMIN' ? 'Süper Admin' : (roles.find(r => r.key === currentRole)?.title || 'Yazar')}
+                {loggedInRole === 'SUPER_ADMIN' ? 'Süper Admin' : (roles.find(r => r.key === currentRole)?.title || 'Yazar')}
               </p>
             </div>
             <ChevronDown className="h-3 w-3 text-slate-400" />
@@ -410,17 +412,19 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="absolute right-0 mt-2 w-52 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl z-50">
               <div className="px-3 py-2 border-b border-slate-100">
                 <p className="text-xs font-bold text-slate-900">
-                  {currentRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}
+                  {loggedInRole === 'SUPER_ADMIN' ? 'Salih Bey' : 'Sedat AKBULUT'}
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  {currentRole === 'SUPER_ADMIN' ? 'salih@prolig.com' : 'sedat.akbulut@prolig.com.tr'}
+                  {loggedInRole === 'SUPER_ADMIN' ? 'salih@prolig.com' : 'sedat.akbulut@prolig.com.tr'}
                 </p>
               </div>
               <div className="py-1">
                 <button
                   onClick={() => {
                     setIsProfileMenuOpen(false);
-                    onQuickAction('author'); // For now, we mock profile edit with author modal
+                    // Pass a custom action or just use a settings tab routing
+                    const headerEl = document.getElementById('app-header');
+                    if (headerEl) headerEl.dispatchEvent(new CustomEvent('navigate', { detail: 'settings' }));
                   }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
                 >
@@ -428,7 +432,11 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>Profilim</span>
                 </button>
                 <button
-                  onClick={() => setIsProfileMenuOpen(false)}
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    const headerEl = document.getElementById('app-header');
+                    if (headerEl) headerEl.dispatchEvent(new CustomEvent('navigate', { detail: 'settings' }));
+                  }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
                 >
                   <Settings className="h-3.5 w-3.5 text-slate-400" />
