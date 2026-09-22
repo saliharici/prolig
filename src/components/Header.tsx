@@ -28,6 +28,7 @@ interface HeaderProps {
   onRoleChange: (role: UserRole) => void;
   onOpenGlobalSearch: () => void;
   onQuickAction: (action: 'author' | 'project' | 'task' | 'payment' | 'announcement') => void;
+  onNavigate?: (tab: 'settings' | string) => void;
   notifications: any[];
   onMarkNotificationsRead: () => void;
   onLogout?: () => void;
@@ -40,6 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRoleChange,
   onOpenGlobalSearch,
   onQuickAction,
+  onNavigate,
   notifications,
   onMarkNotificationsRead,
   onLogout,
@@ -422,9 +424,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => {
                     setIsProfileMenuOpen(false);
-                    // Pass a custom action or just use a settings tab routing
-                    const headerEl = document.getElementById('app-header');
-                    if (headerEl) headerEl.dispatchEvent(new CustomEvent('navigate', { detail: 'settings' }));
+                    if (onNavigate) onNavigate('settings');
                   }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
                 >
@@ -434,8 +434,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => {
                     setIsProfileMenuOpen(false);
-                    const headerEl = document.getElementById('app-header');
-                    if (headerEl) headerEl.dispatchEvent(new CustomEvent('navigate', { detail: 'settings' }));
+                    if (onNavigate) onNavigate('settings');
                   }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
                 >

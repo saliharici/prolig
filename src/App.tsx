@@ -336,20 +336,9 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    
-    // Header navigasyonunu dinle
-    const handleHeaderNavigate = (e: any) => {
-      if (e.detail) setActiveTab(e.detail);
-    };
-    const headerEl = document.getElementById('app-header');
-    if (headerEl) {
-      headerEl.addEventListener('navigate', handleHeaderNavigate);
-    }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      const hEl = document.getElementById('app-header');
-      if (hEl) hEl.removeEventListener('navigate', handleHeaderNavigate);
     };
   }, []);
 
@@ -376,7 +365,7 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
   // Basit bir Yetki Kontrol Fonksiyonu
   const canAccess = (tab: TabKey) => {
     if (currentRole === 'GENEL_KOORDINATOR' || currentRole === 'YONETICI') return true;
-    if (currentRole === 'YAZAR' && (tab === 'payments' || tab === 'reports' || tab === 'settings')) return false;
+    if (currentRole === 'YAZAR' && (tab === 'payments' || tab === 'reports' || tab === 'settings' || tab === 'logs')) return false;
     if (currentRole === 'MUHASEBE' && (tab === 'map' || tab === 'tasks')) return false;
     return true;
   };
@@ -410,6 +399,7 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
           onRoleChange={setCurrentRole} 
           onOpenGlobalSearch={() => setIsGlobalSearchOpen(true)}
           onQuickAction={handleQuickAction}
+          onNavigate={(tab) => setActiveTab(tab as TabKey)}
           notifications={notifications}
           onMarkNotificationsRead={async () => {}}
           onLogout={onLogout}
@@ -496,6 +486,7 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
           )}
           {activeTab === 'roles' && canAccess('settings') && <RolesView />}
           {activeTab === 'logs' && currentRole === 'SUPER_ADMIN' && <AuditLogsView />}
+          {activeTab === 'settings' && canAccess('settings') && <SettingsView />}
           {activeTab === 'questions' && <QuestionsView userRole={currentRole} userEmail="admin@prolig.com" />}
           {activeTab === 'authors' && <AuthorsView onAddAuthor={() => handleQuickAction('author')} onSelectAuthor={(a) => setSelectedAuthorForModal(a)} />}
           {activeTab === 'projects' && <ProjectsView onAddProject={() => handleQuickAction('project')} />}
