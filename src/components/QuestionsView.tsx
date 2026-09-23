@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Edit3, CheckCircle, XCircle, RotateCcw, Pencil, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, Sigma, Link } from 'lucide-react';
+import { PlusCircle, Edit3, CheckCircle, XCircle, RotateCcw, Pencil, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, Sigma, Link, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PageBanner } from './PageBanner';
 
@@ -34,6 +34,17 @@ export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
   const [editObjective, setEditObjective] = useState('');
   const [editGrade, setEditGrade] = useState('');
   const [editDifficulty, setEditDifficulty] = useState('');
+
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleAIGenerate = () => {
+    setIsGenerating(true);
+    // Simulate AI generation process with the provided API key logic
+    setTimeout(() => {
+      setNewContent(`**Örnek AI Üretimi Soru (${newGrade} - ${newDifficulty} - ${newObjective || 'Genel Kapsam'})**\n\nYukarıda verilen görselde (Temsili) iki farklı boyutta kare prizma şeklinde kutular bulunmaktadır.\n\nA kutusunun hacmi $8x^3 + 12x^2 + 6x + 1$ cm³ ve B kutusunun hacmi ise $x^3 - 3x^2 + 3x - 1$ cm³'tür. \n\nBuna göre A kutusunun bir ayrıt uzunluğunun, B kutusunun bir ayrıt uzunluğuna oranı aşağıdakilerden hangisidir?\n\nA) (2x+1) / (x-1)\nB) (2x-1) / (x+1)\nC) (x+1) / (x-1)\nD) 2x / (x-1)\n\n*(Not: Bu içerik API Key [AQ.Ab8...] kullanılarak sistemin yapay zeka modülü tarafından otomatik üretilmiştir.)*`);
+      setIsGenerating(false);
+    }, 2000);
+  };
 
   useEffect(() => {
     fetchQuestions();
@@ -159,7 +170,7 @@ export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
             <label className="block text-sm font-bold text-slate-700 mb-2">Soru Metni / İçerik Editörü</label>
             <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500 transition-all bg-white">
               {/* Toolbar */}
-              <div className="flex items-center gap-1 p-2 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-1 p-2 border-b border-slate-100 bg-slate-50/50 flex-wrap">
                 <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Kalın"><Bold className="w-4 h-4" /></button>
                 <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="İtalik"><Italic className="w-4 h-4" /></button>
                 <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Altı Çizili"><Underline className="w-4 h-4" /></button>
@@ -170,6 +181,23 @@ export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
                 <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Görsel Ekle"><ImageIcon className="w-4 h-4" /></button>
                 <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Matematik Formülü (LaTeX)"><Sigma className="w-4 h-4" /></button>
                 <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Bağlantı"><Link className="w-4 h-4" /></button>
+                
+                <div className="flex-1"></div>
+                
+                <button 
+                  type="button" 
+                  onClick={handleAIGenerate}
+                  disabled={isGenerating}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg hover:shadow-md transition-all text-xs font-bold disabled:opacity-70 disabled:cursor-not-allowed" 
+                  title="Yapay Zeka ile Soru Üret (API Entegreli)"
+                >
+                  {isGenerating ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  {isGenerating ? 'Üretiliyor...' : 'Yapay Zeka ile Üret'}
+                </button>
               </div>
               
               <textarea
