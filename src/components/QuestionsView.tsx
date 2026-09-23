@@ -47,7 +47,7 @@ export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
     
     // Kullanıcının Google Gemini (AI Studio) için verdiği API anahtarı
     // Güvenlik gereği (GitHub Push Protection) doğrudan koda yazılmamıştır. Vercel .env'den okunur.
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+    const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || '').trim(); 
 
     if (!apiKey) {
       alert("API anahtarı bulunamadı! Lütfen Vercel panelinden VITE_GEMINI_API_KEY değişkenini ekleyin.");
@@ -76,7 +76,12 @@ Lütfen sadece sorunun metnini, ardından A, B, C, D şıklarını (alt alta) ve
       });
 
       if (!response.ok) {
-        throw new Error("Yapay Zeka servisine bağlanılamadı. API anahtarı geçersiz veya kısıtlanmış olabilir.");
+        let errorMsg = "Bilinmeyen bir hata oluştu.";
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error?.message || JSON.stringify(errorData);
+        } catch(e) {}
+        throw new Error(`Google API Hatası: ${response.status} - ${errorMsg}`);
       }
 
       const data = await response.json();
