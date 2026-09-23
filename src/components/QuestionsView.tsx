@@ -37,13 +37,62 @@ export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
 
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleAIGenerate = () => {
+  const handleAIGenerate = async () => {
+    if (!newObjective) {
+      alert("Lütfen önce bir Kazanım Kodu girin (Örn: M.8.1.2) ki yapay zeka doğru soruyu üretebilsin.");
+      return;
+    }
+
     setIsGenerating(true);
-    // Simulate AI generation process with the provided API key logic
-    setTimeout(() => {
-      setNewContent(`**Örnek AI Üretimi Soru (${newGrade} - ${newDifficulty} - ${newObjective || 'Genel Kapsam'})**\n\nYukarıda verilen görselde (Temsili) iki farklı boyutta kare prizma şeklinde kutular bulunmaktadır.\n\nA kutusunun hacmi $8x^3 + 12x^2 + 6x + 1$ cm³ ve B kutusunun hacmi ise $x^3 - 3x^2 + 3x - 1$ cm³'tür. \n\nBuna göre A kutusunun bir ayrıt uzunluğunun, B kutusunun bir ayrıt uzunluğuna oranı aşağıdakilerden hangisidir?\n\nA) (2x+1) / (x-1)\nB) (2x-1) / (x+1)\nC) (x+1) / (x-1)\nD) 2x / (x-1)\n\n*(Not: Bu içerik API Key [AQ.Ab8...] kullanılarak sistemin yapay zeka modülü tarafından otomatik üretilmiştir.)*`);
+    
+    // Kullanıcının Google Gemini (AI Studio) için verdiği API anahtarı
+    // Güvenlik gereği (GitHub Push Protection) doğrudan koda yazılmamıştır. Vercel .env'den okunur.
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+
+    if (!apiKey) {
+      alert("API anahtarı bulunamadı! Lütfen Vercel panelinden VITE_GEMINI_API_KEY değişkenini ekleyin.");
       setIsGenerating(false);
-    }, 2000);
+      return;
+    }
+    
+    const prompt = `Sen profesyonel bir soru yazarı ve eğitim uzmanısın. Lütfen aşağıdaki kriterlere uygun, MEB (Milli Eğitim Bakanlığı) müfredatına ve LGS/YKS tarzına uygun yeni nesil bir çoktan seçmeli soru üret.
+    
+Kriterler:
+- Sınıf: ${newGrade}
+- Kazanım Kodu: ${newObjective}
+- Zorluk Derecesi: ${newDifficulty}
+
+Lütfen sadece sorunun metnini, ardından A, B, C, D şıklarını (alt alta) ve en sonda doğru cevabı kısa bir açıklama ile ver. Markdown formatını kullanabilirsin.`;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Yapay Zeka servisine bağlanılamadı. API anahtarı geçersiz veya kısıtlanmış olabilir.");
+      }
+
+      const data = await response.json();
+      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (generatedText) {
+        setNewContent(generatedText);
+      } else {
+        alert("Soru üretilemedi, lütfen tekrar deneyin.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Yapay zeka ile iletişimde bir hata oluştu.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   useEffect(() => {
