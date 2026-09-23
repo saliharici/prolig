@@ -528,17 +528,24 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
 // 3. ANA YÖNLENDİRİCİ (ROUTER)
 // ==========================================
 export function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>('YAZAR');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
+  const [userRole, setUserRole] = useState<UserRole>(() => {
+    return (localStorage.getItem('userRole') as UserRole) || 'YAZAR';
+  });
 
   const handleLogin = (role: UserRole) => {
     setUserRole(role);
     setIsAuthenticated(true);
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userRole', role);
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setUserRole('YAZAR');
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userRole');
   };
 
   return (
