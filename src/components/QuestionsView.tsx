@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PlusCircle, Edit3, CheckCircle, XCircle, RotateCcw, Pencil, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, Sigma, Link, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PageBanner } from './PageBanner';
+import { useAppStore } from '../store';
 
 interface Question {
   id: number;
@@ -21,8 +22,6 @@ interface QuestionsViewProps {
 }
 
 export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [newContent, setNewContent] = useState('');
   const [newObjective, setNewObjective] = useState('');
@@ -116,61 +115,38 @@ Lütfen sadece sorunun metnini, ardından A, B, C, D şıklarını (alt alta) ve
     }
   };
 
+  const storeQuestions = useAppStore(state => state.questions);
+  const addQuestion = useAppStore(state => state.addQuestion);
+  const updateQuestionStatusStore = useAppStore(state => state.updateQuestionStatus);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Zustand'dan geldiği için fetch işlemi gerekmez
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      // API call denemesi
-      const res = await fetch('/api/questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          content: newContent,
-          objectiveCode: newObjective,
-          grade: newGrade,
-          difficulty: newDifficulty,
-          authorId: 1
-        })
-      });
-
-      if (res.ok) {
-        setShowForm(false);
-        setNewContent('');
-        fetchQuestions();
-      } else {
-        throw new Error('API Bulunamadı - Mock Kullanılacak');
-      }
-    } catch (err) {
-      // Frontend-only demo modülü için mock veri ekleme (API yoksa çalışır)
-      console.log('Mock Soru Ekleniyor...');
-      const newQuestion: Question = {
-        id: Math.floor(Math.random() * 1000) + 100,
-        content: newContent,
-        imageUrl: null,
-        status: 'BEKLEMEDE',
-        editorNote: null,
-        objectiveCode: newObjective,
-        grade: newGrade,
-        difficulty: newDifficulty,
-        createdAt: new Date().toISOString()
-      };
-      
-      setQuestions(prev => [newQuestion, ...prev]);
-      setShowForm(false);
-      setNewContent('');
-    }
+    
+    console.log('Zustand Global Store - Yeni Soru Ekleniyor...');
+    const newQuestion: Question = {
+      id: Math.floor(Math.random() * 1000) + 100,
+      content: newContent,
+      imageUrl: null,
+      status: 'BEKLEMEDE',
+      editorNote: null,
+      objectiveCode: newObjective,
+      grade: newGrade,
+      difficulty: newDifficulty,
+      createdAt: new Date().toISOString()
+    };
+    
+    addQuestion(newQuestion);
+    setShowForm(false);
+    setNewContent('');
   };
 
   const handleUpdateStatus = async (id: number, status: string) => {
-    try {
-      const res = await fetch(`/api/questions/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      if (res.ok) fetchQuestions();
-    } catch (err) {
-      console.error(err);
-    }
+    updateQuestionStatusStore(id, status);
   };
 
   const startEditing = (q: Question) => {
@@ -321,7 +297,7 @@ Lütfen sadece sorunun metnini, ardından A, B, C, D şıklarını (alt alta) ve
           <div className="p-8 flex justify-center items-center">
             <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
           </div>
-        ) : questions.length === 0 ? (
+        ) : storeQuestions.length === 0 ? (
           <div className="p-12 flex flex-col items-center justify-center text-slate-400">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
               <Pencil className="w-8 h-8 text-slate-300" />
@@ -330,7 +306,7 @@ Lütfen sadece sorunun metnini, ardından A, B, C, D şıklarını (alt alta) ve
           </div>
         ) : (
           <div className="divide-y divide-slate-100/80">
-            {questions.map((q, index) => (
+            {storeQuestions.map((q, index) => (
               <motion.div 
                 initial={{ opacity: 0, y: 15, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
