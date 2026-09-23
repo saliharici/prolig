@@ -65,7 +65,7 @@ Kriterler:
 Lütfen sadece sorunun metnini, ardından A, B, C, D şıklarını (alt alta) ve en sonda doğru cevabı kısa bir açıklama ile ver. Markdown formatını kullanabilirsin.`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
