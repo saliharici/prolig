@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Edit3, CheckCircle, XCircle, RotateCcw, Pencil } from 'lucide-react';
+import { PlusCircle, Edit3, CheckCircle, XCircle, RotateCcw, Pencil, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, Sigma, Link } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PageBanner } from './PageBanner';
 
@@ -155,15 +155,35 @@ export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
           <h3 className="text-lg font-medium text-gray-800 mb-4">Yeni Soru Girişi</h3>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Soru Metni</label>
-            <textarea
-              required
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none h-32"
-              placeholder="Sorunuzun metnini buraya yazın..."
-            />
+          <div className="mb-6">
+            <label className="block text-sm font-bold text-slate-700 mb-2">Soru Metni / İçerik Editörü</label>
+            <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500 transition-all bg-white">
+              {/* Toolbar */}
+              <div className="flex items-center gap-1 p-2 border-b border-slate-100 bg-slate-50/50">
+                <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Kalın"><Bold className="w-4 h-4" /></button>
+                <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="İtalik"><Italic className="w-4 h-4" /></button>
+                <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Altı Çizili"><Underline className="w-4 h-4" /></button>
+                <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Madde İşaretleri"><List className="w-4 h-4" /></button>
+                <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Numaralandırma"><ListOrdered className="w-4 h-4" /></button>
+                <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Görsel Ekle"><ImageIcon className="w-4 h-4" /></button>
+                <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Matematik Formülü (LaTeX)"><Sigma className="w-4 h-4" /></button>
+                <button type="button" className="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 rounded-lg hover:shadow-sm transition-all" title="Bağlantı"><Link className="w-4 h-4" /></button>
+              </div>
+              
+              <textarea
+                required
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                className="w-full px-4 py-3 focus:outline-none resize-none h-40 text-slate-700 leading-relaxed"
+                placeholder="Matematik, Fen formüllerini veya düz metinleri buraya yazın..."
+              />
+              <div className="bg-slate-50/50 px-3 py-1.5 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 font-medium">
+                <span>{newContent.length} Karakter</span>
+                <span>Pro Lig Editör v2.0</span>
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
