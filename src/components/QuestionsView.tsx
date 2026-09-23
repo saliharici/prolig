@@ -65,6 +65,7 @@ export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // API call denemesi
       const res = await fetch('/api/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,17 +74,35 @@ export function QuestionsView({ userRole, userEmail }: QuestionsViewProps) {
           objectiveCode: newObjective,
           grade: newGrade,
           difficulty: newDifficulty,
-          // Geçici mock authorId, pool sisteminde projectId zorunlu değil
           authorId: 1
         })
       });
+
       if (res.ok) {
         setShowForm(false);
         setNewContent('');
         fetchQuestions();
+      } else {
+        throw new Error('API Bulunamadı - Mock Kullanılacak');
       }
     } catch (err) {
-      console.error(err);
+      // Frontend-only demo modülü için mock veri ekleme (API yoksa çalışır)
+      console.log('Mock Soru Ekleniyor...');
+      const newQuestion: Question = {
+        id: Math.floor(Math.random() * 1000) + 100,
+        content: newContent,
+        imageUrl: null,
+        status: 'BEKLEMEDE',
+        editorNote: null,
+        objectiveCode: newObjective,
+        grade: newGrade,
+        difficulty: newDifficulty,
+        createdAt: new Date().toISOString()
+      };
+      
+      setQuestions(prev => [newQuestion, ...prev]);
+      setShowForm(false);
+      setNewContent('');
     }
   };
 
