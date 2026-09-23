@@ -9,6 +9,7 @@ import { DonutChart } from './components/DonutChart';
 import { UpcomingDeadlines } from './components/UpcomingDeadlines';
 import { RecentAuthorsList } from './components/RecentAuthorsList';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { useAppStore } from './store';
 
 // Modals
 import { AddAuthorModal } from './components/modals/AddAuthorModal';
@@ -288,6 +289,9 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
 
+  const storeQuestions = useAppStore(state => state.questions);
+  const pendingQuestionsCount = storeQuestions.filter(q => q.status === 'Bekliyor' || q.status === 'BEKLEMEDE').length;
+
   // Modal states
   const [isAddAuthorOpen, setIsAddAuthorOpen] = useState(false);
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
@@ -442,7 +446,7 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
                     <p className="text-slate-400 text-base md:text-lg max-w-2xl font-light">
                       {currentRole === 'YAZAR' 
                         ? 'Soru havuzuna yeni içerikler eklemek ve bekleyen onaylarınızı takip etmek için harika bir gün.' 
-                        : <>Türkiye geneli <strong className="text-white font-medium">81 ilden</strong> gelen veriler senkronize edildi. Bugün havuzda onaylanmayı bekleyen <strong className="text-white font-medium">12 yeni soru</strong> var.</>}
+                        : <>Türkiye geneli <strong className="text-white font-medium">81 ilden</strong> gelen veriler senkronize edildi. Bugün havuzda onaylanmayı bekleyen <strong className="text-white font-medium">{pendingQuestionsCount} yeni soru</strong> var.</>}
                     </p>
                   </div>
                   
