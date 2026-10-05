@@ -5,14 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "prisma generate && vite build",
     "start": "vite preview --host 0.0.0.0",
     "preview": "vite preview",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "lint": "tsc --noEmit"
+    "lint": "prisma generate && npm run lint:ui && npm run lint:api",
+    "lint:ui": "tsc --noEmit",
+    "lint:api": "tsc --noEmit -p tsconfig.api.json",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/pg": "^8.23.1",
     "@vitejs/plugin-react": "^6.1.1",
@@ -23,7 +28,7 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
-    "pg": "^8.23.0",
+    "pg": "^8.23.1",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-router-dom": "^7.18.4",
@@ -32,6 +37,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@prisma/config": "^7.10.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie": "^0.6.0",
     "@types/express": "^4.17.21",
@@ -42,8 +48,10 @@
     "@vercel/node": "^14.0.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.2",
+    "prisma": "^7.10.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
   }
 }

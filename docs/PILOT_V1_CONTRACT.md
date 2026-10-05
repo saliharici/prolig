@@ -1,4 +1,4 @@
-# Pilot V1 Contract — Pro-Lig
+﻿# Pilot V1 Contract â€” Pro-Lig
 
 This document defines the strict workflow, data scope, and API boundaries required for the Pro-Lig Pilot V1 release.
 
@@ -6,58 +6,54 @@ This document defines the strict workflow, data scope, and API boundaries requir
 Every backend API endpoint must automatically enforce the logged-in user's data scope:
 
 - **GENEL_KOORDINATOR:** Authorized global scope (can view/act on all regions, projects, and questions).
-- **BOLGE_KOORDINATORU:** Bound to an `assignedRegion` (e.g., Marmara). Can only read data belonging to provinces within this region.
-- **IL_KOORDINATORU:** Bound to an `assignedProvince`. Can only read data explicitly linked to their province.
+- **BOLGE_KOORDINATORU:** Bound to an `assignedRegion` (e.g., Marmara). Can only read data belonging to provinces within this region. *(Note: For Pilot V1, BÃ¶lge KoordinatÃ¶rÃ¼ may remain a read-oriented role unless later requirements explicitly grant assignment/management actions).*
+- **IL_KOORDINATORU:** Bound to an `assignedProvince`. Can only read data explicitly linked to their province. *(Note: For Pilot V1, Ä°l KoordinatÃ¶rÃ¼ may remain a read-oriented role unless later requirements explicitly grant assignment/management actions).*
 - **EDITOR:** Bound to an assigned editorial scope (e.g., subject or grade level).
 - **YAZAR:** Bound to their own content (questions they created) and projects explicitly assigned to them.
-- **MUHASEBE:** Bound to permitted financial contexts. Read-only access to projects/users, write access only to payment/hakediş status.
+- **MUHASEBE:** Bound to permitted financial contexts. Read-only access to projects/users, write access only to payment/hakediÅŸ status.
 
 ## 2. Question Workflow (State Machine)
 The lifecycle of a `Question` is strictly controlled by the backend state machine.
 
 ### States:
 1. `Taslak`
-2. `İncelemede`
+2. `Ä°ncelemede`
 3. `Revizyon`
-4. `Onaylandı`
+4. `OnaylandÄ±`
 5. `Reddedildi`
 
 ### Transitions & Rules:
 - **Create:** Only `YAZAR` can create a question (Status: `Taslak`).
-- **Submit for Review (`Taslak` / `Revizyon` -> `İncelemede`):** Only the `YAZAR` who owns the question can submit it.
-- **Review Actions (`İncelemede` -> `Revizyon` | `Onaylandı` | `Reddedildi`):** Only `EDITOR` or `GENEL_KOORDINATOR` can perform these actions.
-- **Edit Lock:** A `Question` can ONLY be edited by the `YAZAR` when its status is `Taslak` or `Revizyon`. Once `Onaylandı`, `Reddedildi`, or `İncelemede`, it becomes **immutable** to the author.
+- **Submit for Review (`Taslak` / `Revizyon` -> `Ä°ncelemede`):** Only the `YAZAR` who owns the question can submit it.
+- **Review Actions (`Ä°ncelemede` -> `Revizyon` | `OnaylandÄ±` | `Reddedildi`):** Only `EDITOR` or `GENEL_KOORDINATOR` can perform these actions.
+- **Edit Lock:** A `Question` can ONLY be edited by the `YAZAR` when its status is `Taslak` or `Revizyon`. Once `OnaylandÄ±`, `Reddedildi`, or `Ä°ncelemede`, it becomes **immutable** to the author.
 - **Administrative Override:** `GENEL_KOORDINATOR` may force-change a status or re-assign an author if required, logged in the Audit Trail.
 
 ## 3. API Contract (v1)
-All API endpoints will be served from `/api/v1/` and will require JWT Authentication.
+All API endpoints will be served from `/api/v1/` and will require Secure Session Cookie Authentication. 
+The browser must NOT receive the authentication JWT/token through JSON for storage in localStorage, sessionStorage, or frontend state.
 
-### Authentication
-- `POST /api/v1/auth/login` (email, password) -> returns `{ token, user }`
+### Public Endpoints
+- `POST /api/v1/auth/login` (email, password) -> Sets `HttpOnly` session cookie `prolig_session`, returns `{ user }`
+- `GET /api/v1/health`
+
+### Authenticated Endpoints
 - `GET /api/v1/auth/me` -> returns `{ user, roles, permissions }`
-
-### Authors & Identity
+- `POST /api/v1/auth/logout` -> expires session cookie
 - `GET /api/v1/authors` (Returns scoped list based on requester's role)
 - `GET /api/v1/authors/:id`
-
-### Projects
 - `GET /api/v1/projects` (Scoped by role/province)
 - `GET /api/v1/projects/:id`
-
-### Questions
 - `GET /api/v1/questions` (Scoped by role/author/project)
 - `POST /api/v1/questions` (Create draft)
 - `PATCH /api/v1/questions/:id` (Update content, only if Taslak/Revizyon)
 - `POST /api/v1/questions/:id/workflow` (Submit, Approve, Reject, Request Revision - requires payload `{ action, note }`)
-
-### Payments (Finance)
 - `GET /api/v1/payments` (Scoped to MUHASEBE / GENEL_KOORDINATOR)
 - `POST /api/v1/payments/:id/approve`
 - `POST /api/v1/payments/:id/pay`
-
-### Audit Trail
 - `GET /api/v1/audit` (Append-only log read endpoint, scoped to GENEL_KOORDINATOR)
 
 ## 4. UI Protection
 During Phase 1 and implementation, the current visual layout (Tailwind, `demo.css`, Cards, Layouts) must be completely preserved. 
 No redesigns are permitted during the backend integration phases.
+

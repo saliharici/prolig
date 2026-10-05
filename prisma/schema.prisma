@@ -1,13 +1,14 @@
-// Prisma schema for PRO LİG - Profesyoneller Karması
+// Prisma schema for PRO LÄ°G - Profesyoneller KarmasÄ±
 // Designed for PostgreSQL on Vercel (Neon / Supabase / RDS)
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 enum RoleCode {
@@ -17,7 +18,6 @@ enum RoleCode {
   EDITOR
   YAZAR
   MUHASEBE
-  YONETICI
 }
 
 enum AuthorStatus {
@@ -76,228 +76,214 @@ model Role {
 }
 
 model User {
-  id           Int           @id @default(autoincrement())
-  username     String        @unique
-  email        String        @unique
-  fullName     String
-  roleId       Int
-  role         Role          @relation(fields: [roleId], references: [id])
-  assignedRegion String?   // Bölge Koordinatörünün sorumlu olduğu bölge (örn: 'Marmara')
-  provinceId   Int?
-  province     Province?     @relation(fields: [provinceId], references: [id])
-  avatarUrl    String?
-  phone        String?
-  status       String        @default("Aktif")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  
+  id             Int       @id @default(autoincrement())
+  username       String    @unique
+  email          String    @unique
+  passwordHash   String?
+  fullName       String
+  roleId         Int
+  role           Role      @relation(fields: [roleId], references: [id])
+  assignedRegion String? // BÃ¶lge KoordinatÃ¶rÃ¼nÃ¼n sorumlu olduÄŸu bÃ¶lge (Ã¶rn: 'Marmara')
+  provinceId     Int?
+  province       Province? @relation(fields: [provinceId], references: [id])
+  avatarUrl      String?
+  phone          String?
+  status         String    @default("Aktif")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
   sentMessages     Message[]      @relation("SentMessages")
   receivedMessages Message[]      @relation("ReceivedMessages")
   notifications    Notification[]
   assignedTasks    Task[]         @relation("CoordinatorTasks")
 
+  AuthorProfile AuthorProfile?
+  Payment       Payment[]
+  Question      Question[]
+
   @@index([email])
-  
 }
 
 model Province {
-  id           Int           @id
-  code         String        @unique
-  name         String        @unique
-  region       String
-  districts    District[]
-  authors      Author[]
-  institutions Institution[]
-  users        User[]
+  id             Int             @id
+  code           String          @unique
+  name           String          @unique
+  region         String
+  districts      District[]
+  authorProfiles AuthorProfile[]
+  institutions   Institution[]
+  users          User[]
 
   @@index([name])
-  
 }
 
 model District {
-  id         Int      @id @default(autoincrement())
-  provinceId Int
-  province   Province @relation(fields: [provinceId], references: [id], onDelete: Cascade)
-  name       String
-  authors    Author[]
+  id             Int             @id @default(autoincrement())
+  provinceId     Int
+  province       Province        @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  name           String
+  authorProfiles AuthorProfile[]
 
   @@index([provinceId])
-  
 }
 
 model Branch {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  category  String
-  color     String    @default("#2563eb")
-  authors   Author[]
-  projects  Project[]
-
-  
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  category       String
+  color          String          @default("#2563eb")
+  authorProfiles AuthorProfile[]
+  projects       Project[]
 }
 
 model Institution {
-  id         Int       @id @default(autoincrement())
-  name       String
-  provinceId Int
-  province   Province  @relation(fields: [provinceId], references: [id])
-  type       String    @default("Devlet Okulu")
-  authors    Author[]
-
-  
+  id             Int             @id @default(autoincrement())
+  name           String
+  provinceId     Int
+  province       Province        @relation(fields: [provinceId], references: [id])
+  type           String          @default("Devlet Okulu")
+  authorProfiles AuthorProfile[]
 }
 
-model Author {
-  id              Int            @id @default(autoincrement())
-  firstName       String
-  lastName        String
-  email           String         @unique
-  phone           String
+model AuthorProfile {
+  id              Int          @id @default(autoincrement())
+  userId          Int          @unique
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   profilePhoto    String?
   provinceId      Int
-  province        Province       @relation(fields: [provinceId], references: [id])
+  province        Province     @relation(fields: [provinceId], references: [id])
   districtId      Int?
-  district        District?      @relation(fields: [districtId], references: [id])
+  district        District?    @relation(fields: [districtId], references: [id])
   branchId        Int
-  branch          Branch         @relation(fields: [branchId], references: [id])
+  branch          Branch       @relation(fields: [branchId], references: [id])
   institutionId   Int?
-  institution     Institution?   @relation(fields: [institutionId], references: [id])
-  title           String         @default("Yazar / Öğretmen")
-  experienceYears Int            @default(5)
-  status          AuthorStatus   @default(Aktif)
+  institution     Institution? @relation(fields: [institutionId], references: [id])
+  title           String       @default("Yazar / Ã–ÄŸretmen")
+  experienceYears Int          @default(5)
+  status          AuthorStatus @default(Aktif)
   biography       String?
   iban            String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   projectAuthors ProjectAuthor[]
   tasks          Task[]
-  payments       Payment[]
   files          FileRecord[]
-  questions      Question[]
 
-  // Havuz sistemi hakedişleri için Puan/Kredi sistemi
-  points          Int            @default(0)
+  // Havuz sistemi hakediÅŸleri iÃ§in Puan/Kredi sistemi
+  points Int @default(0)
 
   @@index([provinceId])
   @@index([branchId])
   @@index([status])
-  
 }
 
 model Project {
-  id             Int            @id @default(autoincrement())
-  title          String
-  code           String         @unique
-  projectType    String         @default("Soru Bankası")
-  coordinatorId  Int?
-  progress       Int            @default(0)
-  deadline       DateTime
-  status         ProjectStatus  @default(Devam_Ediyor)
-  priority       Priority       @default(Normal)
-  targetGrade    String         @default("8. Sınıf")
-  branchId       Int
-  branch         Branch         @relation(fields: [branchId], references: [id])
-  description    String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id            Int           @id @default(autoincrement())
+  title         String
+  code          String        @unique
+  projectType   String        @default("Soru BankasÄ±")
+  coordinatorId Int?
+  progress      Int           @default(0)
+  deadline      DateTime
+  status        ProjectStatus @default(Devam_Ediyor)
+  priority      Priority      @default(Normal)
+  targetGrade   String        @default("8. SÄ±nÄ±f")
+  branchId      Int
+  branch        Branch        @relation(fields: [branchId], references: [id])
+  description   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   books          Book[]
   projectAuthors ProjectAuthor[]
   tasks          Task[]
-  payments       Payment[]
   files          FileRecord[]
-  questions      Question[]
+
+  Payment  Payment[]
+  Question Question[]
 
   @@index([status])
   @@index([deadline])
-  
 }
 
 model Book {
-  id              Int      @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   projectId       Int
-  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title           String
   isbn            String?
-  pageCount       Int      @default(240)
-  status          String   @default("Dizgi Aşamasında")
+  pageCount       Int       @default(240)
+  status          String    @default("Dizgi AÅŸamasÄ±nda")
   publicationDate DateTime?
-
-  
 }
 
 model ProjectAuthor {
-  id               Int      @id @default(autoincrement())
+  id               Int           @id @default(autoincrement())
   projectId        Int
-  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project          Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   authorId         Int
-  author           Author   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  roleInProject    String   @default("Yazar")
+  authorProfile    AuthorProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  roleInProject    String        @default("Yazar")
   assignedChapters String?
-  createdAt        DateTime @default(now())
+  createdAt        DateTime      @default(now())
 
   @@unique([projectId, authorId])
-  
 }
 
 model Task {
-  id                   Int        @id @default(autoincrement())
-  title                String
-  description          String?
-  assignedAuthorId     Int?
-  assignedAuthor       Author?    @relation(fields: [assignedAuthorId], references: [id])
+  id                    Int            @id @default(autoincrement())
+  title                 String
+  description           String?
+  assignedAuthorId      Int?
+  assignedAuthorProfile AuthorProfile? @relation(fields: [assignedAuthorId], references: [id])
   assignedCoordinatorId Int?
-  assignedCoordinator  User?      @relation("CoordinatorTasks", fields: [assignedCoordinatorId], references: [id])
-  projectId            Int
-  project              Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  priority             Priority   @default(Normal)
-  status               TaskStatus @default(Bekliyor)
-  startDate            DateTime   @default(now())
-  dueDate              DateTime
-  completionDate       DateTime?
-  createdAt            DateTime   @default(now())
-  updatedAt            DateTime   @updatedAt
+  assignedCoordinator   User?          @relation("CoordinatorTasks", fields: [assignedCoordinatorId], references: [id])
+  projectId             Int
+  project               Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  priority              Priority       @default(Normal)
+  status                TaskStatus     @default(Bekliyor)
+  startDate             DateTime       @default(now())
+  dueDate               DateTime
+  completionDate        DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   @@index([status])
   @@index([dueDate])
-  
 }
 
 model Payment {
-  id          Int           @id @default(autoincrement())
-  authorId    Int
-  author      Author        @relation(fields: [authorId], references: [id])
-  projectId   Int?
-  project     Project?      @relation(fields: [projectId], references: [id])
-  contractNo  String?
-  amount      Float
-  status      PaymentStatus @default(Bekliyor)
-  paymentDate DateTime?
-  invoiceNo   String?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id           Int           @id @default(autoincrement())
+  authorUserId Int
+  authorUser   User          @relation(fields: [authorUserId], references: [id])
+  projectId    Int?
+  project      Project?      @relation(fields: [projectId], references: [id])
+  contractNo   String?
+  amount       Decimal       @db.Decimal(12, 2)
+  status       PaymentStatus @default(Bekliyor)
+  paymentDate  DateTime?
+  invoiceNo    String?
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@index([status])
-  
 }
 
 model FileRecord {
-  id           Int      @id @default(autoincrement())
-  filename     String
-  fileSize     Int
-  fileType     String
-  fileUrl      String
-  uploaderName String
-  projectId    Int?
-  project      Project? @relation(fields: [projectId], references: [id])
-  authorId     Int?
-  author       Author?  @relation(fields: [authorId], references: [id])
-  category     String   @default("Taslak Soru")
-  uploadDate   DateTime @default(now())
-
-  
+  id            Int            @id @default(autoincrement())
+  filename      String
+  fileSize      Int
+  fileType      String
+  fileUrl       String
+  uploaderName  String
+  projectId     Int?
+  project       Project?       @relation(fields: [projectId], references: [id])
+  authorId      Int?
+  authorProfile AuthorProfile? @relation(fields: [authorId], references: [id])
+  category      String         @default("Taslak Soru")
+  uploadDate    DateTime       @default(now())
 }
 
 model Message {
@@ -313,7 +299,6 @@ model Message {
   createdAt  DateTime @default(now())
 
   @@index([receiverId, isRead])
-  
 }
 
 model Announcement {
@@ -321,12 +306,10 @@ model Announcement {
   title       String
   content     String
   priority    Priority @default(Normal)
-  audience    String   @default("Tümü")
+  audience    String   @default("TÃ¼mÃ¼")
   publishedAt DateTime @default(now())
   isArchived  Boolean  @default(false)
-  createdBy   String   @default("Yönetim")
-
-  
+  createdBy   String   @default("YÃ¶netim")
 }
 
 model Notification {
@@ -341,7 +324,6 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, isRead])
-  
 }
 
 model ActivityLog {
@@ -354,32 +336,32 @@ model ActivityLog {
   createdAt  DateTime @default(now())
 
   @@index([createdAt])
-  
 }
 
 model Question {
-  id          Int            @id @default(autoincrement())
-  content     String         // Metin veya Soru içeriği
-  imageUrl    String?        // İsteğe bağlı soru resmi
-  authorId    Int
-  author      Author         @relation(fields: [authorId], references: [id])
-  
-  // Havuz sistemi: Soru havuza bağımsız düşer, sonradan kitaba çekilir.
-  projectId   Int?
-  project     Project?       @relation(fields: [projectId], references: [id])
-  
+  id           Int     @id @default(autoincrement())
+  content      String // Metin veya Soru iÃ§eriÄŸi
+  imageUrl     String? // Ä°steÄŸe baÄŸlÄ± soru resmi
+  authorUserId Int
+  authorUser   User    @relation(fields: [authorUserId], references: [id])
+
+  // Havuz sistemi: Soru havuza baÄŸÄ±msÄ±z dÃ¼ÅŸer, sonradan kitaba Ã§ekilir.
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id])
+
   // Taksonomi (MEB Kategorizasyonu)
-  objectiveCode String?      // Kazanım Kodu (Örn: M.8.1.2.1)
-  grade         String?      // Sınıf (Örn: 8. Sınıf)
-  difficulty    String?      // Zorluk (Örn: Kolay, Orta, Zor)
+  objectiveCode String? // KazanÄ±m Kodu (Ã–rn: M.8.1.2.1)
+  grade         String? // SÄ±nÄ±f (Ã–rn: 8. SÄ±nÄ±f)
+  difficulty    String? // Zorluk (Ã–rn: Kolay, Orta, Zor)
 
-  status      QuestionStatus @default(TASLAK)
-  editorNote  String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  status     QuestionStatus @default(TASLAK)
+  editorNote String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
-  @@index([authorId])
+  @@index([authorUserId])
   @@index([projectId])
   @@index([status])
-  
 }
+
+
