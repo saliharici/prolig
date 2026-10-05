@@ -94,7 +94,7 @@ export function AuthorMap({ authors, scopeProvince, initialProvince, onShowAutho
       <div className="author-map-detail-stats"><div><strong>{selectedAuthors.length}</strong><span>Toplam yazar</span></div><div><strong>{selectedAuthors.filter(author => author.status === 'Aktif').length}</strong><span>Aktif</span></div></div>
       <div className="author-map-detail-heading"><strong>Bu ildeki yazarlar</strong><span>{selectedAuthors.length} kayıt</span></div>
       <div className="author-map-author-list">{selectedAuthors.length ? selectedAuthors.map(author => <div key={author.id} className="author-map-author"><span className="small-avatar">{author.initials}</span><div><strong>{author.name}</strong><small>{author.subject} · {author.status}</small></div></div>) : <div className="author-map-empty"><Users size={23} /><strong>Bu ilde örnek kayıt yok</strong><span>Haritadaki renkli illerden birini seçin.</span></div>}</div>
-      {selectedAuthors.length > 0 && <button className="author-map-list-button" onClick={() => onShowAuthors(selected.name)}>Yazar ağında görüntüle <ArrowRight size={16} /></button>}
+      {selectedAuthors.length > 0 && <button className="author-map-list-button" onClick={() => onShowAuthors(selected.name)}>{selected.name} yazarlarını listede göster <ArrowRight size={16} /></button>}
       <div className="author-map-footnote">Bu harita örnek kayıtlardan oluşur. Gerçek yazar ağı ve canlı veri bağlantısı içermez.</div>
     </aside>
   </div>;
