@@ -7,6 +7,7 @@ Pro Lig ekibine gösterilecek rol ve iş akışı önizlemesi. Genel Koordinatö
 - Yazar kendi soru taslağını oluşturur ve incelemeye gönderir.
 - Editör ve Genel Koordinatör incelemedeki soruyu onaylar, revizyona yollar veya reddeder.
 - İl Koordinatörü yalnızca İstanbul kapsamındaki örnek proje, soru ve yazarları görür.
+- Türkiye haritasında 81 ilin sınırları üzerinden örnek yazar yoğunluğu, il araması, bölge filtresi ve il bazında yazar listesi incelenir. İl Koordinatörü haritada yalnızca İstanbul kapsamını açabilir.
 - Muhasebe ve Genel Koordinatör örnek hakedişi onaylayıp ödendi olarak işaretler.
 - Ekranlar role göre açılır; rol ve yetki matrisi karşılaştırılabilir.
 - Genel Koordinatör, örnek işlem geçmişini görebilir. Yetki ekranı modül görünürlüğünü, işlem yetkilerini ve veri kapsamını ayrı ayrı gösterir.

@@ -1,5 +1,5 @@
 export type Role = 'GENEL_KOORDINATOR' | 'IL_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
-export type Section = 'overview' | 'questions' | 'projects' | 'authors' | 'payments' | 'roles' | 'audit';
+export type Section = 'overview' | 'questions' | 'projects' | 'authors' | 'map' | 'payments' | 'roles' | 'audit';
 export type QuestionStatus = 'Taslak' | 'İncelemede' | 'Revizyon' | 'Onaylandı' | 'Reddedildi';
 export type PaymentStatus = 'Bekliyor' | 'Onaylandı' | 'Ödendi';
 
@@ -84,14 +84,15 @@ export const sectionLabels: Record<Section, string> = {
   questions: 'Soru Havuzu',
   projects: 'Projeler',
   authors: 'Yazar Ağı',
+  map: 'Türkiye Haritası',
   payments: 'Hakedişler',
   roles: 'Rol ve Yetkiler',
   audit: 'İşlem Geçmişi',
 };
 
 export const permissions: Record<Role, Section[]> = {
-  GENEL_KOORDINATOR: ['overview', 'questions', 'projects', 'authors', 'payments', 'roles', 'audit'],
-  IL_KOORDINATORU: ['overview', 'questions', 'projects', 'authors', 'roles'],
+  GENEL_KOORDINATOR: ['overview', 'questions', 'projects', 'authors', 'map', 'payments', 'roles', 'audit'],
+  IL_KOORDINATORU: ['overview', 'questions', 'projects', 'authors', 'map', 'roles'],
   EDITOR: ['overview', 'questions', 'projects', 'roles'],
   YAZAR: ['overview', 'questions', 'projects', 'roles'],
   MUHASEBE: ['overview', 'payments', 'projects', 'roles'],
@@ -120,6 +121,31 @@ export const seedData: DemoData = {
     { id: 3, name: 'Zeynep Kara', initials: 'ZK', subject: 'Türkçe', province: 'İzmir', activeProjects: 2, status: 'Aktif' },
     { id: 4, name: 'Emre Şahin', initials: 'EŞ', subject: 'Matematik', province: 'Bursa', activeProjects: 1, status: 'Aktif' },
     { id: 5, name: 'Elif Özkan', initials: 'EÖ', subject: 'Sosyal Bilgiler', province: 'İstanbul', activeProjects: 0, status: 'Davet edildi' },
+    { id: 6, name: 'Deniz Aksoy', initials: 'DA', subject: 'Türkçe', province: 'İstanbul', activeProjects: 1, status: 'Aktif' },
+    { id: 7, name: 'Can Erdem', initials: 'CE', subject: 'İngilizce', province: 'İstanbul', activeProjects: 1, status: 'Aktif' },
+    { id: 8, name: 'Derya Acar', initials: 'DA', subject: 'Fen Bilimleri', province: 'Ankara', activeProjects: 2, status: 'Aktif' },
+    { id: 9, name: 'Berk Yıldız', initials: 'BY', subject: 'Matematik', province: 'Ankara', activeProjects: 1, status: 'Aktif' },
+    { id: 10, name: 'Seda Çetin', initials: 'SÇ', subject: 'Türkçe', province: 'İzmir', activeProjects: 1, status: 'Aktif' },
+    { id: 11, name: 'Kerem Ekin', initials: 'KE', subject: 'Sosyal Bilgiler', province: 'İzmir', activeProjects: 0, status: 'Davet edildi' },
+    { id: 12, name: 'İrem Güneş', initials: 'İG', subject: 'Fen Bilimleri', province: 'Bursa', activeProjects: 1, status: 'Aktif' },
+    { id: 13, name: 'Umut Arslan', initials: 'UA', subject: 'Matematik', province: 'Bursa', activeProjects: 1, status: 'Aktif' },
+    { id: 14, name: 'Ece Polat', initials: 'EP', subject: 'İngilizce', province: 'Antalya', activeProjects: 1, status: 'Aktif' },
+    { id: 15, name: 'Onur Şimşek', initials: 'OŞ', subject: 'Türkçe', province: 'Antalya', activeProjects: 0, status: 'Davet edildi' },
+    { id: 16, name: 'Nehir Kılıç', initials: 'NK', subject: 'Matematik', province: 'Konya', activeProjects: 2, status: 'Aktif' },
+    { id: 17, name: 'Arda Taş', initials: 'AT', subject: 'Tarih', province: 'Konya', activeProjects: 1, status: 'Aktif' },
+    { id: 18, name: 'Pelin Kaya', initials: 'PK', subject: 'Fen Bilimleri', province: 'Samsun', activeProjects: 1, status: 'Aktif' },
+    { id: 19, name: 'Burak Yalçın', initials: 'BY', subject: 'Türkçe', province: 'Trabzon', activeProjects: 1, status: 'Aktif' },
+    { id: 20, name: 'Aylin Tekin', initials: 'AT', subject: 'Sosyal Bilgiler', province: 'Gaziantep', activeProjects: 1, status: 'Aktif' },
+    { id: 21, name: 'Mert Balcı', initials: 'MB', subject: 'Matematik', province: 'Gaziantep', activeProjects: 0, status: 'Davet edildi' },
+    { id: 22, name: 'Ezgi Koç', initials: 'EK', subject: 'Fen Bilimleri', province: 'Adana', activeProjects: 1, status: 'Aktif' },
+    { id: 23, name: 'Ozan Işık', initials: 'OI', subject: 'Türkçe', province: 'Mersin', activeProjects: 1, status: 'Aktif' },
+    { id: 24, name: 'Selin Durmuş', initials: 'SD', subject: 'Matematik', province: 'Kocaeli', activeProjects: 1, status: 'Aktif' },
+    { id: 25, name: 'Alp Can', initials: 'AC', subject: 'Fen Bilimleri', province: 'Eskişehir', activeProjects: 0, status: 'Davet edildi' },
+    { id: 26, name: 'Defne Şen', initials: 'DŞ', subject: 'İngilizce', province: 'Erzurum', activeProjects: 1, status: 'Aktif' },
+    { id: 27, name: 'Eren Öztürk', initials: 'EÖ', subject: 'Matematik', province: 'Kayseri', activeProjects: 1, status: 'Aktif' },
+    { id: 28, name: 'Nazlı Eren', initials: 'NE', subject: 'Türkçe', province: 'Diyarbakır', activeProjects: 1, status: 'Aktif' },
+    { id: 29, name: 'Kaan Demir', initials: 'KD', subject: 'Fen Bilimleri', province: 'Malatya', activeProjects: 0, status: 'Davet edildi' },
+    { id: 30, name: 'Aslı Bilgin', initials: 'AB', subject: 'Sosyal Bilgiler', province: 'Denizli', activeProjects: 1, status: 'Aktif' },
   ],
   projects: [
     { id: 1, name: '8. Sınıf Matematik Soru Bankası', subject: 'Matematik', grade: '8. Sınıf', deadline: '2026-11-15', progress: 72, status: 'Üretimde', province: 'İstanbul' },
@@ -159,6 +185,7 @@ export function loadDemoData(): DemoData {
       if (Array.isArray(parsed.questions) && Array.isArray(parsed.projects) && Array.isArray(parsed.authors) && Array.isArray(parsed.payments) && Array.isArray(parsed.activities)) {
         return {
           ...parsed,
+          authors: [...parsed.authors, ...seedData.authors.filter(author => !parsed.authors.some(savedAuthor => savedAuthor.id === author.id))],
           activities: parsed.activities.map(item => {
             const original = seedData.activities.find(seed => seed.id === item.id && seed.type === item.type);
             const at = item.at === 'Bugün · 10:42' || item.at === 'Dün · 16:18' ? original?.at ?? item.at : item.at;
