@@ -67,7 +67,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   return (
     <div
       id={id}
-      className={`relative overflow-hidden rounded-xl border ${styles.border} ${styles.bg} p-4.5 shadow-2xs transition-all hover:shadow-xs hover:border-slate-300/80 bg-white`}
+      className={`relative overflow-hidden rounded-xl border ${styles.border} ${styles.bg} p-4.5 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-slate-300/80 hover:-translate-y-1 bg-white`}
     >
       <div className="flex items-start justify-between">
         <div>

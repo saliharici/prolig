@@ -3,9 +3,9 @@ import {
   GraduationCap,
   Activity as ActivityIcon, ArrowRight, ArrowUpRight, BookOpen,
   Bold, Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
-  FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered,
+  FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText,
   LockKeyhole, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Sparkles,
-  Underline, Users, Wallet, X,
+  PencilLine, Underline, Users, Wallet, X,
 } from 'lucide-react';
 import {
   actionPermissions, dataScopes, loadDemoData, permissions, resetDemoData, roleLabels, rolePeople, saveDemoData,
@@ -83,6 +83,12 @@ export default function DemoApp() {
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
   const [questionImageName, setQuestionImageName] = useState('');
+  const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null);
+  const [editorQuestionTitle, setEditorQuestionTitle] = useState('');
+  const [editorQuestionOptions, setEditorQuestionOptions] = useState(['', '', '', '']);
+  const [editorCorrectAnswer, setEditorCorrectAnswer] = useState('A');
+  const [editorExplanation, setEditorExplanation] = useState('');
+  const [editorNote, setEditorNote] = useState('');
   const [toast, setToast] = useState('');
   const questionEditorRef = useRef<HTMLTextAreaElement>(null);
   const questionImageRef = useRef<HTMLInputElement>(null);
@@ -93,6 +99,7 @@ export default function DemoApp() {
   const allowed = permissions[role];
   const visibleProjects = useMemo(() => role === 'IL_KOORDINATORU' ? data.projects.filter(p => p.province === 'İstanbul') : role === 'YAZAR' ? data.projects.filter(p => p.id === 1) : data.projects, [data.projects, role]);
   const visibleQuestions = useMemo(() => role === 'YAZAR' ? data.questions.filter(q => q.authorId === 1) : role === 'IL_KOORDINATORU' ? data.questions.filter(q => visibleProjects.some(p => p.id === q.projectId)) : data.questions, [data.questions, role, visibleProjects]);
+  const MARMARA = ['İstanbul', 'Bursa', 'Edirne', 'Kocaeli', 'Sakarya', 'Tekirdağ', 'Yalova', 'Çanakkale', 'Kırklareli', 'Bilecik', 'Balıkesir'];
   const visibleAuthors = useMemo(() => role === 'IL_KOORDINATORU' ? data.authors.filter(a => a.province === 'İstanbul') : data.authors, [data.authors, role]);
   const visibleActivities = useMemo(() => data.activities.filter(item => {
     if (role === 'GENEL_KOORDINATOR') return true;
@@ -182,6 +189,42 @@ export default function DemoApp() {
     window.requestAnimationFrame(() => editor.focus());
   };
   const updateQuestionOption = (index: number, value: string) => setQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
+  const openEditorReview = (question: Question) => {
+    if (role !== 'EDITOR' || question.status !== 'İncelemede') return;
+    setEditingQuestionId(question.id);
+    setEditorQuestionTitle(question.title);
+    setEditorQuestionOptions(question.options?.length === 4 ? question.options : ['', '', '', '']);
+    setEditorCorrectAnswer(question.correctAnswer || 'A');
+    setEditorExplanation(question.explanation || '');
+    setEditorNote(question.note || '');
+  };
+  const saveEditorReview = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (role !== 'EDITOR' || editingQuestionId === null || editorQuestionTitle.trim().length < 10) return;
+    const question = data.questions.find(item => item.id === editingQuestionId);
+    if (!question || question.status !== 'İncelemede') return;
+    const contentChanged = question.title !== editorQuestionTitle.trim() || JSON.stringify(question.options || []) !== JSON.stringify(editorQuestionOptions) || question.correctAnswer !== editorCorrectAnswer || (question.explanation || '') !== editorExplanation.trim();
+    setData(current => ({
+      ...current,
+      questions: current.questions.map(item => item.id === editingQuestionId ? {
+        ...item,
+        title: editorQuestionTitle.trim(),
+        options: editorQuestionOptions,
+        correctAnswer: editorCorrectAnswer,
+        explanation: editorExplanation.trim(),
+        note: editorNote.trim() || undefined,
+        editorEdited: item.editorEdited || contentChanged,
+        editorName: rolePeople.EDITOR,
+        editorEditedAt: 'Az önce',
+        originalTitle: item.originalTitle || (contentChanged ? item.title : undefined),
+        updatedAt: new Date().toISOString().slice(0, 10),
+      } : item),
+      activities: [log(contentChanged ? 'Soru editör tarafından düzenlendi' : 'Sorunun yazar notu güncellendi', 'question', question.projectId, question.authorId), ...current.activities],
+    }));
+    setEditingQuestionId(null);
+    setToast(contentChanged ? 'Düzeltmeler ve editör notu yazara iletildi' : 'Editör notu yazara iletildi');
+  };
+  const updateEditorOption = (index: number, value: string) => setEditorQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
   const updatePayment = (id: number) => {
     if (!['MUHASEBE', 'GENEL_KOORDINATOR'].includes(role)) return;
     const payment = data.payments.find(item => item.id === id);
@@ -198,6 +241,7 @@ export default function DemoApp() {
   });
   const filteredProjects = visibleProjects.filter(p => `${p.name} ${p.subject}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR')));
   const filteredAuthors = visibleAuthors.filter(a => (!authorProvince || a.province === authorProvince) && `${a.name} ${a.subject} ${a.province}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR')));
+  const editingQuestion = data.questions.find(question => question.id === editingQuestionId);
   const showAuthorsForProvince = (province: string) => {
     setAuthorProvince(province);
     setQuery('');
@@ -229,7 +273,7 @@ export default function DemoApp() {
           <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section></div>
           <section className="panel projects-preview"><div className="panel-head"><div><span className="panel-kicker">YAKLAŞAN TESLİMLER</span><h2>Devam eden projeler</h2></div><button className="text-button" onClick={() => navigate('projects')}>Projeleri görüntüle <ArrowRight size={16} /></button></div><div className="project-mini-grid">{visibleProjects.slice(0, 3).map(project => <div className="project-mini" key={project.id}><div className="project-mini-top"><span className="subject-icon">{project.subject.slice(0, 1)}</span><Status value={project.status} /></div><strong>{project.name}</strong><small><Clock3 size={14} /> {date(project.deadline)}</small><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>İlerleme</span><strong>%{project.progress}</strong></div></div>)}</div></section>
         </>}
-        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını deneyin.'}</p></div>{role === 'YAZAR' && <button className="primary-button" onClick={openQuestionForm}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div></div><div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Örnek içerikler · Rolünüzün kapsamına göre listelenir</span></div><div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => { const author = data.authors.find(a => a.id === q.authorId); const project = data.projects.find(p => p.id === q.projectId); return <tr key={q.id}><td><strong>{q.title}</strong><small>{q.subject} · {q.grade} · #{q.id}</small>{q.note && <small className="review-note">Editör notu: {q.note}</small>}</td><td>{author?.name}</td><td>{project?.name || `${q.grade} Genel Soru Havuzu`}</td><td><Status value={q.status} /></td><td>{date(q.updatedAt)}</td><td><div className="row-actions">{role === 'YAZAR' && q.authorId === 1 && ['Taslak', 'Revizyon'].includes(q.status) && <button onClick={() => updateQuestion(q.id, 'İncelemede')}>İncelemeye gönder <ArrowRight size={14} /></button>}{['EDITOR', 'GENEL_KOORDINATOR'].includes(role) && q.status === 'İncelemede' && <><button onClick={() => updateQuestion(q.id, 'Onaylandı')} title="Onayla"><Check size={16} /></button><button onClick={() => updateQuestion(q.id, 'Revizyon')} title="Revizyon iste"><RotateCcw size={15} /></button><button onClick={() => updateQuestion(q.id, 'Reddedildi')} title="Reddet"><X size={16} /></button></>}{!(role === 'YAZAR' && q.authorId === 1 && ['Taslak', 'Revizyon'].includes(q.status)) && !(['EDITOR', 'GENEL_KOORDINATOR'].includes(role) && q.status === 'İncelemede') && <span className="no-action">—</span>}</div></td></tr>; })}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div></div></>}
+        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını deneyin.'}</p></div>{role === 'YAZAR' && <button className="primary-button" onClick={openQuestionForm}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div></div><div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Örnek içerikler · Rolünüzün kapsamına göre listelenir</span></div><div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>ROLÜ</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => { const author = data.authors.find(a => a.id === q.authorId); const project = data.projects.find(p => p.id === q.projectId); return <tr key={q.id}><td><strong>{q.title}</strong><small>{q.subject} · {q.grade} · #{q.id}</small>{q.editorEdited && <span className="editor-change-badge"><PencilLine size={12} /> Editör tarafından düzenlendi · {q.editorName} · {q.editorEditedAt}</span>}{q.note && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.note}</small>}{role === 'YAZAR' && q.editorEdited && q.originalTitle && <details className="question-version"><summary>Önceki metni göster</summary><p>{q.originalTitle}</p></details>}</td><td>{author?.name}</td><td>{project?.name || `${q.grade} Genel Soru Havuzu`}</td><td><Status value={q.status} /></td><td>{date(q.updatedAt)}</td><td><div className="row-actions">{role === 'YAZAR' && q.authorId === 1 && ['Taslak', 'Revizyon'].includes(q.status) && <button onClick={() => updateQuestion(q.id, 'İncelemede')}>İncelemeye gönder <ArrowRight size={14} /></button>}{role === 'EDITOR' && q.status === 'İncelemede' && <button onClick={() => openEditorReview(q)} title="Soruyu düzenle ve yazara not bırak"><PencilLine size={15} /></button>}{['EDITOR', 'GENEL_KOORDINATOR'].includes(role) && q.status === 'İncelemede' && <><button onClick={() => updateQuestion(q.id, 'Onaylandı')} title="Onayla"><Check size={16} /></button><button onClick={() => updateQuestion(q.id, 'Revizyon')} title="Revizyon iste"><RotateCcw size={15} /></button><button onClick={() => updateQuestion(q.id, 'Reddedildi')} title="Reddet"><X size={16} /></button></>}{!(role === 'YAZAR' && q.authorId === 1 && ['Taslak', 'Revizyon'].includes(q.status)) && !(['EDITOR', 'GENEL_KOORDINATOR'].includes(role) && q.status === 'İncelemede') && <span className="no-action">—</span>}</div></td></tr>; })}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div></div></>}
         {section === 'projects' && <><div className="page-heading"><div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Kitap ve içerik üretimindeki ilerlemeyi takip edin.</p></div><span className="heading-chip"><BookOpen size={16} /> {visibleProjects.length} proje</span></div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje veya branş ara..." value={query} onChange={e => setQuery(e.target.value)} /></div></div><div className="project-grid">{filteredProjects.map(project => <div className="panel project-card" key={project.id}><div className="project-card-top"><span className="subject-icon">{project.subject.slice(0, 1)}</span><Status value={project.status} /></div><span className="project-code">PROJE #{String(project.id).padStart(3, '0')}</span><h2>{project.name}</h2><p>{project.subject} · {project.grade} · {project.province}</p><div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div></div>)}</div>{filteredProjects.length === 0 && <div className="empty-state">Proje bulunamadı.</div>}</>}
         {section === 'grades' && <>
             <div className="page-heading">
@@ -263,12 +307,12 @@ export default function DemoApp() {
           </>}
 
           {section === 'authors' && <>
-          <div className="page-heading"><div><div className="eyebrow">UZMAN AĞI · COĞRAFİ GÖRÜNÜM</div><h1>Türkiye Yazar Ağı</h1><p>{role === 'IL_KOORDINATORU' ? 'İstanbul kapsamındaki örnek yazarları haritada ve listede keşfedin.' : 'Yazarların illere dağılımını ve branşlarını tek ekranda keşfedin.'}</p></div><span className="heading-chip"><Users size={16} /> {visibleAuthors.length} yazar</span></div>
-          <AuthorMap authors={visibleAuthors} scopeProvince={role === 'IL_KOORDINATORU' ? 'İstanbul' : undefined} onShowAuthors={showAuthorsForProvince} />
+          <div className="page-heading"><div><div className="eyebrow">UZMAN AĞI · COĞRAFİ GÖRÜNÜM</div><h1>Türkiye Yazar Ağı</h1><p>{role === 'IL_KOORDINATORU' ? 'İstanbul kapsamındaki örnek yazarları haritada ve listede keşfedin.' : role === 'BOLGE_KOORDINATORU' ? 'Marmara Bölgesi kapsamındaki il koordinatörlerini ve yazarları haritada ve listede keşfedin.' : 'Yazarların illere dağılımını ve branşlarını tek ekranda keşfedin.'}</p></div><span className="heading-chip"><Users size={16} /> {visibleAuthors.length} yazar</span></div>
+          <AuthorMap authors={visibleAuthors} scopeProvinces={role === 'IL_KOORDINATORU' ? ['İstanbul'] : role === 'BOLGE_KOORDINATORU' ? MARMARA : undefined} onShowAuthors={showAuthorsForProvince} />
           <section id="author-list" className="author-network-list">
             <div className="author-network-list-heading"><div><span className="panel-kicker">YAZAR REHBERİ</span><h2>{authorProvince ? `${authorProvince} yazarları` : 'Tüm yazarlar'}</h2><p>Haritadan bir il seçip listeyi süzebilir veya yazar ve branş arayabilirsiniz.</p></div><span className="heading-chip">{filteredAuthors.length} kayıt</span></div>
             <div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Yazarlarda ara" placeholder="Yazar, branş veya il ara..." value={query} onChange={e => setQuery(e.target.value)} /></div>{authorProvince && <button className="author-network-clear" onClick={() => setAuthorProvince('')}>{authorProvince} filtresini kaldır <X size={14} /></button>}</div>
-            <div className="panel table-panel"><div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>BRANŞ</th><th>KADEME</th><th>İL</th><th>AKTİF PROJE</th><th>DURUM</th></tr></thead><tbody>{filteredAuthors.map(author => <tr key={author.id}><td><div className="person-cell"><span className="small-avatar">{author.initials}</span><strong>{author.name}</strong></div></td><td>{author.subject}</td><td><div style={{display: 'flex', gap: '4px', flexWrap: 'wrap'}}>{author.levels?.map(l => <span key={l} style={{background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', color: '#334155', border: '1px solid #e2e8f0'}}>{l}</span>)}</div></td><td>{author.province}</td><td>{author.activeProjects}</td><td><Status value={author.status} /></td></tr>)}</tbody></table>{filteredAuthors.length === 0 && <div className="empty-state">Bu filtreye uygun yazar bulunamadı.</div>}</div></div>
+            <div className="panel table-panel"><div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>BRANŞ</th><th>KADEME</th><th>İL</th><th>AKTİF PROJE</th><th>DURUM</th></tr></thead><tbody>{filteredAuthors.map(author => <tr key={author.id}><td><div className="person-cell"><span className="small-avatar">{author.initials}</span><strong>{author.name}</strong></div></td><td><span style={{fontWeight: 800, color: author.roleType === 'İl Koordinatörü' ? '#10b981' : '#64748b'}}>{author.roleType || 'Yazar'}</span></td><td>{author.subject}</td><td><div style={{display: 'flex', gap: '4px', flexWrap: 'wrap'}}>{author.levels?.map(l => <span key={l} style={{background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', color: '#334155', border: '1px solid #e2e8f0'}}>{l}</span>)}</div></td><td>{author.province}</td><td>{author.activeProjects}</td><td><Status value={author.status} /></td></tr>)}</tbody></table>{filteredAuthors.length === 0 && <div className="empty-state">Bu filtreye uygun yazar bulunamadı.</div>}</div></div>
           </section>
         </>}
         {section === 'payments' && <><div className="page-heading"><div><div className="eyebrow">FİNANS AKIŞI</div><h1>Hakedişler</h1><p>Örnek ödeme kayıtlarının onay ve ödeme adımlarını deneyin.</p></div><span className="heading-chip"><Wallet size={16} /> Demo tutarlar</span></div><div className="stats-grid payments-stats"><StatCard label="Bekleyen" value={money(data.payments.filter(p => p.status === 'Bekliyor').reduce((sum, p) => sum + p.amount, 0))} note="Onay bekleyen hakediş" icon={Clock3} tone="amber" /><StatCard label="Onaylanan" value={money(data.payments.filter(p => p.status === 'Onaylandı').reduce((sum, p) => sum + p.amount, 0))} note="Ödeme sırasına alınan" icon={CheckCircle2} tone="blue" /><StatCard label="Ödenen" value={money(data.payments.filter(p => p.status === 'Ödendi').reduce((sum, p) => sum + p.amount, 0))} note="Tamamlanan işlemler" icon={Wallet} tone="green" /></div><div className="panel table-panel"><div className="table-heading"><strong>Hakediş listesi</strong><span>İşlemler sadece bu demo tarayıcısını etkiler</span></div><div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>PROJE</th><th>TUTAR</th><th>PLANLANAN TARİH</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>{data.payments.map(payment => <tr key={payment.id}><td><strong>{data.authors.find(a => a.id === payment.authorId)?.name}</strong></td><td>{data.projects.find(p => p.id === payment.projectId)?.name}</td><td><strong>{money(payment.amount)}</strong></td><td>{date(payment.date)}</td><td><Status value={payment.status} /></td><td><div className="row-actions">{payment.status !== 'Ödendi' ? <button onClick={() => updatePayment(payment.id)}>{payment.status === 'Bekliyor' ? 'Onayla' : 'Ödendi işaretle'} <ArrowRight size={14} /></button> : <span className="no-action">Tamamlandı</span>}</div></td></tr>)}</tbody></table></div></div></>}
@@ -297,6 +341,17 @@ export default function DemoApp() {
       <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required /></label>; })}</div>
       <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini veya editör notunu yazın..." /></label>
       <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowQuestionForm(false)}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
+    </form></div>}
+    {editingQuestion && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setEditingQuestionId(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
+      <div className="modal-head"><div><span className="panel-kicker">EDİTÖR İNCELEMESİ</span><h2>Soruyu düzenle</h2></div><button type="button" aria-label="Kapat" onClick={() => setEditingQuestionId(null)}><X size={20} /></button></div>
+      <p>Gerekli düzeltmeleri yapın ve yazara açıklayıcı bir not bırakın. Kaydedilen değişiklikler yazarın soru ekranında görünür.</p>
+      <div className="editor-review-context"><span>{editingQuestion.subject}</span><span>{editingQuestion.grade}</span><span>{data.authors.find(author => author.id === editingQuestion.authorId)?.name}</span></div>
+      <label>Soru gövdesi<textarea autoFocus minLength={10} maxLength={1200} value={editorQuestionTitle} onChange={event => setEditorQuestionTitle(event.target.value)} required /></label>
+      <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Varsa seçenekleri düzeltin ve doğru cevabı işaretleyin.</span></div><span className="answer-key">Doğru cevap: {editorCorrectAnswer}</span></div>
+      <div className="question-options-grid">{editorQuestionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${editorCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="editor-correct-answer" checked={editorCorrectAnswer === letter} onChange={() => setEditorCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateEditorOption(index, event.target.value)} placeholder={`${letter} seçeneği`} /></label>; })}</div>
+      <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={editorExplanation} onChange={event => setEditorExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesi..." /></label>
+      <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Yaptığınız düzeltmeyi veya yazardan beklediğiniz değişikliği açıklayın..." /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>
+      <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setEditingQuestionId(null)}>Vazgeç</button><button type="submit" className="primary-button"><PencilLine size={17} /> Düzeltmeleri ve notu kaydet</button></div>
     </form></div>}
     {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
   </div>;

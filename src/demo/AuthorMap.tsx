@@ -7,7 +7,7 @@ type Province = (typeof TURKEY_MAP_PROVINCES)[number];
 
 interface AuthorMapProps {
   authors: Author[];
-  scopeProvince?: string;
+  scopeProvinces?: string[];
   initialProvince?: string;
   onShowAuthors: (province: string) => void;
 }
@@ -15,16 +15,16 @@ interface AuthorMapProps {
 const regions = ['Tümü', 'Marmara', 'Ege', 'Akdeniz', 'İç Anadolu', 'Karadeniz', 'Doğu Anadolu', 'Güneydoğu Anadolu'];
 const provinceByName = (name: string) => TURKEY_MAP_PROVINCES.find(province => province.name === name);
 
-export function AuthorMap({ authors, scopeProvince, initialProvince, onShowAuthors }: AuthorMapProps) {
-  const [selectedId, setSelectedId] = useState(() => provinceByName(scopeProvince || initialProvince || 'İstanbul')?.id ?? 34);
+export function AuthorMap({ authors, scopeProvinces, initialProvince, onShowAuthors }: AuthorMapProps) {
+  const [selectedId, setSelectedId] = useState(() => provinceByName((scopeProvinces && scopeProvinces[0]) || initialProvince || 'İstanbul')?.id ?? 34);
   const [region, setRegion] = useState('Tümü');
   const [search, setSearch] = useState('');
   const [hovered, setHovered] = useState<Province | null>(null);
   const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
-    setSelectedId(provinceByName(scopeProvince || initialProvince || 'İstanbul')?.id ?? 34);
-  }, [scopeProvince, initialProvince]);
+    setSelectedId(provinceByName((scopeProvinces && scopeProvinces[0]) || initialProvince || 'İstanbul')?.id ?? 34);
+  }, [scopeProvinces, initialProvince]);
 
   const authorsByProvince = useMemo(() => {
     const map = new Map<string, Author[]>();
@@ -37,11 +37,11 @@ export function AuthorMap({ authors, scopeProvince, initialProvince, onShowAutho
   const topProvinces = TURKEY_MAP_PROVINCES.filter(province => (authorsByProvince.get(province.name)?.length || 0) > 0)
     .sort((a, b) => (authorsByProvince.get(b.name)?.length || 0) - (authorsByProvince.get(a.name)?.length || 0)).slice(0, 5);
   const searchResults = search.trim()
-    ? TURKEY_MAP_PROVINCES.filter(province => (!scopeProvince || province.name === scopeProvince) && province.name.toLocaleLowerCase('tr-TR').includes(search.toLocaleLowerCase('tr-TR'))).slice(0, 6)
+    ? TURKEY_MAP_PROVINCES.filter(province => (!scopeProvinces || scopeProvinces.includes(province.name)) && province.name.toLocaleLowerCase('tr-TR').includes(search.toLocaleLowerCase('tr-TR'))).slice(0, 6)
     : [];
 
   const selectProvince = (province: Province) => {
-    if (scopeProvince && province.name !== scopeProvince) return;
+    if (scopeProvinces && !scopeProvinces.includes(province.name)) return;
     setSelectedId(province.id);
     setRegion('Tümü');
     setSearch('');
@@ -60,7 +60,7 @@ export function AuthorMap({ authors, scopeProvince, initialProvince, onShowAutho
     <section className="panel author-map-panel">
       <div className="author-map-top">
         <div><span className="panel-kicker">81 İL · YAZAR DAĞILIMI</span><h2>Türkiye Yazar Ağı Haritası</h2><p>İlleri seçerek örnek yazarları ve branşlarını inceleyin.</p></div>
-        <span className="author-map-scope"><MapPin size={15} /> {scopeProvince ? `${scopeProvince} kapsamı` : 'Türkiye geneli'}</span>
+        <span className="author-map-scope"><MapPin size={15} /> {scopeProvinces ? `${scopeProvinces[0]} kapsamı` : 'Türkiye geneli'}</span>
       </div>
       <div className="author-map-summary"><div><strong>{authors.length}</strong><span>örnek yazar</span></div><div><strong>{coveredProvinces}</strong><span>ilde kayıt</span></div><div><strong>{authors.filter(author => author.status === 'Aktif').length}</strong><span>aktif yazar</span></div></div>
       <div className="author-map-controls">
@@ -69,13 +69,13 @@ export function AuthorMap({ authors, scopeProvince, initialProvince, onShowAutho
         </div>
         <div className="author-map-zoom" aria-label="Harita yakınlaştırma"><button title="Yakınlaştır" aria-label="Yakınlaştır" onClick={() => setZoom(value => Math.min(1.6, +(value + .2).toFixed(1)))}><ZoomIn size={16} /></button><button title="Uzaklaştır" aria-label="Uzaklaştır" onClick={() => setZoom(value => Math.max(.8, +(value - .2).toFixed(1)))}><ZoomOut size={16} /></button><button title="Yakınlaştırmayı sıfırla" aria-label="Yakınlaştırmayı sıfırla" onClick={() => setZoom(1)}><RotateCcw size={15} /></button></div>
       </div>
-      {!scopeProvince && <div className="author-map-regions" aria-label="Bölge filtresi">{regions.map(item => <button key={item} className={region === item ? 'selected' : ''} onClick={() => selectRegion(item)}>{item}</button>)}</div>}
+      {!scopeProvinces && <div className="author-map-regions" aria-label="Bölge filtresi">{regions.map(item => <button key={item} className={region === item ? 'selected' : ''} onClick={() => selectRegion(item)}>{item}</button>)}</div>}
       <div className="author-map-canvas">
         <div className="author-map-water-label">KARADENİZ <span>·</span> MARMARA <span>·</span> EGE <span>·</span> AKDENİZ</div>
         <svg viewBox={TURKEY_MAP_VIEWBOX} role="group" aria-label="Türkiye illeri üzerinde örnek yazar dağılımı" style={{ transform: `scale(${zoom})` }}>
           {TURKEY_MAP_PROVINCES.map(province => {
             const count = authorsByProvince.get(province.name)?.length || 0;
-            const inScope = !scopeProvince || scopeProvince === province.name;
+            const inScope = !scopeProvinces || scopeProvinces.includes(province.name);
             const inRegion = region === 'Tümü' || region === province.region;
             const isSelected = selectedId === province.id;
             const fill = !inScope || !inRegion ? '#dbe5e6' : isSelected ? '#156d66' : count >= 4 ? '#35b39d' : count >= 2 ? '#82d5c4' : count === 1 ? '#b8e9df' : '#edf3f2';
@@ -85,7 +85,7 @@ export function AuthorMap({ authors, scopeProvince, initialProvince, onShowAutho
             </g>;
           })}
         </svg>
-        <div className="author-map-hover">{hovered ? <><strong>{hovered.name}</strong><span>{scopeProvince && hovered.name !== scopeProvince ? 'Kapsam dışında' : `${authorsByProvince.get(hovered.name)?.length || 0} örnek yazar`}</span></> : <><strong>Bir il seçin</strong><span>Haritada il üzerine gelin</span></>}</div>
+        <div className="author-map-hover">{hovered ? <><strong>{hovered.name}</strong><span>{scopeProvinces && !scopeProvinces.includes(hovered.name) ? 'Kapsam dışında' : `${authorsByProvince.get(hovered.name)?.length || 0} örnek yazar`}</span></> : <><strong>Bir il seçin</strong><span>Haritada il üzerine gelin</span></>}</div>
       </div>
       <div className="author-map-bottom"><div className="author-map-legend"><span>Yazar yoğunluğu</span><i className="level-empty" />0<i className="level-low" />1<i className="level-mid" />2–3<i className="level-high" />4+</div><div className="author-map-hotspots">{topProvinces.map(province => <button key={province.id} onClick={() => selectProvince(province)}>{province.name} <strong>{authorsByProvince.get(province.name)?.length}</strong></button>)}</div></div>
     </section>

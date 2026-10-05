@@ -57,10 +57,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const allMenuItems = [
     { key: 'dashboard' as TabKey, label: 'Ana Sayfa', icon: LayoutDashboard },
-    { key: 'map' as TabKey, label: 'Türkiye Haritası', icon: MapPin },
     { key: 'roles' as TabKey, label: 'Yetki ve Rol Yönetimi', icon: ShieldCheck },
     { key: 'questions' as TabKey, label: 'Soru Havuzu', icon: PenTool },
-    { key: 'authors' as TabKey, label: 'Yazarlar', icon: Users },
+    { key: 'authors' as TabKey, label: 'Türkiye Yazar Ağı', icon: Users },
     { key: 'projects' as TabKey, label: 'Projeler / Kitaplar', icon: BookOpen },
     {
       key: 'tasks' as TabKey,
@@ -95,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (item.key === 'logs') return false;
     if (userRole === 'GENEL_KOORDINATOR' || userRole === 'YONETICI') return true;
     if (userRole === 'YAZAR' && (item.key === 'payments' || item.key === 'reports' || item.key === 'settings')) return false;
-    if (userRole === 'MUHASEBE' && (item.key === 'map' || item.key === 'tasks')) return false;
+    if (userRole === 'MUHASEBE' && (item.key === 'tasks')) return false;
     return true;
   });
 
@@ -163,7 +162,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 className={`group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition-all ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md shadow-blue-500/20 shadow-md shadow-blue-900/40'
                     : 'text-slate-300 hover:bg-slate-850 hover:text-white'
                 }`}
               >

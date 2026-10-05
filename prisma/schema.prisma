@@ -12,6 +12,7 @@ generator client {
 
 enum RoleCode {
   GENEL_KOORDINATOR
+  BOLGE_KOORDINATORU
   IL_KOORDINATORU
   EDITOR
   YAZAR
@@ -81,6 +82,7 @@ model User {
   fullName     String
   roleId       Int
   role         Role          @relation(fields: [roleId], references: [id])
+  assignedRegion String?   // Bölge Koordinatörünün sorumlu olduğu bölge (örn: 'Marmara')
   provinceId   Int?
   province     Province?     @relation(fields: [provinceId], references: [id])
   avatarUrl    String?

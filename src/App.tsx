@@ -69,18 +69,6 @@ function LandingPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
       return;
     }
 
-    // Vercel (Frontend-only) ortamı için Hardcoded Mock Login
-    if (email === 'salih@prolig.com' || email === 'admin@prolig.com') {
-      setTimeout(() => {
-        onLogin(email === 'salih@prolig.com' ? 'SUPER_ADMIN' : 'GENEL_KOORDINATOR');
-      }, 800);
-      return;
-    }
-    if (email === 'yazar@prolig.com') {
-      setTimeout(() => onLogin('YAZAR'), 800);
-      return;
-    }
-
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -89,14 +77,14 @@ function LandingPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
       });
       const data = await res.json();
       
-      if (data.success) {
-        setTimeout(() => onLogin(data.role), 500);
+      if (res.ok && data.success) {
+        setTimeout(() => onLogin(data.user.role), 500);
       } else {
         alert(data.error || 'Giriş başarısız!');
         setLoading(false);
       }
     } catch (err) {
-      alert('Giriş başarısız. Lütfen admin@prolig.com adresini kullanın.');
+      alert('Sunucu hatası: Bağlantı kurulamadı.');
       setLoading(false);
     }
   };
@@ -209,7 +197,7 @@ function LandingPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
                 {!isLogin && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Ad Soyad</label>
-                    <input type="text" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium" placeholder="Örn: Ahmet Yılmaz" />
+                    <input type="text" required className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 backdrop-blur-sm focus:bg-white rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium" placeholder="Örn: Ahmet Yılmaz" />
                   </motion.div>
                 )}
                 <div>
@@ -219,7 +207,7 @@ function LandingPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required 
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium" 
+                    className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 backdrop-blur-sm focus:bg-white rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium" 
                     placeholder="ornek@prolig.com" 
                   />
                 </div>
@@ -233,7 +221,7 @@ function LandingPage({ onLogin }: { onLogin: (role: UserRole) => void }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required 
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium tracking-widest" 
+                    className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200/60 backdrop-blur-sm focus:bg-white rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium tracking-widest" 
                     placeholder="••••••••" 
                   />
                 </div>
@@ -485,14 +473,17 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
             </>
           )}
 
-          {activeTab === 'map' && canAccess('map') && (
-            <TurkeyMap mapData={mapData} onAddAuthorClick={handleOpenAddAuthorFromMap} onAuthorClick={(a) => setSelectedAuthorForModal(a)} />
-          )}
+          
           {activeTab === 'roles' && canAccess('settings') && <RolesView />}
           {activeTab === 'logs' && currentRole === 'SUPER_ADMIN' && <AuditLogsView />}
           {activeTab === 'settings' && canAccess('settings') && <SettingsView />}
           {activeTab === 'questions' && <QuestionsView userRole={currentRole} userEmail="admin@prolig.com" />}
-          {activeTab === 'authors' && <AuthorsView onAddAuthor={() => handleQuickAction('author')} onSelectAuthor={(a) => setSelectedAuthorForModal(a)} />}
+          {activeTab === 'authors' && (
+            <div className="space-y-6">
+              <TurkeyMap mapData={mapData} onAddAuthorClick={handleOpenAddAuthorFromMap} onAuthorClick={(a) => setSelectedAuthorForModal(a)} />
+              <AuthorsView onAddAuthor={() => handleQuickAction('author')} onSelectAuthor={(a) => setSelectedAuthorForModal(a)} />
+            </div>
+          )}
           {activeTab === 'projects' && <ProjectsView onAddProject={() => handleQuickAction('project')} />}
           {activeTab === 'tasks' && canAccess('tasks') && <TasksView onAddTask={() => handleQuickAction('task')} />}
           {activeTab === 'payments' && canAccess('payments') && <PaymentsView onAddPayment={() => handleQuickAction('payment')} />}
@@ -528,47 +519,48 @@ function DashboardApp({ userRole, onLogout }: { userRole: UserRole, onLogout: ()
 // 3. ANA YÖNLENDİRİCİ (ROUTER)
 // ==========================================
 export function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('isAuthenticated') === 'true';
-  });
-  const [userRole, setUserRole] = useState<UserRole>(() => {
-    return (localStorage.getItem('userRole') as UserRole) || 'YAZAR';
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<UserRole>('YAZAR');
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Not auth');
+      })
+      .then(data => {
+        setIsAuthenticated(true);
+        setUserRole(data.user.role as UserRole);
+      })
+      .catch(() => {
+        setIsAuthenticated(false);
+      })
+      .finally(() => setIsChecking(false));
+  }, []);
 
   const handleLogin = (role: UserRole) => {
     setUserRole(role);
     setIsAuthenticated(true);
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userRole', role);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
     setIsAuthenticated(false);
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
   };
+
+  if (isChecking) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">Yükleniyor...</div>;
+  }
 
   return (
     <Router>
       <Routes>
-        <Route 
-          path="/" 
-          element={
-            isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage onLogin={handleLogin} />
-          } 
-        />
-        
-        <Route 
-          path="/dashboard/*" 
-          element={
-            isAuthenticated ? <DashboardApp userRole={userRole} onLogout={handleLogout} /> : <Navigate to="/" replace />
-          } 
-        />
-
+        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage onLogin={handleLogin} />} />
+        <Route path="/dashboard/*" element={isAuthenticated ? <DashboardApp userRole={userRole} onLogout={handleLogout} /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
 }
-
 export default App;
