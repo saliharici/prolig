@@ -1,4 +1,4 @@
-�# Pilot V1 Contract � Pro-Lig
+# Pilot V1 Contract — Pro-Lig
 
 This document defines the strict workflow, data scope, and API boundaries required for the Pro-Lig Pilot V1 release.
 
@@ -10,7 +10,7 @@ Every backend API endpoint must automatically enforce the logged-in user's data 
 - **IL_KOORDINATORU:** Bound to an `assignedProvince`. Can only read data explicitly linked to their province. *(Note: For Pilot V1, İl Koordinatörü may remain a read-oriented role unless later requirements explicitly grant assignment/management actions).*
 - **EDITOR:** Bound to an assigned editorial scope (e.g., subject or grade level).
 - **YAZAR:** Bound to their own content (questions they created) and projects explicitly assigned to them.
-- **MUHASEBE:** Bound to permitted financial contexts. Read-only access to projects/users, write access only to payment/hakedi�x status.
+- **MUHASEBE:** Bound to permitted financial contexts. Read-only access to projects/users, write access only to payment/hakedix status.
 
 ## 2. Question Workflow (State Machine)
 The lifecycle of a `Question` is strictly controlled by the backend state machine.

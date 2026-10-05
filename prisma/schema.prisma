@@ -83,7 +83,7 @@ model User {
   fullName       String
   roleId         Int
   role           Role      @relation(fields: [roleId], references: [id])
-  assignedRegion String? // Bölge KoordinatörünÃ¼n sorumlu olduÄŸu bÃ¶lge (Ã¶rn: 'Marmara')
+  assignedRegion String? // Bölge Koordinatörünün sorumlu olduğu bölge (örn: 'Marmara')
   provinceId     Int?
   province       Province? @relation(fields: [provinceId], references: [id])
   avatarUrl      String?
@@ -170,7 +170,7 @@ model AuthorProfile {
   tasks          Task[]
   files          FileRecord[]
 
-  // Havuz sistemi hakedişleri iÃ§in Puan/Kredi sistemi
+  // Havuz sistemi hakedişleri için Puan/Kredi sistemi
   points Int @default(0)
 
   @@index([provinceId])
@@ -340,19 +340,19 @@ model ActivityLog {
 
 model Question {
   id           Int     @id @default(autoincrement())
-  content      String // Metin veya Soru iÃ§eriÄŸi
-  imageUrl     String? // Ä°steÄŸe baÄŸlÄ± soru resmi
+  content      String // Metin veya Soru içeriği
+  imageUrl     String? // İsteğe bağlı soru resmi
   authorUserId Int
   authorUser   User    @relation(fields: [authorUserId], references: [id])
 
-  // Havuz sistemi: Soru havuza baÄŸÄ±msÄ±z dÃ¼ÅŸer, sonradan kitaba Ã§ekilir.
+  // Havuz sistemi: Soru havuza bağımsız düşer, sonradan kitaba çekilir.
   projectId Int?
   project   Project? @relation(fields: [projectId], references: [id])
 
   // Taksonomi (MEB Kategorizasyonu)
-  objectiveCode String? // KazanÄ±m Kodu (Ã–rn: M.8.1.2.1)
-  grade         String? // SÄ±nÄ±f (Ã–rn: 8. Sınıf)
-  difficulty    String? // Zorluk (Ã–rn: Kolay, Orta, Zor)
+  objectiveCode String? // Kazanım Kodu (Örn: M.8.1.2.1)
+  grade         String? // Sınıf (Örn: 8. Sınıf)
+  difficulty    String? // Zorluk (Örn: Kolay, Orta, Zor)
 
   status     QuestionStatus @default(TASLAK)
   editorNote String?
