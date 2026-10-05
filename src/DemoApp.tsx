@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  GraduationCap,
   Activity as ActivityIcon, ArrowRight, ArrowUpRight, BookOpen,
   Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
   FileQuestion, Filter, LayoutDashboard, LockKeyhole, MapPinned, Menu, Plus, RotateCcw,
@@ -14,6 +15,7 @@ import './demo.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', icon: LayoutDashboard },
+  { id: 'grades', icon: GraduationCap },
   { id: 'questions', icon: FileQuestion },
   { id: 'projects', icon: BookOpen },
   { id: 'authors', icon: MapPinned },
@@ -111,7 +113,7 @@ export default function DemoApp() {
     if (role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
     const project = data.projects.find(p => p.id === questionProject);
     if (!project) return;
-    const newQuestion: Question = { id: Math.max(...data.questions.map(q => q.id), 100) + 1, title: questionTitle.trim(), subject: project.subject, grade: project.grade, projectId: project.id, authorId: 1, status: 'Taslak', updatedAt: new Date().toISOString().slice(0, 10) };
+    const newQuestion: Question = { id: Math.max(...data.questions.map(q => q.id), 100) + 1, title: questionTitle.trim(), subject: project.subject, grade: project.grade, level: project.level, projectId: project.id, authorId: 1, status: 'Taslak', updatedAt: new Date().toISOString().slice(0, 10) };
     setData(current => ({ ...current, questions: [newQuestion, ...current.questions], activities: [log('Yeni soru taslağı oluşturuldu', 'question', project.id, 1), ...current.activities] }));
     setShowQuestionForm(false); setQuestionTitle(''); setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
   };
@@ -164,13 +166,44 @@ export default function DemoApp() {
         </>}
         {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını deneyin.'}</p></div>{role === 'YAZAR' && <button className="primary-button" onClick={() => setShowQuestionForm(true)}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div></div><div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Örnek içerikler · Rolünüzün kapsamına göre listelenir</span></div><div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => { const author = data.authors.find(a => a.id === q.authorId); const project = data.projects.find(p => p.id === q.projectId); return <tr key={q.id}><td><strong>{q.title}</strong><small>{q.subject} · {q.grade} · #{q.id}</small>{q.note && <small className="review-note">Editör notu: {q.note}</small>}</td><td>{author?.name}</td><td>{project?.name}</td><td><Status value={q.status} /></td><td>{date(q.updatedAt)}</td><td><div className="row-actions">{role === 'YAZAR' && q.authorId === 1 && ['Taslak', 'Revizyon'].includes(q.status) && <button onClick={() => updateQuestion(q.id, 'İncelemede')}>İncelemeye gönder <ArrowRight size={14} /></button>}{['EDITOR', 'GENEL_KOORDINATOR'].includes(role) && q.status === 'İncelemede' && <><button onClick={() => updateQuestion(q.id, 'Onaylandı')} title="Onayla"><Check size={16} /></button><button onClick={() => updateQuestion(q.id, 'Revizyon')} title="Revizyon iste"><RotateCcw size={15} /></button><button onClick={() => updateQuestion(q.id, 'Reddedildi')} title="Reddet"><X size={16} /></button></>}{!(role === 'YAZAR' && q.authorId === 1 && ['Taslak', 'Revizyon'].includes(q.status)) && !(['EDITOR', 'GENEL_KOORDINATOR'].includes(role) && q.status === 'İncelemede') && <span className="no-action">—</span>}</div></td></tr>; })}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div></div></>}
         {section === 'projects' && <><div className="page-heading"><div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Kitap ve içerik üretimindeki ilerlemeyi takip edin.</p></div><span className="heading-chip"><BookOpen size={16} /> {visibleProjects.length} proje</span></div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje veya branş ara..." value={query} onChange={e => setQuery(e.target.value)} /></div></div><div className="project-grid">{filteredProjects.map(project => <div className="panel project-card" key={project.id}><div className="project-card-top"><span className="subject-icon">{project.subject.slice(0, 1)}</span><Status value={project.status} /></div><span className="project-code">PROJE #{String(project.id).padStart(3, '0')}</span><h2>{project.name}</h2><p>{project.subject} · {project.grade} · {project.province}</p><div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div></div>)}</div>{filteredProjects.length === 0 && <div className="empty-state">Proje bulunamadı.</div>}</>}
-        {section === 'authors' && <>
+        {section === 'grades' && <>
+            <div className="page-heading">
+              <div>
+                <div className="eyebrow">EĞİTİM KADEMELERİ</div>
+                <h1>Sınıflar ve Kademeler</h1>
+                <p>İlkokul, Ortaokul, Lise ve Mezun kademelerindeki içerik ve yazar dağılımını inceleyin.</p>
+              </div>
+              <span className="heading-chip"><GraduationCap size={16} /> 4 Kademe</span>
+            </div>
+            <div className="stats-grid">
+              {['İlkokul', 'Ortaokul', 'Lise', 'Mezun'].map(lvl => {
+                const authorsCount = data.authors.filter(a => a.levels?.includes(lvl)).length;
+                const projectsCount = data.projects.filter(p => p.level === lvl).length;
+                const questionsCount = data.questions.filter(q => q.level === lvl).length;
+                return (
+                  <div key={lvl} className="panel stat-card">
+                    <div className="stat-top">
+                      <strong>{lvl}</strong>
+                      <div className="stat-icon" style={{background: '#eff6ff', color: '#3b82f6'}}><GraduationCap size={18} /></div>
+                    </div>
+                    <div style={{marginTop: '15px', display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b'}}>
+                      <div><strong style={{color: '#0f172a', fontSize: '14px'}}>{authorsCount}</strong> Yazar</div>
+                      <div><strong style={{color: '#0f172a', fontSize: '14px'}}>{projectsCount}</strong> Proje</div>
+                      <div><strong style={{color: '#0f172a', fontSize: '14px'}}>{questionsCount}</strong> Soru</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>}
+
+          {section === 'authors' && <>
           <div className="page-heading"><div><div className="eyebrow">UZMAN AĞI · COĞRAFİ GÖRÜNÜM</div><h1>Türkiye Yazar Ağı</h1><p>{role === 'IL_KOORDINATORU' ? 'İstanbul kapsamındaki örnek yazarları haritada ve listede keşfedin.' : 'Yazarların illere dağılımını ve branşlarını tek ekranda keşfedin.'}</p></div><span className="heading-chip"><Users size={16} /> {visibleAuthors.length} yazar</span></div>
           <AuthorMap authors={visibleAuthors} scopeProvince={role === 'IL_KOORDINATORU' ? 'İstanbul' : undefined} onShowAuthors={showAuthorsForProvince} />
           <section id="author-list" className="author-network-list">
             <div className="author-network-list-heading"><div><span className="panel-kicker">YAZAR REHBERİ</span><h2>{authorProvince ? `${authorProvince} yazarları` : 'Tüm yazarlar'}</h2><p>Haritadan bir il seçip listeyi süzebilir veya yazar ve branş arayabilirsiniz.</p></div><span className="heading-chip">{filteredAuthors.length} kayıt</span></div>
             <div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Yazarlarda ara" placeholder="Yazar, branş veya il ara..." value={query} onChange={e => setQuery(e.target.value)} /></div>{authorProvince && <button className="author-network-clear" onClick={() => setAuthorProvince('')}>{authorProvince} filtresini kaldır <X size={14} /></button>}</div>
-            <div className="panel table-panel"><div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>BRANŞ</th><th>İL</th><th>AKTİF PROJE</th><th>DURUM</th></tr></thead><tbody>{filteredAuthors.map(author => <tr key={author.id}><td><div className="person-cell"><span className="small-avatar">{author.initials}</span><strong>{author.name}</strong></div></td><td>{author.subject}</td><td>{author.province}</td><td>{author.activeProjects}</td><td><Status value={author.status} /></td></tr>)}</tbody></table>{filteredAuthors.length === 0 && <div className="empty-state">Bu filtreye uygun yazar bulunamadı.</div>}</div></div>
+            <div className="panel table-panel"><div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>BRANŞ</th><th>KADEME</th><th>İL</th><th>AKTİF PROJE</th><th>DURUM</th></tr></thead><tbody>{filteredAuthors.map(author => <tr key={author.id}><td><div className="person-cell"><span className="small-avatar">{author.initials}</span><strong>{author.name}</strong></div></td><td>{author.subject}</td><td><div style={{display: 'flex', gap: '4px', flexWrap: 'wrap'}}>{author.levels?.map(l => <span key={l} style={{background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', color: '#334155', border: '1px solid #e2e8f0'}}>{l}</span>)}</div></td><td>{author.province}</td><td>{author.activeProjects}</td><td><Status value={author.status} /></td></tr>)}</tbody></table>{filteredAuthors.length === 0 && <div className="empty-state">Bu filtreye uygun yazar bulunamadı.</div>}</div></div>
           </section>
         </>}
         {section === 'payments' && <><div className="page-heading"><div><div className="eyebrow">FİNANS AKIŞI</div><h1>Hakedişler</h1><p>Örnek ödeme kayıtlarının onay ve ödeme adımlarını deneyin.</p></div><span className="heading-chip"><Wallet size={16} /> Demo tutarlar</span></div><div className="stats-grid payments-stats"><StatCard label="Bekleyen" value={money(data.payments.filter(p => p.status === 'Bekliyor').reduce((sum, p) => sum + p.amount, 0))} note="Onay bekleyen hakediş" icon={Clock3} tone="amber" /><StatCard label="Onaylanan" value={money(data.payments.filter(p => p.status === 'Onaylandı').reduce((sum, p) => sum + p.amount, 0))} note="Ödeme sırasına alınan" icon={CheckCircle2} tone="blue" /><StatCard label="Ödenen" value={money(data.payments.filter(p => p.status === 'Ödendi').reduce((sum, p) => sum + p.amount, 0))} note="Tamamlanan işlemler" icon={Wallet} tone="green" /></div><div className="panel table-panel"><div className="table-heading"><strong>Hakediş listesi</strong><span>İşlemler sadece bu demo tarayıcısını etkiler</span></div><div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>PROJE</th><th>TUTAR</th><th>PLANLANAN TARİH</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>{data.payments.map(payment => <tr key={payment.id}><td><strong>{data.authors.find(a => a.id === payment.authorId)?.name}</strong></td><td>{data.projects.find(p => p.id === payment.projectId)?.name}</td><td><strong>{money(payment.amount)}</strong></td><td>{date(payment.date)}</td><td><Status value={payment.status} /></td><td><div className="row-actions">{payment.status !== 'Ödendi' ? <button onClick={() => updatePayment(payment.id)}>{payment.status === 'Bekliyor' ? 'Onayla' : 'Ödendi işaretle'} <ArrowRight size={14} /></button> : <span className="no-action">Tamamlandı</span>}</div></td></tr>)}</tbody></table></div></div></>}
