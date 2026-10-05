@@ -1,4 +1,4 @@
-﻿import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient, Prisma } from '../generated/prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcryptjs';
@@ -7,16 +7,31 @@ import * as path from 'path';
 import 'dotenv/config';
 
 const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not configured.");
+}
+
+if (process.env.PROLIG_PILOT_DB_CONFIRMED !== "true") {
+  throw new Error("Pilot database safety confirmation is required.");
+}
+
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const envPath = path.resolve('.local/prolig-pilot-credentials.env');
+  if (!fs.existsSync(envPath)) {
+    throw new Error(`Credential file not found at ${envPath}`);
+  }
   const envContent = fs.readFileSync(envPath, 'utf8');
+  
   const getPass = (role: string) => {
     const match = envContent.match(new RegExp(`PILOT_${role}_PASSWORD=(.*)`));
-    return match ? match[1] : 'fallback';
+    if (!match || !match[1] || !match[1].trim()) {
+      throw new Error(`Missing or empty credential for PILOT_${role}_PASSWORD`);
+    }
+    return match[1].trim();
   };
 
   const rolesToSeed = [
@@ -26,7 +41,7 @@ async function main() {
     { code: 'EDITOR', name: 'Editör' },
     { code: 'YAZAR', name: 'Yazar' },
     { code: 'MUHASEBE', name: 'Muhasebe' }
-  ];
+  ] as const;
 
   for (const r of rolesToSeed) {
     let existing = await prisma.role.findUnique({ where: { code: r.code } });
@@ -59,32 +74,64 @@ async function main() {
 
   for (const u of users) {
     const pass = getPass(u.role);
-    const hash = await bcrypt.hash(pass, 10);
+    const existingUser = await prisma.user.findUnique({ where: { email: u.email } });
     
-    let existingUser = await prisma.user.findUnique({ where: { email: u.email } });
-    
-    let userCreate: any = {
+    let userCreate: Prisma.UserCreateInput = {
       email: u.email,
       username: u.email.split('@')[0],
-      passwordHash: hash,
+      passwordHash: '',
       fullName: 'Pilot ' + u.role,
-      roleId: getRoleId(u.role),
-      status: 'AKTIF'
+      role: { connect: { id: getRoleId(u.role) } },
+      status: 'Aktif'
     };
 
     if (u.role === 'BOLGE_KOORDINATORU') {
       userCreate.assignedRegion = 'Marmara';
     } else if (u.role === 'IL_KOORDINATORU') {
-      userCreate.provinceId = marmara.id;
+      userCreate.province = { connect: { id: marmara.id } };
     }
 
     let user;
     if (existingUser) {
-      user = await prisma.user.update({
-        where: { email: u.email },
-        data: { passwordHash: hash }
-      });
+      if (existingUser.passwordHash) {
+        const isValid = await bcrypt.compare(pass, existingUser.passwordHash);
+        if (!isValid) {
+          if (process.env.PROLIG_ROTATE_PILOT_PASSWORDS === 'true') {
+            const newHash = await bcrypt.hash(pass, 10);
+            user = await prisma.user.update({
+              where: { email: u.email },
+              data: { 
+                passwordHash: newHash,
+                status: 'Aktif',
+                roleId: getRoleId(u.role),
+                assignedRegion: u.role === 'BOLGE_KOORDINATORU' ? 'Marmara' : null,
+                provinceId: u.role === 'IL_KOORDINATORU' ? marmara.id : null
+              }
+            });
+          } else {
+            throw new Error(`Credential mismatch for ${u.email}. Rotation requires PROLIG_ROTATE_PILOT_PASSWORDS=true`);
+          }
+        } else {
+          // just ensure canonical state
+          user = await prisma.user.update({
+            where: { email: u.email },
+            data: { 
+              status: 'Aktif',
+              roleId: getRoleId(u.role),
+              assignedRegion: u.role === 'BOLGE_KOORDINATORU' ? 'Marmara' : null,
+              provinceId: u.role === 'IL_KOORDINATORU' ? marmara.id : null
+            }
+          });
+        }
+      } else {
+         const newHash = await bcrypt.hash(pass, 10);
+         user = await prisma.user.update({
+            where: { email: u.email },
+            data: { passwordHash: newHash }
+         });
+      }
     } else {
+      userCreate.passwordHash = await bcrypt.hash(pass, 10);
       user = await prisma.user.create({ data: userCreate });
     }
 
@@ -108,7 +155,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error(e.message);
     process.exit(1);
   })
   .finally(async () => {

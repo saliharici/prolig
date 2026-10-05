@@ -1,4 +1,4 @@
-﻿# Canonical Architecture — Pro-Lig
+# Canonical Architecture — Pro-Lig
 
 ## 1. Active Runtime (SSOT)
 The authoritative frontend path is:
@@ -17,7 +17,8 @@ The authoritative frontend path is:
 ## 3. Database Access Strategy
 **Canonical Choice:** Prisma 7 (`prisma/schema.prisma` with `@prisma/adapter-pg`)
 **Reasoning:** Provides static type safety, automated migrations, and schema validation.
-- Raw `pg` business queries must be migrated to Prisma.\n- `PrismaClient` will be instantiated globally for serverless environments using the native Prisma 7 `@prisma/adapter-pg` and `pg`.
+- Raw `pg` business queries must be migrated to Prisma.
+- `PrismaClient` will be instantiated globally for serverless environments using the native Prisma 7 `@prisma/adapter-pg` and `pg`.
 
 ## 4. Identity & Authorization Model
 ### User vs. Author Identity

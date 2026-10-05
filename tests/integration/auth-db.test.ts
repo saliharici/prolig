@@ -1,4 +1,4 @@
-﻿import 'dotenv/config';
+import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { PrismaClient } from '../../generated/prisma/client';
 import { Pool } from 'pg';
@@ -6,39 +6,57 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import loginHandler from '../../api/v1/auth/login';
 import meHandler from '../../api/v1/auth/me';
 import logoutHandler from '../../api/v1/auth/logout';
+import * as bcrypt from 'bcryptjs';
+
+const connectionString = process.env.DATABASE_URL;
 
 // Require safety gate
-if (process.env.PROLIG_PILOT_DB_CONFIRMED !== 'true') {
-  console.warn('Skipping integration tests: PROLIG_PILOT_DB_CONFIRMED=true is required');
+if (!connectionString) {
+  console.warn('DB integration NOT RUN: DATABASE_URL is required');
+  describe.skip('DB Integration', () => {
+    it('skipped', () => {});
+  });
+} else if (process.env.PROLIG_PILOT_DB_CONFIRMED !== 'true') {
+  console.warn('DB integration NOT RUN: PROLIG_PILOT_DB_CONFIRMED=true is required');
   describe.skip('DB Integration', () => {
     it('skipped', () => {});
   });
 } else {
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 
   describe('Authentication DB Integration', () => {
     
     beforeAll(async () => {
-      // Create a temporary inactive user for testing
+      const role = await prisma.role.findUnique({ where: { code: 'YAZAR' } });
+      if (!role) {
+        throw new Error('Integration setup failed: Canonical role YAZAR not found.');
+      }
+
+      const validHash = await bcrypt.hash('dummy-inactive-pass', 10);
+      
       await prisma.user.upsert({
         where: { email: 'integration.inactive@prolig.local' },
-        update: { status: 'Pasif' },
+        update: { status: 'Pasif', passwordHash: validHash },
         create: {
           email: 'integration.inactive@prolig.local',
           username: 'integration.inactive',
-          passwordHash: 'dummy',
+          passwordHash: validHash,
           fullName: 'Integration Inactive',
-          roleId: 1,
+          roleId: role.id,
           status: 'Pasif'
         }
       });
     });
 
     afterAll(async () => {
-      await prisma.user.delete({ where: { email: 'integration.inactive@prolig.local' } });
+      try {
+        await prisma.user.delete({ where: { email: 'integration.inactive@prolig.local' } });
+      } catch (e) {
+        // ignore if not found
+      }
       await prisma.$disconnect();
       await pool.end();
     });
@@ -146,12 +164,12 @@ if (process.env.PROLIG_PILOT_DB_CONFIRMED !== 'true') {
       expect(jsonData.error).toBe('Invalid credentials');
     });
 
-    it('Inactive user is rejected', async () => {
+    it('Inactive user is rejected even with valid password', async () => {
       let statusCode = 200;
       let jsonData: any = null;
       const req: any = {
         method: 'POST',
-        body: { email: 'integration.inactive@prolig.local', password: 'dummy' }
+        body: { email: 'integration.inactive@prolig.local', password: 'dummy-inactive-pass' }
       };
       const res: any = {
         setHeader() {},
@@ -182,4 +200,3 @@ if (process.env.PROLIG_PILOT_DB_CONFIRMED !== 'true') {
 
   });
 }
-
