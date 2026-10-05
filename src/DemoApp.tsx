@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   GraduationCap,
   Activity as ActivityIcon, ArrowRight, ArrowUpRight, BookOpen,
-  Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
-  FileQuestion, Filter, LayoutDashboard, LockKeyhole, MapPinned, Menu, Plus, RotateCcw,
-  Search, ShieldCheck, Sparkles, Users, Wallet, X,
+  Bold, Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
+  FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered,
+  LockKeyhole, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Sparkles,
+  Underline, Users, Wallet, X,
 } from 'lucide-react';
 import {
   actionPermissions, dataScopes, loadDemoData, permissions, resetDemoData, roleLabels, rolePeople, saveDemoData,
@@ -78,7 +79,13 @@ export default function DemoApp() {
   const [questionLevel, setQuestionLevel] = useState('Ortaokul');
   const [questionGrade, setQuestionGrade] = useState('8. Sınıf');
   const [questionProject, setQuestionProject] = useState(1);
+  const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
+  const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
+  const [questionExplanation, setQuestionExplanation] = useState('');
+  const [questionImageName, setQuestionImageName] = useState('');
   const [toast, setToast] = useState('');
+  const questionEditorRef = useRef<HTMLTextAreaElement>(null);
+  const questionImageRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { saveDemoData(data); }, [data]);
   useEffect(() => { if (toast) { const timer = window.setTimeout(() => setToast(''), 3800); return () => window.clearTimeout(timer); } }, [toast]);
@@ -123,9 +130,9 @@ export default function DemoApp() {
     event.preventDefault();
     if (role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
     const project = data.projects.find(p => p.id === questionProject);
-    const newQuestion: Question = { id: Math.max(...data.questions.map(q => q.id), 100) + 1, title: questionTitle.trim(), subject: project?.subject || 'Genel', grade: questionGrade, level: questionLevel, projectId: project?.id || 0, authorId: 1, status: 'Taslak', updatedAt: new Date().toISOString().slice(0, 10) };
+    const newQuestion: Question = { id: Math.max(...data.questions.map(q => q.id), 100) + 1, title: questionTitle.trim(), subject: project?.subject || 'Genel', grade: questionGrade, level: questionLevel, projectId: project?.id || 0, authorId: 1, status: 'Taslak', updatedAt: new Date().toISOString().slice(0, 10), options: questionOptions, correctAnswer: questionCorrectAnswer, explanation: questionExplanation.trim(), imageName: questionImageName };
     setData(current => ({ ...current, questions: [newQuestion, ...current.questions], activities: [log('Yeni soru taslağı oluşturuldu', 'question', newQuestion.projectId, 1), ...current.activities] }));
-    setShowQuestionForm(false); setQuestionTitle(''); setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
+    setShowQuestionForm(false); setQuestionTitle(''); setQuestionOptions(['', '', '', '']); setQuestionExplanation(''); setQuestionImageName(''); setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
   };
   const openQuestionForm = () => {
     const firstProject = data.projects[0];
@@ -133,6 +140,10 @@ export default function DemoApp() {
     setQuestionLevel(firstProject.level);
     setQuestionGrade(firstProject.grade);
     setQuestionProject(firstProject.id);
+    setQuestionOptions(['', '', '', '']);
+    setQuestionCorrectAnswer('A');
+    setQuestionExplanation('');
+    setQuestionImageName('');
     setShowQuestionForm(true);
   };
   const changeQuestionLevel = (level: string) => {
@@ -147,6 +158,30 @@ export default function DemoApp() {
     setQuestionGrade(grade);
     setQuestionProject(firstProject?.id || 0);
   };
+  const applyQuestionMarkup = (before: string, after = before, placeholder = 'metin') => {
+    const editor = questionEditorRef.current;
+    if (!editor) return;
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const selected = questionTitle.slice(start, end) || placeholder;
+    const nextValue = `${questionTitle.slice(0, start)}${before}${selected}${after}${questionTitle.slice(end)}`;
+    setQuestionTitle(nextValue);
+    window.requestAnimationFrame(() => {
+      editor.focus();
+      editor.setSelectionRange(start + before.length, start + before.length + selected.length);
+    });
+  };
+  const applyQuestionList = (ordered: boolean) => {
+    const editor = questionEditorRef.current;
+    if (!editor) return;
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const selected = questionTitle.slice(start, end) || 'Madde';
+    const formatted = selected.split('\n').map((line, index) => `${ordered ? `${index + 1}.` : '•'} ${line}`).join('\n');
+    setQuestionTitle(`${questionTitle.slice(0, start)}${formatted}${questionTitle.slice(end)}`);
+    window.requestAnimationFrame(() => editor.focus());
+  };
+  const updateQuestionOption = (index: number, value: string) => setQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
   const updatePayment = (id: number) => {
     if (!['MUHASEBE', 'GENEL_KOORDINATOR'].includes(role)) return;
     const payment = data.payments.find(item => item.id === id);
@@ -242,7 +277,27 @@ export default function DemoApp() {
         {section === 'audit' && role === 'GENEL_KOORDINATOR' && <><div className="page-heading"><div><div className="eyebrow">DENETİM İZİ</div><h1>İşlem Geçmişi</h1><p>Bu tarayıcıdaki örnek soru ve hakediş adımlarını izleyin.</p></div><span className="heading-chip"><ActivityIcon size={16} /> {data.activities.length} kayıt</span></div><div className="panel table-panel"><div className="table-heading"><strong>Son işlemler</strong><span>Demo verisi · Yerel tarayıcı kaydı</span></div><div className="table-wrap"><table><thead><tr><th>İŞLEM</th><th>UYGULAYAN</th><th>TÜR</th><th>ZAMAN</th></tr></thead><tbody>{data.activities.map(item => <tr key={item.id}><td><strong>{item.text}</strong></td><td>{item.actor}</td><td>{item.type === 'payment' ? 'Hakediş' : item.type === 'project' ? 'Proje' : 'Soru'}</td><td>{item.at}</td></tr>)}</tbody></table></div></div></>}
       </main>
     </div>
-    {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setShowQuestionForm(false); }}><form className="question-modal" onSubmit={createQuestion}><div className="modal-head"><div><span className="panel-kicker">YENİ TASLAK</span><h2>Soru oluştur</h2></div><button type="button" aria-label="Kapat" onClick={() => setShowQuestionForm(false)}><X size={20} /></button></div><p>Önce eğitim kademesi ve sınıfı seçin; proje listesi bu seçime göre güncellenir.</p><label>Soru başlığı veya kısa içerik<textarea autoFocus minLength={10} maxLength={300} placeholder="Örn. Kesirlerle ilgili günlük yaşam problemi..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required /></label><div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div><label>Proje<select aria-label="Proje" value={questionProject} onChange={event => setQuestionProject(Number(event.target.value))}>{questionProjects.length > 0 ? questionProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>) : <option value={0}>{questionGrade} Genel Soru Havuzu</option>}</select><small className="field-help">Sınıfa bağlı proje yoksa taslak genel soru havuzuna kaydedilir.</small></label><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowQuestionForm(false)}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslak oluştur</button></div></form></div>}
+    {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setShowQuestionForm(false); }}><form className="question-modal pro-editor-modal" onSubmit={createQuestion}>
+      <div className="modal-head"><div><span className="panel-kicker">PROFESYONEL SORU EDİTÖRÜ</span><h2>Yeni soru taslağı</h2></div><button type="button" aria-label="Kapat" onClick={() => setShowQuestionForm(false)}><X size={20} /></button></div>
+      <p>Soru gövdesini hazırlayın, cevap seçeneklerini ve doğru yanıtı belirleyin.</p>
+      <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
+      <label>Proje<select aria-label="Proje" value={questionProject} onChange={event => setQuestionProject(Number(event.target.value))}>{questionProjects.length > 0 ? questionProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>) : <option value={0}>{questionGrade} Genel Soru Havuzu</option>}</select><small className="field-help">Sınıfa bağlı proje yoksa taslak genel soru havuzuna kaydedilir.</small></label>
+      <label className="question-editor-label">Soru gövdesi</label>
+      <div className="question-editor-shell">
+        <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
+          <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
+          <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
+          <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button><button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button><button type="button" title="Görsel ekle" aria-label="Görsel ekle" onClick={() => questionImageRef.current?.click()}><ImagePlus size={16} /></button>
+          <input ref={questionImageRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={event => setQuestionImageName(event.target.files?.[0]?.name || '')} />
+        </div>
+        <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
+        <div className="question-editor-footer"><span>{questionImageName ? <><ImagePlus size={13} /> {questionImageName}</> : 'Görsel eklenmedi'}</span><strong>{questionTitle.length} / 1200</strong></div>
+      </div>
+      <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer}</span></div>
+      <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required /></label>; })}</div>
+      <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini veya editör notunu yazın..." /></label>
+      <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowQuestionForm(false)}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
+    </form></div>}
     {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
   </div>;
 }

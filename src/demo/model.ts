@@ -14,6 +14,10 @@ export interface Question {
   status: QuestionStatus;
   updatedAt: string;
   note?: string;
+  options?: string[];
+  correctAnswer?: string;
+  explanation?: string;
+  imageName?: string;
 }
 
 export interface Project {
