@@ -1,0 +1,5 @@
+data/
+legacy/
+temp_restore/
+.env
+.env.*

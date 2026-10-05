@@ -1,20 +1,41 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Pro Lig · Etkileşimli Önizleme
 
-# Run and deploy your AI Studio app
+Pro Lig ekibine gösterilecek rol ve iş akışı önizlemesi. Genel Koordinatör, İl Koordinatörü, Editör, Yazar ve Muhasebe görünümleri arasında üst sağdaki menüden geçiş yapılır.
 
-This contains everything you need to run your app locally.
+## Önizlemede neler denenebilir?
 
-View your app in AI Studio: https://ai.studio/apps/7624e850-9c55-4cea-9ac9-3dc7bb8d79de
+- Yazar kendi soru taslağını oluşturur ve incelemeye gönderir.
+- Editör ve Genel Koordinatör incelemedeki soruyu onaylar, revizyona yollar veya reddeder.
+- İl Koordinatörü yalnızca İstanbul kapsamındaki örnek proje, soru ve yazarları görür.
+- Muhasebe ve Genel Koordinatör örnek hakedişi onaylayıp ödendi olarak işaretler.
+- Ekranlar role göre açılır; rol ve yetki matrisi karşılaştırılabilir.
+- Genel Koordinatör, örnek işlem geçmişini görebilir. Yetki ekranı modül görünürlüğünü, işlem yetkilerini ve veri kapsamını ayrı ayrı gösterir.
+- Veriler tarayıcıda saklanır. “Örnek verileri sıfırla” başlangıç durumunu geri getirir.
 
-## Run Locally
+Bu bir **ürün deneyimi önizlemesidir**. Kimlik doğrulama, sunucu tarafı yetkilendirme, ortak veritabanı ve gerçek ödeme işlemi içermez. Gerçek müşteri verisi girmeyin. Örnek kişiler ve tutarlar kurgusaldır. Eski API uygulaması `legacy/api` altında korunmuştur ve bu statik dağıtıma dahil değildir.
 
-**Prerequisites:**  Node.js
+## SchoolFlow'dan uyarlanan ilkeler
 
+Kullanıcının paylaştığı SchoolFlow sohbetindeki üçlü yetki ayrımı bu önizlemeye uyarlandı: **ekran görünürlüğü, işlem yetkisi ve veri kapsamı**. İşlem geçmişi ve demo/pilot sınırının açıkça gösterilmesi de bu yaklaşımdan alındı. SchoolFlow'un okul, kurs, akıllı pano ve kiosk modülleri Pro Lig'in yayıncılık iş akışına doğrudan taşınmadı. Paylaşılan sohbet, SchoolFlow kaynak dosyalarını veya yüklenen eklerin içeriğini sağlamadığından burada kaynak kod aktarımı yapılmadı.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Yerel çalışma
+
+Node.js 20.19+ veya 22.12+ ile:
+
+```bash
+npm ci
+npm run dev
+```
+
+Kontroller:
+
+```bash
+npm run lint
+npm run build
+```
+
+## Vercel dağıtımı
+
+Depoyu Vercel'e **Vite** projesi olarak bağlayın. Kök dizin proje kökü, build komutu `npm run build`, çıktı dizini `dist` olmalıdır; bunlar `vercel.json` içinde de belirtilir. Bu önizleme için ortam değişkeni veya veritabanı gerekmiyor. Dağıtımdan sonra `/` yolunu açıp rol menüsünden her görünümü deneyin.
+
+Canlı ürüne geçerken gerçek kullanıcı girişini, sunucu tarafında rol ve sahiplik denetimini, veri şeması ve kalıcı veritabanını ayrı bir aşamada kurun.
