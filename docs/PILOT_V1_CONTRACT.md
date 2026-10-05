@@ -1,4 +1,4 @@
-﻿# Pilot V1 Contract â€” Pro-Lig
+�# Pilot V1 Contract � Pro-Lig
 
 This document defines the strict workflow, data scope, and API boundaries required for the Pro-Lig Pilot V1 release.
 
@@ -6,27 +6,27 @@ This document defines the strict workflow, data scope, and API boundaries requir
 Every backend API endpoint must automatically enforce the logged-in user's data scope:
 
 - **GENEL_KOORDINATOR:** Authorized global scope (can view/act on all regions, projects, and questions).
-- **BOLGE_KOORDINATORU:** Bound to an `assignedRegion` (e.g., Marmara). Can only read data belonging to provinces within this region. *(Note: For Pilot V1, BÃ¶lge KoordinatÃ¶rÃ¼ may remain a read-oriented role unless later requirements explicitly grant assignment/management actions).*
-- **IL_KOORDINATORU:** Bound to an `assignedProvince`. Can only read data explicitly linked to their province. *(Note: For Pilot V1, Ä°l KoordinatÃ¶rÃ¼ may remain a read-oriented role unless later requirements explicitly grant assignment/management actions).*
+- **BOLGE_KOORDINATORU:** Bound to an `assignedRegion` (e.g., Marmara). Can only read data belonging to provinces within this region. *(Note: For Pilot V1, Bölge Koordinatörü may remain a read-oriented role unless later requirements explicitly grant assignment/management actions).*
+- **IL_KOORDINATORU:** Bound to an `assignedProvince`. Can only read data explicitly linked to their province. *(Note: For Pilot V1, İl Koordinatörü may remain a read-oriented role unless later requirements explicitly grant assignment/management actions).*
 - **EDITOR:** Bound to an assigned editorial scope (e.g., subject or grade level).
 - **YAZAR:** Bound to their own content (questions they created) and projects explicitly assigned to them.
-- **MUHASEBE:** Bound to permitted financial contexts. Read-only access to projects/users, write access only to payment/hakediÅŸ status.
+- **MUHASEBE:** Bound to permitted financial contexts. Read-only access to projects/users, write access only to payment/hakedi�x status.
 
 ## 2. Question Workflow (State Machine)
 The lifecycle of a `Question` is strictly controlled by the backend state machine.
 
 ### States:
 1. `Taslak`
-2. `Ä°ncelemede`
+2. `İncelemede`
 3. `Revizyon`
-4. `OnaylandÄ±`
+4. `Onaylandı`
 5. `Reddedildi`
 
 ### Transitions & Rules:
 - **Create:** Only `YAZAR` can create a question (Status: `Taslak`).
-- **Submit for Review (`Taslak` / `Revizyon` -> `Ä°ncelemede`):** Only the `YAZAR` who owns the question can submit it.
-- **Review Actions (`Ä°ncelemede` -> `Revizyon` | `OnaylandÄ±` | `Reddedildi`):** Only `EDITOR` or `GENEL_KOORDINATOR` can perform these actions.
-- **Edit Lock:** A `Question` can ONLY be edited by the `YAZAR` when its status is `Taslak` or `Revizyon`. Once `OnaylandÄ±`, `Reddedildi`, or `Ä°ncelemede`, it becomes **immutable** to the author.
+- **Submit for Review (`Taslak` / `Revizyon` -> `İncelemede`):** Only the `YAZAR` who owns the question can submit it.
+- **Review Actions (`İncelemede` -> `Revizyon` | `Onaylandı` | `Reddedildi`):** Only `EDITOR` or `GENEL_KOORDINATOR` can perform these actions.
+- **Edit Lock:** A `Question` can ONLY be edited by the `YAZAR` when its status is `Taslak` or `Revizyon`. Once `Onaylandı`, `Reddedildi`, or `İncelemede`, it becomes **immutable** to the author.
 - **Administrative Override:** `GENEL_KOORDINATOR` may force-change a status or re-assign an author if required, logged in the Audit Trail.
 
 ## 3. API Contract (v1)

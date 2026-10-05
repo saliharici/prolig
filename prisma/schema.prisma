@@ -1,4 +1,4 @@
-// Prisma schema for PRO LÄ°G - Profesyoneller KarmasÄ±
+// Prisma schema for PRO LİG - Profesyoneller Karması
 // Designed for PostgreSQL on Vercel (Neon / Supabase / RDS)
 
 datasource db {
@@ -83,7 +83,7 @@ model User {
   fullName       String
   roleId         Int
   role           Role      @relation(fields: [roleId], references: [id])
-  assignedRegion String? // BÃ¶lge KoordinatÃ¶rÃ¼nÃ¼n sorumlu olduÄŸu bÃ¶lge (Ã¶rn: 'Marmara')
+  assignedRegion String? // Bölge KoordinatörünÃ¼n sorumlu olduÄŸu bÃ¶lge (Ã¶rn: 'Marmara')
   provinceId     Int?
   province       Province? @relation(fields: [provinceId], references: [id])
   avatarUrl      String?
@@ -158,7 +158,7 @@ model AuthorProfile {
   branch          Branch       @relation(fields: [branchId], references: [id])
   institutionId   Int?
   institution     Institution? @relation(fields: [institutionId], references: [id])
-  title           String       @default("Yazar / Ã–ÄŸretmen")
+  title           String       @default("Yazar / Öğretmen")
   experienceYears Int          @default(5)
   status          AuthorStatus @default(Aktif)
   biography       String?
@@ -170,7 +170,7 @@ model AuthorProfile {
   tasks          Task[]
   files          FileRecord[]
 
-  // Havuz sistemi hakediÅŸleri iÃ§in Puan/Kredi sistemi
+  // Havuz sistemi hakedişleri iÃ§in Puan/Kredi sistemi
   points Int @default(0)
 
   @@index([provinceId])
@@ -182,13 +182,13 @@ model Project {
   id            Int           @id @default(autoincrement())
   title         String
   code          String        @unique
-  projectType   String        @default("Soru BankasÄ±")
+  projectType   String        @default("Soru Bankası")
   coordinatorId Int?
   progress      Int           @default(0)
   deadline      DateTime
   status        ProjectStatus @default(Devam_Ediyor)
   priority      Priority      @default(Normal)
-  targetGrade   String        @default("8. SÄ±nÄ±f")
+  targetGrade   String        @default("8. Sınıf")
   branchId      Int
   branch        Branch        @relation(fields: [branchId], references: [id])
   description   String?
@@ -214,7 +214,7 @@ model Book {
   title           String
   isbn            String?
   pageCount       Int       @default(240)
-  status          String    @default("Dizgi AÅŸamasÄ±nda")
+  status          String    @default("Dizgi Aşamasında")
   publicationDate DateTime?
 }
 
@@ -222,21 +222,21 @@ model ProjectAuthor {
   id               Int           @id @default(autoincrement())
   projectId        Int
   project          Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  authorId         Int
-  authorProfile    AuthorProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorProfileId Int
+  authorProfile    AuthorProfile @relation(fields: [authorProfileId], references: [id], onDelete: Cascade)
   roleInProject    String        @default("Yazar")
   assignedChapters String?
   createdAt        DateTime      @default(now())
 
-  @@unique([projectId, authorId])
+  @@unique([projectId, authorProfileId])
 }
 
 model Task {
   id                    Int            @id @default(autoincrement())
   title                 String
   description           String?
-  assignedAuthorId      Int?
-  assignedAuthorProfile AuthorProfile? @relation(fields: [assignedAuthorId], references: [id])
+  assignedAuthorProfileId Int?
+  assignedAuthorProfile AuthorProfile? @relation(fields: [assignedAuthorProfileId], references: [id])
   assignedCoordinatorId Int?
   assignedCoordinator   User?          @relation("CoordinatorTasks", fields: [assignedCoordinatorId], references: [id])
   projectId             Int
@@ -280,8 +280,8 @@ model FileRecord {
   uploaderName  String
   projectId     Int?
   project       Project?       @relation(fields: [projectId], references: [id])
-  authorId      Int?
-  authorProfile AuthorProfile? @relation(fields: [authorId], references: [id])
+  authorProfileId Int?
+  authorProfile AuthorProfile? @relation(fields: [authorProfileId], references: [id])
   category      String         @default("Taslak Soru")
   uploadDate    DateTime       @default(now())
 }
@@ -306,10 +306,10 @@ model Announcement {
   title       String
   content     String
   priority    Priority @default(Normal)
-  audience    String   @default("TÃ¼mÃ¼")
+  audience    String   @default("Tümü")
   publishedAt DateTime @default(now())
   isArchived  Boolean  @default(false)
-  createdBy   String   @default("YÃ¶netim")
+  createdBy   String   @default("Yönetim")
 }
 
 model Notification {
@@ -351,7 +351,7 @@ model Question {
 
   // Taksonomi (MEB Kategorizasyonu)
   objectiveCode String? // KazanÄ±m Kodu (Ã–rn: M.8.1.2.1)
-  grade         String? // SÄ±nÄ±f (Ã–rn: 8. SÄ±nÄ±f)
+  grade         String? // SÄ±nÄ±f (Ã–rn: 8. Sınıf)
   difficulty    String? // Zorluk (Ã–rn: Kolay, Orta, Zor)
 
   status     QuestionStatus @default(TASLAK)
