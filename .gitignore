@@ -15,3 +15,6 @@ data/*.db-*
 
 generated/prisma/
 
+
+.local/
+

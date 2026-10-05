@@ -1,4 +1,4 @@
-﻿# Canonical Architecture â€” Pro-Lig
+﻿# Canonical Architecture — Pro-Lig
 
 ## 1. Active Runtime (SSOT)
 The authoritative frontend path is:

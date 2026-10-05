@@ -1,4 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+﻿import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma';
 import { getSessionUserId, clearSessionCookie } from '../_lib/auth';
 
@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       include: { role: true }
     });
 
-    if (!user || user.status !== 'Aktif') {
+    if (!user || user.status?.toUpperCase() !== 'AKTIF') {
       clearSessionCookie(res);
       return res.status(401).json({ error: 'Unauthorized' });
     }

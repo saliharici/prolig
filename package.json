@@ -12,7 +12,8 @@
     "lint": "prisma generate && npm run lint:ui && npm run lint:api",
     "lint:ui": "tsc --noEmit",
     "lint:api": "tsc --noEmit -p tsconfig.api.json",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:integration": "vitest run tests/integration"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

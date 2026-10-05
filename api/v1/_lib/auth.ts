@@ -1,4 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+﻿import { VercelRequest, VercelResponse } from '@vercel/node';
 import { parse, serialize } from 'cookie';
 import jwt from 'jsonwebtoken';
 
@@ -14,7 +14,7 @@ export function getSecret(): string {
 
 export function setSessionCookie(res: VercelResponse, userId: number) {
   const secret = getSecret();
-  const token = jwt.sign({ sub: userId }, secret, { expiresIn: '7d' });
+  const token = jwt.sign({ sub: userId }, secret, { expiresIn: '7d', algorithm: 'HS256' });
   
   const cookie = serialize(COOKIE_NAME, token, {
     httpOnly: true,
@@ -46,8 +46,28 @@ export function getSessionUserId(req: VercelRequest): number | null {
   
   try {
     const secret = getSecret();
-    const payload = jwt.verify(token, secret) as any;
-    return payload.sub ? parseInt(payload.sub, 10) : null;
+    const payload = jwt.verify(token, secret, { algorithms: ['HS256'] }) as any;
+    
+    if (!payload || typeof payload !== 'object' || !('sub' in payload)) {
+      return null;
+    }
+
+    const sub = payload.sub;
+    
+    let userId: number;
+    if (typeof sub === 'number') {
+      userId = sub;
+    } else if (typeof sub === 'string') {
+      userId = parseInt(sub, 10);
+    } else {
+      return null;
+    }
+
+    if (isNaN(userId) || userId <= 0) {
+      return null;
+    }
+
+    return userId;
   } catch (error) {
     return null;
   }
