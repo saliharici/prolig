@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildQuestionReadScope, canWorkflowSubmit, canWorkflowReview } from '../api/v1/_lib/question-access.js';
 
 describe('Question Access Scope', () => {
@@ -6,16 +6,16 @@ describe('Question Access Scope', () => {
     expect(buildQuestionReadScope({ role: { code: 'GENEL_KOORDINATOR' } })).toEqual({});
   });
 
-  it('BOLGE restricted to assignedRegion', () => {
+  it('BOLGE restricted to assignedRegion using AuthorProfile', () => {
     expect(buildQuestionReadScope({ role: { code: 'BOLGE_KOORDINATORU' }, assignedRegion: 'Marmara' })).toEqual({
-      authorUser: { province: { region: 'Marmara' } }
+      authorUser: { AuthorProfile: { province: { region: 'Marmara' } } }
     });
-    expect(buildQuestionReadScope({ role: { code: 'BOLGE_KOORDINATORU' } })).toEqual({ id: -1 }); // Fail closed
+    expect(buildQuestionReadScope({ role: { code: 'BOLGE_KOORDINATORU' } })).toEqual({ id: -1 });
   });
 
-  it('IL restricted to provinceId', () => {
+  it('IL restricted to provinceId using AuthorProfile', () => {
     expect(buildQuestionReadScope({ role: { code: 'IL_KOORDINATORU' }, provinceId: 34 })).toEqual({
-      authorUser: { provinceId: 34 }
+      authorUser: { AuthorProfile: { provinceId: 34 } }
     });
     expect(buildQuestionReadScope({ role: { code: 'IL_KOORDINATORU' } })).toEqual({ id: -1 });
   });
@@ -46,17 +46,17 @@ describe('Workflow Permissions', () => {
     expect(canWorkflowSubmit({ authorUserId: 1, status: 'TASLAK' }, user)).toBe(true);
     expect(canWorkflowSubmit({ authorUserId: 1, status: 'REVIZYON' }, user)).toBe(true);
     expect(canWorkflowSubmit({ authorUserId: 1, status: 'INCELEMEDE' }, user)).toBe(false);
-    expect(canWorkflowSubmit({ authorUserId: 2, status: 'TASLAK' }, user)).toBe(false); // Non-owner
+    expect(canWorkflowSubmit({ authorUserId: 2, status: 'TASLAK' }, user)).toBe(false);
   });
 
   it('EDITOR review constraints', () => {
     const editor = { role: { code: 'EDITOR' }, editorBranchId: 1 };
     expect(canWorkflowReview({ authorUser: { AuthorProfile: { branchId: 1 } } }, editor)).toBe(true);
-    expect(canWorkflowReview({ authorUser: { AuthorProfile: { branchId: 2 } } }, editor)).toBe(false); // Wrong branch
+    expect(canWorkflowReview({ authorUser: { AuthorProfile: { branchId: 2 } } }, editor)).toBe(false);
     
     const strictEditor = { role: { code: 'EDITOR' }, editorBranchId: 1, editorGrade: '8. Sınıf' };
     expect(canWorkflowReview({ grade: '8. Sınıf', authorUser: { AuthorProfile: { branchId: 1 } } }, strictEditor)).toBe(true);
-    expect(canWorkflowReview({ grade: '7. Sınıf', authorUser: { AuthorProfile: { branchId: 1 } } }, strictEditor)).toBe(false); // Wrong grade
+    expect(canWorkflowReview({ grade: '7. Sınıf', authorUser: { AuthorProfile: { branchId: 1 } } }, strictEditor)).toBe(false);
   });
 
   it('GENEL can always review', () => {

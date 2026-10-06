@@ -40,6 +40,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(409).json({ error: 'Question is locked' });
   }
 
+  const payloadKeys = Object.keys(req.body || {});
+  const protectedFields = ['id', 'authorUserId', 'status', 'editorNote', 'createdAt', 'updatedAt'];
+  if (payloadKeys.some(k => protectedFields.includes(k))) {
+    return res.status(400).json({ error: 'Cannot modify protected fields' });
+  }
+
   const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId } = req.body || {};
 
   const updateData: any = {};
@@ -52,33 +58,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (grade !== undefined) {
-    if (typeof grade !== 'string' || grade.length > 50) return res.status(400).json({ error: 'Invalid grade' });
-    updateData.grade = grade;
+    if (typeof grade !== 'string' || grade.trim().length === 0 || grade.length > 50) {
+      return res.status(400).json({ error: 'Invalid grade' });
+    }
+    updateData.grade = grade.trim();
   }
 
   if (options !== undefined) {
-    if (!Array.isArray(options) || options.length !== 4 || !options.every(o => typeof o === 'string')) {
+    if (!Array.isArray(options) || options.length !== 4) {
       return res.status(400).json({ error: 'Options must be exactly 4 strings' });
     }
-    updateData.options = options.map((o: string) => o.trim());
+    const cleanOptions = options.map((o: any) => typeof o === 'string' ? o.trim() : '');
+    if (cleanOptions.some((o: string) => o.length === 0 || o.length > 500)) {
+      return res.status(400).json({ error: 'Invalid option length' });
+    }
+    updateData.options = cleanOptions;
   }
 
   if (correctAnswer !== undefined) {
-    if (correctAnswer !== null && !['A', 'B', 'C', 'D'].includes(correctAnswer)) {
+    if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) {
       return res.status(400).json({ error: 'Invalid correctAnswer' });
     }
     updateData.correctAnswer = correctAnswer;
   }
 
   if (explanation !== undefined) {
-    if (explanation !== null && (typeof explanation !== 'string' || explanation.length > 600)) {
+    if (explanation !== null && (typeof explanation !== 'string' || explanation.trim().length > 600)) {
       return res.status(400).json({ error: 'Invalid explanation' });
     }
-    updateData.explanation = explanation;
+    updateData.explanation = explanation ? explanation.trim() : null;
   }
 
-  if (objectiveCode !== undefined) updateData.objectiveCode = objectiveCode;
-  if (difficulty !== undefined) updateData.difficulty = difficulty;
+  if (objectiveCode !== undefined) {
+    if (objectiveCode !== null && (typeof objectiveCode !== 'string' || objectiveCode.trim().length > 100)) {
+      return res.status(400).json({ error: 'Invalid objectiveCode' });
+    }
+    updateData.objectiveCode = objectiveCode ? objectiveCode.trim() : null;
+  }
+
+  if (difficulty !== undefined) {
+    if (difficulty !== null && (typeof difficulty !== 'string' || difficulty.trim().length > 100)) {
+      return res.status(400).json({ error: 'Invalid difficulty' });
+    }
+    updateData.difficulty = difficulty ? difficulty.trim() : null;
+  }
 
   if (projectId !== undefined) {
     if (projectId !== null) {
@@ -99,17 +122,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (Object.keys(updateData).length === 0) {
-    return res.status(200).json(formatQuestionDto(question));
+    return res.status(400).json({ error: 'No editable fields provided' });
   }
 
   try {
     const updated = await prisma.$transaction(async (tx: any) => {
-      const q = await tx.question.update({
+      const count = await tx.question.updateMany({
         where: {
           id,
           status: question.status
         },
-        data: updateData,
+        data: updateData
+      });
+
+      if (count.count === 0) {
+        throw new Error('STALE');
+      }
+
+      const q = await tx.question.findUnique({
+        where: { id },
         include: {
           authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
           project: true
@@ -130,8 +161,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     return res.status(200).json(formatQuestionDto(updated));
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'STALE') {
+      return res.status(409).json({ error: 'Conflict or stale state' });
+    }
     console.error(error);
-    return res.status(409).json({ error: 'Conflict or not found' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

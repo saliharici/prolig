@@ -2,7 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../../_lib/prisma.js';
 import { getCurrentUser } from '../../_lib/current-user.js';
 import { formatQuestionDto } from '../../_lib/question-dto.js';
-import { canWorkflowSubmit, canWorkflowReview } from '../../_lib/question-access.js';
+import { canWorkflowReview } from '../../_lib/question-access.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -31,45 +31,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: 'Not found' });
   }
 
-  try {
-    let newStatus = '';
-    let actionLog = '';
+  let newStatus = '';
+  let actionLog = '';
+  let updateNote: string | undefined;
 
-    if (action === 'submit') {
-      if (!canWorkflowSubmit(question, user)) return res.status(403).json({ error: 'Forbidden' });
-      if (question.status !== 'TASLAK' && question.status !== 'REVIZYON') return res.status(409).json({ error: 'Invalid status for submit' });
-      newStatus = 'INCELEMEDE';
-      actionLog = 'QUESTION_SUBMITTED';
-    } else if (action === 'approve') {
-      if (!canWorkflowReview(question, user)) return res.status(403).json({ error: 'Forbidden' });
-      if (question.status !== 'INCELEMEDE') return res.status(409).json({ error: 'Invalid status for approve' });
-      newStatus = 'ONAYLANDI';
-      actionLog = 'QUESTION_APPROVED';
-    } else if (action === 'request_revision') {
-      if (!canWorkflowReview(question, user)) return res.status(403).json({ error: 'Forbidden' });
-      if (question.status !== 'INCELEMEDE') return res.status(409).json({ error: 'Invalid status for revision' });
-      if (!note || typeof note !== 'string' || note.trim().length === 0) return res.status(400).json({ error: 'Note is required' });
-      newStatus = 'REVIZYON';
-      actionLog = 'QUESTION_REVISION_REQUESTED';
-    } else if (action === 'reject') {
-      if (!canWorkflowReview(question, user)) return res.status(403).json({ error: 'Forbidden' });
-      if (question.status !== 'INCELEMEDE') return res.status(409).json({ error: 'Invalid status for reject' });
-      if (!note || typeof note !== 'string' || note.trim().length === 0) return res.status(400).json({ error: 'Note is required' });
-      newStatus = 'REDDEDILDI';
-      actionLog = 'QUESTION_REJECTED';
-    } else {
-      return res.status(400).json({ error: 'Unknown action' });
+  if (action === 'submit') {
+    if (user.role.code !== 'YAZAR' || question.authorUserId !== user.id) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
+    if (question.status !== 'TASLAK' && question.status !== 'REVIZYON') {
+      return res.status(409).json({ error: 'Invalid status for submit' });
+    }
+    if (note !== undefined) {
+      return res.status(400).json({ error: 'Submit action must not contain a note' });
+    }
+    newStatus = 'INCELEMEDE';
+    actionLog = 'QUESTION_SUBMITTED';
+  } else if (action === 'approve') {
+    if (!canWorkflowReview(question, user)) return res.status(403).json({ error: 'Forbidden' });
+    if (question.status !== 'INCELEMEDE') return res.status(409).json({ error: 'Invalid status for approve' });
+    if (note !== undefined) {
+      return res.status(400).json({ error: 'Approve action must not contain a note' });
+    }
+    newStatus = 'ONAYLANDI';
+    actionLog = 'QUESTION_APPROVED';
+  } else if (action === 'request_revision') {
+    if (!canWorkflowReview(question, user)) return res.status(403).json({ error: 'Forbidden' });
+    if (question.status !== 'INCELEMEDE') return res.status(409).json({ error: 'Invalid status for revision' });
+    if (!note || typeof note !== 'string' || note.trim().length === 0 || note.trim().length > 600) {
+      return res.status(400).json({ error: 'A valid note is required for revision (max 600 chars)' });
+    }
+    updateNote = note.trim();
+    newStatus = 'REVIZYON';
+    actionLog = 'QUESTION_REVISION_REQUESTED';
+  } else if (action === 'reject') {
+    if (!canWorkflowReview(question, user)) return res.status(403).json({ error: 'Forbidden' });
+    if (question.status !== 'INCELEMEDE') return res.status(409).json({ error: 'Invalid status for reject' });
+    if (!note || typeof note !== 'string' || note.trim().length === 0 || note.trim().length > 600) {
+      return res.status(400).json({ error: 'A valid note is required for reject (max 600 chars)' });
+    }
+    updateNote = note.trim();
+    newStatus = 'REDDEDILDI';
+    actionLog = 'QUESTION_REJECTED';
+  } else {
+    return res.status(400).json({ error: 'Unknown action' });
+  }
 
+  try {
     const updated = await prisma.$transaction(async (tx: any) => {
       const updateData: any = { status: newStatus };
-      if (note !== undefined && note !== null) {
-        updateData.editorNote = note.trim();
+      if (updateNote !== undefined) {
+        updateData.editorNote = updateNote;
       }
 
-      const q = await tx.question.update({
+      const count = await tx.question.updateMany({
         where: { id, status: question.status },
-        data: updateData,
+        data: updateData
+      });
+
+      if (count.count === 0) {
+        throw new Error('STALE');
+      }
+
+      const q = await tx.question.findUnique({
+        where: { id },
         include: {
           authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
           project: true
@@ -90,8 +115,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     return res.status(200).json(formatQuestionDto(updated));
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'STALE') {
+      return res.status(409).json({ error: 'Conflict or stale state' });
+    }
     console.error(error);
-    return res.status(409).json({ error: 'Conflict or not found' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -106,6 +106,7 @@ model User {
   Question      Question[]
 
   @@index([email])
+  @@index([editorBranchId])
 }
 
 model Province {

@@ -1,4 +1,4 @@
-﻿export function buildQuestionReadScope(user: any) {
+export function buildQuestionReadScope(user: any) {
   const roleCode = user.role.code;
 
   if (roleCode === 'GENEL_KOORDINATOR') {
@@ -9,8 +9,10 @@
     if (!user.assignedRegion) return { id: -1 }; // Fail closed
     return {
       authorUser: {
-        province: {
-          region: user.assignedRegion
+        AuthorProfile: {
+          province: {
+            region: user.assignedRegion
+          }
         }
       }
     };
@@ -20,7 +22,9 @@
     if (!user.provinceId) return { id: -1 }; // Fail closed
     return {
       authorUser: {
-        provinceId: user.provinceId
+        AuthorProfile: {
+          provinceId: user.provinceId
+        }
       }
     };
   }

@@ -1,4 +1,4 @@
-﻿export function formatQuestionDto(question: any) {
+export function formatQuestionDto(question: any) {
   return {
     id: question.id,
     content: question.content,

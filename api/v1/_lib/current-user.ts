@@ -1,4 +1,4 @@
-﻿import { VercelRequest } from '@vercel/node';
+import { VercelRequest } from '@vercel/node';
 import { prisma } from './prisma.js';
 import { getSessionUserId } from './auth.js';
 
@@ -8,10 +8,20 @@ export async function getCurrentUser(req: VercelRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: {
+    select: {
+      id: true,
+      fullName: true,
+      status: true,
+      assignedRegion: true,
+      provinceId: true,
+      editorBranchId: true,
+      editorGrade: true,
       role: true,
       AuthorProfile: {
-        include: {
+        select: {
+          id: true,
+          branchId: true,
+          provinceId: true,
           branch: true
         }
       }
