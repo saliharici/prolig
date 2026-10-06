@@ -52,13 +52,23 @@ if (!connectionString) {
     });
 
     afterAll(async () => {
+      let cleanupError: Error | null = null;
       try {
         await prisma.user.delete({ where: { email: 'integration.inactive@prolig.local' } });
-      } catch (e) {
-        // ignore if not found
+        const check = await prisma.user.findUnique({ where: { email: 'integration.inactive@prolig.local' } });
+        if (check) {
+          cleanupError = new Error('Integration cleanup failed: temporary user was not successfully removed from the database.');
+        }
+      } catch (e: any) {
+        cleanupError = e;
+      } finally {
+        await prisma.$disconnect();
+        await pool.end();
       }
-      await prisma.$disconnect();
-      await pool.end();
+
+      if (cleanupError) {
+        throw cleanupError;
+      }
     });
 
     it('Valid login returns 200 and HttpOnly cookie', async () => {

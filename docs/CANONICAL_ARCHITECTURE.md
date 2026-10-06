@@ -1,4 +1,4 @@
-# Canonical Architecture — Pro-Lig
+# Canonical Architecture â€” Pro-Lig
 
 ## 1. Active Runtime (SSOT)
 The authoritative frontend path is:
@@ -49,4 +49,5 @@ To prevent architectural drift and AI hallucination, the following directories/f
 - `server.ts` (**ARCHIVE**)
 
 Do not import from or build upon these archived paths.
+
 
