@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -29,7 +29,7 @@ describe('API Imports', () => {
           const match = line.match(/from\s+['"](\.\.?\/[^'"]+)['"]/);
           if (match) {
             const importPath = match[1];
-            if (!importPath.endsWith('.js') && !importPath.endsWith('.ts')) {
+            if (!importPath.endsWith('.js')) {
               errors.push(`Missing extension in ${file}: ${importPath}`);
               foundMissing = true;
             }
