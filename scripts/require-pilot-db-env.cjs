@@ -1,4 +1,4 @@
-﻿require('dotenv/config');
+require('dotenv/config');
 
 if (!process.env.DATABASE_URL) {
   console.error("ERROR: DATABASE_URL is required to run Pilot DB integration tests.");

@@ -1,4 +1,4 @@
-# Canonical Architecture â€” Pro-Lig
+# Canonical Architecture — Pro-Lig
 
 ## 1. Active Runtime (SSOT)
 The authoritative frontend path is:
@@ -39,7 +39,7 @@ The following roles are explicitly supported and strictly enforced:
 - `YAZAR`
 - `MUHASEBE`
 
-*Note: The `YONETICI` role currently in the Prisma enum is designated as **OBSOLETE/ARCHIVE** and will be migrated out.*
+*Note: `YONETICI` has been removed from the canonical `RoleCode` schema.*
 
 ## 5. Archive Boundaries
 To prevent architectural drift and AI hallucination, the following directories/files are explicitly excluded from the active production path:
