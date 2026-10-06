@@ -1,5 +1,6 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { LogIn, Loader2 } from 'lucide-react';
+import { login } from './api';
 
 export interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -19,27 +20,14 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     setError(null);
 
     try {
-      const res = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include'
-      });
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          setError('E-posta veya Yifre hatal.');
-        } else {
-          setError('Sunucu hatas, lǬtfen daha sonra tekrar deneyin.');
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Success -> trigger re-verification
+      await login(email, password);
       onLoginSuccess();
-    } catch (err) {
-      setError('AY hatas, lǬtfen baYlantnz kontrol edin.');
+    } catch (err: any) {
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        setError('Ağ hatası, lütfen bağlantınızı kontrol edin.');
+      } else {
+        setError(err.message || 'Sunucu hatası, lütfen daha sonra tekrar deneyin.');
+      }
       setLoading(false);
     }
   };
@@ -51,8 +39,8 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', background: '#eef2ff', color: '#4f46e5', borderRadius: '12px', marginBottom: '1rem' }}>
             <LogIn size={24} />
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>PRO LG</h1>
-          <p style={{ color: '#64748b', marginTop: '0.5rem', fontSize: '0.95rem' }}>Oturum An</p>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>PRO-LİG</h1>
+          <p style={{ color: '#64748b', marginTop: '0.5rem', fontSize: '0.95rem' }}>Oturum Aç</p>
         </div>
 
         {error && (
@@ -76,7 +64,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           </div>
           
           <div>
-            <label htmlFor="password" style={{ display: 'block', fontSize: '0.9rem', fontWeight: 500, color: '#334155', marginBottom: '0.5rem' }}>Yifre</label>
+            <label htmlFor="password" style={{ display: 'block', fontSize: '0.9rem', fontWeight: 500, color: '#334155', marginBottom: '0.5rem' }}>Şifre</label>
             <input 
               id="password"
               type="password" 
@@ -99,7 +87,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             }}
           >
             {loading ? <Loader2 className="spinner" size={18} /> : null}
-            {loading ? 'GiriY yaplyor...' : 'GiriY Yap'}
+            {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
           </button>
         </form>
       </div>

@@ -1,10 +1,10 @@
-﻿import { RoleCode } from '../types';
+import { Role } from '../demo/model';
 
 export interface AuthUser {
   id: number;
   email: string;
   fullName: string;
-  role: RoleCode;
+  role: Role;
   provinceId: number | null;
   assignedRegion: string | null;
 }

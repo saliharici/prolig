@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿const fs = require('fs');
+const testsContent = `import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { validateRole, fetchMe, login, logout } from '../src/auth/api';
 
 // Mock fetch globally
@@ -140,3 +141,5 @@ describe('Frontend Auth Logic', () => {
     });
   });
 });
+`;
+fs.writeFileSync('tests/frontend-auth.test.ts', testsContent, 'utf8');

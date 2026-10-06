@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AuthState } from './types';
-import { fetchMe } from './api';
+import { fetchMe, logout } from './api';
 import { LoginScreen } from './LoginScreen';
 import { Loader2, AlertCircle } from 'lucide-react';
 import DemoApp from '../DemoApp';
@@ -18,7 +18,16 @@ export function AuthGate() {
         setAuthState({ status: 'unauthenticated' });
       }
     } catch (err: any) {
-      setAuthState({ status: 'error', message: err.message || 'Sisteme baYlanrken bir hata oluYtu.' });
+      setAuthState({ status: 'error', message: err.message || 'Sisteme bağlanırken bir hata oluştu.' });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setAuthState({ status: 'unauthenticated' });
+    } catch (err: any) {
+      alert('Çıkış işlemi başarısız oldu, lütfen tekrar deneyin.');
     }
   };
 
@@ -30,7 +39,7 @@ export function AuthGate() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#4f46e5' }}>
         <Loader2 className="spinner" size={40} style={{ marginBottom: '1rem' }} />
-        <h2 style={{ fontSize: '1.25rem', color: '#1e293b', fontWeight: 500 }}>PRO LG yǬkleniyor...</h2>
+        <h2 style={{ fontSize: '1.25rem', color: '#1e293b', fontWeight: 500 }}>PRO-LİG yükleniyor...</h2>
       </div>
     );
   }
@@ -40,7 +49,7 @@ export function AuthGate() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc' }}>
         <div style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center', maxWidth: '400px' }}>
           <AlertCircle size={48} color="#ef4444" style={{ margin: '0 auto 1rem' }} />
-          <h2 style={{ fontSize: '1.25rem', color: '#1e293b', marginBottom: '0.5rem' }}>BaYlant Hatas</h2>
+          <h2 style={{ fontSize: '1.25rem', color: '#1e293b', marginBottom: '0.5rem' }}>Bağlantı Hatası</h2>
           <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>{authState.message}</p>
           <button 
             onClick={checkSession}
@@ -58,5 +67,5 @@ export function AuthGate() {
   }
 
   // Authenticated
-  return <DemoApp currentUser={authState.user} onLogoutRequest={checkSession} />;
+  return <DemoApp currentUser={authState.user} onLogoutRequest={handleLogout} />;
 }
