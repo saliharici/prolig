@@ -2,6 +2,7 @@
 
 export type RoleCode = 
   | 'SUPER_ADMIN'
+  | 'BOLGE_KOORDINATORU'
   | 'GENEL_KOORDINATOR'
   | 'IL_KOORDINATORU'
   | 'EDITOR'
