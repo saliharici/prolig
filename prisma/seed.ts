@@ -120,6 +120,9 @@ async function main() {
         role: { connect: { id: getRoleId(u.role) } },
         status: 'Aktif'
       };
+      if (u.role === 'EDITOR') {
+        userCreate.editorBranch = { connect: { id: branch.id } };
+      }
       if (u.role === 'BOLGE_KOORDINATORU') {
         userCreate.assignedRegion = 'Marmara';
       } else if (u.role === 'IL_KOORDINATORU') {
@@ -131,6 +134,7 @@ async function main() {
         status: 'Aktif',
         role: { connect: { id: getRoleId(u.role) } },
         assignedRegion: u.role === 'BOLGE_KOORDINATORU' ? 'Marmara' : null,
+        editorBranch: u.role === 'EDITOR' ? { connect: { id: branch.id } } : { disconnect: true },
         province: u.role === 'IL_KOORDINATORU' ? { connect: { id: marmara.id } } : { disconnect: true }
       };
       if (action.type === 'update') {
