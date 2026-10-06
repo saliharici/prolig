@@ -1,3 +1,4 @@
+import { AuthUser } from './auth/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   GraduationCap,
@@ -259,7 +260,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     <span className="preview-badge"><span /> ETKİLEŞİMLİ ÖNİZLEME</span>
     <div className="topbar-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'white', padding: '0.3rem 0.5rem 0.3rem 0.3rem', borderRadius: '2rem', border: '1px solid #e2e8f0' }}>
       <div className="profile-badge" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600 }}>
-        {currentUser.fullName.split(' ').map(n => n[0]).join('')}
+        {currentUser.fullName.split(' ').map((n: string) => n[0]).join('')}
       </div>
       <div className="profile-info" style={{ display: 'flex', flexDirection: 'column' }}>
         <strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>{currentUser.fullName}</strong>
