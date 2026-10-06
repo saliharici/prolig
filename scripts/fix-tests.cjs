@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildQuestionReadScope, canWorkflowReview } from '../api/v1/_lib/question-access.js';
+﻿const fs = require('fs');
+
+const testContent = `import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { buildQuestionReadScope, canWorkflowSubmit, canWorkflowReview } from '../api/v1/_lib/question-access.js';
 
 describe('Question Access Scope', () => {
   it('GENEL sees all', () => {
@@ -41,6 +43,14 @@ describe('Question Access Scope', () => {
 });
 
 describe('Workflow Permissions', () => {
+  it('YAZAR can submit TASLAK or REVIZYON', () => {
+    const user = { role: { code: 'YAZAR' }, id: 1 };
+    expect(canWorkflowSubmit({ authorUserId: 1, status: 'TASLAK' }, user)).toBe(true);
+    expect(canWorkflowSubmit({ authorUserId: 1, status: 'REVIZYON' }, user)).toBe(true);
+    expect(canWorkflowSubmit({ authorUserId: 1, status: 'INCELEMEDE' }, user)).toBe(false);
+    expect(canWorkflowSubmit({ authorUserId: 2, status: 'TASLAK' }, user)).toBe(false);
+  });
+
   it('EDITOR review constraints', () => {
     const editor = { role: { code: 'EDITOR' }, editorBranchId: 1 };
     expect(canWorkflowReview({ authorUser: { AuthorProfile: { branchId: 1 } } }, editor)).toBe(true);
@@ -55,3 +65,6 @@ describe('Workflow Permissions', () => {
     expect(canWorkflowReview({}, { role: { code: 'GENEL_KOORDINATOR' } })).toBe(true);
   });
 });
+`;
+
+fs.writeFileSync('tests/question-api.test.ts', testContent, 'utf8');

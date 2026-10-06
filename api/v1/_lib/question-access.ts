@@ -54,11 +54,6 @@ export function buildQuestionReadScope(user: any) {
   return { id: -1 }; // Fail closed
 }
 
-export function canWorkflowSubmit(question: any, user: any) {
-  if (user.role.code !== 'YAZAR') return false;
-  return question.authorUserId === user.id && (question.status === 'TASLAK' || question.status === 'REVIZYON');
-}
-
 export function canWorkflowReview(question: any, user: any) {
   if (user.role.code === 'GENEL_KOORDINATOR') return true;
   if (user.role.code === 'EDITOR') {

@@ -1,22 +1,19 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+﻿const fs = require('fs');
+
+const code = `import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { buildQuestionReadScope } from '../_lib/question-access.js';
 import { formatQuestionDto } from '../_lib/question-dto.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  try {
-    if (req.method === 'GET') {
-      return await handleGet(req, res);
-    } else if (req.method === 'POST') {
-      return await handlePost(req, res);
-    } else {
-      res.setHeader('Allow', ['GET', 'POST']);
-      return res.status(405).json({ error: 'Method not allowed' });
-    }
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Internal server error' });
+  if (req.method === 'GET') {
+    return handleGet(req, res);
+  } else if (req.method === 'POST') {
+    return handlePost(req, res);
+  } else {
+    res.setHeader('Allow', ['GET', 'POST']);
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 }
 
@@ -30,24 +27,29 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
   const where = buildQuestionReadScope(user);
 
-  const questions = await prisma.question.findMany({
-    where,
-    include: {
-      authorUser: {
-        include: {
-          AuthorProfile: {
-            include: {
-              branch: true
+  try {
+    const questions = await prisma.question.findMany({
+      where,
+      include: {
+        authorUser: {
+          include: {
+            AuthorProfile: {
+              include: {
+                branch: true
+              }
             }
           }
-        }
+        },
+        project: true
       },
-      project: true
-    },
-    orderBy: { createdAt: 'desc' }
-  });
+      orderBy: { createdAt: 'desc' }
+    });
 
-  return res.status(200).json(questions.map(formatQuestionDto));
+    return res.status(200).json(questions.map(formatQuestionDto));
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }
 
 async function handlePost(req: VercelRequest, res: VercelResponse) {
@@ -121,38 +123,45 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const question = await prisma.$transaction(async (tx: any) => {
-    const q = await tx.question.create({
-      data: {
-        content: content.trim(),
-        grade: grade.trim(),
-        objectiveCode: objectiveCode ? objectiveCode.trim() : null,
-        difficulty: difficulty ? difficulty.trim() : null,
-        options: cleanOptions,
-        correctAnswer: correctAnswer,
-        explanation: explanation ? explanation.trim() : null,
-        projectId: projectId || null,
-        authorUserId: user.id,
-        status: 'TASLAK'
-      },
-      include: {
-        authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
-        project: true
-      }
+  try {
+    const question = await prisma.$transaction(async (tx: any) => {
+      const q = await tx.question.create({
+        data: {
+          content: content.trim(),
+          grade: grade.trim(),
+          objectiveCode: objectiveCode ? objectiveCode.trim() : null,
+          difficulty: difficulty ? difficulty.trim() : null,
+          options: cleanOptions,
+          correctAnswer: correctAnswer,
+          explanation: explanation ? explanation.trim() : null,
+          projectId: projectId || null,
+          authorUserId: user.id,
+          status: 'TASLAK'
+        },
+        include: {
+          authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
+          project: true
+        }
+      });
+
+      await tx.activityLog.create({
+        data: {
+          userName: user.fullName,
+          action: 'QUESTION_CREATED',
+          entityType: 'Question',
+          entityId: q.id,
+          details: JSON.stringify({ status: 'TASLAK' })
+        }
+      });
+
+      return q;
     });
 
-    await tx.activityLog.create({
-      data: {
-        userName: user.fullName,
-        action: 'QUESTION_CREATED',
-        entityType: 'Question',
-        entityId: q.id,
-        details: JSON.stringify({ status: 'TASLAK' })
-      }
-    });
-
-    return q;
-  });
-
-  return res.status(201).json(formatQuestionDto(question));
+    return res.status(201).json(formatQuestionDto(question));
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }
+`;
+fs.writeFileSync('api/v1/questions/index.ts', code, 'utf8');

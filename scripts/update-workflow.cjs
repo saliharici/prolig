@@ -1,8 +1,10 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { prisma } from '../../_lib/prisma.js';
-import { getCurrentUser } from '../../_lib/current-user.js';
-import { formatQuestionDto } from '../../_lib/question-dto.js';
-import { canWorkflowReview } from '../../_lib/question-access.js';
+﻿const fs = require('fs');
+
+const code = `import { VercelRequest, VercelResponse } from '@vercel/node';
+import { prisma } from '../../../_lib/prisma.js';
+import { getCurrentUser } from '../../../_lib/current-user.js';
+import { formatQuestionDto } from '../../../_lib/question-dto.js';
+import { canWorkflowReview } from '../../../_lib/question-access.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -123,3 +125,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+`;
+
+fs.writeFileSync('api/v1/questions/[id]/workflow.ts', code, 'utf8');

@@ -1,4 +1,6 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+﻿const fs = require('fs');
+
+const code = `import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { buildQuestionReadScope } from '../_lib/question-access.js';
@@ -156,3 +158,6 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
 
   return res.status(201).json(formatQuestionDto(question));
 }
+`;
+
+fs.writeFileSync('api/v1/questions/index.ts', code, 'utf8');

@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿const fs = require('fs');
+
+const testCode = `import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import handlerGetPost from '../api/v1/questions/index.js';
 import handlerPatch from '../api/v1/questions/[id].js';
@@ -421,3 +423,6 @@ describe('Question API Handlers', () => {
     });
   });
 });
+`;
+
+fs.writeFileSync('tests/question-handlers.test.ts', testCode, 'utf8');
