@@ -17,6 +17,8 @@ import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, Api
 import type { ApiQuestion, PatchQuestionInput, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
+import { fetchAuthors } from './authors/api';
+import type { ApiAuthor } from './authors/types';
 import './demo.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
@@ -78,6 +80,9 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   const [apiProjects, setApiProjects] = useState<ApiProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState('');
+  const [apiAuthors, setApiAuthors] = useState<ApiAuthor[]>([]);
+  const [authorsLoading, setAuthorsLoading] = useState(false);
+  const [authorsError, setAuthorsError] = useState('');
 
   const loadApiQuestions = async () => {
     setApiLoading(true);
@@ -104,9 +109,22 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     }
   };
 
+  const loadApiAuthors = async () => {
+    setAuthorsLoading(true);
+    setAuthorsError('');
+    try {
+      setApiAuthors(await fetchAuthors());
+    } catch (error: any) {
+      setAuthorsError(error.message || 'Yazar ağı yüklenemedi.');
+    } finally {
+      setAuthorsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadApiQuestions();
     loadApiProjects();
+    loadApiAuthors();
   }, []);
     const [section, setSection] = useState<Section>('overview');
     const [mobileMenu, setMobileMenu] = useState(false);
@@ -134,8 +152,16 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   const allowed = permissions[currentUser.role];
   const demoActivityProjects = useMemo(() => currentUser.role === 'IL_KOORDINATORU' ? data.projects.filter(p => p.province === 'İstanbul') : currentUser.role === 'YAZAR' ? data.projects.filter(p => p.id === 1) : data.projects, [data.projects, currentUser.role]);
   
-  const MARMARA = ['İstanbul', 'Bursa', 'Edirne', 'Kocaeli', 'Sakarya', 'Tekirdağ', 'Yalova', 'Çanakkale', 'Kırklareli', 'Bilecik', 'Balıkesir'];
-  const visibleAuthors = useMemo(() => currentUser.role === 'IL_KOORDINATORU' ? data.authors.filter(a => a.province === 'İstanbul') : data.authors, [data.authors, currentUser.role]);
+  const authorMapAuthors = useMemo(() => apiAuthors.map(author => ({
+    id: author.id,
+    name: author.fullName,
+    initials: author.fullName.split(' ').filter(Boolean).map(part => part[0]).join('').slice(0, 2).toLocaleUpperCase('tr-TR'),
+    subject: author.branch.name,
+    province: author.province.name,
+    activeProjects: author.activeProjectCount,
+    levels: Object.entries(gradesByLevel).filter(([, grades]) => author.projectGrades.some(grade => grades.includes(grade))).map(([level]) => level),
+    status: author.status
+  })), [apiAuthors]);
   const visibleActivities = useMemo(() => data.activities.filter(item => {
     if (currentUser.role === 'GENEL_KOORDINATOR') return true;
     if (item.type !== 'question') return false;
@@ -327,7 +353,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
       .toLocaleLowerCase('tr-TR')
       .includes(query.toLocaleLowerCase('tr-TR'))
   );
-  const filteredAuthors = visibleAuthors.filter(a => (!authorProvince || a.province === authorProvince) && `${a.name} ${a.subject} ${a.province}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR')));
+  const filteredAuthors = apiAuthors.filter(author => (!authorProvince || author.province.name === authorProvince) && `${author.fullName} ${author.branch.name} ${author.province.name} ${author.institution?.name || ''}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR')));
   
   const showAuthorsForProvince = (province: string) => {
     setAuthorProvince(province);
@@ -340,7 +366,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
       <div className="brand"><div className="brand-mark"><span>P</span></div><div><strong>PRO LİG</strong><small>İçerik yönetim platformu</small></div></div>
       <div className="sidebar-caption">ÇALIŞMA ALANI</div>
       <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}</button>)}</nav>
-      <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum, Soru Havuzu ve Projeler gerçek Pilot verisini kullanır. Yazar Ağı ve Hakedişler bu aşamada örnek çalışma verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
+      <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Hakedişler bu aşamada örnek çalışma verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
     </aside>
     {mobileMenu && <button className="mobile-shade" aria-label="Menüyü kapat" onClick={() => setMobileMenu(false)} />}
     <div className="demo-main">
@@ -367,7 +393,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
 </header>
       <main className="content">
         <div className="demo-notice">
-  <div><Sparkles size={17} /><strong>Pro Lig test ortamı</strong><span>Oturum, Soru Havuzu ve Projeler gerçek Pilot verisini kullanır. Yazar Ağı ve Hakedişler bu aşamada örnek çalışma verileridir.</span></div>
+  <div><Sparkles size={17} /><strong>Pro Lig test ortamı</strong><span>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Hakedişler bu aşamada örnek çalışma verileridir.</span></div>
   <button onClick={() => navigate('roles')}>Rolleri incele <ArrowRight size={15} /></button>
 </div>
         {section === 'overview' && currentUser.role === 'MUHASEBE' && <FinanceOverview data={data} onNavigate={navigate} currentUser={currentUser} />}
@@ -376,7 +402,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
           <div className="stats-grid">
             <StatCard label="Aktif projeler" value={activeProjects} note="Üretim takviminde" icon={BookOpen} tone="blue" />
             <StatCard label={currentUser.role === 'YAZAR' ? 'Sorularım' : 'İncelemede'} value={currentUser.role === 'YAZAR' ? apiQuestions.length : pendingQuestions} note={currentUser.role === 'YAZAR' ? 'Soru havuzunda' : 'Editör kararı bekliyor'} icon={FileQuestion} tone="amber" />
-            {currentUser.role === 'EDITOR' ? <StatCard label="Revizyon bekleyen" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Yazara iletilen sorular" icon={RotateCcw} tone="purple" /> : currentUser.role === 'YAZAR' ? <StatCard label="Revizyonlarım" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Düzenleme bekleyen" icon={RotateCcw} tone="purple" /> : <StatCard label="Yazar ağı" value={visibleAuthors.length.toString().padStart(2, '0')} note="Kapsamınızdaki yazarlar" icon={Users} tone="purple" />}
+            {currentUser.role === 'EDITOR' ? <StatCard label="Revizyon bekleyen" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Yazara iletilen sorular" icon={RotateCcw} tone="purple" /> : currentUser.role === 'YAZAR' ? <StatCard label="Revizyonlarım" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Düzenleme bekleyen" icon={RotateCcw} tone="purple" /> : <StatCard label="Yazar ağı" value={apiAuthors.length.toString().padStart(2, '0')} note="Kapsamınızdaki yazarlar" icon={Users} tone="purple" />}
             <StatCard label="Tamamlanan sorular" value={apiQuestions.filter(q => q.status === 'ONAYLANDI').length.toString().padStart(2, '0')} note="Yayın hazırlığında" icon={CheckCircle2} tone="green" />
           </div>
           <div className="overview-grid"><section className="panel"><div className="panel-head"><div><span className="panel-kicker">İŞ AKIŞI</span><h2>Soru üretim hattı</h2></div><button className="text-button" onClick={() => navigate('questions')}>Tüm sorular <ArrowRight size={16} /></button></div><p className="panel-sub">Taslaklardan onaya uzanan süreci rolünüze göre deneyin.</p><div className="pipeline">{[{label: 'Taslak', code: 'TASLAK'}, {label: 'İncelemede', code: 'INCELEMEDE'}, {label: 'Revizyon', code: 'REVIZYON'}, {label: 'Onaylandı', code: 'ONAYLANDI'}].map((status, index) => <div key={status.code} className="pipeline-step"><span className={`pipeline-dot dot-${index}`}><span>{apiQuestions.filter(q => q.status === status.code).length}</span></span><strong>{status.label}</strong><small>{index === 0 ? 'Yazar hazırlar' : index === 1 ? 'Editör inceler' : index === 2 ? 'Yazar düzenler' : 'Yayına hazır'}</small>{index < 3 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><CircleHelp size={20} /></div><div><strong>Rolünüzde neler yapabilirsiniz?</strong><span>Yetki matrisinde ekran ve işlem kapsamını görün.</span></div><button onClick={() => navigate('roles')}><ArrowUpRight size={18} /></button></div></section>
@@ -399,7 +425,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
             </div>
             <div className="stats-grid">
               {['İlkokul', 'Ortaokul', 'Lise', 'Mezun'].map(lvl => {
-                const authorsCount = data.authors.filter(a => a.levels?.includes(lvl)).length;
+                const authorsCount = apiAuthors.filter(author => author.projectGrades.some(grade => gradesByLevel[lvl]?.includes(grade))).length;
                 const projectsCount = apiProjects.filter(project => gradesByLevel[lvl]?.includes(project.targetGrade)).length;
                 const questionsCount = apiQuestions.filter(q => gradesByLevel[lvl]?.includes(q.grade || '')).length;
                 return (
@@ -419,17 +445,21 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
             </div>
           </>}
 
-          {section === 'authors' && <>
-          <div className="page-heading"><div><div className="eyebrow">UZMAN AĞI · COĞRAFİ GÖRÜNÜM</div><h1>Türkiye Yazar Ağı</h1><p>{currentUser.role === 'IL_KOORDINATORU' ? 'İstanbul kapsamındaki örnek yazarları haritada ve listede keşfedin.' : currentUser.role === 'BOLGE_KOORDINATORU' ? 'Marmara Bölgesi kapsamındaki il koordinatörlerini ve yazarları haritada ve listede keşfedin.' : 'Yazarların illere dağılımını ve branşlarını tek ekranda keşfedin.'}</p></div><span className="heading-chip"><Users size={16} /> {visibleAuthors.length} yazar</span></div>
-          <AuthorMap authors={visibleAuthors} scopeProvinces={currentUser.role === 'IL_KOORDINATORU' ? ['İstanbul'] : currentUser.role === 'BOLGE_KOORDINATORU' ? MARMARA : undefined} onShowAuthors={showAuthorsForProvince} />
-          <section id="author-list" className="author-network-list">
-            <div className="author-network-list-heading"><div><span className="panel-kicker">YAZAR REHBERİ</span><h2>{authorProvince ? `${authorProvince} yazarları` : 'Tüm yazarlar'}</h2><p>Haritadan bir il seçip listeyi süzebilir veya yazar ve branş arayabilirsiniz.</p></div><span className="heading-chip">{filteredAuthors.length} kayıt</span></div>
-            <div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Yazarlarda ara" placeholder="Yazar, branş veya il ara..." value={query} onChange={e => setQuery(e.target.value)} /></div>{authorProvince && <button className="author-network-clear" onClick={() => setAuthorProvince('')}>{authorProvince} filtresini kaldır <X size={14} /></button>}</div>
-            <div className="panel table-panel"><div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>BRANŞ</th><th>KADEME</th><th>İL</th><th>AKTİF PROJE</th><th>DURUM</th></tr></thead><tbody>{filteredAuthors.map(author => <tr key={author.id}><td><div className="person-cell"><span className="small-avatar">{author.initials}</span><strong>{author.name}</strong></div></td><td><span style={{fontWeight: 800, color: author.roleType === 'İl Koordinatörü' ? '#10b981' : '#64748b'}}>{author.roleType || 'Yazar'}</span></td><td>{author.subject}</td><td><div style={{display: 'flex', gap: '4px', flexWrap: 'wrap'}}>{author.levels?.map(l => <span key={l} style={{background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', color: '#334155', border: '1px solid #e2e8f0'}}>{l}</span>)}</div></td><td>{author.province}</td><td>{author.activeProjects}</td><td><Status value={author.status} /></td></tr>)}</tbody></table>{filteredAuthors.length === 0 && <div className="empty-state">Bu filtreye uygun yazar bulunamadı.</div>}</div></div>
-          </section>
+        {section === 'authors' && <>
+          <div className="page-heading"><div><div className="eyebrow">UZMAN AĞI · COĞRAFİ GÖRÜNÜM</div><h1>Türkiye Yazar Ağı</h1><p>Oturum kapsamınızdaki yazarların illere, branşlara ve proje kademelerine dağılımını inceleyin.</p></div><span className="heading-chip"><Users size={16} /> {apiAuthors.length} yazar</span></div>
+          {authorsLoading && <div className="panel empty-state">Yazar ağı yükleniyor...</div>}
+          {authorsError && !authorsLoading && <div className="panel empty-state"><div>{authorsError}</div><button className="secondary-button" onClick={loadApiAuthors} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
+          {!authorsLoading && !authorsError && <>
+            <AuthorMap authors={authorMapAuthors} onShowAuthors={showAuthorsForProvince} />
+            <section id="author-list" className="author-network-list">
+              <div className="author-network-list-heading"><div><span className="panel-kicker">YAZAR REHBERİ</span><h2>{authorProvince ? `${authorProvince} yazarları` : 'Tüm yazarlar'}</h2><p>Haritadan bir il seçip listeyi süzebilir veya yazar ve branş arayabilirsiniz.</p></div><span className="heading-chip">{filteredAuthors.length} kayıt</span></div>
+              <div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Yazarlarda ara" placeholder="Yazar, branş veya il ara..." value={query} onChange={event => setQuery(event.target.value)} /></div>{authorProvince && <button className="author-network-clear" onClick={() => setAuthorProvince('')}>{authorProvince} filtresini kaldır <X size={14} /></button>}</div>
+              <div className="panel table-panel"><div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>BRANŞ</th><th>KADEME</th><th>İL</th><th>AKTİF PROJE</th><th>DURUM</th></tr></thead><tbody>{filteredAuthors.map(author => <tr key={author.id}><td><div className="person-cell"><span className="small-avatar">{author.fullName.split(' ').filter(Boolean).map(part => part[0]).join('').slice(0, 2).toLocaleUpperCase('tr-TR')}</span><div><strong>{author.fullName}</strong><small>{author.title}{author.institution ? ` · ${author.institution.name}` : ''}</small></div></div></td><td><strong>{author.branch.name}</strong></td><td><div style={{display: 'flex', gap: '4px', flexWrap: 'wrap'}}>{author.projectGrades.length > 0 ? author.projectGrades.map(grade => <span key={grade} style={{background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', color: '#334155', border: '1px solid #e2e8f0'}}>{grade}</span>) : '—'}</div></td><td>{author.province.name}</td><td>{author.activeProjectCount}</td><td><Status value={author.status} /></td></tr>)}</tbody></table>{filteredAuthors.length === 0 && <div className="empty-state">{apiAuthors.length === 0 ? 'Oturum kapsamınızda yazar bulunamadı.' : 'Bu filtreye uygun yazar bulunamadı.'}</div>}</div></div>
+            </section>
+          </>}
         </>}
         {section === 'payments' && <><div className="page-heading"><div><div className="eyebrow">FİNANS AKIŞI</div><h1>Hakedişler</h1><p>Örnek ödeme kayıtlarının onay ve ödeme adımlarını deneyin.</p></div><span className="heading-chip"><Wallet size={16} /> Demo tutarlar</span></div><div className="stats-grid payments-stats"><StatCard label="Bekleyen" value={money(data.payments.filter(p => p.status === 'Bekliyor').reduce((sum, p) => sum + p.amount, 0))} note="Onay bekleyen hakediş" icon={Clock3} tone="amber" /><StatCard label="Onaylanan" value={money(data.payments.filter(p => p.status === 'Onaylandı').reduce((sum, p) => sum + p.amount, 0))} note="Ödeme sırasına alınan" icon={CheckCircle2} tone="blue" /><StatCard label="Ödenen" value={money(data.payments.filter(p => p.status === 'Ödendi').reduce((sum, p) => sum + p.amount, 0))} note="Tamamlanan işlemler" icon={Wallet} tone="green" /></div><div className="panel table-panel"><div className="table-heading"><strong>Hakediş listesi</strong><span>İşlemler sadece bu demo tarayıcısını etkiler</span></div><div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>PROJE</th><th>TUTAR</th><th>PLANLANAN TARİH</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>{data.payments.map(payment => <tr key={payment.id}><td><strong>{data.authors.find(a => a.id === payment.authorId)?.name}</strong></td><td>{data.projects.find(p => p.id === payment.projectId)?.name}</td><td><strong>{money(payment.amount)}</strong></td><td>{date(payment.date)}</td><td><Status value={payment.status} /></td><td><div className="row-actions">{payment.status !== 'Ödendi' ? <button onClick={() => updatePayment(payment.id)}>{payment.status === 'Bekliyor' ? 'Onayla' : 'Ödendi işaretle'} <ArrowRight size={14} /></button> : <span className="no-action">Tamamlandı</span>}</div></td></tr>)}</tbody></table></div></div></>}
-        {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>Şu an Pilot oturumu ile {roleLabels[currentUser.role]} rolündesiniz.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Kanonik Rol</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Soru Havuzu ve Projeler sunucu tarafında oturum rolünüze göre kapsamlanır. Yazar Ağı ve Hakedişler bu aşamada örnek çalışma senaryolarıdır.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ve Genel Koordinatör örnek hakedişleri onaylayıp ödendi olarak işaretleyebilir.</p><button className="text-button" onClick={() => navigate('payments')}>Hakediş listesine git <ArrowRight size={16} /></button></div></div></>}
+        {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>Şu an Pilot oturumu ile {roleLabels[currentUser.role]} rolündesiniz.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Kanonik Rol</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Soru Havuzu, Projeler ve Yazar Ağı sunucu tarafında oturum rolünüze göre kapsamlanır. Hakedişler bu aşamada örnek çalışma senaryosudur.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ve Genel Koordinatör örnek hakedişleri onaylayıp ödendi olarak işaretleyebilir.</p><button className="text-button" onClick={() => navigate('payments')}>Hakediş listesine git <ArrowRight size={16} /></button></div></div></>}
         {section === 'roles' && <PermissionDetails currentRole={currentUser.role} />}
         {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <><div className="page-heading"><div><div className="eyebrow">DENETİM İZİ</div><h1>İşlem Geçmişi</h1><p>Bu tarayıcıdaki örnek soru ve hakediş adımlarını izleyin.</p></div><span className="heading-chip"><ActivityIcon size={16} /> {data.activities.length} kayıt</span></div><div className="panel table-panel"><div className="table-heading"><strong>Son işlemler</strong><span>Demo verisi · Yerel tarayıcı kaydı</span></div><div className="table-wrap"><table><thead><tr><th>İŞLEM</th><th>UYGULAYAN</th><th>TÜR</th><th>ZAMAN</th></tr></thead><tbody>{data.activities.map(item => <tr key={item.id}><td><strong>{item.text}</strong></td><td>{item.actor}</td><td>{item.type === 'payment' ? 'Hakediş' : item.type === 'project' ? 'Proje' : 'Soru'}</td><td>{item.at}</td></tr>)}</tbody></table></div></div></>}
       </main>
