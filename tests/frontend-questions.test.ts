@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, ApiError } from '../src/questions/api';
+import fs from 'fs';
+import path from 'path';
 
 const fetchMock = vi.fn();
 global.fetch = fetchMock;
@@ -26,48 +28,94 @@ describe('Question API Frontend Client', () => {
     }));
   });
 
-  it('createQuestion uses POST and sends JSON', async () => {
+  it('createQuestion uses POST, sends JSON, uses projectId null, and does not send protected fields', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: 2, content: 'New' })
     });
 
-    const result = await createQuestion({ content: 'New' });
+    const result = await createQuestion({ 
+      content: 'New', 
+      projectId: null,
+      grade: '8',
+    });
     expect(result.id).toBe(2);
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions', expect.objectContaining({
       method: 'POST',
       credentials: 'include',
-      body: JSON.stringify({ content: 'New' })
+      body: JSON.stringify({ content: 'New', projectId: null, grade: '8' })
     }));
   });
 
-  it('patchQuestion uses PATCH and sends JSON', async () => {
+  it('patchQuestion uses PATCH and only sends editable fields', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: 3, content: 'Patched' })
     });
 
-    const result = await patchQuestion(3, { content: 'Patched' });
+    const result = await patchQuestion(3, { content: 'Patched', explanation: 'test' });
     expect(result.id).toBe(3);
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({
       method: 'PATCH',
       credentials: 'include',
-      body: JSON.stringify({ content: 'Patched' })
+      body: JSON.stringify({ content: 'Patched', explanation: 'test' })
     }));
   });
 
-  it('runQuestionWorkflow uses POST to /workflow and sends action/note', async () => {
+  it('runQuestionWorkflow submit sends exactly action: submit', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 4, status: 'INCELEMEDE' })
+    });
+
+    const result = await runQuestionWorkflow(4, 'submit');
+    expect(result.id).toBe(4);
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/4/workflow', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ action: 'submit' })
+    }));
+  });
+
+  it('runQuestionWorkflow approve sends exactly action: approve', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: 4, status: 'ONAYLANDI' })
     });
 
-    const result = await runQuestionWorkflow(4, 'approve', 'Good job');
+    // Passing a note just to prove our api.ts ignores it for 'approve'
+    const result = await runQuestionWorkflow(4, 'approve', 'some note');
     expect(result.id).toBe(4);
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/4/workflow', expect.objectContaining({
       method: 'POST',
-      credentials: 'include',
-      body: JSON.stringify({ action: 'approve', note: 'Good job' })
+      body: JSON.stringify({ action: 'approve' })
+    }));
+  });
+
+  it('runQuestionWorkflow request_revision sends trimmed note', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 4, status: 'REVIZYON' })
+    });
+
+    const result = await runQuestionWorkflow(4, 'request_revision', '   Fix this   ');
+    expect(result.id).toBe(4);
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/4/workflow', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ action: 'request_revision', note: 'Fix this' })
+    }));
+  });
+
+  it('runQuestionWorkflow reject sends trimmed note', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 4, status: 'REDDEDILDI' })
+    });
+
+    const result = await runQuestionWorkflow(4, 'reject', '   Too hard   ');
+    expect(result.id).toBe(4);
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/4/workflow', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ action: 'reject', note: 'Too hard' })
     }));
   });
 
@@ -87,5 +135,29 @@ describe('Question API Frontend Client', () => {
     it('maps 404', () => runErrorTest(404, {}, 'Kayıt bulunamadı.'));
     it('maps 409', () => runErrorTest(409, {}, 'Soru başka bir işlemle güncellendi. Güncel kayıt yeniden yüklendi.'));
     it('maps 500', () => runErrorTest(500, {}, 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.'));
+  });
+
+  describe('UI Source Regressions', () => {
+    it('verifies DemoApp.tsx does not contain obsolete demo state or old metric logic', () => {
+      const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
+      
+      // Metrics should not use old identifiers
+      expect(demoAppCode).not.toContain('q.authorId === 1');
+      expect(demoAppCode).not.toContain('const updateQuestion =');
+      
+      // Image upload was removed
+      expect(demoAppCode).not.toContain('questionImageName');
+      expect(demoAppCode).not.toContain('questionImageRef');
+      
+      // Editor rewrite state was removed
+      expect(demoAppCode).not.toContain('setEditorQuestionTitle');
+      expect(demoAppCode).not.toContain('setEditorQuestionOptions');
+      
+      // Transparency copy states data is real
+      expect(demoAppCode).toContain('Oturum ve Soru Havuzu gerçek Pilot verisini kullanır');
+      
+      // Dashboard uses apiQuestions for stats
+      expect(demoAppCode).toContain('apiQuestions.filter');
+    });
   });
 });

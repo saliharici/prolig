@@ -1,4 +1,4 @@
-import { ApiQuestion } from './types';
+import { ApiQuestion, CreateQuestionInput, PatchQuestionInput, QuestionWorkflowAction } from './types';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -36,7 +36,7 @@ export async function fetchQuestions(): Promise<ApiQuestion[]> {
   return handleResponse<ApiQuestion[]>(res);
 }
 
-export async function createQuestion(input: Partial<ApiQuestion>): Promise<ApiQuestion> {
+export async function createQuestion(input: CreateQuestionInput): Promise<ApiQuestion> {
   const res = await fetch('/api/v1/questions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -46,7 +46,7 @@ export async function createQuestion(input: Partial<ApiQuestion>): Promise<ApiQu
   return handleResponse<ApiQuestion>(res);
 }
 
-export async function patchQuestion(id: number, input: Partial<ApiQuestion>): Promise<ApiQuestion> {
+export async function patchQuestion(id: number, input: PatchQuestionInput): Promise<ApiQuestion> {
   const res = await fetch(`/api/v1/questions/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -56,12 +56,17 @@ export async function patchQuestion(id: number, input: Partial<ApiQuestion>): Pr
   return handleResponse<ApiQuestion>(res);
 }
 
-export async function runQuestionWorkflow(id: number, action: string, note?: string): Promise<ApiQuestion> {
+export async function runQuestionWorkflow(id: number, action: QuestionWorkflowAction, note?: string): Promise<ApiQuestion> {
+  const payload: any = { action };
+  if (action === 'request_revision' || action === 'reject') {
+    payload.note = note?.trim() || '';
+  }
+
   const res = await fetch(`/api/v1/questions/${id}/workflow`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ action, note }),
+    body: JSON.stringify(payload),
   });
   return handleResponse<ApiQuestion>(res);
 }

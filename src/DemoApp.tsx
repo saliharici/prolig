@@ -14,7 +14,7 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, ApiError } from './questions/api';
-import type { ApiQuestion, QuestionStatus as ApiQuestionStatus } from './questions/types';
+import type { ApiQuestion, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import './demo.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
@@ -103,21 +103,18 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
-  const [questionImageName, setQuestionImageName] = useState('');
-  const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null);
-  const [editorNote, setEditorNote] = useState('');
-  const [reviewAction, setReviewAction] = useState<'approve'|'request_revision'|'reject'|''>('');
+      const [editorNote, setEditorNote] = useState('');
+  const [reviewAction, setReviewAction] = useState<QuestionWorkflowAction | ''>('');
   const [editingApiQuestion, setEditingApiQuestion] = useState<ApiQuestion | null>(null);
   const [toast, setToast] = useState('');
   const questionEditorRef = useRef<HTMLTextAreaElement>(null);
-  const questionImageRef = useRef<HTMLInputElement>(null);
-
+  
   useEffect(() => { saveDemoData(data); }, [data]);
   useEffect(() => { if (toast) { const timer = window.setTimeout(() => setToast(''), 3800); return () => window.clearTimeout(timer); } }, [toast]);
 
   const allowed = permissions[currentUser.role];
   const visibleProjects = useMemo(() => currentUser.role === 'IL_KOORDINATORU' ? data.projects.filter(p => p.province === 'İstanbul') : currentUser.role === 'YAZAR' ? data.projects.filter(p => p.id === 1) : data.projects, [data.projects, currentUser.role]);
-  const visibleQuestions = useMemo(() => currentUser.role === 'YAZAR' ? data.questions.filter(q => q.authorId === 1) : currentUser.role === 'IL_KOORDINATORU' ? data.questions.filter(q => visibleProjects.some(p => p.id === q.projectId)) : data.questions, [data.questions, currentUser.role, visibleProjects]);
+  
   const MARMARA = ['İstanbul', 'Bursa', 'Edirne', 'Kocaeli', 'Sakarya', 'Tekirdağ', 'Yalova', 'Çanakkale', 'Kırklareli', 'Bilecik', 'Balıkesir'];
   const visibleAuthors = useMemo(() => currentUser.role === 'IL_KOORDINATORU' ? data.authors.filter(a => a.province === 'İstanbul') : data.authors, [data.authors, currentUser.role]);
   const visibleActivities = useMemo(() => data.activities.filter(item => {
@@ -138,15 +135,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     setSection(target); setQuery(''); setAuthorProvince(''); setStatusFilter('Tümü'); setMobileMenu(false);
   };
     const log = (text: string, type: 'question' | 'payment', projectId: number, authorId?: number) => ({ id: Math.max(0, ...data.activities.map(item => item.id)) + 1, text, actor: currentUser.fullName, at: 'Az önce', type, projectId, authorId });
-  const updateQuestion = (id: number, status: QuestionStatus) => {
-    const q = data.questions.find(item => item.id === id);
-    if (!q) return;
-    const canSubmit = currentUser.role === 'YAZAR' && q.authorId === 1 && ['Taslak', 'Revizyon'].includes(q.status) && status === 'İncelemede';
-    const canReview = ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && q.status === 'İncelemede' && ['Onaylandı', 'Revizyon', 'Reddedildi'].includes(status);
-    if (!canSubmit && !canReview) return;
-    setData(current => ({ ...current, questions: current.questions.map(item => item.id === id ? { ...item, status, updatedAt: new Date().toISOString().slice(0, 10) } : item), activities: [log(`“${q.title}” · ${status.toLocaleLowerCase('tr-TR')}`, 'question', q.projectId, q.authorId), ...current.activities] }));
-    setToast(`Soru durumu “${status}” olarak güncellendi`);
-  };
+  
   const handleCreateQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
     if (currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
@@ -176,8 +165,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
       setQuestionTitle(''); 
       setQuestionOptions(['', '', '', '']); 
       setQuestionExplanation(''); 
-      setQuestionImageName('');
-      loadApiQuestions();
+            loadApiQuestions();
     } catch (e: any) {
       setToast(e.message || 'Bir hata oluştu.');
       if (e.status === 409) loadApiQuestions();
@@ -192,8 +180,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     setQuestionOptions(['', '', '', '']);
     setQuestionCorrectAnswer('A');
     setQuestionExplanation('');
-    setQuestionImageName('');
-    setShowQuestionForm(true);
+        setShowQuestionForm(true);
   };
   const changeQuestionLevel = (level: string) => {
     const firstGrade = gradesByLevel[level]?.[0] || '';
@@ -243,7 +230,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     event.preventDefault();
     if (!editingApiQuestion || !reviewAction) return;
     try {
-      await runQuestionWorkflow(editingApiQuestion.id, reviewAction, editorNote.trim() || undefined);
+      await runQuestionWorkflow(editingApiQuestion.id, reviewAction as QuestionWorkflowAction, editorNote.trim() || undefined);
       setToast('İşlem başarıyla tamamlandı.');
       setEditingApiQuestion(null);
       setReviewAction('');
@@ -308,7 +295,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   }
   const filteredProjects = visibleProjects.filter(p => `${p.name} ${p.subject}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR')));
   const filteredAuthors = visibleAuthors.filter(a => (!authorProvince || a.province === authorProvince) && `${a.name} ${a.subject} ${a.province}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR')));
-  const editingQuestion = data.questions.find(question => question.id === editingQuestionId);
+  
   const showAuthorsForProvince = (province: string) => {
     setAuthorProvince(province);
     setQuery('');
@@ -320,7 +307,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
       <div className="brand"><div className="brand-mark"><span>P</span></div><div><strong>PRO LİG</strong><small>İçerik yönetim platformu</small></div></div>
       <div className="sidebar-caption">ÇALIŞMA ALANI</div>
       <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}</button>)}</nav>
-      <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum rolünüz gerçek kullanıcı hesabınızdan gelir. Soru, proje ve hakediş verileri bu aşamada örnek çalışma verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
+      <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum ve Soru Havuzu gerçek Pilot verisini kullanır. Projeler, Yazar Ağı ve Hakedişler bu aşamada örnek çalışma verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
     </aside>
     {mobileMenu && <button className="mobile-shade" aria-label="Menüyü kapat" onClick={() => setMobileMenu(false)} />}
     <div className="demo-main">
@@ -355,11 +342,11 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
           <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>{currentUser.role === 'YAZAR' ? 'Sorularınızı hazırlayın, editör değerlendirmesini takip edin.' : 'Üretim sürecindeki son durumu tek yerden takip edin.'}</p></div><span className="heading-chip"><ShieldCheck size={16} /> {roleLabels[currentUser.role]} görünümü</span></div>
           <div className="stats-grid">
             <StatCard label="Aktif projeler" value={activeProjects} note="Üretim takviminde" icon={BookOpen} tone="blue" />
-            <StatCard label={currentUser.role === 'YAZAR' ? 'Sorularım' : 'İncelemede'} value={currentUser.role === 'YAZAR' ? visibleQuestions.length : pendingQuestions} note={currentUser.role === 'YAZAR' ? 'Soru havuzunda' : 'Editör kararı bekliyor'} icon={FileQuestion} tone="amber" />
-            {currentUser.role === 'EDITOR' ? <StatCard label="Revizyon bekleyen" value={visibleQuestions.filter(q => q.status === 'Revizyon').length} note="Yazara iletilen sorular" icon={RotateCcw} tone="purple" /> : currentUser.role === 'YAZAR' ? <StatCard label="Revizyonlarım" value={visibleQuestions.filter(q => q.status === 'Revizyon').length} note="Düzenleme bekleyen" icon={RotateCcw} tone="purple" /> : <StatCard label="Yazar ağı" value={visibleAuthors.length.toString().padStart(2, '0')} note="Kapsamınızdaki yazarlar" icon={Users} tone="purple" />}
-            <StatCard label="Tamamlanan sorular" value={visibleQuestions.filter(q => q.status === 'Onaylandı').length.toString().padStart(2, '0')} note="Yayın hazırlığında" icon={CheckCircle2} tone="green" />
+            <StatCard label={currentUser.role === 'YAZAR' ? 'Sorularım' : 'İncelemede'} value={currentUser.role === 'YAZAR' ? apiQuestions.length : pendingQuestions} note={currentUser.role === 'YAZAR' ? 'Soru havuzunda' : 'Editör kararı bekliyor'} icon={FileQuestion} tone="amber" />
+            {currentUser.role === 'EDITOR' ? <StatCard label="Revizyon bekleyen" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Yazara iletilen sorular" icon={RotateCcw} tone="purple" /> : currentUser.role === 'YAZAR' ? <StatCard label="Revizyonlarım" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Düzenleme bekleyen" icon={RotateCcw} tone="purple" /> : <StatCard label="Yazar ağı" value={visibleAuthors.length.toString().padStart(2, '0')} note="Kapsamınızdaki yazarlar" icon={Users} tone="purple" />}
+            <StatCard label="Tamamlanan sorular" value={apiQuestions.filter(q => q.status === 'ONAYLANDI').length.toString().padStart(2, '0')} note="Yayın hazırlığında" icon={CheckCircle2} tone="green" />
           </div>
-          <div className="overview-grid"><section className="panel"><div className="panel-head"><div><span className="panel-kicker">İŞ AKIŞI</span><h2>Soru üretim hattı</h2></div><button className="text-button" onClick={() => navigate('questions')}>Tüm sorular <ArrowRight size={16} /></button></div><p className="panel-sub">Taslaklardan onaya uzanan süreci rolünüze göre deneyin.</p><div className="pipeline">{(['Taslak', 'İncelemede', 'Revizyon', 'Onaylandı'] as QuestionStatus[]).map((status, index) => <div key={status} className="pipeline-step"><span className={`pipeline-dot dot-${index}`}><span>{visibleQuestions.filter(q => q.status === status).length}</span></span><strong>{status}</strong><small>{index === 0 ? 'Yazar hazırlar' : index === 1 ? 'Editör inceler' : index === 2 ? 'Yazar düzenler' : 'Yayına hazır'}</small>{index < 3 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><CircleHelp size={20} /></div><div><strong>Rolünüzde neler yapabilirsiniz?</strong><span>Yetki matrisinde ekran ve işlem kapsamını görün.</span></div><button onClick={() => navigate('roles')}><ArrowUpRight size={18} /></button></div></section>
+          <div className="overview-grid"><section className="panel"><div className="panel-head"><div><span className="panel-kicker">İŞ AKIŞI</span><h2>Soru üretim hattı</h2></div><button className="text-button" onClick={() => navigate('questions')}>Tüm sorular <ArrowRight size={16} /></button></div><p className="panel-sub">Taslaklardan onaya uzanan süreci rolünüze göre deneyin.</p><div className="pipeline">{[{label: 'Taslak', code: 'TASLAK'}, {label: 'İncelemede', code: 'INCELEMEDE'}, {label: 'Revizyon', code: 'REVIZYON'}, {label: 'Onaylandı', code: 'ONAYLANDI'}].map((status, index) => <div key={status.code} className="pipeline-step"><span className={`pipeline-dot dot-${index}`}><span>{apiQuestions.filter(q => q.status === status.code).length}</span></span><strong>{status.label}</strong><small>{index === 0 ? 'Yazar hazırlar' : index === 1 ? 'Editör inceler' : index === 2 ? 'Yazar düzenler' : 'Yayına hazır'}</small>{index < 3 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><CircleHelp size={20} /></div><div><strong>Rolünüzde neler yapabilirsiniz?</strong><span>Yetki matrisinde ekran ve işlem kapsamını görün.</span></div><button onClick={() => navigate('roles')}><ArrowUpRight size={18} /></button></div></section>
           <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section></div>
           <section className="panel projects-preview"><div className="panel-head"><div><span className="panel-kicker">YAKLAŞAN TESLİMLER</span><h2>Devam eden projeler</h2></div><button className="text-button" onClick={() => navigate('projects')}>Projeleri görüntüle <ArrowRight size={16} /></button></div><div className="project-mini-grid">{visibleProjects.slice(0, 3).map(project => <div className="project-mini" key={project.id}><div className="project-mini-top"><span className="subject-icon">{project.subject.slice(0, 1)}</span><Status value={project.status} /></div><strong>{project.name}</strong><small><Clock3 size={14} /> {date(project.deadline)}</small><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>İlerleme</span><strong>%{project.progress}</strong></div></div>)}</div></section>
         </>}
@@ -418,7 +405,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
         <div className="modal-head"><div><span className="panel-kicker">PROFESYONEL SORU EDİTÖRÜ</span><h2>{editingApiQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div><button type="button" aria-label="Kapat" onClick={() => setShowQuestionForm(false)}><X size={20} /></button></div>
         <p>Soru gövdesini hazırlayın, cevap seçeneklerini ve doğru yanıtı belirleyin.</p>
         <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
-        <label>Proje<select aria-label="Proje" value={questionProject} disabled><option value={0}>{questionGrade} Genel Soru Havuzu</option></select><small className="field-help">Taslak genel soru havuzuna kaydedilir.</small></label>
+        <label>Proje<div style={{padding: '0.6rem 0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.4rem', color: '#64748b', fontSize: '0.95rem'}}>{questionGrade} Genel Soru Havuzu</div><small className="field-help">Taslak genel soru havuzuna kaydedilir.</small></label>
         <label className="question-editor-label">Soru gövdesi</label>
         <div className="question-editor-shell">
           <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
@@ -439,8 +426,8 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
         <p>Bu soru için değerlendirme kararınızı ve yazar için varsa notunuzu girin.</p>
         <div className="editor-review-context" style={{marginBottom: '1rem'}}><span>{editingApiQuestion.grade}</span><span>{editingApiQuestion.author?.fullName}</span></div>
         <div style={{background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem', whiteSpace: 'pre-wrap'}}>{editingApiQuestion.content}</div>
-        <label>Aksiyon<select required value={reviewAction} onChange={e => setReviewAction(e.target.value as any)}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
-        <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>
+        <label>Aksiyon<select required value={reviewAction} onChange={e => { const val = e.target.value as QuestionWorkflowAction | ''; setReviewAction(val); if (val === 'approve') setEditorNote(''); }}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
+        {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setEditingApiQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>
       </form></div>}
       {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}

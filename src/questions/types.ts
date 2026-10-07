@@ -1,4 +1,4 @@
-﻿export type QuestionStatus = 'TASLAK' | 'INCELEMEDE' | 'REVIZYON' | 'ONAYLANDI' | 'REDDEDILDI';
+export type QuestionStatus = 'TASLAK' | 'INCELEMEDE' | 'REVIZYON' | 'ONAYLANDI' | 'REDDEDILDI';
 
 export interface ApiQuestion {
   id: number;
@@ -26,3 +26,27 @@ export interface ApiQuestion {
     code: string;
   } | null;
 }
+
+export interface CreateQuestionInput {
+  content: string;
+  grade?: string | null;
+  objectiveCode?: string | null;
+  difficulty?: string | null;
+  options?: string[] | null;
+  correctAnswer?: string | null;
+  explanation?: string | null;
+  projectId: null;
+}
+
+export interface PatchQuestionInput {
+  content?: string;
+  grade?: string | null;
+  objectiveCode?: string | null;
+  difficulty?: string | null;
+  options?: string[] | null;
+  correctAnswer?: string | null;
+  explanation?: string | null;
+  projectId?: null;
+}
+
+export type QuestionWorkflowAction = 'submit' | 'approve' | 'request_revision' | 'reject';
