@@ -161,6 +161,56 @@ async function main() {
     }
   }
 
+  const pilotYazar = await prisma.user.findUnique({
+    where: { email: 'pilot.yazar@prolig.local' },
+    select: { AuthorProfile: { select: { id: true } } }
+  });
+  if (!pilotYazar?.AuthorProfile) {
+    throw new Error('Canonical Pilot YAZAR AuthorProfile is missing.');
+  }
+
+  const pilotProject = await prisma.project.upsert({
+    where: { code: 'PILOT-MAT-8-001' },
+    create: {
+      title: '8. Sınıf Matematik Pilot Soru Bankası',
+      code: 'PILOT-MAT-8-001',
+      projectType: 'Soru Bankası',
+      progress: 0,
+      deadline: new Date('2027-06-30T00:00:00.000Z'),
+      status: 'Devam_Ediyor',
+      priority: 'Normal',
+      targetGrade: '8. Sınıf',
+      branchId: branch.id,
+      description: 'Pilot V1 gerçek proje akışı için doğrulanmış örnek proje.'
+    },
+    update: {
+      title: '8. Sınıf Matematik Pilot Soru Bankası',
+      projectType: 'Soru Bankası',
+      progress: 0,
+      deadline: new Date('2027-06-30T00:00:00.000Z'),
+      status: 'Devam_Ediyor',
+      priority: 'Normal',
+      targetGrade: '8. Sınıf',
+      branchId: branch.id,
+      description: 'Pilot V1 gerçek proje akışı için doğrulanmış örnek proje.'
+    }
+  });
+
+  await prisma.projectAuthor.upsert({
+    where: {
+      projectId_authorProfileId: {
+        projectId: pilotProject.id,
+        authorProfileId: pilotYazar.AuthorProfile.id
+      }
+    },
+    create: {
+      projectId: pilotProject.id,
+      authorProfileId: pilotYazar.AuthorProfile.id,
+      roleInProject: 'Yazar'
+    },
+    update: { roleInProject: 'Yazar' }
+  });
+
   console.log("Seed successful");
 }
 
