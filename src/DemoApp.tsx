@@ -13,6 +13,8 @@ import {
   sectionLabels, type DemoData, type Question, type QuestionStatus, type Role, type Section,
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
+import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, ApiError } from './questions/api';
+import type { ApiQuestion, QuestionStatus as ApiQuestionStatus } from './questions/types';
 import './demo.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
@@ -68,6 +70,26 @@ function PermissionDetails({ currentRole }: { currentRole: Role }) {
 
 export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser: AuthUser; onLogoutRequest: () => void }) {
   const [data, setData] = useState<DemoData>(loadDemoData);
+  const [apiQuestions, setApiQuestions] = useState<ApiQuestion[]>([]);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
+
+  const loadApiQuestions = async () => {
+    setApiLoading(true);
+    setApiError('');
+    try {
+      const result = await fetchQuestions();
+      setApiQuestions(result);
+    } catch (e: any) {
+      setApiError(e.message || 'Soru havuzu yüklenemedi.');
+    } finally {
+      setApiLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadApiQuestions();
+  }, []);
     const [section, setSection] = useState<Section>('overview');
     const [mobileMenu, setMobileMenu] = useState(false);
   const [query, setQuery] = useState('');
@@ -83,11 +105,9 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   const [questionExplanation, setQuestionExplanation] = useState('');
   const [questionImageName, setQuestionImageName] = useState('');
   const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null);
-  const [editorQuestionTitle, setEditorQuestionTitle] = useState('');
-  const [editorQuestionOptions, setEditorQuestionOptions] = useState(['', '', '', '']);
-  const [editorCorrectAnswer, setEditorCorrectAnswer] = useState('A');
-  const [editorExplanation, setEditorExplanation] = useState('');
   const [editorNote, setEditorNote] = useState('');
+  const [reviewAction, setReviewAction] = useState<'approve'|'request_revision'|'reject'|''>('');
+  const [editingApiQuestion, setEditingApiQuestion] = useState<ApiQuestion | null>(null);
   const [toast, setToast] = useState('');
   const questionEditorRef = useRef<HTMLTextAreaElement>(null);
   const questionImageRef = useRef<HTMLInputElement>(null);
@@ -107,7 +127,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     if (currentUser.role === 'YAZAR') return item.authorId === 1 || (!item.authorId && item.actor === currentUser.fullName);
     return currentUser.role === 'IL_KOORDINATORU' && visibleProjects.some(project => project.id === item.projectId);
   }), [data.activities, currentUser.role, visibleProjects]);
-  const pendingQuestions = visibleQuestions.filter(q => q.status === 'İncelemede').length;
+  const pendingQuestions = apiQuestions.filter(q => q.status === 'INCELEMEDE').length;
   const activeProjects = visibleProjects.filter(p => p.status !== 'Tamamlandı').length;
   const questionLevels = Object.keys(gradesByLevel);
   const questionGrades = gradesByLevel[questionLevel] || [];
@@ -127,13 +147,41 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     setData(current => ({ ...current, questions: current.questions.map(item => item.id === id ? { ...item, status, updatedAt: new Date().toISOString().slice(0, 10) } : item), activities: [log(`“${q.title}” · ${status.toLocaleLowerCase('tr-TR')}`, 'question', q.projectId, q.authorId), ...current.activities] }));
     setToast(`Soru durumu “${status}” olarak güncellendi`);
   };
-  const createQuestion = (event: React.FormEvent) => {
+  const handleCreateQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
     if (currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
-    const project = data.projects.find(p => p.id === questionProject);
-    const newQuestion: Question = { id: Math.max(...data.questions.map(q => q.id), 100) + 1, title: questionTitle.trim(), subject: project?.subject || 'Genel', grade: questionGrade, level: questionLevel, projectId: project?.id || 0, authorId: 1, status: 'Taslak', updatedAt: new Date().toISOString().slice(0, 10), options: questionOptions, correctAnswer: questionCorrectAnswer, explanation: questionExplanation.trim(), imageName: questionImageName };
-    setData(current => ({ ...current, questions: [newQuestion, ...current.questions], activities: [log('Yeni soru taslağı oluşturuldu', 'question', newQuestion.projectId, 1), ...current.activities] }));
-    setShowQuestionForm(false); setQuestionTitle(''); setQuestionOptions(['', '', '', '']); setQuestionExplanation(''); setQuestionImageName(''); setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
+    try {
+      if (editingApiQuestion) {
+        await patchQuestion(editingApiQuestion.id, {
+          content: questionTitle.trim(),
+          grade: questionGrade,
+          options: questionOptions,
+          correctAnswer: questionCorrectAnswer,
+          explanation: questionExplanation.trim() || null
+        });
+        setToast('Soru düzeltmeleri kaydedildi.');
+      } else {
+        await createQuestion({
+          content: questionTitle.trim(),
+          grade: questionGrade,
+          options: questionOptions,
+          correctAnswer: questionCorrectAnswer,
+          explanation: questionExplanation.trim() || null,
+          projectId: null
+        });
+        setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
+      }
+      setShowQuestionForm(false);
+      setEditingApiQuestion(null);
+      setQuestionTitle(''); 
+      setQuestionOptions(['', '', '', '']); 
+      setQuestionExplanation(''); 
+      setQuestionImageName('');
+      loadApiQuestions();
+    } catch (e: any) {
+      setToast(e.message || 'Bir hata oluştu.');
+      if (e.status === 409) loadApiQuestions();
+    }
   };
   const openQuestionForm = () => {
     const firstProject = data.projects[0];
@@ -183,43 +231,52 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     window.requestAnimationFrame(() => editor.focus());
   };
   const updateQuestionOption = (index: number, value: string) => setQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
-  const openEditorReview = (question: Question) => {
-    if (currentUser.role !== 'EDITOR' || question.status !== 'İncelemede') return;
-    setEditingQuestionId(question.id);
-    setEditorQuestionTitle(question.title);
-    setEditorQuestionOptions(question.options?.length === 4 ? question.options : ['', '', '', '']);
-    setEditorCorrectAnswer(question.correctAnswer || 'A');
-    setEditorExplanation(question.explanation || '');
-    setEditorNote(question.note || '');
+  const openEditorReview = (question: ApiQuestion) => {
+    if (['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && question.status === 'INCELEMEDE') {
+      setEditingApiQuestion(question);
+      setEditorNote('');
+      setReviewAction('');
+    }
   };
-  const saveEditorReview = (event: React.FormEvent) => {
+  
+  const saveEditorReview = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (currentUser.role !== 'EDITOR' || editingQuestionId === null || editorQuestionTitle.trim().length < 10) return;
-    const question = data.questions.find(item => item.id === editingQuestionId);
-    if (!question || question.status !== 'İncelemede') return;
-    const contentChanged = question.title !== editorQuestionTitle.trim() || JSON.stringify(question.options || []) !== JSON.stringify(editorQuestionOptions) || question.correctAnswer !== editorCorrectAnswer || (question.explanation || '') !== editorExplanation.trim();
-    setData(current => ({
-      ...current,
-      questions: current.questions.map(item => item.id === editingQuestionId ? {
-        ...item,
-        title: editorQuestionTitle.trim(),
-        options: editorQuestionOptions,
-        correctAnswer: editorCorrectAnswer,
-        explanation: editorExplanation.trim(),
-        note: editorNote.trim() || undefined,
-        editorEdited: item.editorEdited || contentChanged,
-        editorName: currentUser.fullName,
-        editorEditedAt: 'Az önce',
-        originalTitle: item.originalTitle || (contentChanged ? item.title : undefined),
-        updatedAt: new Date().toISOString().slice(0, 10),
-      } : item),
-      activities: [log(contentChanged ? 'Soru editör tarafından düzenlendi' : 'Sorunun yazar notu güncellendi', 'question', question.projectId, question.authorId), ...current.activities],
-    }));
-    setEditingQuestionId(null);
-    setToast(contentChanged ? 'Düzeltmeler ve editör notu yazara iletildi' : 'Editör notu yazara iletildi');
+    if (!editingApiQuestion || !reviewAction) return;
+    try {
+      await runQuestionWorkflow(editingApiQuestion.id, reviewAction, editorNote.trim() || undefined);
+      setToast('İşlem başarıyla tamamlandı.');
+      setEditingApiQuestion(null);
+      setReviewAction('');
+      setEditorNote('');
+      loadApiQuestions();
+    } catch (e: any) {
+      setToast(e.message || 'Hata oluştu.');
+      if (e.status === 409) loadApiQuestions();
+    }
   };
-  const updateEditorOption = (index: number, value: string) => setEditorQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
-  const updatePayment = (id: number) => {
+  
+  const handleYazarSubmit = async (question: ApiQuestion) => {
+    try {
+      await runQuestionWorkflow(question.id, 'submit');
+      setToast('Soru incelemeye gönderildi.');
+      loadApiQuestions();
+    } catch (e: any) {
+      setToast(e.message || 'Hata oluştu.');
+      if (e.status === 409) loadApiQuestions();
+    }
+  };
+  
+  const openYazarEdit = (question: ApiQuestion) => {
+    if (question.status !== 'TASLAK' && question.status !== 'REVIZYON') return;
+    setEditingApiQuestion(question);
+    setQuestionTitle(question.content);
+    setQuestionGrade(question.grade || '8. Sınıf');
+    setQuestionOptions(question.options || ['', '', '', '']);
+    setQuestionCorrectAnswer(question.correctAnswer || 'A');
+    setQuestionExplanation(question.explanation || '');
+    setShowQuestionForm(true);
+  };
+    const updatePayment = (id: number) => {
     if (!['MUHASEBE', 'GENEL_KOORDINATOR'].includes(currentUser.role)) return;
     const payment = data.payments.find(item => item.id === id);
     if (!payment || payment.status === 'Ödendi') return;
@@ -229,10 +286,26 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   };
   const reset = () => { setData(resetDemoData()); setToast('Örnek veriler başlangıç durumuna döndürüldü'); };
 
-  const filteredQuestions = visibleQuestions.filter(q => {
-    const author = data.authors.find(a => a.id === q.authorId)?.name || '';
-    return (statusFilter === 'Tümü' || q.status === statusFilter) && `${q.title} ${q.subject} ${author}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR'));
+  const filteredQuestions = apiQuestions.filter(q => {
+    const authorName = q.author?.fullName || '';
+    const branchName = q.author?.branchName || '';
+    const projectTitle = q.project?.title || 'Genel Soru Havuzu';
+    const statusLabel = statusDisplay(q.status);
+    
+    return (statusFilter === 'Tümü' || statusLabel === statusFilter) &&
+      `${q.content} ${q.grade} ${q.objectiveCode || ''} ${authorName} ${branchName} ${projectTitle}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR'));
   });
+  
+  function statusDisplay(status: ApiQuestionStatus) {
+    const map: Record<ApiQuestionStatus, string> = {
+      TASLAK: 'Taslak',
+      INCELEMEDE: 'İncelemede',
+      REVIZYON: 'Revizyon',
+      ONAYLANDI: 'Onaylandı',
+      REDDEDILDI: 'Reddedildi'
+    };
+    return map[status] || status;
+  }
   const filteredProjects = visibleProjects.filter(p => `${p.name} ${p.subject}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR')));
   const filteredAuthors = visibleAuthors.filter(a => (!authorProvince || a.province === authorProvince) && `${a.name} ${a.subject} ${a.province}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR')));
   const editingQuestion = data.questions.find(question => question.id === editingQuestionId);
@@ -290,8 +363,11 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
           <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section></div>
           <section className="panel projects-preview"><div className="panel-head"><div><span className="panel-kicker">YAKLAŞAN TESLİMLER</span><h2>Devam eden projeler</h2></div><button className="text-button" onClick={() => navigate('projects')}>Projeleri görüntüle <ArrowRight size={16} /></button></div><div className="project-mini-grid">{visibleProjects.slice(0, 3).map(project => <div className="project-mini" key={project.id}><div className="project-mini-top"><span className="subject-icon">{project.subject.slice(0, 1)}</span><Status value={project.status} /></div><strong>{project.name}</strong><small><Clock3 size={14} /> {date(project.deadline)}</small><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>İlerleme</span><strong>%{project.progress}</strong></div></div>)}</div></section>
         </>}
-        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını deneyin.'}</p></div>{currentUser.role === 'YAZAR' && <button className="primary-button" onClick={openQuestionForm}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div></div><div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Örnek içerikler · Rolünüzün kapsamına göre listelenir</span></div><div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>ROLÜ</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => { const author = data.authors.find(a => a.id === q.authorId); const project = data.projects.find(p => p.id === q.projectId); return <tr key={q.id}><td><strong>{q.title}</strong><small>{q.subject} · {q.grade} · #{q.id}</small>{q.editorEdited && <span className="editor-change-badge"><PencilLine size={12} /> Editör tarafından düzenlendi · {q.editorName} · {q.editorEditedAt}</span>}{q.note && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.note}</small>}{currentUser.role === 'YAZAR' && q.editorEdited && q.originalTitle && <details className="question-version"><summary>Önceki metni göster</summary><p>{q.originalTitle}</p></details>}</td><td>{author?.name}</td><td>{project?.name || `${q.grade} Genel Soru Havuzu`}</td><td><Status value={q.status} /></td><td>{date(q.updatedAt)}</td><td><div className="row-actions">{currentUser.role === 'YAZAR' && q.authorId === 1 && ['Taslak', 'Revizyon'].includes(q.status) && <button onClick={() => updateQuestion(q.id, 'İncelemede')}>İncelemeye gönder <ArrowRight size={14} /></button>}{currentUser.role === 'EDITOR' && q.status === 'İncelemede' && <button onClick={() => openEditorReview(q)} title="Soruyu düzenle ve yazara not bırak"><PencilLine size={15} /></button>}{['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && q.status === 'İncelemede' && <><button onClick={() => updateQuestion(q.id, 'Onaylandı')} title="Onayla"><Check size={16} /></button><button onClick={() => updateQuestion(q.id, 'Revizyon')} title="Revizyon iste"><RotateCcw size={15} /></button><button onClick={() => updateQuestion(q.id, 'Reddedildi')} title="Reddet"><X size={16} /></button></>}{!(currentUser.role === 'YAZAR' && q.authorId === 1 && ['Taslak', 'Revizyon'].includes(q.status)) && !(['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && q.status === 'İncelemede') && <span className="no-action">—</span>}</div></td></tr>; })}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div></div></>}
-        {section === 'projects' && <><div className="page-heading"><div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Kitap ve içerik üretimindeki ilerlemeyi takip edin.</p></div><span className="heading-chip"><BookOpen size={16} /> {visibleProjects.length} proje</span></div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje veya branş ara..." value={query} onChange={e => setQuery(e.target.value)} /></div></div><div className="project-grid">{filteredProjects.map(project => <div className="panel project-card" key={project.id}><div className="project-card-top"><span className="subject-icon">{project.subject.slice(0, 1)}</span><Status value={project.status} /></div><span className="project-code">PROJE #{String(project.id).padStart(3, '0')}</span><h2>{project.name}</h2><p>{project.subject} · {project.grade} · {project.province}</p><div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div></div>)}</div>{filteredProjects.length === 0 && <div className="empty-state">Proje bulunamadı.</div>}</>}
+        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını yönetin.'}</p></div>{currentUser.role === 'YAZAR' && <button className="primary-button" onClick={() => { setEditingApiQuestion(null); openQuestionForm(); }}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div></div><div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Canlı Pilot verisi · Kayıtlar oturum rolünüzün sunucu kapsamına göre listelenir.</span></div>
+{apiLoading && <div className="loading-state" style={{padding: '2rem', textAlign: 'center'}}>Sorular yükleniyor...</div>}
+{apiError && !apiLoading && <div className="error-state" style={{padding: '2rem', textAlign: 'center', color: '#ef4444'}}><div>{apiError}</div><button className="secondary-button" onClick={loadApiQuestions} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
+{!apiLoading && !apiError && <div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>BRANŞ</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => { return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}</small>{q.editorNote && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.editorNote}</small>}</td><td>{q.author?.fullName}</td><td>{q.author?.branchName || '-'}</td><td>{q.project?.title || 'Genel Soru Havuzu'}</td><td><Status value={statusDisplay(q.status)} /></td><td>{new Date(q.updatedAt).toLocaleDateString('tr-TR')}</td><td><div className="row-actions">{currentUser.role === 'YAZAR' && ['TASLAK', 'REVIZYON'].includes(q.status) && <><button onClick={() => openYazarEdit(q)} title="Düzenle"><PencilLine size={15} /></button><button onClick={() => handleYazarSubmit(q)}>İncelemeye gönder <ArrowRight size={14} /></button></>}{['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && q.status === 'INCELEMEDE' && <button onClick={() => openEditorReview(q)} title="Değerlendir"><CheckCircle2 size={15} /> İncele</button>}{!(currentUser.role === 'YAZAR' && ['TASLAK', 'REVIZYON'].includes(q.status)) && !(['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && q.status === 'INCELEMEDE') && <span className="no-action">—</span>}</div></td></tr>; })}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div>}</div></>}
+          {section === 'projects' && <><div className="page-heading"><div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Kitap ve içerik üretimindeki ilerlemeyi takip edin.</p></div><span className="heading-chip"><BookOpen size={16} /> {visibleProjects.length} proje</span></div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje veya branş ara..." value={query} onChange={e => setQuery(e.target.value)} /></div></div><div className="project-grid">{filteredProjects.map(project => <div className="panel project-card" key={project.id}><div className="project-card-top"><span className="subject-icon">{project.subject.slice(0, 1)}</span><Status value={project.status} /></div><span className="project-code">PROJE #{String(project.id).padStart(3, '0')}</span><h2>{project.name}</h2><p>{project.subject} · {project.grade} · {project.province}</p><div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div></div>)}</div>{filteredProjects.length === 0 && <div className="empty-state">Proje bulunamadı.</div>}</>}
         {section === 'grades' && <>
             <div className="page-heading">
               <div>
@@ -338,38 +414,35 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
         {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <><div className="page-heading"><div><div className="eyebrow">DENETİM İZİ</div><h1>İşlem Geçmişi</h1><p>Bu tarayıcıdaki örnek soru ve hakediş adımlarını izleyin.</p></div><span className="heading-chip"><ActivityIcon size={16} /> {data.activities.length} kayıt</span></div><div className="panel table-panel"><div className="table-heading"><strong>Son işlemler</strong><span>Demo verisi · Yerel tarayıcı kaydı</span></div><div className="table-wrap"><table><thead><tr><th>İŞLEM</th><th>UYGULAYAN</th><th>TÜR</th><th>ZAMAN</th></tr></thead><tbody>{data.activities.map(item => <tr key={item.id}><td><strong>{item.text}</strong></td><td>{item.actor}</td><td>{item.type === 'payment' ? 'Hakediş' : item.type === 'project' ? 'Proje' : 'Soru'}</td><td>{item.at}</td></tr>)}</tbody></table></div></div></>}
       </main>
     </div>
-    {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setShowQuestionForm(false); }}><form className="question-modal pro-editor-modal" onSubmit={createQuestion}>
-      <div className="modal-head"><div><span className="panel-kicker">PROFESYONEL SORU EDİTÖRÜ</span><h2>Yeni soru taslağı</h2></div><button type="button" aria-label="Kapat" onClick={() => setShowQuestionForm(false)}><X size={20} /></button></div>
-      <p>Soru gövdesini hazırlayın, cevap seçeneklerini ve doğru yanıtı belirleyin.</p>
-      <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
-      <label>Proje<select aria-label="Proje" value={questionProject} onChange={event => setQuestionProject(Number(event.target.value))}>{questionProjects.length > 0 ? questionProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>) : <option value={0}>{questionGrade} Genel Soru Havuzu</option>}</select><small className="field-help">Sınıfa bağlı proje yoksa taslak genel soru havuzuna kaydedilir.</small></label>
-      <label className="question-editor-label">Soru gövdesi</label>
-      <div className="question-editor-shell">
-        <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
-          <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
-          <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
-          <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button><button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button><button type="button" title="Görsel ekle" aria-label="Görsel ekle" onClick={() => questionImageRef.current?.click()}><ImagePlus size={16} /></button>
-          <input ref={questionImageRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={event => setQuestionImageName(event.target.files?.[0]?.name || '')} />
+    {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setShowQuestionForm(false); }}><form className="question-modal pro-editor-modal" onSubmit={handleCreateQuestion}>
+        <div className="modal-head"><div><span className="panel-kicker">PROFESYONEL SORU EDİTÖRÜ</span><h2>{editingApiQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div><button type="button" aria-label="Kapat" onClick={() => setShowQuestionForm(false)}><X size={20} /></button></div>
+        <p>Soru gövdesini hazırlayın, cevap seçeneklerini ve doğru yanıtı belirleyin.</p>
+        <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
+        <label>Proje<select aria-label="Proje" value={questionProject} disabled><option value={0}>{questionGrade} Genel Soru Havuzu</option></select><small className="field-help">Taslak genel soru havuzuna kaydedilir.</small></label>
+        <label className="question-editor-label">Soru gövdesi</label>
+        <div className="question-editor-shell">
+          <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
+            <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
+            <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
+            <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button><button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+          </div>
+          <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
+          <div className="question-editor-footer"><span></span><strong>{questionTitle.length} / 1200</strong></div>
         </div>
-        <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
-        <div className="question-editor-footer"><span>{questionImageName ? <><ImagePlus size={13} /> {questionImageName}</> : 'Görsel eklenmedi'}</span><strong>{questionTitle.length} / 1200</strong></div>
-      </div>
-      <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer}</span></div>
-      <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required /></label>; })}</div>
-      <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini veya editör notunu yazın..." /></label>
-      <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowQuestionForm(false)}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
-    </form></div>}
-    {editingQuestion && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setEditingQuestionId(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
-      <div className="modal-head"><div><span className="panel-kicker">EDİTÖR İNCELEMESİ</span><h2>Soruyu düzenle</h2></div><button type="button" aria-label="Kapat" onClick={() => setEditingQuestionId(null)}><X size={20} /></button></div>
-      <p>Gerekli düzeltmeleri yapın ve yazara açıklayıcı bir not bırakın. Kaydedilen değişiklikler yazarın soru ekranında görünür.</p>
-      <div className="editor-review-context"><span>{editingQuestion.subject}</span><span>{editingQuestion.grade}</span><span>{data.authors.find(author => author.id === editingQuestion.authorId)?.name}</span></div>
-      <label>Soru gövdesi<textarea autoFocus minLength={10} maxLength={1200} value={editorQuestionTitle} onChange={event => setEditorQuestionTitle(event.target.value)} required /></label>
-      <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Varsa seçenekleri düzeltin ve doğru cevabı işaretleyin.</span></div><span className="answer-key">Doğru cevap: {editorCorrectAnswer}</span></div>
-      <div className="question-options-grid">{editorQuestionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${editorCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="editor-correct-answer" checked={editorCorrectAnswer === letter} onChange={() => setEditorCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateEditorOption(index, event.target.value)} placeholder={`${letter} seçeneği`} /></label>; })}</div>
-      <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={editorExplanation} onChange={event => setEditorExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesi..." /></label>
-      <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Yaptığınız düzeltmeyi veya yazardan beklediğiniz değişikliği açıklayın..." /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>
-      <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setEditingQuestionId(null)}>Vazgeç</button><button type="submit" className="primary-button"><PencilLine size={17} /> Düzeltmeleri ve notu kaydet</button></div>
-    </form></div>}
-    {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
+        <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer}</span></div>
+        <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required /></label>; })}</div>
+        <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini veya editör notunu yazın..." /></label>
+        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowQuestionForm(false)}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
+      </form></div>}
+      {editingApiQuestion && !showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setEditingApiQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
+        <div className="modal-head"><div><span className="panel-kicker">EDİTÖR DEĞERLENDİRMESİ</span><h2>Soruyu İncele</h2></div><button type="button" aria-label="Kapat" onClick={() => setEditingApiQuestion(null)}><X size={20} /></button></div>
+        <p>Bu soru için değerlendirme kararınızı ve yazar için varsa notunuzu girin.</p>
+        <div className="editor-review-context" style={{marginBottom: '1rem'}}><span>{editingApiQuestion.grade}</span><span>{editingApiQuestion.author?.fullName}</span></div>
+        <div style={{background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem', whiteSpace: 'pre-wrap'}}>{editingApiQuestion.content}</div>
+        <label>Aksiyon<select required value={reviewAction} onChange={e => setReviewAction(e.target.value as any)}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
+        <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>
+        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setEditingApiQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>
+      </form></div>}
+      {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
   </div>;
 }
