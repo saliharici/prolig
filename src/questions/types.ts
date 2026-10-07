@@ -32,7 +32,7 @@ export interface CreateQuestionInput {
   grade: string;
   options: string[];
   correctAnswer: string;
-  projectId: null;
+  projectId: number | null;
   objectiveCode?: string | null;
   difficulty?: string | null;
   explanation?: string | null;
@@ -46,7 +46,7 @@ export interface PatchQuestionInput {
   options?: string[] | null;
   correctAnswer?: string | null;
   explanation?: string | null;
-  projectId?: null;
+  projectId?: number | null;
 }
 
 export type QuestionWorkflowAction = 'submit' | 'approve' | 'request_revision' | 'reject';

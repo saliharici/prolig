@@ -49,6 +49,24 @@ describe('Question API Frontend Client', () => {
     }));
   });
 
+  it('createQuestion can send a real numeric projectId without protected fields', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 5, projectId: 42 }) });
+
+    await createQuestion({
+      content: 'Project question',
+      projectId: 42,
+      grade: '8. Sınıf',
+      options: ['A', 'B', 'C', 'D'],
+      correctAnswer: 'B'
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toEqual({ content: 'Project question', projectId: 42, grade: '8. Sınıf', options: ['A', 'B', 'C', 'D'], correctAnswer: 'B' });
+    expect(body).not.toHaveProperty('authorUserId');
+    expect(body).not.toHaveProperty('status');
+    expect(body).not.toHaveProperty('editorNote');
+  });
+
   it('patchQuestion uses PATCH and only sends editable fields', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -62,6 +80,18 @@ describe('Question API Frontend Client', () => {
       credentials: 'include',
       body: JSON.stringify({ content: 'Patched', explanation: 'test' })
     }));
+  });
+
+  it('patchQuestion can link a real project', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 3, projectId: 42 }) });
+    await patchQuestion(3, { projectId: 42 });
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ projectId: 42 }) }));
+  });
+
+  it('patchQuestion can remove a project with null', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 3, projectId: null }) });
+    await patchQuestion(3, { projectId: null });
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ projectId: null }) }));
   });
 
   it('runQuestionWorkflow submit sends exactly action: submit', async () => {
@@ -147,9 +177,6 @@ describe('Question API Frontend Client', () => {
       expect(demoAppCode).not.toContain('q.authorId === 1');
       expect(demoAppCode).not.toContain('const updateQuestion =');
       expect(demoAppCode).not.toContain('data.questions.filter');
-      expect(demoAppCode).not.toContain('questionProject');
-      expect(demoAppCode).not.toContain('questionProjects');
-      
       // Image upload was removed
       expect(demoAppCode).not.toContain('questionImageName');
       expect(demoAppCode).not.toContain('questionImageRef');
@@ -163,6 +190,28 @@ describe('Question API Frontend Client', () => {
       
       // Dashboard uses apiQuestions for stats
       expect(demoAppCode).toContain('apiQuestions.filter');
+    });
+
+    it('uses scoped API projects in the Question form and preserves General Soru Havuzu', () => {
+      const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
+      const modalStart = demoAppCode.indexOf('{showQuestionForm &&');
+      const modalEnd = demoAppCode.indexOf('{editingApiQuestion && !showQuestionForm');
+      const questionModalCode = demoAppCode.slice(modalStart, modalEnd);
+
+      expect(questionModalCode).toContain('apiProjects.map');
+      expect(questionModalCode).not.toContain('data.projects');
+      expect(questionModalCode).toContain('Genel Soru Havuzu');
+      expect(questionModalCode).toContain('Projeler yükleniyor...');
+      expect(questionModalCode).toContain('Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.');
+      expect(questionModalCode).not.toMatch(/projectId:\s*1|setQuestionProjectId\(1\)/);
+    });
+
+    it('creates with the selection and omits unchanged projectId from PATCH', () => {
+      const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
+      expect(demoAppCode).toContain('projectId: questionProjectId');
+      expect(demoAppCode).toContain('if (questionProjectId !== originalQuestionProjectId) input.projectId = questionProjectId');
+      expect(demoAppCode).toContain('setQuestionProjectId(question.projectId)');
+      expect(demoAppCode).not.toContain('projectId: null\n        });');
     });
   });
 });

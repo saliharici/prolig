@@ -14,7 +14,7 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, ApiError } from './questions/api';
-import type { ApiQuestion, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
+import type { ApiQuestion, PatchQuestionInput, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
 import './demo.css';
@@ -117,6 +117,8 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   const [questionTitle, setQuestionTitle] = useState('');
   const [questionLevel, setQuestionLevel] = useState('Ortaokul');
   const [questionGrade, setQuestionGrade] = useState('8. Sınıf');
+  const [questionProjectId, setQuestionProjectId] = useState<number | null>(null);
+  const [originalQuestionProjectId, setOriginalQuestionProjectId] = useState<number | null>(null);
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
@@ -157,13 +159,15 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     if (currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
     try {
       if (editingApiQuestion) {
-        await patchQuestion(editingApiQuestion.id, {
+        const input: PatchQuestionInput = {
           content: questionTitle.trim(),
           grade: questionGrade,
           options: questionOptions,
           correctAnswer: questionCorrectAnswer,
           explanation: questionExplanation.trim() || null
-        });
+        };
+        if (questionProjectId !== originalQuestionProjectId) input.projectId = questionProjectId;
+        await patchQuestion(editingApiQuestion.id, input);
         setToast('Soru düzeltmeleri kaydedildi.');
       } else {
         await createQuestion({
@@ -172,7 +176,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
           options: questionOptions,
           correctAnswer: questionCorrectAnswer,
           explanation: questionExplanation.trim() || null,
-          projectId: null
+          projectId: questionProjectId
         });
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
@@ -181,6 +185,8 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
       setQuestionTitle(''); 
       setQuestionOptions(['', '', '', '']); 
       setQuestionExplanation(''); 
+      setQuestionProjectId(null);
+      setOriginalQuestionProjectId(null);
             loadApiQuestions();
     } catch (e: any) {
       setToast(e.message || 'Bir hata oluştu.');
@@ -190,6 +196,8 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   const openQuestionForm = () => {
     setQuestionLevel('Ortaokul');
     setQuestionGrade('8. Sınıf');
+    setQuestionProjectId(null);
+    setOriginalQuestionProjectId(null);
     setQuestionOptions(['', '', '', '']);
     setQuestionCorrectAnswer('A');
     setQuestionExplanation('');
@@ -269,6 +277,8 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     setQuestionOptions(question.options || ['', '', '', '']);
     setQuestionCorrectAnswer(question.correctAnswer || 'A');
     setQuestionExplanation(question.explanation || '');
+    setQuestionProjectId(question.projectId);
+    setOriginalQuestionProjectId(question.projectId);
     setShowQuestionForm(true);
   };
     const updatePayment = (id: number) => {
@@ -428,7 +438,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
         <div className="modal-head"><div><span className="panel-kicker">PROFESYONEL SORU EDİTÖRÜ</span><h2>{editingApiQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div><button type="button" aria-label="Kapat" onClick={() => setShowQuestionForm(false)}><X size={20} /></button></div>
         <p>Soru gövdesini hazırlayın, cevap seçeneklerini ve doğru yanıtı belirleyin.</p>
         <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
-        <label>Proje<div style={{padding: '0.6rem 0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.4rem', color: '#64748b', fontSize: '0.95rem'}}>{questionGrade} Genel Soru Havuzu</div><small className="field-help">Taslak genel soru havuzuna kaydedilir.</small></label>
+        <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => setQuestionProjectId(event.target.value ? Number(event.target.value) : null)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingApiQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && apiProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : <small className="field-help">Genel havuzu veya size atanmış gerçek bir projeyi seçin.</small>}</label>
         <label className="question-editor-label">Soru gövdesi</label>
         <div className="question-editor-shell">
           <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
