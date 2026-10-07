@@ -9,6 +9,3 @@ ADD COLUMN     "editorGrade" TEXT;
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_editorBranchId_fkey" FOREIGN KEY ("editorBranchId") REFERENCES "Branch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- CreateIndex
-CREATE INDEX "User_editorBranchId_idx" ON "User"("editorBranchId");
