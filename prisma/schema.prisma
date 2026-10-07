@@ -84,6 +84,10 @@ model User {
   roleId         Int
   role           Role      @relation(fields: [roleId], references: [id])
   assignedRegion String? // Bölge Koordinatörünün sorumlu olduğu bölge (örn: 'Marmara')
+
+  editorBranchId Int?
+  editorBranch   Branch? @relation("EditorBranch", fields: [editorBranchId], references: [id], onDelete: SetNull)
+  editorGrade    String?
   provinceId     Int?
   province       Province? @relation(fields: [provinceId], references: [id])
   avatarUrl      String?
@@ -102,6 +106,7 @@ model User {
   Question      Question[]
 
   @@index([email])
+  @@index([editorBranchId])
 }
 
 model Province {
@@ -134,6 +139,7 @@ model Branch {
   color          String          @default("#2563eb")
   authorProfiles AuthorProfile[]
   projects       Project[]
+  editorBranchUsers User[] @relation("EditorBranch")
 }
 
 model Institution {
@@ -353,6 +359,10 @@ model Question {
   objectiveCode String? // Kazanım Kodu (Örn: M.8.1.2.1)
   grade         String? // Sınıf (Örn: 8. Sınıf)
   difficulty    String? // Zorluk (Örn: Kolay, Orta, Zor)
+
+  options       String[] @default([])
+  correctAnswer String?
+  explanation   String?
 
   status     QuestionStatus @default(TASLAK)
   editorNote String?
