@@ -211,6 +211,36 @@ async function main() {
     update: { roleInProject: 'Yazar' }
   });
 
+  
+  const pilotYazarUser = await prisma.user.findUnique({
+    where: { email: 'pilot.yazar@prolig.local' }
+  });
+  if (!pilotYazarUser) throw new Error('YAZAR missing');
+
+  const paymentsCount = await prisma.payment.count({ where: { contractNo: 'PILOT-HAK-001' } });
+  
+  if (paymentsCount > 1) {
+    throw new Error('More than one PILOT-HAK-001 payment exists. Fail closed.');
+  } else if (paymentsCount === 0) {
+    await prisma.payment.create({
+      data: {
+        contractNo: 'PILOT-HAK-001',
+        authorUserId: pilotYazarUser.id,
+        projectId: pilotProject.id,
+        amount: new Prisma.Decimal('1000.00'),
+        status: 'Bekliyor',
+        paymentDate: null,
+        notes: 'Pilot V1 finansal iş akışı doğrulama kaydı. Gerçek ödeme yükümlülüğü değildir.'
+      }
+    });
+  } else {
+    const existingPayment = await prisma.payment.findFirst({ where: { contractNo: 'PILOT-HAK-001' } });
+    if (!existingPayment) throw new Error('Unreachable');
+    if (existingPayment.authorUserId !== pilotYazarUser.id || existingPayment.projectId !== pilotProject.id || !existingPayment.amount.equals(new Prisma.Decimal('1000.00'))) {
+      throw new Error('Canonical payment identity/amount differs. Fail closed.');
+    }
+  }
+
   console.log("Seed successful");
 }
 

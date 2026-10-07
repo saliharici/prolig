@@ -52,7 +52,7 @@ describe('Author API Frontend Client', () => {
       expect(demoAppCode).toContain('apiAuthors.map(');
       
       // Top transparency copy
-      expect(demoAppCode).toContain('Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır');
+      expect(demoAppCode).toContain('Oturum, Soru Havuzu, Projeler, Yazar Ağı ve Hakedişler gerçek Pilot verisini kullanır.');
       
       // Map copy checks
       expect(mapCode).not.toContain('örnek yazar');
@@ -63,7 +63,7 @@ describe('Author API Frontend Client', () => {
       expect(demoAppCode).toContain('apiAuthors.length.toString(');
       
       // Payments still uses demo authors
-      expect(demoAppCode).toContain('data.authors.find(a => a.id === payment.authorId)');
+      
     });
   });
 });

@@ -47,7 +47,7 @@ describe('Projects UI source regressions', () => {
     expect(source).toContain('projectsError');
     expect(source).toContain('loadApiProjects');
     expect(source).toContain('Proje bulunamadı.');
-    expect(source).toContain('Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır');
+    expect(source).toContain('Oturum, Soru Havuzu, Projeler, Yazar Ağı ve Hakedişler gerçek Pilot verisini kullanır.');
   });
 
   it('does not add project mutation controls or clients', () => {

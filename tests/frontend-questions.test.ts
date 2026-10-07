@@ -186,7 +186,7 @@ describe('Question API Frontend Client', () => {
       expect(demoAppCode).not.toContain('setEditorQuestionOptions');
       
       // Transparency copy states data is real
-      expect(demoAppCode).toContain('Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır');
+      expect(demoAppCode).toContain('Oturum, Soru Havuzu, Projeler, Yazar Ağı ve Hakedişler gerçek Pilot verisini kullanır.');
       
       // Dashboard uses apiQuestions for stats
       expect(demoAppCode).toContain('apiQuestions.filter');
