@@ -99,8 +99,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   const [questionTitle, setQuestionTitle] = useState('');
   const [questionLevel, setQuestionLevel] = useState('Ortaokul');
   const [questionGrade, setQuestionGrade] = useState('8. Sınıf');
-  const [questionProject, setQuestionProject] = useState(1);
-  const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
+    const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
       const [editorNote, setEditorNote] = useState('');
@@ -128,8 +127,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   const activeProjects = visibleProjects.filter(p => p.status !== 'Tamamlandı').length;
   const questionLevels = Object.keys(gradesByLevel);
   const questionGrades = gradesByLevel[questionLevel] || [];
-  const questionProjects = useMemo(() => data.projects.filter(project => project.level === questionLevel && project.grade === questionGrade), [data.projects, questionLevel, questionGrade]);
-
+  
   const navigate = (target: Section) => {
     if (!allowed.includes(target)) return;
     setSection(target); setQuery(''); setAuthorProvince(''); setStatusFilter('Tümü'); setMobileMenu(false);
@@ -172,27 +170,19 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     }
   };
   const openQuestionForm = () => {
-    const firstProject = data.projects[0];
-    if (!firstProject) return;
-    setQuestionLevel(firstProject.level);
-    setQuestionGrade(firstProject.grade);
-    setQuestionProject(firstProject.id);
+    setQuestionLevel('Ortaokul');
+    setQuestionGrade('8. Sınıf');
     setQuestionOptions(['', '', '', '']);
     setQuestionCorrectAnswer('A');
     setQuestionExplanation('');
-        setShowQuestionForm(true);
+    setShowQuestionForm(true);
   };
   const changeQuestionLevel = (level: string) => {
-    const firstGrade = gradesByLevel[level]?.[0] || '';
-    const firstProject = data.projects.find(project => project.level === level && project.grade === firstGrade);
     setQuestionLevel(level);
-    setQuestionGrade(firstGrade);
-    setQuestionProject(firstProject?.id || 0);
+    setQuestionGrade(gradesByLevel[level]?.[0] || '');
   };
   const changeQuestionGrade = (grade: string) => {
-    const firstProject = data.projects.find(project => project.level === questionLevel && project.grade === grade);
     setQuestionGrade(grade);
-    setQuestionProject(firstProject?.id || 0);
   };
   const applyQuestionMarkup = (before: string, after = before, placeholder = 'metin') => {
     const editor = questionEditorRef.current;
@@ -368,7 +358,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
               {['İlkokul', 'Ortaokul', 'Lise', 'Mezun'].map(lvl => {
                 const authorsCount = data.authors.filter(a => a.levels?.includes(lvl)).length;
                 const projectsCount = data.projects.filter(p => p.level === lvl).length;
-                const questionsCount = data.questions.filter(q => q.level === lvl).length;
+                const questionsCount = apiQuestions.filter(q => gradesByLevel[lvl]?.includes(q.grade || '')).length;
                 return (
                   <div key={lvl} className="panel stat-card">
                     <div className="stat-top">

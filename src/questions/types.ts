@@ -29,13 +29,13 @@ export interface ApiQuestion {
 
 export interface CreateQuestionInput {
   content: string;
-  grade?: string | null;
+  grade: string;
+  options: string[];
+  correctAnswer: string;
+  projectId: null;
   objectiveCode?: string | null;
   difficulty?: string | null;
-  options?: string[] | null;
-  correctAnswer?: string | null;
   explanation?: string | null;
-  projectId: null;
 }
 
 export interface PatchQuestionInput {

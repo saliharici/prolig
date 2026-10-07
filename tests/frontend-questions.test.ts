@@ -38,12 +38,14 @@ describe('Question API Frontend Client', () => {
       content: 'New', 
       projectId: null,
       grade: '8',
+      options: ['A', 'B', 'C', 'D'],
+      correctAnswer: 'A',
     });
     expect(result.id).toBe(2);
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions', expect.objectContaining({
       method: 'POST',
       credentials: 'include',
-      body: JSON.stringify({ content: 'New', projectId: null, grade: '8' })
+      body: JSON.stringify({ content: 'New', projectId: null, grade: '8', options: ['A', 'B', 'C', 'D'], correctAnswer: 'A' })
     }));
   });
 
@@ -144,6 +146,9 @@ describe('Question API Frontend Client', () => {
       // Metrics should not use old identifiers
       expect(demoAppCode).not.toContain('q.authorId === 1');
       expect(demoAppCode).not.toContain('const updateQuestion =');
+      expect(demoAppCode).not.toContain('data.questions.filter');
+      expect(demoAppCode).not.toContain('questionProject');
+      expect(demoAppCode).not.toContain('questionProjects');
       
       // Image upload was removed
       expect(demoAppCode).not.toContain('questionImageName');
