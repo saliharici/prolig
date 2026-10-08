@@ -1,7 +1,7 @@
 import React from 'react';
 import { BookOpen, Users, PenTool, CheckCircle2, ShieldCheck, ArrowRight, ArrowUpRight, GraduationCap } from 'lucide-react';
 
-export function PublicLanding({ onLoginClick }: { onLoginClick: () => void }) {
+export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: () => void; onApplyClick: () => void }) {
   return (
     <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'Manrope, sans-serif' }}>
       <header style={{ background: 'white', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -9,7 +9,10 @@ export function PublicLanding({ onLoginClick }: { onLoginClick: () => void }) {
           <div style={{ background: '#1e293b', color: 'white', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', fontWeight: 800 }}>P</div>
           <strong style={{ fontSize: '1.25rem', color: '#0f172a', letterSpacing: '-0.02em' }}>PRO-LİG</strong>
         </div>
-        <button className="primary-button" onClick={onLoginClick}>Giriş Yap <ArrowRight size={16} /></button>
+        <div style={{display:'flex',gap:'10px'}}>
+          <button className="secondary-button" onClick={onApplyClick}>Üyelik Başvurusu</button>
+          <button className="primary-button" onClick={onLoginClick}>Giriş Yap <ArrowRight size={16} /></button>
+        </div>
       </header>
 
       <main>
@@ -18,9 +21,14 @@ export function PublicLanding({ onLoginClick }: { onLoginClick: () => void }) {
             <span style={{ display: 'inline-block', background: 'rgba(255,255,255,0.1)', padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.85rem', fontWeight: 600, marginBottom: '1.5rem' }}>PİLOT SÜRÜM V1.0</span>
             <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1.5rem', lineHeight: 1.1 }}>Yeni Nesil Eğitim İçerik Yönetimi</h1>
             <p style={{ fontSize: '1.1rem', color: '#cbd5e1', marginBottom: '2.5rem', lineHeight: 1.6 }}>Pro-Lig, yayıncılık süreçlerini dijitalleştiren, yazarlar ile editörleri buluşturan ve projelerin hakediş döngüsüne kadar tüm aşamalarını yöneten bütünleşik bir içerik üretim platformudur.</p>
-            <button className="primary-button" style={{ background: 'white', color: '#0f172a', padding: '1rem 2rem', fontSize: '1.1rem' }} onClick={onLoginClick}>
-              Sisteme Giriş Yap <ArrowUpRight size={18} />
-            </button>
+            <div style={{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}}>
+              <button className="primary-button" style={{ background: 'white', color: '#0f172a', padding: '1rem 2rem', fontSize: '1.1rem' }} onClick={onLoginClick}>
+                Sisteme Giriş Yap <ArrowUpRight size={18} />
+              </button>
+              <button className="secondary-button" style={{padding:'1rem 2rem',fontSize:'1.05rem',background:'transparent',color:'white',borderColor:'rgba(255,255,255,.35)'}} onClick={onApplyClick}>
+                Üyelik Başvurusu
+              </button>
+            </div>
           </div>
         </section>
 
