@@ -11,13 +11,17 @@ export const regionAssignableRoles = new Set([
 ]);
 
 export function editorBranchIds(user: any): number[] {
-  const ids = Array.isArray(user?.branchAssignments)
-    ? user.branchAssignments.map((item: any) => item.branchId).filter((id: any) => Number.isSafeInteger(id) && id > 0)
-    : [];
-  if (ids.length === 0 && Number.isSafeInteger(user?.editorBranchId) && user.editorBranchId > 0) {
+  const ids: number[] = [];
+  if (Array.isArray(user?.branchAssignments)) {
+    for (const item of user.branchAssignments) {
+      const branchId = item?.branchId;
+      if (typeof branchId === 'number' && Number.isSafeInteger(branchId) && branchId > 0) ids.push(branchId);
+    }
+  }
+  if (ids.length === 0 && typeof user?.editorBranchId === 'number' && Number.isSafeInteger(user.editorBranchId) && user.editorBranchId > 0) {
     ids.push(user.editorBranchId);
   }
-  return [...new Set(ids)];
+  return Array.from(new Set<number>(ids));
 }
 
 export function canViewProvince(user: any, province: any): boolean {
@@ -33,7 +37,7 @@ export function canViewProvince(user: any, province: any): boolean {
   return false;
 }
 
-export function buildApplicationReadScope(user: any) {
+export function buildApplicationReadScope(user: any): any {
   const role = user?.role?.code;
   if (role === 'GENEL_KOORDINATOR') return {};
   if (role === 'BOLGE_KOORDINATORU') {
@@ -47,7 +51,7 @@ export function buildApplicationReadScope(user: any) {
   return null;
 }
 
-export function buildUserReadScope(user: any) {
+export function buildUserReadScope(user: any): any {
   const role = user?.role?.code;
   if (role === 'GENEL_KOORDINATOR') return {};
   if (role === 'BOLGE_KOORDINATORU') {
