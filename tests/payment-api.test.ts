@@ -5,16 +5,16 @@ import { formatPaymentDto } from '../api/v1/_lib/payment-dto.js';
 describe('Payment API Auth & DTO', () => {
   describe('Authorization', () => {
     it('allows GENEL_KOORDINATOR and MUHASEBE', () => {
-      expect(checkPaymentAccess({ role: { code: 'GENEL_KOORDINATOR' } })).toBe(true);
-      expect(checkPaymentAccess({ role: { code: 'MUHASEBE' } })).toBe(true);
+      expect(checkPaymentAccess({ role: 'GENEL_KOORDINATOR' })).toBe(true);
+      expect(checkPaymentAccess({ role: 'MUHASEBE' })).toBe(true);
     });
 
     it('rejects all other roles', () => {
-      expect(checkPaymentAccess({ role: { code: 'BOLGE_KOORDINATORU' } })).toBe(false);
-      expect(checkPaymentAccess({ role: { code: 'IL_KOORDINATORU' } })).toBe(false);
-      expect(checkPaymentAccess({ role: { code: 'EDITOR' } })).toBe(false);
-      expect(checkPaymentAccess({ role: { code: 'YAZAR' } })).toBe(false);
-      expect(checkPaymentAccess({ role: { code: 'UNKNOWN' } })).toBe(false);
+      expect(checkPaymentAccess({ role: 'BOLGE_KOORDINATORU' })).toBe(false);
+      expect(checkPaymentAccess({ role: 'IL_KOORDINATORU' })).toBe(false);
+      expect(checkPaymentAccess({ role: 'EDITOR' })).toBe(false);
+      expect(checkPaymentAccess({ role: 'YAZAR' })).toBe(false);
+      expect(checkPaymentAccess({ role: 'UNKNOWN' })).toBe(false);
     });
   });
 

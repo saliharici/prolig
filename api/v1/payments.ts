@@ -91,7 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error(error);
     if (error.message === 'NOT_FOUND') return res.status(404).json({ error: 'Not found' });
     if (error.message === 'INVALID_STATE') return res.status(409).json({ error: 'Conflict' });
-    if (error.code === 'P2025') return res.status(409).json({ error: 'Optimistic concurrency conflict' });
+    if (error.message === 'Optimistic concurrency conflict' || error.code === 'P2025') return res.status(409).json({ error: 'Optimistic concurrency conflict' });
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
