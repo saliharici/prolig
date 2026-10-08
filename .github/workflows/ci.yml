@@ -23,5 +23,6 @@ jobs:
         run: npm install --package-lock=false --no-audit --no-fund
       - name: Lint
         run: npm run lint
-      - name: Tests
-        run: npm run test:run
+      - name: Unit and contract tests
+        # DB integration suites intentionally require real Pilot DB credentials and are run only in guarded environments.
+        run: npx vitest run --exclude 'tests/integration/**'
