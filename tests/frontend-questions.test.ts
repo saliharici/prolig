@@ -206,10 +206,10 @@ describe('Question API Frontend Client', () => {
       expect(questionModalCode).not.toMatch(/projectId:\s*1|setQuestionProjectId\(1\)/);
     });
 
-    it('creates with the selection and omits unchanged projectId from PATCH', () => {
+    it('creates with the selection and delegates differential PATCH construction', () => {
       const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
       expect(demoAppCode).toContain('projectId: questionProjectId');
-      expect(demoAppCode).toContain('if (questionProjectId !== originalQuestionProjectId) input.projectId = questionProjectId');
+      expect(demoAppCode).toContain('const input = buildQuestionEditPatch(editingQuestion');
       expect(demoAppCode).toContain('setQuestionProjectId(question.projectId)');
       expect(demoAppCode).not.toContain('projectId: null\n        });');
     });

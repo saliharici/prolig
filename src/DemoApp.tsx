@@ -14,7 +14,8 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, ApiError } from './questions/api';
-import type { ApiQuestion, PatchQuestionInput, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
+import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
+import type { ApiQuestion, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
 import { fetchAuthors } from './authors/api';
@@ -90,8 +91,10 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     try {
       const result = await fetchQuestions();
       setApiQuestions(result);
+      return result;
     } catch (e: any) {
       setApiError(e.message || 'Soru havuzu yüklenemedi.');
+      return [];
     } finally {
       setApiLoading(false);
     }
@@ -186,22 +189,23 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     if (currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
     try {
       if (editingQuestion) {
-        const input: PatchQuestionInput = {
-          content: questionTitle.trim(),
+        const input = buildQuestionEditPatch(editingQuestion, {
+          content: questionTitle,
           grade: questionGrade,
+          explanation: questionExplanation,
+          projectId: questionProjectId,
           options: questionOptions,
-          correctAnswer: questionCorrectAnswer,
-          explanation: questionExplanation.trim() || null
-        };
-        if (questionProjectId !== originalQuestionProjectId) input.projectId = questionProjectId;
+          correctAnswer: questionCorrectAnswer
+        });
         await patchQuestion(editingQuestion.id, input);
         setToast('Soru düzeltmeleri kaydedildi.');
       } else {
+        const answers = requireCompleteQuestionAnswers(questionOptions, questionCorrectAnswer);
         await createQuestion({
           content: questionTitle.trim(),
           grade: questionGrade,
-          options: questionOptions,
-          correctAnswer: questionCorrectAnswer,
+          options: answers.options,
+          correctAnswer: answers.correctAnswer,
           explanation: questionExplanation.trim() || null,
           projectId: questionProjectId
         });
@@ -217,7 +221,11 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
             loadApiQuestions();
     } catch (e: any) {
       setToast(e.message || 'Bir hata oluştu.');
-      if (e.status === 409) loadApiQuestions();
+      if (e instanceof ApiError && e.status === 409 && editingQuestion) {
+        const latestQuestions = await loadApiQuestions();
+        const latestQuestion = latestQuestions.find(question => question.id === editingQuestion.id);
+        if (latestQuestion && ['TASLAK', 'REVIZYON'].includes(latestQuestion.status)) openYazarEdit(latestQuestion);
+      }
     }
   };
   const openQuestionForm = () => {
@@ -312,8 +320,8 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     setQuestionLevel(level);
     setQuestionGrade(grade);
 
-    setQuestionOptions(question.options || ['', '', '', '']);
-    setQuestionCorrectAnswer(question.correctAnswer || 'A');
+    setQuestionOptions(normalizeQuestionOptions(question.options));
+    setQuestionCorrectAnswer(isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '');
     setQuestionExplanation(question.explanation || '');
     setQuestionProjectId(question.projectId);
     setOriginalQuestionProjectId(question.projectId);
@@ -492,7 +500,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
           <div className="question-editor-footer"><span></span><strong>{questionTitle.length} / 1200</strong></div>
         </div>
         <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer}</span></div>
-        <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required /></label>; })}</div>
+        <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
         <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini veya editör notunu yazın..." /></label>
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
       </form></div>}
