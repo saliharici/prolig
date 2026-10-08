@@ -1,3 +1,5 @@
+import { editorBranchIds } from './member-access.js';
+
 const supportedAuthorReadRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
@@ -24,8 +26,9 @@ export function buildAuthorReadScope(user: any) {
   }
 
   if (roleCode === 'EDITOR') {
-    if (!user.editorBranchId) return { id: -1 };
-    return { branchId: user.editorBranchId };
+    const branchIds = editorBranchIds(user);
+    if (branchIds.length === 0) return { id: -1 };
+    return { branchId: { in: branchIds } };
   }
 
   if (!user.AuthorProfile?.id) return { id: -1 };
