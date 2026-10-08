@@ -74,7 +74,9 @@ describe('Final UX Stabilization', () => {
     const authGateCode = fs.readFileSync(authGatePath, 'utf8');
 
     expect(authGateCode).toContain('const [showLogin, setShowLogin] = useState(false);');
-    expect(authGateCode).toContain('<PublicLanding onLoginClick={() => setShowLogin(true)} />');
+    expect(authGateCode).toContain('const [showApplication, setShowApplication] = useState(false);');
+    expect(authGateCode).toContain('<MembershipApplicationScreen onBack={() => setShowApplication(false)} />');
+    expect(authGateCode).toContain('<PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />');
     expect(authGateCode).toContain('<LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }}');
     expect(authGateCode).toContain('setShowLogin(false);');
   });
