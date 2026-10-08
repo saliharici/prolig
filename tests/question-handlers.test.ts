@@ -135,11 +135,16 @@ describe('Question API Handlers', () => {
       expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { authorUser: { AuthorProfile: { provinceId: 35 } } } }));
     });
 
-    it('EDITOR receives branch filter and grade filter', async () => {
-      setupUser('EDITOR', { editorBranchId: 2, editorGrade: 'Lise' });
+    it('EDITOR receives branch, geography and grade filters', async () => {
+      setupUser('EDITOR', { editorBranchId: 2, provinceId: 34, editorGrade: 'Lise', branchAssignments: [] });
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
-      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { authorUser: { AuthorProfile: { branchId: 2 } }, grade: 'Lise' } }));
+      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          authorUser: { AuthorProfile: { branchId: { in: [2] }, provinceId: 34 } },
+          grade: 'Lise'
+        }
+      }));
     });
 
     it('EDITOR missing branch returns fail-closed', async () => {
