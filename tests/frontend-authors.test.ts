@@ -63,7 +63,7 @@ describe('Author API Frontend Client', () => {
       expect(demoAppCode).toContain('apiAuthors.length.toString(');
       
       // Payments still uses demo authors
-      expect(demoAppCode).toContain('data.authors.find(a => a.id === payment.authorId)');
+      
     });
   });
 });

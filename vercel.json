@@ -4,6 +4,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/v1/payments/:id/approve", "destination": "/api/v1/payments?action=approve&id=:id" },
+    { "source": "/api/v1/payments/:id/pay", "destination": "/api/v1/payments?action=pay&id=:id" },
     { "source": "/api/v1/questions/:id/workflow", "destination": "/api/v1/questions/[id]/workflow" },
     { "source": "/api/v1/questions/:id", "destination": "/api/v1/questions/[id]" },
     { "source": "/api/v1/authors/:id", "destination": "/api/v1/authors/[id]" },

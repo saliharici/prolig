@@ -11,6 +11,8 @@ const config = JSON.parse(fs.readFileSync(path.join(__dirname, '../vercel.json')
 const rewrites = config.rewrites;
 
 const expectedDynamicRewrites: Rewrite[] = [
+  { source: '/api/v1/payments/:id/approve', destination: '/api/v1/payments?action=approve&id=:id' },
+  { source: '/api/v1/payments/:id/pay', destination: '/api/v1/payments?action=pay&id=:id' },
   { source: '/api/v1/questions/:id/workflow', destination: '/api/v1/questions/[id]/workflow' },
   { source: '/api/v1/questions/:id', destination: '/api/v1/questions/[id]' },
   { source: '/api/v1/authors/:id', destination: '/api/v1/authors/[id]' },
@@ -53,3 +55,23 @@ describe('Vercel API rewrites', () => {
     expect(rewrites.at(-1)).toEqual({ source: '/(.*)', destination: '/index.html' });
   });
 });
+
+
+  it('limits deployable api function count to 12', () => {
+    function countFunctions(dirPath: string): number {
+      let count = 0;
+      const items = fs.readdirSync(dirPath, { withFileTypes: true });
+      for (const item of items) {
+        if (item.name === '_lib' || item.name === 'tests') continue;
+        if (item.isDirectory()) {
+          count += countFunctions(path.join(dirPath, item.name));
+        } else if (item.name.endsWith('.ts') && !item.name.includes('.test.')) {
+          count++;
+        }
+      }
+      return count;
+    }
+    const apiCount = countFunctions(path.join(__dirname, '../api'));
+    expect(apiCount).toBeLessThanOrEqual(12);
+  });
+  
