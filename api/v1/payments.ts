@@ -24,9 +24,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'POST') {
       const action = req.query.action;
-      const id = parseInt(req.query.id as string, 10);
-
-      if (isNaN(id)) {
+      
+      const rawId = req.query.id;
+      if (
+        Array.isArray(rawId) ||
+        typeof rawId !== 'string' ||
+        !/^[1-9]\d*$/.test(rawId)
+      ) {
+        return res.status(400).json({ error: 'Invalid ID' });
+      }
+      const id = Number(rawId);
+      if (!Number.isSafeInteger(id)) {
         return res.status(400).json({ error: 'Invalid ID' });
       }
 

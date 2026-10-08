@@ -112,7 +112,7 @@ describe('Payment API Handlers', () => {
       const { req, res } = reqRes('POST', { action: 'pay', id: '1' });
       await handler(req, res);
       expect(prisma.payment.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'Odendi' }) }));
-      expect(prisma.payment.updateMany.mock.calls[0][0].data.paymentDate).toBeDefined();
+      expect((vi.mocked(prisma.payment.updateMany).mock.calls[0][0] as any).data.paymentDate).toBeDefined();
       expect(prisma.activityLog.create).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
     });
@@ -145,8 +145,20 @@ describe('Payment API Handlers', () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    it('returns 400 for invalid id', async () => {
-      const { req, res } = reqRes('POST', { action: 'approve', id: 'abc' });
+    it('returns 400 for invalid id "1abc"', async () => {
+      const { req, res } = reqRes('POST', { action: 'approve', id: '1abc' });
+      await handler(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('returns 400 for invalid id "0"', async () => {
+      const { req, res } = reqRes('POST', { action: 'approve', id: '0' });
+      await handler(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('returns 400 for invalid id "-1"', async () => {
+      const { req, res } = reqRes('POST', { action: 'approve', id: '-1' });
       await handler(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
     });
