@@ -1,3 +1,5 @@
+import { editorBranchIds } from './member-access.js';
+
 const supportedProjectReadRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
@@ -41,9 +43,10 @@ export function buildProjectReadScope(user: any) {
   }
 
   if (roleCode === 'EDITOR') {
-    if (!user.editorBranchId) return { id: -1 };
+    const branchIds = editorBranchIds(user);
+    if (branchIds.length === 0) return { id: -1 };
     return {
-      branchId: user.editorBranchId,
+      branchId: { in: branchIds },
       ...(user.editorGrade ? { targetGrade: user.editorGrade } : {})
     };
   }
