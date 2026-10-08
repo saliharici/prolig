@@ -28,7 +28,9 @@ export function buildAuthorReadScope(user: any) {
   if (roleCode === 'EDITOR') {
     const branchIds = editorBranchIds(user);
     if (branchIds.length === 0) return { id: -1 };
-    return { branchId: { in: branchIds } };
+    if (user.provinceId) return { branchId: { in: branchIds }, provinceId: user.provinceId };
+    if (user.assignedRegion) return { branchId: { in: branchIds }, province: { region: user.assignedRegion } };
+    return { id: -1 };
   }
 
   if (!user.AuthorProfile?.id) return { id: -1 };
