@@ -45,8 +45,15 @@ export function buildProjectReadScope(user: any) {
   if (roleCode === 'EDITOR') {
     const branchIds = editorBranchIds(user);
     if (branchIds.length === 0) return { id: -1 };
+    const geography = user.provinceId
+      ? { projectAuthors: { some: { authorProfile: { provinceId: user.provinceId } } } }
+      : user.assignedRegion
+        ? { projectAuthors: { some: { authorProfile: { province: { region: user.assignedRegion } } } } }
+        : { id: -1 };
+    if ('id' in geography) return geography;
     return {
       branchId: { in: branchIds },
+      ...geography,
       ...(user.editorGrade ? { targetGrade: user.editorGrade } : {})
     };
   }
