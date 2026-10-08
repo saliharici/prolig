@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogIn, Loader2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, LockKeyhole, LogIn, Mail } from 'lucide-react';
 import { login } from './api';
 
 export interface LoginScreenProps {
@@ -34,70 +34,88 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   };
 
   return (
-    <div className="login-screen-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f8fafc' }}>
-      <button onClick={onCancel} className="secondary-button" style={{ position: 'absolute', top: '2rem', left: '2rem' }}>
-        <ArrowLeft size={18} /> Tanıtım sayfasına dön
+    <div className="soft-login-shell">
+      <div className="public-ambient public-ambient-one" />
+      <div className="public-ambient public-ambient-two" />
+
+      <button onClick={onCancel} className="soft-login-back">
+        <ArrowLeft size={16} /> Ana sayfaya dön
       </button>
-      <div className="login-box panel" style={{ padding: '2.5rem', width: '100%', maxWidth: '400px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', background: '#eef2ff', color: '#4f46e5', borderRadius: '12px', marginBottom: '1rem' }}>
-            <LogIn size={24} />
-          </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>PRO-LİG</h1>
-          <p style={{ color: '#64748b', marginTop: '0.5rem', fontSize: '0.95rem' }}>Oturum Aç</p>
-        </div>
 
-        {error && (
-          <div className="error-state" style={{ padding: '0.75rem', marginBottom: '1.5rem', textAlign: 'left', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
-            {error}
+      <div className="soft-login-layout">
+        <aside className="soft-login-intro">
+          <div className="public-brand">
+            <div className="public-brand-mark">P</div>
+            <div>
+              <strong>PRO-LİG</strong>
+              <span>Yayın ve İçerik Yönetim Platformu</span>
+            </div>
           </div>
-        )}
+          <div className="soft-login-copy">
+            <span className="public-overline">GÜVENLİ ÇALIŞMA ALANI</span>
+            <h1>İşinize kaldığınız yerden devam edin.</h1>
+            <p>Rolünüz ve yetki kapsamınız doğrultusunda size ait proje, içerik ve değerlendirme ekranlarına erişin.</p>
+            <div className="soft-login-points">
+              <div><CheckCircle2 size={16} /><span>Rol tabanlı erişim</span></div>
+              <div><CheckCircle2 size={16} /><span>Güvenli oturum yönetimi</span></div>
+              <div><CheckCircle2 size={16} /><span>İzlenebilir işlem geçmişi</span></div>
+            </div>
+          </div>
+        </aside>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div>
-            <label htmlFor="email" className="question-editor-label" style={{ marginBottom: '0.5rem', display: 'block' }}>E-posta</label>
-            <input 
-              id="email"
-              type="email" 
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              disabled={loading}
-              required
-              className="text-input"
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="password" className="question-editor-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Şifre</label>
-            <input 
-              id="password"
-              type="password" 
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              disabled={loading}
-              required
-              className="text-input"
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-            />
-          </div>
+        <section className="soft-login-card">
+          <div className="soft-login-card-icon"><LogIn size={22} /></div>
+          <span className="public-overline">PRO-LİG HESABI</span>
+          <h2>Oturum açın</h2>
+          <p className="soft-login-subtitle">Çalışma alanınıza erişmek için kurum hesabınızla giriş yapın.</p>
 
-          <button 
-            type="submit" 
-            className="primary-button"
-            disabled={loading || !email || !password}
-            style={{ 
-              width: '100%',
-              padding: '0.875rem', 
-              fontSize: '1rem',
-              justifyContent: 'center',
-              marginTop: '0.5rem'
-            }}
-          >
-            {loading ? <Loader2 className="spinner" size={18} /> : null}
-            {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-          </button>
-        </form>
+          {error && <div className="soft-login-error">{error}</div>}
+
+          <form onSubmit={handleSubmit} className="soft-login-form">
+            <label htmlFor="email">
+              E-posta
+              <div className="soft-input-wrap">
+                <Mail size={17} />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                  autoComplete="email"
+                  placeholder="ornek@prolig.local"
+                />
+              </div>
+            </label>
+
+            <label htmlFor="password">
+              Şifre
+              <div className="soft-input-wrap">
+                <LockKeyhole size={17} />
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                  autoComplete="current-password"
+                  placeholder="Şifrenizi girin"
+                />
+              </div>
+            </label>
+
+            <button type="submit" className="public-primary-button soft-login-submit" disabled={loading || !email || !password}>
+              {loading ? <Loader2 className="spinner" size={17} /> : <LogIn size={17} />}
+              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            </button>
+          </form>
+
+          <div className="soft-login-footnote">
+            Pilot ortamı · Yetkisiz erişim ve işlemler kayıt altına alınır.
+          </div>
+        </section>
       </div>
     </div>
   );
