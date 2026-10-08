@@ -20,9 +20,14 @@ describe('Author read scope', () => {
     expect(buildAuthorReadScope({ role: { code: 'IL_KOORDINATORU' } })).toEqual({ id: -1 });
   });
 
-  it('scopes EDITOR by branch, ignores editor grade, and fails closed without branch', () => {
-    expect(buildAuthorReadScope({ role: { code: 'EDITOR' }, editorBranchId: 2, editorGrade: '8. Sınıf' })).toEqual({ branchId: 2 });
-    expect(buildAuthorReadScope({ role: { code: 'EDITOR' } })).toEqual({ id: -1 });
+  it('scopes EDITOR by branches and geography', () => {
+    expect(buildAuthorReadScope({ role: { code: 'EDITOR' }, editorBranchId: 2, provinceId: 34, editorGrade: '8. Sınıf' })).toEqual({
+      branchId: { in: [2] }, provinceId: 34
+    });
+    expect(buildAuthorReadScope({ role: { code: 'EDITOR' }, branchAssignments: [{ branchId: 2 }, { branchId: 3 }], assignedRegion: 'Marmara' })).toEqual({
+      branchId: { in: [2, 3] }, province: { region: 'Marmara' }
+    });
+    expect(buildAuthorReadScope({ role: { code: 'EDITOR' }, editorBranchId: 2 })).toEqual({ id: -1 });
   });
 
   it('scopes YAZAR to the own profile and fails closed without it', () => {
