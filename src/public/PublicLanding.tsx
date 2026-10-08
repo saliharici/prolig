@@ -66,7 +66,7 @@ export function PublicLanding({ onLoginClick }: { onLoginClick: () => void }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
                   <div style={{ background: '#e0e7ff', color: '#4338ca', padding: '0.5rem', borderRadius: '8px' }}><BookOpen size={24} /></div>
                   <div>
-                    <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem' }}>8. Sınıf LGS Soru Bankası</h4>
+                    <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem' }}>8. Sınıf Matematik Pilot Soru Bankası</h4>
                     <span style={{ fontSize: '0.85rem', color: '#64748b' }}>PILOT-MAT-8-001</span>
                   </div>
                 </div>
@@ -77,7 +77,7 @@ export function PublicLanding({ onLoginClick }: { onLoginClick: () => void }) {
                   </div>
                   <div>
                     <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>YAZAR KADROSU</span>
-                    <strong style={{ color: '#0f172a' }}><Users size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Ülke Geneli</strong>
+                    <strong style={{ color: '#0f172a' }}><Users size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Pilot Yazar Ağı</strong>
                   </div>
                 </div>
               </div>
