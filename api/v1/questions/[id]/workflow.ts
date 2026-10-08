@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const question = await prisma.question.findUnique({
       where: { id },
       include: {
-        authorUser: { include: { AuthorProfile: true } }
+        authorUser: { include: { AuthorProfile: { include: { province: true } } } }
       }
     });
 
