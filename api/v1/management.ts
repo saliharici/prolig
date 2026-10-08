@@ -44,7 +44,13 @@ async function validateAssignment(actor: any, payload: any) {
   const provinceId = payload.provinceId == null ? null : positiveInt(payload.provinceId);
   const assignedRegion = payload.assignedRegion == null ? null : clean(payload.assignedRegion, 100, true);
   const editorGrade = payload.editorGrade == null ? null : clean(payload.editorGrade, 50, true);
-  const branchIds = [...new Set((Array.isArray(payload.branchIds) ? payload.branchIds : []).map(positiveInt).filter((x): x is number => x !== null))];
+  const branchIds: number[] = [];
+  if (Array.isArray(payload.branchIds)) {
+    for (const rawBranchId of payload.branchIds) {
+      const branchId = positiveInt(rawBranchId);
+      if (branchId !== null && !branchIds.includes(branchId)) branchIds.push(branchId);
+    }
+  }
   const province = provinceId ? await prisma.province.findUnique({ where: { id: provinceId } }) : null;
   if (provinceId && !province) return { error: 'Unknown province' } as const;
   if (province && actor.role.code !== 'GENEL_KOORDINATOR' && !canViewProvince(actor, province)) return { error: 'Province is outside your scope' } as const;
