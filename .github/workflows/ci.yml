@@ -18,7 +18,9 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install
-        run: npm ci
+        # package-lock.json on main predates npm 11's full optional-platform lock expansion.
+        # Keep CI read-only with respect to the repository while installing from package.json.
+        run: npm install --package-lock=false --no-audit --no-fund
       - name: Lint
         run: npm run lint
       - name: Tests
