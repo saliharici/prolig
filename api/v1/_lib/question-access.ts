@@ -1,3 +1,5 @@
+import { editorBranchIds } from './member-access.js';
+
 export function buildQuestionReadScope(user: any) {
   const roleCode = user.role.code;
 
@@ -30,11 +32,12 @@ export function buildQuestionReadScope(user: any) {
   }
 
   if (roleCode === 'EDITOR') {
-    if (!user.editorBranchId) return { id: -1 }; // Fail closed
+    const branchIds = editorBranchIds(user);
+    if (branchIds.length === 0) return { id: -1 }; // Fail closed
     const scope: any = {
       authorUser: {
         AuthorProfile: {
-          branchId: user.editorBranchId
+          branchId: { in: branchIds }
         }
       }
     };
@@ -57,8 +60,9 @@ export function buildQuestionReadScope(user: any) {
 export function canWorkflowReview(question: any, user: any) {
   if (user.role.code === 'GENEL_KOORDINATOR') return true;
   if (user.role.code === 'EDITOR') {
-    if (!user.editorBranchId) return false;
-    if (question.authorUser?.AuthorProfile?.branchId !== user.editorBranchId) return false;
+    const branchIds = editorBranchIds(user);
+    if (branchIds.length === 0) return false;
+    if (!branchIds.includes(question.authorUser?.AuthorProfile?.branchId)) return false;
     if (user.editorGrade && question.grade !== user.editorGrade) return false;
     return true;
   }
