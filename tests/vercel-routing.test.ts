@@ -11,6 +11,12 @@ const config = JSON.parse(fs.readFileSync(path.join(__dirname, '../vercel.json')
 const rewrites = config.rewrites;
 
 const expectedDynamicRewrites: Rewrite[] = [
+  { source: '/api/v1/health', destination: '/api/v1/management?action=health' },
+  { source: '/api/v1/membership/metadata', destination: '/api/v1/management?action=metadata' },
+  { source: '/api/v1/membership/applications/:id', destination: '/api/v1/management?action=application&id=:id' },
+  { source: '/api/v1/membership/applications', destination: '/api/v1/management?action=applications' },
+  { source: '/api/v1/users/:id', destination: '/api/v1/management?action=user&id=:id' },
+  { source: '/api/v1/users', destination: '/api/v1/management?action=users' },
   { source: '/api/v1/payments/:id/approve', destination: '/api/v1/payments?action=approve&id=:id' },
   { source: '/api/v1/payments/:id/pay', destination: '/api/v1/payments?action=pay&id=:id' },
   { source: '/api/v1/questions/:id/workflow', destination: '/api/v1/questions/[id]/workflow' },
