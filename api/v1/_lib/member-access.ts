@@ -56,7 +56,7 @@ export function buildUserReadScope(user: any) {
       OR: [
         { assignedRegion: user.assignedRegion },
         { province: { region: user.assignedRegion } },
-        { AuthorProfile: { province: { region: user.assignedRegion } } }
+        { AND: [{ role: { code: 'YAZAR' } }, { AuthorProfile: { province: { region: user.assignedRegion } } }] }
       ]
     };
   }
@@ -65,7 +65,7 @@ export function buildUserReadScope(user: any) {
     return {
       OR: [
         { provinceId: user.provinceId },
-        { AuthorProfile: { provinceId: user.provinceId } }
+        { AND: [{ role: { code: 'YAZAR' } }, { AuthorProfile: { provinceId: user.provinceId } }] }
       ]
     };
   }
