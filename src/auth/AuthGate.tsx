@@ -5,10 +5,12 @@ import { LoginScreen } from './LoginScreen';
 import { Loader2, AlertCircle } from 'lucide-react';
 import DemoApp from '../DemoApp';
 import { PublicLanding } from '../public/PublicLanding';
+import { MembershipApplicationScreen } from '../membership/MembershipApplicationScreen';
 
 export function AuthGate() {
   const [authState, setAuthState] = useState<AuthState>({ status: 'loading' });
   const [showLogin, setShowLogin] = useState(false);
+  const [showApplication, setShowApplication] = useState(false);
 
   const checkSession = async () => {
     setAuthState({ status: 'loading' });
@@ -29,6 +31,7 @@ export function AuthGate() {
       await logout();
       setAuthState({ status: 'unauthenticated' });
       setShowLogin(false);
+      setShowApplication(false);
     } catch (err: any) {
       alert('Çıkış işlemi başarısız oldu, lütfen tekrar deneyin.');
     }
@@ -66,11 +69,13 @@ export function AuthGate() {
   }
 
   if (authState.status === 'unauthenticated') {
+    if (showApplication) {
+      return <MembershipApplicationScreen onBack={() => setShowApplication(false)} />;
+    }
     if (showLogin) {
       return <LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }} onCancel={() => setShowLogin(false)} />;
-    } else {
-      return <PublicLanding onLoginClick={() => setShowLogin(true)} />;
     }
+    return <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />;
   }
 
   // Authenticated
