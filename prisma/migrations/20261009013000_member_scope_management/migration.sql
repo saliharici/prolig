@@ -17,6 +17,13 @@ INSERT INTO "UserBranchAssignment" ("userId","branchId")
 SELECT "id","editorBranchId" FROM "User" WHERE "editorBranchId" IS NOT NULL
 ON CONFLICT ("userId","branchId") DO NOTHING;
 
+-- Preserve the canonical Pilot Editor under the new branch + geography intersection.
+UPDATE "User"
+SET "provinceId" = 34
+WHERE "email" = 'pilot.editor@prolig.local'
+  AND "provinceId" IS NULL
+  AND "assignedRegion" IS NULL;
+
 INSERT INTO "Province" ("id","code","name","region") VALUES
   (1, '01', 'Adana', 'Akdeniz'),
   (2, '02', 'Adıyaman', 'Güneydoğu Anadolu'),
