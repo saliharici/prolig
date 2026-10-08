@@ -69,7 +69,7 @@ describe('Author API handlers', () => {
     const { req, res } = reqRes();
     await collectionHandler(req, res);
     expect(prisma.authorProfile.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { branchId: { in: [2] }, provinceId: 34 },
+      where: { AND: [{ branchId: { in: [2] }, provinceId: 34 }, { status: 'Aktif' }, { user: { role: { code: 'YAZAR' } } }] },
       orderBy: [{ province: { name: 'asc' } }, { user: { fullName: 'asc' } }, { id: 'asc' }]
     }));
     expect(res.status).toHaveBeenCalledWith(200);
@@ -90,7 +90,7 @@ describe('Author API handlers', () => {
     let { req, res } = reqRes('GET', { id: '3' });
     await detailHandler(req, res);
     expect(prisma.authorProfile.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-      where: { AND: [{ id: 3 }, { id: 3 }] }
+      where: { AND: [{ id: 3 }, { id: 3 }, { status: 'Aktif' }, { user: { role: { code: 'YAZAR' } } }] }
     }));
     expect(res.status).toHaveBeenCalledWith(200);
 
