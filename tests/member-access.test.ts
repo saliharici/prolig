@@ -28,11 +28,11 @@ describe('member scope helpers', () => {
       OR: [
         { assignedRegion: 'Marmara' },
         { province: { region: 'Marmara' } },
-        { AuthorProfile: { province: { region: 'Marmara' } } }
+        { AND: [{ role: { code: 'YAZAR' } }, { AuthorProfile: { province: { region: 'Marmara' } } }] }
       ]
     });
     expect(buildUserReadScope({ role: { code: 'IL_KOORDINATORU' }, provinceId: 34 })).toEqual({
-      OR: [{ provinceId: 34 }, { AuthorProfile: { provinceId: 34 } }]
+      OR: [{ provinceId: 34 }, { AND: [{ role: { code: 'YAZAR' } }, { AuthorProfile: { provinceId: 34 } }] }]
     });
   });
 
