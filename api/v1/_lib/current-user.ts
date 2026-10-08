@@ -16,6 +16,7 @@ export async function getCurrentUser(req: VercelRequest) {
       provinceId: true,
       editorBranchId: true,
       editorGrade: true,
+      branchAssignments: { select: { branchId: true } },
       role: true,
       AuthorProfile: {
         select: {
