@@ -51,7 +51,9 @@ async function validateAssignment(actor: any, payload: any) {
   if (actor.role.code === 'BOLGE_KOORDINATORU' && assignedRegion && assignedRegion !== actor.assignedRegion) return { error: 'Region is outside your scope' } as const;
   if (roleCode === 'BOLGE_KOORDINATORU' && !assignedRegion) return { error: 'Region is required' } as const;
   if (roleCode === 'IL_KOORDINATORU' && !province) return { error: 'Province is required' } as const;
-  if (roleCode === 'EDITOR' && (branchIds.length === 0 || (!province && !assignedRegion))) return { error: 'Editor branch and geographic scope are required' } as const;
+  if (roleCode === 'EDITOR' && (branchIds.length === 0 || (!province && !assignedRegion) || (province && assignedRegion))) {
+    return { error: 'Editor requires branches and exactly one geographic scope' } as const;
+  }
   if (roleCode === 'YAZAR' && (!province || branchIds.length !== 1)) return { error: 'Author province and exactly one branch are required' } as const;
   if (branchIds.length) {
     const count = await prisma.branch.count({ where: { id: { in: branchIds } } });
@@ -73,10 +75,21 @@ async function applyAssignment(tx: any, userId: number, v: any, status: string) 
   if (v.roleCode === 'EDITOR' && v.branchIds.length) {
     await tx.userBranchAssignment.createMany({ data: v.branchIds.map((branchId: number) => ({ userId, branchId })) });
   }
+  const existingAuthor = await tx.authorProfile.findUnique({ where: { userId } });
   if (v.roleCode === 'YAZAR') {
-    const existing = await tx.authorProfile.findUnique({ where: { userId } });
-    if (existing) await tx.authorProfile.update({ where: { userId }, data: { provinceId: v.provinceId, branchId: v.branchIds[0] } });
-    else await tx.authorProfile.create({ data: { userId, provinceId: v.provinceId, branchId: v.branchIds[0], experienceYears: 0 } });
+    if (existingAuthor) {
+      await tx.authorProfile.update({
+        where: { userId },
+        data: { provinceId: v.provinceId, branchId: v.branchIds[0], status: 'Aktif' }
+      });
+    } else {
+      await tx.authorProfile.create({
+        data: { userId, provinceId: v.provinceId, branchId: v.branchIds[0], experienceYears: 0, status: 'Aktif' }
+      });
+    }
+  } else if (existingAuthor) {
+    // Preserve historical relations but remove the former writer from the active author network.
+    await tx.authorProfile.update({ where: { userId }, data: { status: 'Pasif' } });
   }
 }
 async function targetInActorScope(actor: any, target: any) {
