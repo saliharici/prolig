@@ -4,9 +4,11 @@ import { fetchMe, logout } from './api';
 import { LoginScreen } from './LoginScreen';
 import { Loader2, AlertCircle } from 'lucide-react';
 import DemoApp from '../DemoApp';
+import { PublicLanding } from '../public/PublicLanding';
 
 export function AuthGate() {
   const [authState, setAuthState] = useState<AuthState>({ status: 'loading' });
+  const [showLogin, setShowLogin] = useState(false);
 
   const checkSession = async () => {
     setAuthState({ status: 'loading' });
@@ -26,6 +28,7 @@ export function AuthGate() {
     try {
       await logout();
       setAuthState({ status: 'unauthenticated' });
+      setShowLogin(false);
     } catch (err: any) {
       alert('Çıkış işlemi başarısız oldu, lütfen tekrar deneyin.');
     }
@@ -63,7 +66,11 @@ export function AuthGate() {
   }
 
   if (authState.status === 'unauthenticated') {
-    return <LoginScreen onLoginSuccess={checkSession} />;
+    if (showLogin) {
+      return <LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }} onCancel={() => setShowLogin(false)} />;
+    } else {
+      return <PublicLanding onLoginClick={() => setShowLogin(true)} />;
+    }
   }
 
   // Authenticated

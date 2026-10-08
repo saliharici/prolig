@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { LogIn, Loader2 } from 'lucide-react';
+import { LogIn, Loader2, ArrowLeft } from 'lucide-react';
 import { login } from './api';
 
 export interface LoginScreenProps {
   onLoginSuccess: () => void;
+  onCancel: () => void;
 }
 
-export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
+export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,8 +34,11 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   };
 
   return (
-    <div className="login-screen-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f8fafc' }}>
-      <div className="login-box" style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', width: '100%', maxWidth: '400px' }}>
+    <div className="login-screen-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f8fafc' }}>
+      <button onClick={onCancel} className="secondary-button" style={{ position: 'absolute', top: '2rem', left: '2rem' }}>
+        <ArrowLeft size={18} /> Tanıtım sayfasına dön
+      </button>
+      <div className="login-box panel" style={{ padding: '2.5rem', width: '100%', maxWidth: '400px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', background: '#eef2ff', color: '#4f46e5', borderRadius: '12px', marginBottom: '1rem' }}>
             <LogIn size={24} />
@@ -44,14 +48,14 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         </div>
 
         {error && (
-          <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem', border: '1px solid #fecaca' }}>
+          <div className="error-state" style={{ padding: '0.75rem', marginBottom: '1.5rem', textAlign: 'left', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
-            <label htmlFor="email" style={{ display: 'block', fontSize: '0.9rem', fontWeight: 500, color: '#334155', marginBottom: '0.5rem' }}>E-posta</label>
+            <label htmlFor="email" className="question-editor-label" style={{ marginBottom: '0.5rem', display: 'block' }}>E-posta</label>
             <input 
               id="email"
               type="email" 
@@ -59,12 +63,13 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               onChange={e => setEmail(e.target.value)}
               disabled={loading}
               required
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', outline: 'none' }}
+              className="text-input"
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
           
           <div>
-            <label htmlFor="password" style={{ display: 'block', fontSize: '0.9rem', fontWeight: 500, color: '#334155', marginBottom: '0.5rem' }}>Şifre</label>
+            <label htmlFor="password" className="question-editor-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Şifre</label>
             <input 
               id="password"
               type="password" 
@@ -72,18 +77,21 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               onChange={e => setPassword(e.target.value)}
               disabled={loading}
               required
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', outline: 'none' }}
+              className="text-input"
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             />
           </div>
 
           <button 
             type="submit" 
+            className="primary-button"
             disabled={loading || !email || !password}
             style={{ 
-              background: '#4f46e5', color: 'white', border: 'none', padding: '0.875rem', 
-              borderRadius: '8px', fontSize: '1rem', fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem',
-              opacity: (loading || !email || !password) ? 0.7 : 1
+              width: '100%',
+              padding: '0.875rem', 
+              fontSize: '1rem',
+              justifyContent: 'center',
+              marginTop: '0.5rem'
             }}
           >
             {loading ? <Loader2 className="spinner" size={18} /> : null}
