@@ -64,12 +64,12 @@ describe('Author API handlers', () => {
   });
 
   it('returns a branch-scoped collection for EDITOR without using editor grade', async () => {
-    authenticateAs('EDITOR', { editorBranchId: 2, editorGrade: '8. Sınıf' });
+    authenticateAs('EDITOR', { editorBranchId: 2, provinceId: 34, editorGrade: '8. Sınıf', branchAssignments: [] });
     vi.mocked(prisma.authorProfile.findMany).mockResolvedValue([selectedAuthor] as any);
     const { req, res } = reqRes();
     await collectionHandler(req, res);
     expect(prisma.authorProfile.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { branchId: 2 },
+      where: { branchId: { in: [2] }, provinceId: 34 },
       orderBy: [{ province: { name: 'asc' } }, { user: { fullName: 'asc' } }, { id: 'asc' }]
     }));
     expect(res.status).toHaveBeenCalledWith(200);
