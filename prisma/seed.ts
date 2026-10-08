@@ -146,6 +146,14 @@ async function main() {
       });
     }
 
+    if (u.role === 'EDITOR') {
+      await prisma.userBranchAssignment.upsert({
+        where: { userId_branchId: { userId: user.id, branchId: branch.id } },
+        create: { userId: user.id, branchId: branch.id },
+        update: {}
+      });
+    }
+
     if (u.role === 'YAZAR') {
       let existingProfile = await prisma.authorProfile.findUnique({ where: { userId: user.id } });
       if (!existingProfile) {
