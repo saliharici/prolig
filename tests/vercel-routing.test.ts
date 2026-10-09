@@ -37,16 +37,13 @@ describe('Vercel API rewrites', () => {
     expect(workflowIndex).toBeLessThan(questionIndex);
   });
 
-  it('places all dynamic mappings before the generic API and SPA fallbacks', () => {
+  it('places all dynamic mappings before the generic API fallback', () => {
     const apiFallbackIndex = rewrites.findIndex(rewrite => rewrite.source === '/api/(.*)');
-    const spaFallbackIndex = rewrites.findIndex(rewrite => rewrite.source === '/(.*)');
     expect(apiFallbackIndex).toBeGreaterThanOrEqual(0);
-    expect(spaFallbackIndex).toBeGreaterThan(apiFallbackIndex);
 
     for (const expected of expectedDynamicRewrites) {
       const dynamicIndex = rewrites.findIndex(rewrite => rewrite.source === expected.source);
       expect(dynamicIndex).toBeLessThan(apiFallbackIndex);
-      expect(dynamicIndex).toBeLessThan(spaFallbackIndex);
     }
   });
 
@@ -57,8 +54,9 @@ describe('Vercel API rewrites', () => {
     }
   });
 
-  it('keeps the SPA fallback last', () => {
-    expect(rewrites.at(-1)).toEqual({ source: '/(.*)', destination: '/index.html' });
+  it('does not intercept Vite module requests with an SPA fallback', () => {
+    expect(rewrites).not.toContainEqual({ source: '/(.*)', destination: '/index.html' });
+    expect(rewrites.at(-1)).toEqual({ source: '/api/(.*)', destination: '/api/$1' });
   });
 });
 
