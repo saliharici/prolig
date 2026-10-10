@@ -43,3 +43,29 @@ export interface CompensationRuleInput {
   unitPrice: string;
   projectId: number | null;
 }
+
+
+export type CompensationEntryStatus =
+  | 'HAK_EDILDI'
+  | 'ODEME_BEKLIYOR'
+  | 'ODEMEYE_ALINDI'
+  | 'ODENDI'
+  | 'IPTAL';
+
+export interface CompensationEntry {
+  id: number;
+  roleCode: CompensationRole;
+  earningType: CompensationEarningType;
+  quantity: number;
+  unitPrice: string;
+  amount: string;
+  status: CompensationEntryStatus;
+  earnedAt: string;
+  approvedAt: string | null;
+  paidAt: string | null;
+  sourceKey: string;
+  questionId: number | null;
+  unitType: CompensationUnitType;
+  user: { id: number; fullName: string };
+  project: { id: number; title: string; code: string } | null;
+}
