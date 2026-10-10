@@ -54,7 +54,11 @@
     },
     {
       "source": "/api/v1/tasks/:id",
-      "destination": "/api/v1/tasks?action=item&id=:id"
+      "destination": "/api/v1/management?action=task&id=:id"
+    },
+    {
+      "source": "/api/v1/tasks",
+      "destination": "/api/v1/management?action=tasks"
     },
     {
       "source": "/api/(.*)",
