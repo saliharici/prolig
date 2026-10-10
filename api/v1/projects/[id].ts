@@ -219,10 +219,19 @@ async function handlePatch(id: number, user: any, req: VercelRequest, res: Verce
     }
 
     if (requestedAuthors !== undefined) {
-      await tx.projectAuthor.deleteMany({ where: { projectId: id } });
-      if (requestedAuthors.length > 0) {
+      const currentAuthorIds = new Set(project.projectAuthors.map((assignment) => assignment.authorProfileId));
+      const requestedSet = new Set(requestedAuthors);
+      const removedIds = [...currentAuthorIds].filter((authorProfileId) => !requestedSet.has(authorProfileId));
+      const addedIds = requestedAuthors.filter((authorProfileId) => !currentAuthorIds.has(authorProfileId));
+
+      if (removedIds.length > 0) {
+        await tx.projectAuthor.deleteMany({
+          where: { projectId: id, authorProfileId: { in: removedIds } }
+        });
+      }
+      if (addedIds.length > 0) {
         await tx.projectAuthor.createMany({
-          data: requestedAuthors.map((authorProfileId) => ({ projectId: id, authorProfileId })),
+          data: addedIds.map((authorProfileId) => ({ projectId: id, authorProfileId })),
           skipDuplicates: true
         });
       }
