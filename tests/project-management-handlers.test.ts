@@ -32,6 +32,8 @@ vi.mock('../api/v1/_lib/prisma.js', () => ({
     fileRecord: { count: vi.fn() },
     payment: { count: vi.fn() },
     book: { count: vi.fn() },
+    compensationEntry: { count: vi.fn() },
+    compensationRule: { count: vi.fn() },
     activityLog: { create: vi.fn() },
     $transaction: vi.fn()
   }
@@ -97,6 +99,8 @@ describe('Project management handlers', () => {
     vi.mocked(prisma.fileRecord.count).mockResolvedValue(0);
     vi.mocked(prisma.payment.count).mockResolvedValue(0);
     vi.mocked(prisma.book.count).mockResolvedValue(0);
+    vi.mocked(prisma.compensationEntry.count).mockResolvedValue(0);
+    vi.mocked(prisma.compensationRule.count).mockResolvedValue(0);
   });
 
   it('requires authentication and coordinator role to create', async () => {
