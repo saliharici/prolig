@@ -99,6 +99,25 @@ describe('Final UX Stabilization', () => {
     expect(demoAppCode).not.toContain("{section === 'roles' && <MemberManagement");
   });
 
+  it('enriches the login screen with platform capabilities and production flow', () => {
+    const loginPath = path.resolve(__dirname, '../src/auth/LoginScreen.tsx');
+    const loginCode = fs.readFileSync(loginPath, 'utf8');
+    const cssPath = path.resolve(__dirname, '../src/demo.css');
+    const cssCode = fs.readFileSync(cssPath, 'utf8');
+
+    expect(loginCode).toContain('Proje Yönetimi');
+    expect(loginCode).toContain('Görev Takibi');
+    expect(loginCode).toContain('İçerik Üretimi');
+    expect(loginCode).toContain('Ekip İletişimi');
+    expect(loginCode).toContain('PROJE');
+    expect(loginCode).toContain('GÖREV');
+    expect(loginCode).toContain('ÜRETİM');
+    expect(loginCode).toContain('KONTROL');
+    expect(loginCode).toContain('YAYIN');
+    expect(cssCode).toContain('.soft-login-capabilities');
+    expect(cssCode).toContain('.soft-login-flow');
+  });
+
   it('Landing page copy is accurate and neutral', () => {
     const landingPath = path.resolve(__dirname, '../src/public/PublicLanding.tsx');
     const landingCode = fs.readFileSync(landingPath, 'utf8');
