@@ -1,4 +1,4 @@
-import type { CompensationEntry, CompensationRule, CompensationRuleInput } from './types';
+import type { CompensationEntry, CompensationPage, PaymentPeriod, CompensationRule, CompensationRuleInput } from './types';
 
 export class CompensationApiError extends Error {
   constructor(public status: number, message: string) {
@@ -7,15 +7,15 @@ export class CompensationApiError extends Error {
   }
 }
 
-async function parse<T>(response: Response): Promise<T> {
+export async function parse<T>(response: Response): Promise<T> {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401) throw new CompensationApiError(401, 'Oturum süresi dolmuş veya yetkisiz.');
-    if (response.status === 403) throw new CompensationApiError(403, body?.error || 'Ücret tarifesi işlemi için yetkiniz yok.');
-    if (response.status === 404) throw new CompensationApiError(404, body?.error || 'Ücret tarifesi veya proje bulunamadı.');
-    if (response.status === 409) throw new CompensationApiError(409, body?.error || 'Ücret tarifesi zaten güncellenmiş.');
-    if (response.status >= 500) throw new CompensationApiError(response.status, 'Ücret tarifeleri yüklenemedi. Daha sonra tekrar deneyin.');
-    throw new CompensationApiError(response.status, body?.error || 'Ücret tarifesi işlemi başarısız.');
+    if (response.status === 403) throw new CompensationApiError(403, body?.error || 'Bu finans işlemi için yetkiniz yok.');
+    if (response.status === 404) throw new CompensationApiError(404, body?.error || 'Finans kaydı bulunamadı.');
+    if (response.status === 409) throw new CompensationApiError(409, body?.error || 'Kayıt değişmiş; listeyi yenileyin.');
+    if (response.status >= 500) throw new CompensationApiError(response.status, 'Finans kayıtları yüklenemedi. Daha sonra tekrar deneyin.');
+    throw new CompensationApiError(response.status, body?.error || 'Finans işlemi başarısız.');
   }
   return body as T;
 }
@@ -55,4 +55,25 @@ export async function fetchCompensationEntries(limit = 300): Promise<Compensatio
   const response = await fetch(`/api/v1/compensation/entries?limit=${safeLimit}`, { credentials: 'include' });
   const body = await parse<{ entries: CompensationEntry[] }>(response);
   return body.entries;
+}
+
+
+export async function fetchCompensationPage(cursor: number | null = null): Promise<CompensationPage> {
+  const response = await fetch(`/api/v1/compensation/entries?limit=100${cursor ? `&cursor=${cursor}` : ''}`, { credentials: 'include' });
+  return parse<CompensationPage>(response);
+}
+
+export async function fetchPaymentPeriods(): Promise<PaymentPeriod[]> {
+  const response = await fetch('/api/v1/compensation/periods', { credentials: 'include' });
+  return (await parse<{ periods: PaymentPeriod[] }>(response)).periods;
+}
+
+export async function createPaymentPeriod(input: { name: string; code: string; startDate: string; endDate: string }): Promise<void> {
+  const response = await fetch('/api/v1/compensation/periods', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+  await parse(response);
+}
+
+export async function actOnPaymentPeriod(id: number, action: 'prepare' | 'settle' | 'close' | 'cancel', reason?: string): Promise<void> {
+  const response = await fetch(`/api/v1/compensation/periods/${id}/${action}`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }) });
+  await parse(response);
 }

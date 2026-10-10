@@ -10,7 +10,7 @@ describe('Compensation frontend', () => {
   const css = fs.readFileSync(path.resolve(__dirname, '../src/compensation/compensation.css'), 'utf8');
 
   it('adds tariff and earned-fee tabs to Telif ve Ödemeler', () => {
-    expect(demo).toContain("useState<'overview' | 'rates' | 'earnings'>('overview')");
+    expect(demo).toContain("useState<'overview' | 'rates' | 'earnings' | 'periods'>('overview')");
     expect(demo).toContain('Ücret Tarifeleri');
     expect(demo).toContain('Kazanılmış Ücretler');
     expect(demo).toContain('<CompensationRulesPanel projects={projects} currentRole={currentUser.role} />');
@@ -53,3 +53,4 @@ describe('Compensation frontend', () => {
     expect(css).toContain('.compensation-entry-kpis');
   });
 });
+

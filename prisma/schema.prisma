@@ -66,6 +66,14 @@ enum PaymentStatus {
   Iptal
 }
 
+enum PaymentPeriodStatus {
+  TASLAK
+  HAZIR
+  ONAYLANDI
+  KAPANDI
+  IPTAL
+}
+
 enum QuestionStatus {
   TASLAK
   INCELEMEDE
@@ -137,6 +145,9 @@ model User {
   branchAssignments UserBranchAssignment[]
   compensationRulesCreated CompensationRule[] @relation("CompensationRuleCreatedBy")
   compensationEntries CompensationEntry[] @relation("CompensationEntryUser")
+  paymentPeriodsCreated PaymentPeriod[] @relation("PaymentPeriodCreatedBy")
+  paymentPeriodsApproved PaymentPeriod[] @relation("PaymentPeriodApprovedBy")
+  paymentPeriodsClosed PaymentPeriod[] @relation("PaymentPeriodClosedBy")
 
   @@index([email])
   @@index([editorBranchId])
@@ -347,7 +358,36 @@ model Payment {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
+  // Legacy name retained for compatibility; settlement supports every beneficiary role.
+  paymentPeriodId Int?
+  paymentPeriod PaymentPeriod? @relation(fields: [paymentPeriodId], references: [id], onDelete: Restrict)
+  compensationEntries CompensationEntry[]
+
   @@index([status])
+  @@unique([paymentPeriodId, authorUserId])
+}
+
+model PaymentPeriod {
+  id Int @id @default(autoincrement())
+  code String @unique
+  name String
+  periodStart DateTime
+  // Exclusive end: Istanbul calendar days represented by [start, nextDay).
+  periodEnd DateTime
+  status PaymentPeriodStatus @default(TASLAK)
+  createdByUserId Int
+  createdByUser User @relation("PaymentPeriodCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approvedByUserId Int?
+  approvedByUser User? @relation("PaymentPeriodApprovedBy", fields: [approvedByUserId], references: [id], onDelete: Restrict)
+  closedByUserId Int?
+  closedByUser User? @relation("PaymentPeriodClosedBy", fields: [closedByUserId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  approvedAt DateTime?
+  closedAt DateTime?
+  payments Payment[]
+  entries CompensationEntry[]
+  @@index([status, periodStart])
 }
 
 model CompensationRule {
@@ -392,6 +432,10 @@ model CompensationEntry {
   earnedAt    DateTime                @default(now())
   approvedAt  DateTime?
   paidAt      DateTime?
+  paymentPeriodId Int?
+  paymentPeriod PaymentPeriod? @relation(fields: [paymentPeriodId], references: [id], onDelete: Restrict)
+  paymentId Int?
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
 
@@ -399,6 +443,9 @@ model CompensationEntry {
   @@index([projectId, status])
   @@index([questionId])
   @@index([earningType, earnedAt])
+  @@index([paymentId])
+  @@index([paymentPeriodId, status])
+  @@index([status, earnedAt])
 }
 
 model FileRecord {
@@ -498,5 +545,6 @@ model Question {
   @@index([projectId])
   @@index([status])
 }
+
 
 

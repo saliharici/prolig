@@ -63,9 +63,47 @@ export interface CompensationEntry {
   earnedAt: string;
   approvedAt: string | null;
   paidAt: string | null;
+  paymentPeriod: { id: number; code: string; name: string } | null;
+  payment: { id: number; status: string; paymentDate: string | null } | null;
   sourceKey: string;
   questionId: number | null;
   unitType: CompensationUnitType;
   user: { id: number; fullName: string };
   project: { id: number; title: string; code: string } | null;
+}
+
+
+export interface CompensationSummary {
+  count: number;
+  total: string;
+  waiting: string;
+  inProcess: string;
+  paid: string;
+  writer: string;
+  editor: string;
+  coordinator: string;
+}
+
+export interface CompensationPage {
+  entries: CompensationEntry[];
+  nextCursor: number | null;
+  summary: CompensationSummary;
+}
+
+export type PaymentPeriodStatus = 'TASLAK' | 'HAZIR' | 'ONAYLANDI' | 'KAPANDI' | 'IPTAL';
+export interface PaymentPeriod {
+  id: number;
+  code: string;
+  name: string;
+  status: PaymentPeriodStatus;
+  startDate: string;
+  endDate: string;
+  approvedAt: string | null;
+  closedAt: string | null;
+  entryCount: number;
+  beneficiaryCount: number;
+  totalAmount: string;
+  paidAmount: string;
+  outstandingAmount: string;
+  payments: import('../payments/types').ApiPayment[];
 }

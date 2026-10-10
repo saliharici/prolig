@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { sumMoney } from './settlement-money.js';
 import { prisma } from './prisma.js';
 
 const roleRuleMap = {
@@ -40,6 +41,8 @@ const entrySelect = {
   paidAt: true,
   sourceKey: true,
   questionId: true,
+  paymentPeriod: { select: { id: true, code: true, name: true } },
+  payment: { select: { id: true, status: true, paymentDate: true } },
   user: { select: { id: true, fullName: true } },
   project: { select: { id: true, title: true, code: true } },
   rule: { select: { id: true, unitType: true } }
@@ -77,6 +80,8 @@ function entryDto(entry: any) {
     paidAt: entry.paidAt,
     sourceKey: entry.sourceKey,
     questionId: entry.questionId,
+    paymentPeriod: entry.paymentPeriod ?? null,
+    payment: entry.payment ?? null,
     user: entry.user,
     project: entry.project,
     unitType: entry.rule.unitType
@@ -115,12 +120,13 @@ export async function handleCompensationAction(
   user: any,
   action: 'compensationRules' | 'compensationRule' | 'compensationEntries'
 ) {
-  if (!canReadRules(user)) return res.status(403).json({ error: 'Forbidden' });
-
   if (action === 'compensationEntries') {
+    if (!user?.id || !['GENEL_KOORDINATOR', 'MUHASEBE', 'YAZAR', 'EDITOR', 'IL_KOORDINATORU', 'BOLGE_KOORDINATORU'].includes(user?.role?.code)) return res.status(403).json({ error: 'Forbidden' });
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-    return listEntries(req, res);
+    return listEntries(req, res, user);
   }
+
+  if (!canReadRules(user)) return res.status(403).json({ error: 'Forbidden' });
 
   if (action === 'compensationRules') {
     if (req.method === 'GET') return listRules(req, res);
@@ -136,15 +142,39 @@ export async function handleCompensationAction(
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-async function listEntries(req: VercelRequest, res: VercelResponse) {
+async function listEntries(req: VercelRequest, res: VercelResponse, user: any) {
   const rawLimit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 200;
   const limit = Number.isSafeInteger(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 200;
-  const entries = await prisma.compensationEntry.findMany({
-    select: entrySelect,
-    orderBy: [{ earnedAt: 'desc' }, { id: 'desc' }],
-    take: limit
-  });
-  return res.status(200).json({ entries: entries.map(entryDto) });
+  const cursor = req.query.cursor == null ? null : positiveInt(req.query.cursor);
+  if (req.query.cursor != null && !cursor) return res.status(400).json({ error: 'Invalid cursor' });
+  // Query/body userId can never widen an authenticated user's financial scope.
+  const where = canReadRules(user) ? {} : { userId: user.id };
+  if (cursor) {
+    const ownCursor = await prisma.compensationEntry.findFirst({ where: { ...where, id: cursor }, select: { id: true } });
+    if (!ownCursor) return res.status(400).json({ error: 'Invalid cursor' });
+  }
+  const result = await prisma.$transaction(async tx => {
+    const entries = await tx.compensationEntry.findMany({
+      where, select: entrySelect,
+      orderBy: [{ earnedAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
+    });
+    const groups = await tx.compensationEntry.groupBy({ by: ['status', 'roleCode'], where, _sum: { amount: true }, _count: { _all: true } });
+    const sum = (predicate: (group: typeof groups[number]) => boolean) => sumMoney(groups.filter(predicate).map(group => group._sum.amount ?? '0'));
+    const summary = {
+      count: groups.reduce((count, group) => count + group._count._all, 0),
+      total: sum(group => group.status !== 'IPTAL'),
+      waiting: sum(group => group.status === 'HAK_EDILDI' || group.status === 'ODEME_BEKLIYOR'),
+      inProcess: sum(group => group.status === 'ODEMEYE_ALINDI'),
+      paid: sum(group => group.status === 'ODENDI'),
+      writer: sum(group => group.status !== 'IPTAL' && group.roleCode === 'YAZAR'),
+      editor: sum(group => group.status !== 'IPTAL' && group.roleCode === 'EDITOR'),
+      coordinator: sum(group => group.status !== 'IPTAL' && group.roleCode.endsWith('KOORDINATORU') || group.status !== 'IPTAL' && group.roleCode === 'GENEL_KOORDINATOR')
+    };
+    return { entries: entries.slice(0, limit).map(entryDto), nextCursor: entries.length > limit ? entries[limit - 1].id : null, summary };
+  }, { isolationLevel: 'RepeatableRead' });
+  return res.status(200).json(result);
 }
 
 async function listRules(req: VercelRequest, res: VercelResponse) {
@@ -285,3 +315,4 @@ async function deactivateRule(
 
   return res.status(200).json({ rule: ruleDto(updated) });
 }
+

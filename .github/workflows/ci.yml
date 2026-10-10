@@ -1,6 +1,8 @@
 name: Pro-Lig CI
 
 on:
+  push:
+    branches: [feat/compensation-engine]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -26,3 +28,7 @@ jobs:
       - name: Unit and contract tests
         # DB integration suites intentionally require real Pilot DB credentials and are run only in guarded environments.
         run: npx vitest run --exclude 'tests/integration/**'
+
+
+      - name: Build
+        run: npm run build

@@ -39,3 +39,9 @@ export async function payPayment(id: number): Promise<void> {
   });
   await handleResponse<{ success: boolean }>(response);
 }
+
+
+export async function cancelPayment(id: number, reason: string): Promise<void> {
+  const response = await fetch(`/api/v1/payments/${id}/cancel`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }) });
+  await handleResponse(response);
+}

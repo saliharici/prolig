@@ -34,6 +34,7 @@ vi.mock('../api/v1/_lib/prisma.js', () => ({
     book: { count: vi.fn() },
     compensationEntry: { count: vi.fn() },
     compensationRule: { count: vi.fn() },
+    paymentPeriod: { count: vi.fn().mockResolvedValue(0) },
     activityLog: { create: vi.fn() },
     $transaction: vi.fn()
   }
@@ -297,3 +298,4 @@ describe('Project management handlers', () => {
     expect(res.status).toHaveBeenCalledWith(200);
   });
 });
+

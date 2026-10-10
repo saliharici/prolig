@@ -60,3 +60,23 @@
 .comp-entry-status.odendi{background:#e5f6ed;color:#247657}.comp-entry-status.iptal{background:#fff0ee;color:#b1544b}.comp-entry-status.odemeye_alindi{background:#eaf4ff;color:#377ebc}.comp-entry-status.odeme_bekliyor{background:#fff5e6;color:#a9762b}
 @media(max-width:1100px){.compensation-entry-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.compensation-entry-toolbar{grid-template-columns:1fr 1fr}.compensation-entry-search{grid-column:1/-1}}
 @media(max-width:650px){.compensation-entry-kpis{grid-template-columns:1fr}.compensation-entry-toolbar{grid-template-columns:1fr}.compensation-entry-search{grid-column:auto}}
+
+
+.payment-period-panel { padding: 24px; }
+.period-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.period-actions button, .period-cancel button { border:1px solid #dce3ed; border-radius:8px; padding:9px 13px; background:#fff; color:#18324d; cursor:pointer; }
+.period-actions button.primary-button, .period-create .primary-button { background:#183b64; color:white; }
+.period-actions button:disabled, .period-create button:disabled, .period-cancel button:disabled { opacity:.45; cursor:default; }
+.period-create { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding:20px; background:#f7f9fc; border:1px solid #e0e6ef; border-radius:12px; margin-bottom:20px; }
+.period-create label, .period-cancel label { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; }
+.period-create input, .period-cancel input { min-width:0; padding:10px 12px; border:1px solid #d7dfeb; border-radius:8px; background:white; font:inherit; }
+.period-create small { align-self:center; color:#62748a; }
+.period-detail { border-top:1px solid #e1e7f0; margin-top:20px; padding-top:20px; }
+.period-cancel { display:flex; align-items:end; gap:10px; margin:16px 0; }
+.period-cancel label { flex:1; max-width:540px; }
+.period-selected { background:#f0f5fc; }
+.comp-entry-status.odeme_bekliyor { background:#fff5db; color:#8c6400; }
+.comp-entry-status.odemeye_alindi { background:#e5efff; color:#2454a6; }
+.comp-entry-status.odendi { background:#e2f5eb; color:#177044; }
+.comp-entry-status.iptal { background:#f5e4e4; color:#954141; }
+@media (max-width:700px) { .period-create { grid-template-columns:1fr; } .period-cancel { align-items:stretch; flex-direction:column; } .payment-period-panel { padding:16px; } }

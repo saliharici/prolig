@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BriefcaseBusiness, CheckCircle2, FileQuestion, RotateCcw, Search, Users } from 'lucide-react';
-import { fetchCompensationEntries } from './api';
-import type { CompensationEntry, CompensationRole } from './types';
+import { fetchCompensationPage } from './api';
+import type { CompensationEntry, CompensationRole, CompensationSummary } from './types';
 import './compensation.css';
 
 const roleLabels: Record<CompensationRole, string> = {
@@ -29,21 +29,26 @@ const money = (value: string | number) =>
   }).format(Number(value));
 
 const shortDate = (value: string) =>
-  new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+  new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Europe/Istanbul' }).format(new Date(value));
 
-export function CompensationEntriesPanel() {
+export function CompensationEntriesPanel({ personal = false }: { personal?: boolean }) {
   const [entries, setEntries] = useState<CompensationEntry[]>([]);
+  const [summary, setSummary] = useState<CompensationSummary>({ count: 0, total: '0.00', waiting: '0.00', inProcess: '0.00', paid: '0.00', writer: '0.00', editor: '0.00', coordinator: '0.00' });
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | CompensationRole>('ALL');
   const [projectFilter, setProjectFilter] = useState('ALL');
 
-  const loadEntries = async () => {
+  const loadEntries = async (append = false) => {
     setLoading(true);
     setError('');
     try {
-      setEntries(await fetchCompensationEntries(400));
+      const page = await fetchCompensationPage(append ? nextCursor : null);
+      setEntries(previous => append ? [...previous, ...page.entries] : page.entries);
+      setSummary(page.summary);
+      setNextCursor(page.nextCursor);
     } catch (err: any) {
       setError(err?.message || 'Kazanılmış ücretler yüklenemedi.');
     } finally {
@@ -75,31 +80,20 @@ export function CompensationEntriesPanel() {
     });
   }, [entries, roleFilter, projectFilter, search]);
 
-  const totals = useMemo(() => {
-    const active = entries.filter(entry => entry.status !== 'IPTAL');
-    const sum = (roles: CompensationRole[]) =>
-      active.filter(entry => roles.includes(entry.roleCode)).reduce((total, entry) => total + Number(entry.amount), 0);
-    return {
-      all: active.reduce((total, entry) => total + Number(entry.amount), 0),
-      writer: sum(['YAZAR']),
-      editor: sum(['EDITOR']),
-      coordinator: sum(['IL_KOORDINATORU', 'BOLGE_KOORDINATORU', 'GENEL_KOORDINATOR'])
-    };
-  }, [entries]);
 
   return (
     <div className="compensation-entries-panel">
       <div className="compensation-entry-kpis">
-        <article className="panel"><span className="comp-entry-icon total"><CheckCircle2 size={17}/></span><div><small>TOPLAM KAZANIM</small><strong>{money(totals.all)}</strong><span>{entries.length} kazanım kaydı</span></div></article>
-        <article className="panel"><span className="comp-entry-icon writer"><FileQuestion size={17}/></span><div><small>YAZAR TELİFLERİ</small><strong>{money(totals.writer)}</strong><span>Onaylanan sorulardan</span></div></article>
-        <article className="panel"><span className="comp-entry-icon editor"><Users size={17}/></span><div><small>EDİTÖR ÜCRETLERİ</small><strong>{money(totals.editor)}</strong><span>Sonuçlanan incelemelerden</span></div></article>
-        <article className="panel"><span className="comp-entry-icon coordinator"><BriefcaseBusiness size={17}/></span><div><small>KOORDİNATÖR ÜCRETLERİ</small><strong>{money(totals.coordinator)}</strong><span>Tamamlanan projelerden</span></div></article>
+        <article className="panel"><span className="comp-entry-icon total"><CheckCircle2 size={17}/></span><div><small>TOPLAM KAZANIM</small><strong>{money(summary.total)}</strong><span>{summary.count} kazanım kaydı</span></div></article>
+        <article className="panel"><span className="comp-entry-icon writer"><FileQuestion size={17}/></span><div><small>{personal ? 'ÖDEME BEKLEYEN' : 'YAZAR TELİFLERİ'}</small><strong>{money(personal ? summary.waiting : summary.writer)}</strong><span>{personal ? 'Hak edilmiş / döneme alınmış' : 'Onaylanan sorulardan'}</span></div></article>
+        <article className="panel"><span className="comp-entry-icon editor"><Users size={17}/></span><div><small>{personal ? 'ÖDEME SÜRECİNDE' : 'EDİTÖR ÜCRETLERİ'}</small><strong>{money(personal ? summary.inProcess : summary.editor)}</strong><span>{personal ? 'Ödeme emri oluşturuldu' : 'Sonuçlanan incelemelerden'}</span></div></article>
+        <article className="panel"><span className="comp-entry-icon coordinator"><BriefcaseBusiness size={17}/></span><div><small>{personal ? 'ÖDENEN' : 'KOORDİNATÖR ÜCRETLERİ'}</small><strong>{money(personal ? summary.paid : summary.coordinator)}</strong><span>{personal ? 'Tamamlanan ödemeler' : 'Tamamlanan projelerden'}</span></div></article>
       </div>
 
       <section className="panel compensation-entry-workbench">
         <div className="compensation-entry-head">
-          <div><span className="panel-kicker">KAZANIM DÖKÜMÜ</span><h2>Hesaplanan ücretler</h2><p>Her satır, hak edildiği andaki birim ücretin değişmez snapshot’ıdır.</p></div>
-          <button className="secondary-button" onClick={loadEntries}><RotateCcw size={15}/> Yenile</button>
+          <div><span className="panel-kicker">KAZANIM DÖKÜMÜ</span><h2>{personal ? 'Telif Ekstrem' : 'Hesaplanan ücretler'}</h2><p>Her satır, hak edildiği andaki birim ücretin değişmez snapshot’ıdır.</p></div>
+          <button className="secondary-button" disabled={loading} onClick={() => loadEntries()}><RotateCcw size={15}/> Yenile</button>
         </div>
 
         <div className="compensation-entry-toolbar">
@@ -118,10 +112,10 @@ export function CompensationEntriesPanel() {
         </div>
 
         {loading && <div className="compensation-state"><RotateCcw size={18} className="spin"/> Kazanımlar yükleniyor...</div>}
-        {error && !loading && <div className="compensation-alert error"><span>{error}</span><button onClick={loadEntries}>Tekrar Dene</button></div>}
+        {error && !loading && <div className="compensation-alert error"><span>{error}</span><button onClick={() => loadEntries()}>Tekrar Dene</button></div>}
         {!loading && !error && <div className="table-wrap">
           <table className="compensation-entry-table">
-            <thead><tr><th>KİŞİ</th><th>ROL</th><th>KAYNAK</th><th>BİRİM</th><th>ADET</th><th>TUTAR</th><th>DURUM</th><th>HAK EDİŞ TARİHİ</th></tr></thead>
+            <thead><tr><th>KİŞİ</th><th>ROL</th><th>KAYNAK</th><th>BİRİM</th><th>ADET</th><th>TUTAR</th><th>DURUM</th><th>HAK EDİŞ TARİHİ</th><th>ÖDEME DÖNEMİ</th><th>ÖDEME TARİHİ</th></tr></thead>
             <tbody>{filtered.map(entry => <tr key={entry.id}>
               <td><strong>{entry.user.fullName}</strong></td>
               <td>{roleLabels[entry.roleCode]}</td>
@@ -132,12 +126,15 @@ export function CompensationEntriesPanel() {
               <td>{entry.quantity}</td>
               <td><strong className="compensation-price">{money(entry.amount)}</strong></td>
               <td><span className={`comp-entry-status ${entry.status.toLocaleLowerCase('tr-TR')}`}>{statusLabels[entry.status]}</span></td>
-              <td>{shortDate(entry.earnedAt)}</td>
+              <td>{shortDate(entry.earnedAt)}</td><td>{entry.paymentPeriod?.code || '—'}{entry.payment && <small>Ödeme #{entry.payment.id}</small>}</td><td>{entry.paidAt ? shortDate(entry.paidAt) : '—'}</td>
             </tr>)}</tbody>
           </table>
           {!filtered.length && <div className="compensation-state">Bu filtrelerde kazanım kaydı bulunmuyor.</div>}
         </div>}
+        {!loading && nextCursor && <button className="secondary-button" onClick={() => loadEntries(true)}>Daha fazla kazanım yükle ({entries.length} / {summary.count})</button>}
+        <p className="panel-sub">Özet tutarlar tüm kazanımları kapsar. Arama ve filtreler yüklenmiş satırlarda çalışır.</p>
       </section>
     </div>
   );
 }
+

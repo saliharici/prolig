@@ -32,6 +32,7 @@ import { fetchAuthors } from './authors/api';
 import type { ApiAuthor } from './authors/types';
 import { fetchAuditLogs } from './audit/api';
 import type { ApiAuditLog } from './audit/types';
+import { PaymentPeriodsPanel } from './compensation/PaymentPeriodsPanel';
 import { CompensationRulesPanel } from './compensation/CompensationRulesPanel';
 import { CompensationEntriesPanel } from './compensation/CompensationEntriesPanel';
 import { ReportsCenter } from './reports/ReportsCenter';
@@ -100,6 +101,13 @@ function FinanceOverview({ apiPayments, onNavigate, currentUser, data }: { apiPa
 const auditActionLabels: Record<string, string> = {
   PAYMENT_APPROVED: 'Telif/ödeme kaydı onaylandı',
   PAYMENT_PAID: 'Ödeme tamamlandı',
+  PAYMENT_CANCELLED: 'Ödeme iptal edildi',
+  PAYMENT_CREATED_FROM_SETTLEMENT: 'Dönemden ödeme oluşturuldu',
+  PAYMENT_PERIOD_CREATED: 'Ödeme dönemi oluşturuldu',
+  PAYMENT_PERIOD_PREPARED: 'Kazanımlar ödeme dönemine ayrıldı',
+  PAYMENT_PERIOD_SETTLED: 'Ödeme paketi oluşturuldu',
+  PAYMENT_PERIOD_CLOSED: 'Ödeme dönemi kapatıldı',
+  PAYMENT_PERIOD_CANCELLED: 'Ödeme dönemi iptal edildi',
   COMPENSATION_RULE_CREATED: 'Ücret tarifesi oluşturuldu',
   COMPENSATION_RULE_REPLACED: 'Ücret tarifesi güncellendi',
   COMPENSATION_RULE_DEACTIVATED: 'Ücret tarifesi pasifleştirildi',
@@ -126,6 +134,7 @@ const auditActionLabels: Record<string, string> = {
 
 const auditEntityLabels: Record<string, string> = {
   Payment: 'Telif / Ödeme',
+  PaymentPeriod: 'Ödeme Dönemi',
   CompensationRule: 'Ücret Tarifesi',
   CompensationEntry: 'Ücret Kazanımı',
   User: 'Kullanıcı',
@@ -260,7 +269,7 @@ function PaymentCenter({
   onAdvance: (id: number, currentStatus: string) => void;
   currentUser: AuthUser;
 }) {
-  const [financeTab, setFinanceTab] = useState<'overview' | 'rates' | 'earnings'>('overview');
+  const [financeTab, setFinanceTab] = useState<'overview' | 'rates' | 'earnings' | 'periods'>('overview');
   const [paymentView, setPaymentView] = useState<'Tümü' | Payment['status']>('Tümü');
   const [paymentSearch, setPaymentSearch] = useState('');
 
@@ -294,6 +303,11 @@ function PaymentCenter({
     { status: 'Odendi' as const, label: 'Tamamlandı', note: 'Ödeme süreci kapandı', tone: 'green' }
   ];
 
+  if (!['MUHASEBE', 'GENEL_KOORDINATOR'].includes(currentUser.role)) return <>
+    <div className="page-heading"><div><div className="eyebrow">TELİF VE ÖDEMELER</div><h1>Telif Ekstrem</h1><p>Kendi kazanımlarınızı, ödeme dönemlerinizi ve tamamlanan ödemelerinizi izleyin.</p></div></div>
+    <CompensationEntriesPanel personal key={currentUser.id}/>
+  </>;
+
   return <>
     <div className="page-heading payment-page-heading">
       <div>
@@ -308,9 +322,12 @@ function PaymentCenter({
       <button className={financeTab === 'overview' ? 'active' : ''} onClick={() => setFinanceTab('overview')}>Genel Bakış</button>
       <button className={financeTab === 'rates' ? 'active' : ''} onClick={() => setFinanceTab('rates')}>Ücret Tarifeleri</button>
       <button className={financeTab === 'earnings' ? 'active' : ''} onClick={() => setFinanceTab('earnings')}>Kazanılmış Ücretler</button>
+      <button className={financeTab === 'periods' ? 'active' : ''} onClick={() => setFinanceTab('periods')}>Ödeme Dönemleri</button>
     </div>
 
-    {financeTab === 'rates' ? (
+    {financeTab === 'periods' ? (
+      <PaymentPeriodsPanel currentRole={currentUser.role} onPaymentsChanged={onRetry}/>
+    ) : financeTab === 'rates' ? (
       <CompensationRulesPanel projects={projects} currentRole={currentUser.role} />
     ) : financeTab === 'earnings' ? (
       <CompensationEntriesPanel />
@@ -389,18 +406,18 @@ function PaymentCenter({
       {error && !loading && <div className="payment-state payment-state-error"><strong>{error}</strong><span>Yetkiniz ve oturumunuz doğrulandıktan sonra tekrar deneyin.</span><button className="secondary-button" onClick={onRetry}><RotateCcw size={15}/> Tekrar Dene</button></div>}
       {!loading && !error && <div className="table-wrap payment-table-wrap">
         <table className="payment-table">
-          <thead><tr><th>KAYIT</th><th>YAZAR</th><th>PROJE / SÖZLEŞME</th><th>TUTAR</th><th>DURUM</th><th>İŞLEM</th></tr></thead>
+          <thead><tr><th>KAYIT</th><th>HAK SAHİBİ</th><th>PROJE / DÖNEM</th><th>TUTAR</th><th>DURUM</th><th>İŞLEM</th></tr></thead>
           <tbody>{filteredPayments.map(payment => {
             const statusLabel = payment.status === 'Onaylandi' ? 'Onaylandı' : payment.status === 'Odendi' ? 'Ödendi' : payment.status === 'Iptal' ? 'İptal' : 'Bekliyor';
             return <tr key={payment.id}>
               <td><div className="payment-date-cell"><strong>{date(payment.createdAt)}</strong><small>{payment.paymentDate ? `Ödeme: ${date(payment.paymentDate)}` : `#${payment.id}`}</small></div></td>
               <td><div className="person-cell"><span className="small-avatar">{(payment.author?.fullName || '—').split(' ').filter(Boolean).map(part => part[0]).join('').slice(0,2).toLocaleUpperCase('tr-TR')}</span><div><strong>{payment.author?.fullName || 'Atanmamış'}</strong><small>Telif sahibi</small></div></div></td>
-              <td><div className="payment-project-cell"><strong>{payment.project?.title || payment.contractNo || 'Bağlantısız kayıt'}</strong><small>{payment.project?.code || payment.contractNo || '—'}</small></div></td>
+              <td><div className="payment-project-cell"><strong>{payment.project?.title || payment.paymentPeriod?.name || payment.contractNo || 'Bağlantısız kayıt'}</strong><small>{payment.project?.code || payment.paymentPeriod?.code || payment.contractNo || '—'}</small></div></td>
               <td><strong className="payment-amount">{moneyKurus(toKurus(payment.amount))}</strong></td>
               <td><Status value={statusLabel} /></td>
               <td><div className="row-actions payment-actions">
-                {payment.status === 'Bekliyor' && <button onClick={() => onAdvance(payment.id, payment.status)}>Onayla <ArrowRight size={14}/></button>}
-                {payment.status === 'Onaylandi' && <button onClick={() => onAdvance(payment.id, payment.status)}>Ödendi İşaretle <ArrowRight size={14}/></button>}
+                {currentUser.role === 'MUHASEBE' && payment.status === 'Bekliyor' && <button onClick={() => onAdvance(payment.id, payment.status)}>Onayla <ArrowRight size={14}/></button>}
+                {currentUser.role === 'MUHASEBE' && payment.status === 'Onaylandi' && <button onClick={() => onAdvance(payment.id, payment.status)}>Ödendi İşaretle <ArrowRight size={14}/></button>}
                 {payment.status === 'Odendi' && <span className="no-action"><CheckCircle2 size={13}/> Tamamlandı</span>}
                 {payment.status === 'Iptal' && <span className="no-action">İptal</span>}
               </div></td>
@@ -1445,7 +1462,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           onAdvance={updatePayment}
           currentUser={currentUser}
         />}
-        {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>Şu an Pilot oturumu ile {roleLabels[currentUser.role]} rolündesiniz.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Kanonik Rol</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Soru Havuzu, Projeler ve Yazar Ağı sunucu tarafında oturum rolünüze göre kapsamlanır. Telif ve ödeme kayıtları gerçek Pilot verileridir.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ve Genel Koordinatör Pilot telif/ödeme kaydıleri onaylayıp ödendi olarak işaretleyebilir.</p><button className="text-button" onClick={() => navigate('payments')}>Telif ve ödemelere git <ArrowRight size={16} /></button></div></div></>}
+        {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>Şu an Pilot oturumu ile {roleLabels[currentUser.role]} rolündesiniz.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Kanonik Rol</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Soru Havuzu, Projeler ve Yazar Ağı sunucu tarafında oturum rolünüze göre kapsamlanır. Telif ve ödeme kayıtları gerçek Pilot verileridir.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ödeme sürecini yürütür; Genel Koordinatör finansal durumu denetler.</p><button className="text-button" onClick={() => navigate('payments')}>Telif ve ödemelere git <ArrowRight size={16} /></button></div></div></>}
         {section === 'members' && <><div className="page-heading"><div><div className="eyebrow">ÜYELİK VE KULLANICI YÖNETİMİ</div><h1>Üye Yönetimi</h1><p>Başvuruları coğrafi yetki kapsamınıza göre değerlendirin ve izin verilen rollerde kullanıcı hesapları oluşturun.</p></div><span className="heading-chip"><Users size={16} /> Hiyerarşik kapsam</span></div><MemberManagement currentUser={currentUser} /></>}
         {section === 'roles' && currentUser.role === 'GENEL_KOORDINATOR' && <PermissionDetails currentRole={currentUser.role} />}
         {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <AuditLogCenter logs={auditLogs} loading={auditLoading} error={auditError} onRetry={loadAuditLogs} />}
@@ -1519,3 +1536,4 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
   </div>;
 }
+
