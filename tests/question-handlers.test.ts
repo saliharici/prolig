@@ -10,6 +10,11 @@ vi.mock('../api/v1/_lib/auth.js', () => ({
   getSessionUserId: vi.fn()
 }));
 
+vi.mock('../api/v1/_lib/compensation-engine.js', () => ({
+  accrueQuestionApproval: vi.fn(),
+  accrueProjectCoordinatorCompletion: vi.fn()
+}));
+
 vi.mock('../api/v1/_lib/prisma.js', () => ({
   prisma: {
     user: { findUnique: vi.fn() },

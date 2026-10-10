@@ -9,6 +9,11 @@ vi.mock('../api/v1/_lib/current-user.js', () => ({
   getCurrentUser: vi.fn()
 }));
 
+vi.mock('../api/v1/_lib/compensation-engine.js', () => ({
+  accrueQuestionApproval: vi.fn(),
+  accrueProjectCoordinatorCompletion: vi.fn()
+}));
+
 vi.mock('../api/v1/_lib/prisma.js', () => ({
   prisma: {
     branch: { findUnique: vi.fn() },
@@ -27,6 +32,9 @@ vi.mock('../api/v1/_lib/prisma.js', () => ({
     fileRecord: { count: vi.fn() },
     payment: { count: vi.fn() },
     book: { count: vi.fn() },
+    compensationEntry: { count: vi.fn() },
+    compensationRule: { count: vi.fn() },
+    paymentPeriod: { count: vi.fn().mockResolvedValue(0) },
     activityLog: { create: vi.fn() },
     $transaction: vi.fn()
   }
@@ -92,6 +100,8 @@ describe('Project management handlers', () => {
     vi.mocked(prisma.fileRecord.count).mockResolvedValue(0);
     vi.mocked(prisma.payment.count).mockResolvedValue(0);
     vi.mocked(prisma.book.count).mockResolvedValue(0);
+    vi.mocked(prisma.compensationEntry.count).mockResolvedValue(0);
+    vi.mocked(prisma.compensationRule.count).mockResolvedValue(0);
   });
 
   it('requires authentication and coordinator role to create', async () => {
@@ -288,3 +298,4 @@ describe('Project management handlers', () => {
     expect(res.status).toHaveBeenCalledWith(200);
   });
 });
+

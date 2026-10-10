@@ -110,10 +110,10 @@ export const sectionLabels: Record<Section, string> = {
 
 export const permissions: Record<Role, Section[]> = {
   GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'reports', 'payments', 'members', 'roles', 'audit'],
-  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'authors', 'grades', 'reports', 'members'],
-    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'reports', 'members'],
-  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports'],
-  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports'],
+  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'authors', 'grades', 'reports', 'members', 'payments'],
+    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'reports', 'members', 'payments'],
+  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports', 'payments'],
+  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports', 'payments'],
   MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'reports'],
 };
 
@@ -133,7 +133,7 @@ export const actionPermissions: { label: string; roles: Role[] }[] = [
   { label: 'Görev oluştur / ata', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'] },
   { label: 'Kendi görev durumunu ilerlet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR'] },
   { label: 'Yetki kapsamına mesaj gönder', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE'] },
-  { label: 'Telif/ödeme kaydını onayla / ödendi işaretle', roles: ['MUHASEBE', 'GENEL_KOORDINATOR'] },
+  { label: 'Telif/ödeme kaydını onayla / ödendi işaretle', roles: ['MUHASEBE'] },
   { label: 'İşlem geçmişini görüntüle', roles: ['GENEL_KOORDINATOR'] },
 ];
 
@@ -245,3 +245,4 @@ export function resetDemoData(): DemoData {
   saveDemoData(data);
   return data;
 }
+

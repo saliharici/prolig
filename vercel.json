@@ -61,6 +61,46 @@
       "destination": "/api/v1/management?action=tasks"
     },
     {
+      "source": "/api/v1/compensation/periods/:id/prepare",
+      "destination": "/api/v1/management?action=paymentPeriodPrepare&id=:id"
+    },
+    {
+      "source": "/api/v1/compensation/periods/:id/settle",
+      "destination": "/api/v1/management?action=paymentPeriodSettle&id=:id"
+    },
+    {
+      "source": "/api/v1/compensation/periods/:id/close",
+      "destination": "/api/v1/management?action=paymentPeriodClose&id=:id"
+    },
+    {
+      "source": "/api/v1/compensation/periods/:id/cancel",
+      "destination": "/api/v1/management?action=paymentPeriodCancel&id=:id"
+    },
+    {
+      "source": "/api/v1/compensation/periods/:id",
+      "destination": "/api/v1/management?action=paymentPeriod&id=:id"
+    },
+    {
+      "source": "/api/v1/compensation/periods",
+      "destination": "/api/v1/management?action=paymentPeriods"
+    },
+    {
+      "source": "/api/v1/payments/:id/cancel",
+      "destination": "/api/v1/payments?action=cancel&id=:id"
+    },
+    {
+      "source": "/api/v1/compensation/entries",
+      "destination": "/api/v1/management?action=compensationEntries"
+    },
+    {
+      "source": "/api/v1/compensation/rules/:id",
+      "destination": "/api/v1/management?action=compensationRule&id=:id"
+    },
+    {
+      "source": "/api/v1/compensation/rules",
+      "destination": "/api/v1/management?action=compensationRules"
+    },
+    {
       "source": "/api/v1/audit-logs",
       "destination": "/api/v1/management?action=auditLogs"
     },
