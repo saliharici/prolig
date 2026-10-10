@@ -12,7 +12,7 @@ describe('Public Landing V2', () => {
     expect(landing).toContain('Görev Takibi');
     expect(landing).toContain('Soru Üretimi');
     expect(landing).toContain('Kurumsal Mesajlar');
-    expect(landing).toContain('Hakedişler');
+    expect(landing).toContain('Telif ve Ödemeler');
     expect(landing).toContain('Rol & Yetki');
     expect(landing).toContain('İşlem Geçmişi');
     expect(landing).not.toContain('fetchProjects');
