@@ -71,12 +71,12 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
 
       <header className="public-header">
         <div className="public-header-inner">
-          <a className="public-brand" href="#anasayfa" aria-label="PRO-LİG ana sayfa">
-            <div className="public-brand-mark">P</div>
-            <div>
-              <strong>PRO-LİG</strong>
-              <span>Yayın ve İçerik Yönetim Platformu</span>
-            </div>
+          <a className="public-brand public-brand-image-link" href="#anasayfa" aria-label="PRO-LİG ana sayfa">
+            <img
+              className="public-brand-logo"
+              src="/prolig-logo.webp"
+              alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu"
+            />
           </a>
 
           <nav className="public-nav" aria-label="Sayfa bölümleri">
@@ -297,9 +297,12 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
       </main>
 
       <footer className="public-footer">
-        <div className="public-brand footer-brand">
-          <div className="public-brand-mark">P</div>
-          <div><strong>PRO-LİG</strong><span>Yayın ve içerik yönetim platformu</span></div>
+        <div className="public-brand footer-brand footer-brand-image">
+          <img
+            className="public-brand-logo footer-brand-logo"
+            src="/prolig-logo.webp"
+            alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu"
+          />
         </div>
         <span>© {new Date().getFullYear()} Pro-Lig Platformu</span>
       </footer>
