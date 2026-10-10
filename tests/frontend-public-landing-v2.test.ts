@@ -46,6 +46,14 @@ describe('Public Landing V2', () => {
     expect(landing).not.toContain('8. Sınıf LGS Soru Bankası');
   });
 
+  it('uses the new PRO-LIG brand asset in header and footer', () => {
+    expect(landing).toContain('src="/prolig-logo.webp"');
+    expect(landing).toContain('public-brand-logo');
+    expect(landing).not.toContain('<div className="public-brand-mark">P</div>');
+    expect(css).toContain('.public-brand-logo{');
+    expect(css).toContain('.footer-brand-logo{');
+  });
+
   it('updates public navigation to platform, projects, workflow and pilot', () => {
     expect(landing).toContain('<a href="#platform">Platform</a>');
     expect(landing).toContain('<a href="#projeler">Projeler</a>');
