@@ -29,8 +29,9 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function fetchQuestions(): Promise<ApiQuestion[]> {
-  const res = await fetch('/api/v1/questions', {
+export async function fetchQuestions(archive: 'active' | 'archived' | 'all' = 'active'): Promise<ApiQuestion[]> {
+  const url = archive === 'active' ? '/api/v1/questions' : `/api/v1/questions?archive=${archive}`;
+  const res = await fetch(url, {
     credentials: 'include',
   });
   return handleResponse<ApiQuestion[]>(res);
@@ -69,4 +70,23 @@ export async function runQuestionWorkflow(id: number, action: QuestionWorkflowAc
     body: JSON.stringify(payload),
   });
   return handleResponse<ApiQuestion>(res);
+}
+
+
+export async function changeQuestionArchive(id: number, action: 'archive' | 'restore'): Promise<ApiQuestion> {
+  const res = await fetch(`/api/v1/questions/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ action }),
+  });
+  return handleResponse<ApiQuestion>(res);
+}
+
+export async function deleteQuestion(id: number): Promise<{ deleted: true; id: number }> {
+  const res = await fetch(`/api/v1/questions/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  return handleResponse<{ deleted: true; id: number }>(res);
 }
