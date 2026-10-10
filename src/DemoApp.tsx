@@ -986,10 +986,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     try {
       if (currentStatus === 'Bekliyor') {
         await approvePayment(id);
-        setToast('Hakediş onaylandı.');
+        setToast('Telif/ödeme kaydı onaylandı.');
       } else if (currentStatus === 'Onaylandi') {
         await payPayment(id);
-        setToast('Hakediş ödendi.');
+        setToast('Ödeme tamamlandı.');
       }
       fetchPayments();
     } catch (e: any) {
