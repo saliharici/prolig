@@ -1195,3 +1195,35 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
 @media(max-width:1120px){.payment-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.payment-flow-grid{grid-template-columns:1fr}.payment-flow-step{border-right:0;border-bottom:1px solid #e9efee}.payment-flow-step:last-child{border-bottom:0}}
 @media(max-width:720px){.payment-kpi-grid{grid-template-columns:1fr 1fr}.payment-toolbar{align-items:stretch;flex-direction:column}.payment-search{width:100%}.payment-filter-tabs{overflow:auto;flex-wrap:nowrap}.payment-flow-note{display:none}}
 @media(max-width:500px){.payment-kpi-grid{grid-template-columns:1fr}.payment-kpi{min-height:auto}}
+
+
+/* === REAL AUDIT LOG WORKBENCH === */
+.audit-page-heading{margin-bottom:20px}
+.audit-workbench{padding:0;overflow:hidden}
+.audit-workbench-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px;border-bottom:1px solid #e9efee}
+.audit-workbench-head h2{margin:5px 0 3px;font:800 17px Manrope,sans-serif;color:#25434b}
+.audit-workbench-head p{margin:0;color:#91a2a5;font-size:8px;line-height:1.5}
+.audit-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px;background:#fbfcfc;border-bottom:1px solid #edf2f1}
+.audit-search{width:min(410px,100%)}
+.audit-type-tabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.audit-type-tabs button{height:29px;border:1px solid #dfe9e7;border-radius:8px;background:#fff;color:#70868b;padding:0 9px;font-size:7px;font-weight:900;white-space:nowrap}
+.audit-type-tabs button:hover,.audit-type-tabs button.active{border-color:#adddd2;background:#eef8f5;color:#1e7b6b}
+.audit-table-wrap{overflow:auto}
+.audit-table{min-width:980px}
+.audit-time strong,.audit-time small{display:block}
+.audit-time strong{font-size:8px;color:#3d585e}
+.audit-time small{margin-top:3px;font-size:7px;color:#99a8ab}
+.audit-action{display:flex;align-items:center;gap:8px;min-width:190px}
+.audit-action>span{width:28px;height:28px;border-radius:8px;background:#eaf5f2;color:#2a8878;display:grid;place-items:center;flex:0 0 auto}
+.audit-action strong{font-size:8.5px;color:#3b565d}
+.audit-entity-chip{display:inline-flex;align-items:center;min-height:23px;padding:0 7px;border-radius:999px;background:#f0f5f4;color:#577177;font-size:7px;font-weight:900;white-space:nowrap}
+.audit-detail{display:block;max-width:360px;color:#819499;font-size:7px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.audit-state{min-height:190px;display:flex;align-items:center;justify-content:center;gap:8px;color:#84999d;font-size:9px}
+.audit-state-error{flex-direction:column;text-align:center}
+.audit-state-error strong{color:#a64d43;font-size:10px}
+.audit-empty{min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;color:#91a3a6}
+.audit-empty svg{color:#5fae9e;margin-bottom:8px}
+.audit-empty strong{color:#48656c;font-size:10px}
+.audit-empty span{margin-top:4px;font-size:8px}
+
+@media(max-width:900px){.audit-toolbar{align-items:stretch;flex-direction:column}.audit-search{width:100%}.audit-type-tabs{justify-content:flex-start;overflow:auto;flex-wrap:nowrap}}
