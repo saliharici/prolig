@@ -87,14 +87,16 @@ export async function validateProjectAuthors(
 }
 
 export async function protectedProjectHistory(prismaClient: any, projectId: number) {
-  const [questions, tasks, files, payments, books] = await Promise.all([
+  const [questions, tasks, files, payments, books, compensationEntries, compensationRules] = await Promise.all([
     prismaClient.question.count({ where: { projectId } }),
     prismaClient.task.count({ where: { projectId } }),
     prismaClient.fileRecord.count({ where: { projectId } }),
     prismaClient.payment.count({ where: { projectId } }),
-    prismaClient.book.count({ where: { projectId } })
+    prismaClient.book.count({ where: { projectId } }),
+    prismaClient.compensationEntry.count({ where: { projectId } }),
+    prismaClient.compensationRule.count({ where: { projectId } })
   ]);
-  return { questions, tasks, files, payments, books };
+  return { questions, tasks, files, payments, books, compensationEntries, compensationRules };
 }
 
 export function hasProtectedProjectHistory(history: Record<string, number>) {
@@ -109,13 +111,14 @@ export async function blockedRemovedProjectAuthors(
   const blocked: Array<{ authorProfileId: number; reasons: Record<string, number> }> = [];
 
   for (const author of removedAuthorProfiles) {
-    const [questions, tasks, files, payments] = await Promise.all([
+    const [questions, tasks, files, payments, compensationEntries] = await Promise.all([
       prismaClient.question.count({ where: { projectId, authorUserId: author.userId } }),
       prismaClient.task.count({ where: { projectId, assignedAuthorProfileId: author.id } }),
       prismaClient.fileRecord.count({ where: { projectId, authorProfileId: author.id } }),
-      prismaClient.payment.count({ where: { projectId, authorUserId: author.userId } })
+      prismaClient.payment.count({ where: { projectId, authorUserId: author.userId } }),
+      prismaClient.compensationEntry.count({ where: { projectId, userId: author.userId } })
     ]);
-    const reasons = { questions, tasks, files, payments };
+    const reasons = { questions, tasks, files, payments, compensationEntries };
     if (Object.values(reasons).some((count) => count > 0)) {
       blocked.push({ authorProfileId: author.id, reasons });
     }
