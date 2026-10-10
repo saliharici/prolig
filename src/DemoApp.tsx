@@ -33,6 +33,7 @@ import type { ApiAuthor } from './authors/types';
 import { fetchAuditLogs } from './audit/api';
 import type { ApiAuditLog } from './audit/types';
 import { CompensationRulesPanel } from './compensation/CompensationRulesPanel';
+import { CompensationEntriesPanel } from './compensation/CompensationEntriesPanel';
 import { ReportsCenter } from './reports/ReportsCenter';
 import { MemberManagement } from './membership/MemberManagement';
 import { ProfileModal } from './profile/ProfileModal';
@@ -259,7 +260,7 @@ function PaymentCenter({
   onAdvance: (id: number, currentStatus: string) => void;
   currentUser: AuthUser;
 }) {
-  const [financeTab, setFinanceTab] = useState<'overview' | 'rates'>('overview');
+  const [financeTab, setFinanceTab] = useState<'overview' | 'rates' | 'earnings'>('overview');
   const [paymentView, setPaymentView] = useState<'Tümü' | Payment['status']>('Tümü');
   const [paymentSearch, setPaymentSearch] = useState('');
 
@@ -306,10 +307,13 @@ function PaymentCenter({
     <div className="payment-module-tabs" role="tablist" aria-label="Telif ve Ödemeler bölümleri">
       <button className={financeTab === 'overview' ? 'active' : ''} onClick={() => setFinanceTab('overview')}>Genel Bakış</button>
       <button className={financeTab === 'rates' ? 'active' : ''} onClick={() => setFinanceTab('rates')}>Ücret Tarifeleri</button>
+      <button className={financeTab === 'earnings' ? 'active' : ''} onClick={() => setFinanceTab('earnings')}>Kazanılmış Ücretler</button>
     </div>
 
     {financeTab === 'rates' ? (
       <CompensationRulesPanel projects={projects} currentRole={currentUser.role} />
+    ) : financeTab === 'earnings' ? (
+      <CompensationEntriesPanel />
     ) : <>
 
     <div className="payment-kpi-grid">
