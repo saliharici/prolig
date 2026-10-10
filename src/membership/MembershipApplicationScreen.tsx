@@ -11,6 +11,7 @@ import {
 import { submitMembershipApplication } from './api';
 import { PROVINCES } from './provinces';
 import { MEB_TEACHING_BRANCHES } from '../../shared/branch-catalog';
+import { districtsForProvince } from '../../shared/district-catalog';
 
 type FormState = {
   fullName: string;
@@ -218,9 +219,10 @@ export function MembershipApplicationScreen({
                       className="membership-control membership-select"
                       required
                       value={form.provinceId}
-                      onChange={(event) =>
-                        change('provinceId', event.target.value)
-                      }
+                      onChange={(event) => {
+                        change('provinceId', event.target.value);
+                        change('districtName', '');
+                      }}
                     >
                       <option value="" disabled>
                         İl seçiniz
@@ -251,16 +253,29 @@ export function MembershipApplicationScreen({
 
                 <div className="membership-grid">
                   <label className="membership-field">
-                    <span className="membership-label">İlçe</span>
+                    <span className="membership-label">
+                      İlçe <em>*</em>
+                    </span>
 
-                    <input
-                      className="membership-control"
+                    <select
+                      className="membership-control membership-select"
+                      required
+                      disabled={!form.provinceId}
                       value={form.districtName}
                       onChange={(event) =>
                         change('districtName', event.target.value)
                       }
-                      placeholder="İlçe adını yazın"
-                    />
+                    >
+                      <option value="" disabled>
+                        {form.provinceId ? 'İlçe seçiniz' : 'Önce il seçiniz'}
+                      </option>
+
+                      {districtsForProvince(form.provinceId).map((district) => (
+                        <option key={district} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </select>
                   </label>
 
                   <label className="membership-field">
