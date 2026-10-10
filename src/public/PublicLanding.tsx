@@ -49,7 +49,7 @@ const platformFeatures = [
   { icon: FileQuestion, title: 'Soru Üretimi', copy: 'Yazar–editör üretim ve inceleme akışını proje kapsamıyla birlikte yürütün.' },
   { icon: MessageSquareText, title: 'Kurumsal Mesajlar', copy: 'Yetki kapsamındaki ekip üyeleriyle kayıtlı ve kontrollü iletişim kurun.' },
   { icon: Users, title: 'Yazar Ağı', copy: 'Yazarları branş ve coğrafi kapsamlarıyla birlikte yönetin.' },
-  { icon: CreditCard, title: 'Hakedişler', copy: 'Onaylanan üretimi ödeme ve hakediş sürecine kontrollü biçimde taşıyın.' },
+  { icon: CreditCard, title: 'Telif ve Ödemeler', copy: 'Onaylanan üretimi telif ve ödeme sürecine kontrollü biçimde taşıyın.' },
   { icon: ShieldCheck, title: 'Rol & Yetki', copy: 'Her rol yalnız kendi görev ve sorumluluk alanındaki veriyi görür.' },
   { icon: History, title: 'İşlem Geçmişi', copy: 'Kritik işlemleri denetlenebilir bir kayıt iziyle takip edin.' }
 ];
@@ -60,7 +60,7 @@ const processSteps = [
   { no: '03', icon: ClipboardCheck, title: 'Görevleri ata', copy: 'Sorumlu, öncelik ve termin bilgileriyle üretim işlerini planlayın.' },
   { no: '04', icon: PenTool, title: 'İçeriği üret', copy: 'Yazarlar proje ve branş kapsamındaki içerikleri hazırlar.' },
   { no: '05', icon: ShieldCheck, title: 'Kontrol et', copy: 'Editör ve koordinatörler inceleme, revizyon ve onay akışını yürütür.' },
-  { no: '06', icon: CheckCircle2, title: 'Süreci tamamla', copy: 'Onaylanan üretim proje ve hakediş akışına taşınır.' }
+  { no: '06', icon: CheckCircle2, title: 'Süreci tamamla', copy: 'Onaylanan üretim proje ve telif ve ödeme akışına taşınır.' }
 ];
 
 export function PublicLanding({
@@ -115,7 +115,7 @@ export function PublicLanding({
               <span>ekip koordinasyonuna.</span>
             </h1>
             <p>
-              Proje, soru üretimi, görev takibi, kurumsal mesajlaşma ve hakediş süreçlerini
+              Proje, soru üretimi, görev takibi, kurumsal mesajlaşma ve telif ve ödeme süreçlerini
               rol bazlı, izlenebilir ve tek merkezden yönetilen bir çalışma alanında birleştirin.
             </p>
 
