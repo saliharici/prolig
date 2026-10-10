@@ -361,3 +361,14 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
   .member-form-icon{width:42px;height:42px;border-radius:11px}
   .member-form-heading h2{font-size:18px}
 }
+
+
+/* Education level summary */
+.grade-level-card{min-height:174px}
+.grade-level-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+.grade-level-metrics>div{min-width:0}
+.grade-level-metrics strong,.grade-level-metrics span{display:block}
+.grade-level-metrics strong{color:#0f172a;font:800 17px Manrope,sans-serif;line-height:1.15}
+.grade-level-metrics span{margin-top:4px;color:#7f9298;font-size:9px;font-weight:700;line-height:1.25}
+.grade-level-note{margin-top:17px;padding-top:12px;border-top:1px solid #edf2f1;color:#94a5a9;font-size:9px;line-height:1.45}
+@media(max-width:600px){.grade-level-metrics{gap:7px}.grade-level-metrics strong{font-size:15px}.grade-level-metrics span{font-size:8px}}
