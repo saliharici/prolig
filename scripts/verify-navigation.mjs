@@ -11,9 +11,11 @@ for (let attempt = 0; attempt < 80; attempt++) {
 
 const browser = await chromium.launch();
 const errors = [];
+const logoutCalls = new WeakMap();
 async function fixturePage(role = 'GENEL_KOORDINATOR', viewport = { width: 1365, height: 900 }) {
   const page = await browser.newPage({ viewport });
   page.on('pageerror', error => errors.push(error.message));
+  logoutCalls.set(page, 0);
   await page.route('**/api/v1/**', async route => {
     const path = new URL(route.request().url()).pathname;
     let status = 200;
@@ -21,6 +23,11 @@ async function fixturePage(role = 'GENEL_KOORDINATOR', viewport = { width: 1365,
     if (path === '/api/v1/auth/me') {
       status = role ? 200 : 401;
       json = { user: { id: 1, email: 'navigation@example.test', fullName: 'Test Kullanıcısı', role, provinceId: null, assignedRegion: null } };
+    } else if (path === '/api/v1/auth/logout') {
+      assert.equal(route.request().method(), 'POST');
+      logoutCalls.set(page, logoutCalls.get(page) + 1);
+      role = null;
+      json = { success: true };
     } else if (path === '/api/v1/messages') {
       json = { messages: [], counts: { unread: 0, inbox: 0, sent: 0 } };
     } else if (path === '/api/v1/announcements') {
@@ -106,6 +113,23 @@ try {
   }
   await page.close();
 
+  const logoutPage = await fixturePage('GENEL_KOORDINATOR', { width: 320, height: 568 });
+  await openDrawer(logoutPage);
+  const logoutButton = logoutPage.locator('#workspace-navigation').getByRole('button', { name: 'Çıkış Yap', exact: true });
+  assert.equal(await logoutButton.isVisible(), true);
+  const logoutBounds = await logoutButton.boundingBox();
+  assert.ok(logoutBounds && logoutBounds.y >= 0 && logoutBounds.y + logoutBounds.height <= 568, 'Mobile logout must be visible without scrolling');
+  assert.ok(logoutBounds.height >= 44, 'Mobile logout needs a usable touch target');
+  await logoutButton.click();
+  await logoutPage.getByRole('heading', { name: 'Yayın üretiminden ekip koordinasyonuna.' }).waitFor();
+  assert.equal(logoutCalls.get(logoutPage), 1, 'Logout must call the session endpoint once');
+  assert.equal(await logoutPage.locator('#workspace-navigation').count(), 0);
+  assert.equal(await logoutPage.evaluate(() => document.body.style.position), '');
+  await logoutPage.reload();
+  await logoutPage.getByRole('heading', { name: 'Yayın üretiminden ekip koordinasyonuna.' }).waitFor();
+  assert.equal(await logoutPage.locator('#workspace-navigation').count(), 0);
+  await logoutPage.close();
+
   for (const role of ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE']) {
     const rolePage = await fixturePage(role);
     const navigation = rolePage.locator('#workspace-navigation');
@@ -125,7 +149,7 @@ try {
   assert.equal(/pilot ortamı|test ortamı/i.test(await publicPage.locator('body').innerText()), false);
   await publicPage.close();
   assert.deepEqual(errors, [], 'Browser page errors');
-  console.log('Navigation browser checks passed: desktop, 320/390/768/960px, focus trap, Escape, backdrop, selection, resize, six roles and public/login copy.');
+  console.log('Navigation browser checks passed: desktop, 320/390/768/960px, focus trap, Escape, backdrop, selection, resize, six roles, 320x568 mobile logout and public/login copy.');
 } finally {
   await browser.close();
 }
