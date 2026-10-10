@@ -6,6 +6,7 @@ import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canManage
 import { MEB_TEACHING_BRANCHES, isMebTeachingBranch } from '../../shared/branch-catalog.js';
 import { isDistrictInProvince } from '../../shared/district-catalog.js';
 import { handleTaskAction } from './_lib/task-handler.js';
+import { handleMessageAction } from './_lib/message-handler.js';
 
 const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
@@ -200,6 +201,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
     if (action === 'tasks' || action === 'task') {
       return handleTaskAction(req, res, user, action);
+    }
+    if (action === 'messages' || action === 'message' || action === 'messageRecipients') {
+      return handleMessageAction(req, res, user, action);
     }
     if (!coordinatorRoles.has(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
 
