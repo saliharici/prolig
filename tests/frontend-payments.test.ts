@@ -17,16 +17,36 @@ describe('Payment API Frontend Client', () => {
     expect(apiCode).toContain('payPayment');
   });
 
-  it('DemoApp uses real payments', () => {
+  it('DemoApp uses real payments through the operational Telif ve Ödemeler center', () => {
     const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
     const code = fs.readFileSync(demoAppPath, 'utf8');
-    
+
     expect(code).not.toContain("total('Bekliyor') => data.payments");
-    expect(code).toContain('moneyKurus(sumPayments(apiPayments');
-    expect(code).toContain('apiPayments.map(payment =>');
-    expect(code).toContain('updatePayment(payment.id');
+    expect(code).toContain('function PaymentCenter(');
+    expect(code).toContain('Telif ve Ödeme Merkezi');
+    expect(code).toContain('İŞLEM KUYRUĞU');
+    expect(code).toContain('filteredPayments.map(payment =>');
+    expect(code).toContain('onAdvance(payment.id, payment.status)');
     expect(code).toContain('await approvePayment(id)');
     expect(code).toContain('await payPayment(id)');
+    expect(code).toContain('payments={apiPayments}');
+  });
+
+  it('provides search, status filters, workflow and real summary metrics', () => {
+    const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
+    const cssPath = path.resolve(__dirname, '../src/demo.css');
+    const code = fs.readFileSync(demoAppPath, 'utf8');
+    const css = fs.readFileSync(cssPath, 'utf8');
+
+    expect(code).toContain("useState<'Tümü' | Payment['status']>('Tümü')");
+    expect(code).toContain('Yazar, proje, kod veya sözleşme ara...');
+    expect(code).toContain('Onay Bekliyor');
+    expect(code).toContain('Ödeme Sırasında');
+    expect(code).toContain('BU AY ÖDENEN');
+    expect(code).toContain('TOPLAM HACİM');
+    expect(css).toContain('.payment-kpi-grid');
+    expect(css).toContain('.payment-flow-grid');
+    expect(css).toContain('.payment-filter-tabs');
   });
 
   it('implements strict toKurus without floats', () => {

@@ -61,6 +61,10 @@
       "destination": "/api/v1/management?action=tasks"
     },
     {
+      "source": "/api/v1/audit-logs",
+      "destination": "/api/v1/management?action=auditLogs"
+    },
+    {
       "source": "/api/v1/messages/recipients",
       "destination": "/api/v1/management?action=messageRecipients"
     },

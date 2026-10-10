@@ -11,6 +11,7 @@ const author = (userId: number, projectGrades: string[] = []): ApiAuthor => ({
   title: 'Yazar',
   experienceYears: 1,
   status: 'Aktif',
+  createdAt: '2026-10-01T09:00:00.000Z',
   branch: { id: 1, name: 'Matematik' },
   province: { id: 25, name: 'Erzurum', region: 'Doğu Anadolu' },
   district: null,

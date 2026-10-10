@@ -77,10 +77,29 @@ describe('Final UX Stabilization', () => {
     expect(authGateCode).toContain('const [showApplication, setShowApplication] = useState(false);');
     expect(authGateCode).toContain('<MembershipApplicationScreen onBack={() => setShowApplication(false)} />');
     expect(authGateCode).toContain('<PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />');
+    expect(authGateCode).toContain('const [showPublicPreview, setShowPublicPreview] = useState(false);');
+    expect(authGateCode).toContain('<PublicLanding');
+    expect(authGateCode).toContain('authenticated');
+    expect(authGateCode).toContain('onPublicSiteRequest={() => setShowPublicPreview(true)}');
     expect(authGateCode).toContain('<LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }}');
     expect(authGateCode).toContain('setShowLogin(false);');
   });
 
+
+  it('uses the searchable command topbar and keeps corporate page access', () => {
+    const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
+    const demoAppCode = fs.readFileSync(demoAppPath, 'utf8');
+    const cssPath = path.resolve(__dirname, '../src/demo.css');
+    const cssCode = fs.readFileSync(cssPath, 'utf8');
+
+    expect(demoAppCode).toContain('topbar-command');
+    expect(demoAppCode).toContain('topbar-global-search');
+    expect(demoAppCode).toContain('topbarQuickSections');
+    expect(demoAppCode).toContain('onPublicSiteRequest');
+    expect(demoAppCode).toContain('runTopbarSearch');
+    expect(cssCode).toContain('.topbar-command{');
+    expect(cssCode).toContain('.topbar-command-actions');
+  });
 
   it('keeps role settings general-only and exposes member management only to coordinators', () => {
     const modelPath = path.resolve(__dirname, '../src/demo/model.ts');
@@ -88,15 +107,34 @@ describe('Final UX Stabilization', () => {
     const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
     const demoAppCode = fs.readFileSync(demoAppPath, 'utf8');
 
-    expect(modelCode).toContain("GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'payments', 'members', 'roles', 'audit']");
-    expect(modelCode).toContain("BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'authors', 'grades', 'members']");
-    expect(modelCode).toContain("IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'members']");
-    expect(modelCode).toContain("EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages']");
-    expect(modelCode).toContain("YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages']");
-    expect(modelCode).toContain("MUHASEBE: ['overview', 'payments', 'projects', 'messages']");
+    expect(modelCode).toContain("GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'reports', 'payments', 'members', 'roles', 'audit']");
+    expect(modelCode).toContain("BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'authors', 'grades', 'reports', 'members']");
+    expect(modelCode).toContain("IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'reports', 'members']");
+    expect(modelCode).toContain("EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports']");
+    expect(modelCode).toContain("YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports']");
+    expect(modelCode).toContain("MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'reports']");
     expect(demoAppCode).toContain("{section === 'members'");
     expect(demoAppCode).toContain("{section === 'roles' && currentUser.role === 'GENEL_KOORDINATOR'");
     expect(demoAppCode).not.toContain("{section === 'roles' && <MemberManagement");
+  });
+
+  it('enriches the login screen with platform capabilities and production flow', () => {
+    const loginPath = path.resolve(__dirname, '../src/auth/LoginScreen.tsx');
+    const loginCode = fs.readFileSync(loginPath, 'utf8');
+    const cssPath = path.resolve(__dirname, '../src/demo.css');
+    const cssCode = fs.readFileSync(cssPath, 'utf8');
+
+    expect(loginCode).toContain('Proje Yönetimi');
+    expect(loginCode).toContain('Görev Takibi');
+    expect(loginCode).toContain('İçerik Üretimi');
+    expect(loginCode).toContain('Ekip İletişimi');
+    expect(loginCode).toContain('PROJE');
+    expect(loginCode).toContain('GÖREV');
+    expect(loginCode).toContain('ÜRETİM');
+    expect(loginCode).toContain('KONTROL');
+    expect(loginCode).toContain('YAYIN');
+    expect(cssCode).toContain('.soft-login-capabilities');
+    expect(cssCode).toContain('.soft-login-flow');
   });
 
   it('Landing page copy is accurate and neutral', () => {

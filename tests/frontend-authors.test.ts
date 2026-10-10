@@ -44,6 +44,22 @@ describe('Author API Frontend Client', () => {
   });
 
   describe('UI Source Regressions', () => {
+    it('renders live Yazar Ağı insight cards from authors and tasks', () => {
+      const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
+      const cssCode = fs.readFileSync(path.join(__dirname, '../src/demo.css'), 'utf-8');
+
+      expect(demoAppCode).toContain('İllere Göre Yazar Dağılımı');
+      expect(demoAppCode).toContain('Branşlara Göre Dağılım');
+      expect(demoAppCode).toContain('Yaklaşan Teslim Tarihleri');
+      expect(demoAppCode).toContain('Son Eklenen Yazarlar');
+      expect(demoAppCode).toContain('Kademelere Göre Dağılım');
+      expect(demoAppCode).toContain('fetchTasks().then(setAuthorInsightTasks)');
+      expect(demoAppCode).toContain('new Date(b.createdAt).getTime()');
+      expect(cssCode).toContain('.author-insights{');
+      expect(cssCode).toContain('.author-donut{');
+      expect(cssCode).toContain('.author-level-list{');
+    });
+
     it('verifies DemoApp.tsx and AuthorMap.tsx use apiAuthors and do not contain old dummy texts', () => {
       const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
       const mapCode = fs.readFileSync(path.join(__dirname, '../src/demo/AuthorMap.tsx'), 'utf-8');
