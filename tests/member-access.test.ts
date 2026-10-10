@@ -3,6 +3,7 @@ import {
   buildApplicationReadScope,
   buildUserReadScope,
   canAssignRole,
+  canManageUserLifecycle,
   canViewProvince,
   editorBranchIds
 } from '../api/v1/_lib/member-access.js';
@@ -66,4 +67,23 @@ describe('member scope helpers', () => {
     expect(canAssignRole(province, 'GENEL_KOORDINATOR')).toBe(false);
     expect(canAssignRole(province, 'MUHASEBE')).toBe(false);
   });
+
+  it('enforces member lifecycle hierarchy and protects peer General Coordinators', () => {
+    const general = { role: { code: 'GENEL_KOORDINATOR' } };
+    expect(canManageUserLifecycle(general, { role: { code: 'BOLGE_KOORDINATORU' } })).toBe(true);
+    expect(canManageUserLifecycle(general, { role: { code: 'MUHASEBE' } })).toBe(true);
+    expect(canManageUserLifecycle(general, { role: { code: 'GENEL_KOORDINATOR' } })).toBe(false);
+
+    const region = { role: { code: 'BOLGE_KOORDINATORU' } };
+    expect(canManageUserLifecycle(region, { role: { code: 'IL_KOORDINATORU' } })).toBe(true);
+    expect(canManageUserLifecycle(region, { role: { code: 'EDITOR' } })).toBe(true);
+    expect(canManageUserLifecycle(region, { role: { code: 'YAZAR' } })).toBe(true);
+    expect(canManageUserLifecycle(region, { role: { code: 'MUHASEBE' } })).toBe(false);
+
+    const province = { role: { code: 'IL_KOORDINATORU' } };
+    expect(canManageUserLifecycle(province, { role: { code: 'EDITOR' } })).toBe(true);
+    expect(canManageUserLifecycle(province, { role: { code: 'YAZAR' } })).toBe(true);
+    expect(canManageUserLifecycle(province, { role: { code: 'IL_KOORDINATORU' } })).toBe(false);
+  });
+
 });
