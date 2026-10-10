@@ -50,6 +50,9 @@ describe('task tracking frontend', () => {
     expect(task).toContain('Bu Hafta');
     expect(task).toContain('Yeni Görev');
     expect(vercel).toContain('/api/v1/tasks/:id');
-    expect(vercel).toContain('/api/v1/tasks?action=item&id=:id');
+    expect(vercel).toContain('/api/v1/management?action=task&id=:id');
+    expect(vercel).toContain('/api/v1/management?action=tasks');
+    const management = fs.readFileSync(path.join(__dirname, '../api/v1/management.ts'), 'utf8');
+    expect(management).toContain("action === 'tasks' || action === 'task'");
   });
 });
