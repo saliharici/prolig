@@ -228,26 +228,36 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     updateData.difficulty = difficulty ? difficulty.trim() : null;
   }
 
+  const nextProjectId = projectId !== undefined ? projectId : question.projectId;
+  const nextGrade = grade !== undefined ? updateData.grade : question.grade;
+
   if (projectId !== undefined) {
-    if (projectId !== null) {
-      if (typeof projectId !== 'number' || !Number.isSafeInteger(projectId) || projectId <= 0) {
-        return res.status(400).json({ error: 'Invalid projectId' });
-      }
-      const pa = await prisma.projectAuthor.findUnique({
-        where: {
-          projectId_authorProfileId: {
-            projectId,
-            authorProfileId: user.AuthorProfile.id
-          }
-        },
-        include: { project: { select: { branchId: true } } }
-      });
-      if (!pa) return res.status(403).json({ error: 'Not assigned to this project' });
-      if (pa.project.branchId !== user.AuthorProfile.branchId) {
-        return res.status(403).json({ error: 'Project branch is outside author branch' });
-      }
+    if (projectId !== null && (typeof projectId !== 'number' || !Number.isSafeInteger(projectId) || projectId <= 0)) {
+      return res.status(400).json({ error: 'Invalid projectId' });
     }
     updateData.projectId = projectId;
+  }
+
+  if (nextProjectId !== null && nextProjectId !== undefined && (projectId !== undefined || grade !== undefined)) {
+    const pa = await prisma.projectAuthor.findUnique({
+      where: {
+        projectId_authorProfileId: {
+          projectId: nextProjectId,
+          authorProfileId: user.AuthorProfile.id
+        }
+      },
+      include: { project: { select: { branchId: true, targetGrade: true } } }
+    });
+    if (!pa) return res.status(403).json({ error: 'Not assigned to this project' });
+    if (pa.project.branchId !== user.AuthorProfile.branchId) {
+      return res.status(403).json({ error: 'Project branch is outside author branch' });
+    }
+    if (!nextGrade || nextGrade !== pa.project.targetGrade) {
+      return res.status(409).json({
+        error: 'Question grade must match project target grade',
+        expectedGrade: pa.project.targetGrade
+      });
+    }
   }
 
   if (Object.keys(updateData).length === 0) {
