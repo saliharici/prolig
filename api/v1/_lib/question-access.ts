@@ -76,3 +76,45 @@ export function canWorkflowReview(question: any, user: any) {
   }
   return false;
 }
+
+
+export function canArchiveQuestion(question: any, user: any): boolean {
+  const role = user?.role?.code;
+  if (role === 'GENEL_KOORDINATOR') return true;
+  if (role === 'BOLGE_KOORDINATORU' || role === 'IL_KOORDINATORU') {
+    return question.status !== 'INCELEMEDE';
+  }
+  if (role === 'EDITOR') {
+    return ['ONAYLANDI', 'REDDEDILDI'].includes(question.status);
+  }
+  if (role === 'YAZAR') {
+    return question.authorUserId === user.id && ['TASLAK', 'REVIZYON', 'REDDEDILDI'].includes(question.status);
+  }
+  return false;
+}
+
+export function canRestoreQuestion(question: any, user: any): boolean {
+  const role = user?.role?.code;
+  if (role === 'GENEL_KOORDINATOR') return true;
+  if (role === 'BOLGE_KOORDINATORU' || role === 'IL_KOORDINATORU') return true;
+  if (role === 'EDITOR') return ['ONAYLANDI', 'REDDEDILDI'].includes(question.status);
+  if (role === 'YAZAR') {
+    return question.authorUserId === user.id && ['TASLAK', 'REVIZYON', 'REDDEDILDI'].includes(question.status);
+  }
+  return false;
+}
+
+export function canDeleteQuestion(question: any, user: any, isArchived: boolean): boolean {
+  const role = user?.role?.code;
+  if (role === 'GENEL_KOORDINATOR') return true;
+  if (role === 'BOLGE_KOORDINATORU' || role === 'IL_KOORDINATORU') {
+    return isArchived && ['TASLAK', 'REVIZYON', 'REDDEDILDI'].includes(question.status);
+  }
+  if (role === 'EDITOR') {
+    return isArchived && question.status === 'REDDEDILDI';
+  }
+  if (role === 'YAZAR') {
+    return question.authorUserId === user.id && ['TASLAK', 'REVIZYON', 'REDDEDILDI'].includes(question.status);
+  }
+  return false;
+}
