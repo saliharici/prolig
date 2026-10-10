@@ -121,7 +121,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     <div className="panel" style={{padding:0,overflow:'hidden'}}>
       <div className="table-heading"><div><strong>Üyelik Başvuruları</strong><span>Rol + coğrafi kapsam + branş değerlendirmesi</span></div><button className="text-button" onClick={load}><RefreshCw size={14}/> Yenile</button></div>
       {error && <div style={{padding:14,color:'#b91c1c'}}>{error}</div>}
-      <div className="table-wrap"><table><thead><tr><th>AD SOYAD</th><th>İL / BÖLGE</th><th>TALEP</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>
+      <div className="table-wrap"><table><thead><tr><th>AD SOYAD</th><th>İL / İLÇE</th><th>TALEP</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>
         {applications.map(app=><tr key={app.id}><td><strong>{app.fullName}</strong><small>{app.email}</small></td><td>{app.province.name}<small>{app.districtName?`${app.districtName} · ${app.province.region}`:app.province.region}</small></td><td>{app.requestedRole==='EDITOR'?'Editör':'Yazar'}<small>{app.requestedBranch||'Branş belirtilmedi'}</small></td><td>{app.status}</td><td><div className="row-actions">
           {app.status!=='ONAYLANDI'&&<button onClick={()=>review(app,'UYGUN')}><Check size={13}/> Uygun</button>}
           {app.status!=='ONAYLANDI'&&<button onClick={()=>review(app,'REDDEDILDI')}><X size={13}/> Reddet</button>}
@@ -133,7 +133,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     <div className="panel" style={{padding:0,overflow:'hidden',marginTop:18}}>
       <div className="table-heading"><div><strong>Kullanıcılar</strong><span>{currentUser.role==='GENEL_KOORDINATOR'?'Türkiye geneli':currentUser.role==='BOLGE_KOORDINATORU'?'Yalnız kendi bölgeniz':'Yalnız kendi iliniz'}</span></div></div>
       <div className="table-wrap"><table><thead><tr><th>KULLANICI</th><th>ROL</th><th>KAPSAM</th><th>BRANŞ</th><th>DURUM</th><th></th></tr></thead><tbody>
-        {users.map(u=><tr key={u.id}><td><strong>{u.fullName}</strong><small>{u.email}</small></td><td>{roleLabels[u.role]}</td><td>{u.assignedRegion||u.province?.name||'Türkiye'}</td><td>{u.role==='YAZAR'&&u.authorProfile?branches.find(b=>b.id===u.authorProfile?.branchId)?.name||'-':u.branchIds.map(id=>branches.find(b=>b.id===id)?.name).filter(Boolean).join(', ')||'-'}</td><td>{u.status}</td><td>{canManage&&u.id!==currentUser.id&&<button className="text-button" onClick={()=>editUser(u)}><PencilLine size={13}/> Düzenle</button>}</td></tr>)}
+        {users.map(u=><tr key={u.id}><td><strong>{u.fullName}</strong><small>{u.email}</small></td><td>{roleLabels[u.role]}</td><td>{u.assignedRegion||(u.province?`${u.province.name}${u.role==='YAZAR'&&u.authorProfile?.district?.name?` / ${u.authorProfile.district.name}`:''}`:'Türkiye')}</td><td>{u.role==='YAZAR'&&u.authorProfile?branches.find(b=>b.id===u.authorProfile?.branchId)?.name||'-':u.branchIds.map(id=>branches.find(b=>b.id===id)?.name).filter(Boolean).join(', ')||'-'}</td><td>{u.status}</td><td>{canManage&&u.id!==currentUser.id&&<button className="text-button" onClick={()=>editUser(u)}><PencilLine size={13}/> Düzenle</button>}</td></tr>)}
       </tbody></table></div>
     </div>
 
