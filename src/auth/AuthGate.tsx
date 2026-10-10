@@ -11,6 +11,7 @@ export function AuthGate() {
   const [authState, setAuthState] = useState<AuthState>({ status: 'loading' });
   const [showLogin, setShowLogin] = useState(false);
   const [showApplication, setShowApplication] = useState(false);
+  const [showPublicPreview, setShowPublicPreview] = useState(false);
 
   const checkSession = async () => {
     setAuthState({ status: 'loading' });
@@ -41,6 +42,7 @@ export function AuthGate() {
       setAuthState({ status: 'unauthenticated' });
       setShowLogin(false);
       setShowApplication(false);
+      setShowPublicPreview(false);
     } catch (err: any) {
       alert('Çıkış işlemi başarısız oldu, lütfen tekrar deneyin.');
     }
@@ -88,5 +90,22 @@ export function AuthGate() {
   }
 
   // Authenticated
-  return <DemoApp currentUser={authState.user} onLogoutRequest={handleLogout} onProfileUpdated={refreshAuthenticatedUser} />;
+  if (showPublicPreview) {
+    return (
+      <PublicLanding
+        authenticated
+        onLoginClick={() => setShowPublicPreview(false)}
+        onApplyClick={() => setShowPublicPreview(false)}
+      />
+    );
+  }
+
+  return (
+    <DemoApp
+      currentUser={authState.user}
+      onLogoutRequest={handleLogout}
+      onProfileUpdated={refreshAuthenticatedUser}
+      onPublicSiteRequest={() => setShowPublicPreview(true)}
+    />
+  );
 }
