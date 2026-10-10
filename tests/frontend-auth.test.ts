@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { validateRole, fetchMe, login, logout } from '../src/auth/api';
+import { validateRole, fetchMe, login, logout, updateMyProfile } from '../src/auth/api';
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -215,6 +215,43 @@ describe('Frontend Auth Logic', () => {
         json: async () => ({ user: { id: 1, email: 'a@a', fullName: 'A', role: 'EDITOR', assignedRegion: 123 } })
       } as Response);
       await expect(fetchMe()).rejects.toThrow('Geçersiz bölge');
+    });
+  });
+
+
+  describe('self profile editing', () => {
+    it('PATCHes only the profile payload to the existing auth/me endpoint', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          user: {
+            id: 7,
+            email: 'user@prolig.local',
+            fullName: 'Yeni Ad',
+            role: 'YAZAR',
+            provinceId: 25,
+            assignedRegion: null,
+            phone: '+90 500 000 00 00'
+          }
+        })
+      } as Response);
+
+      const payload = {
+        fullName: 'Yeni Ad',
+        phone: '+90 500 000 00 00',
+        biography: 'Kısa biyografi',
+        experienceYears: 12
+      };
+
+      const user = await updateMyProfile(payload);
+      expect(user.fullName).toBe('Yeni Ad');
+      expect(fetch).toHaveBeenCalledWith('/api/v1/auth/me', expect.objectContaining({
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }));
     });
   });
 
