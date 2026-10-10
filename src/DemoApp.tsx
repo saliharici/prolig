@@ -671,7 +671,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                   <span><Users size={14}/><strong>{project.authors.length}</strong> Yazar</span>
                   <span><FileQuestion size={14}/><strong>{stats.total}</strong> Soru</span>
                   <span><CheckCircle2 size={14}/><strong>{stats.approved}</strong> Onaylı</span>
-                  <span><ClipboardList size={14}/><strong>{project.taskCount}</strong> Görev</span>
+                  <span><ClipboardList size={14}/><strong>{project.taskCount ?? 0}</strong> Görev</span>
                 </div>
                 <div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div>
                 <div className="progress-line"><span style={{ width: project.progress + '%' }} /></div>
@@ -803,7 +803,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <div><strong>{stats.total}</strong><span>Soru</span></div>
         <div><strong>{stats.review}</strong><span>İncelemede</span></div>
         <div><strong>{stats.approved}</strong><span>Onaylı</span></div>
-        <div><strong>{selectedProject.taskCount}</strong><span>Görev</span></div>
+        <div><strong>{selectedProject.taskCount ?? 0}</strong><span>Görev</span></div>
         <div><strong>%{selectedProject.progress}</strong><span>İlerleme</span></div>
       </div>})()}
       <div className="project-detail-body">
