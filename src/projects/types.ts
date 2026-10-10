@@ -16,6 +16,7 @@ export interface ApiProject {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+  taskCount?: number;
   branch: { id: number; name: string };
   authors: Array<{
     id: number;

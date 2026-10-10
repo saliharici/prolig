@@ -17,6 +17,7 @@ export const projectSelect = {
   branch: {
     select: { id: true, name: true }
   },
+  _count: { select: { tasks: true } },
   projectAuthors: {
     select: {
       authorProfileId: true,
@@ -48,6 +49,7 @@ export function formatProjectDto(project: SelectedProject, canManage = false) {
     description: project.description,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
+    taskCount: project._count?.tasks ?? 0,
     branch: project.branch,
     authors: project.projectAuthors.map(assignment => ({
       id: assignment.authorProfile.user.id,

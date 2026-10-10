@@ -21,6 +21,7 @@ import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
 import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
 import { ProjectManagementModal } from './projects/ProjectManagementModal';
+import { TaskTracking } from './tasks/TaskTracking';
 import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './payments/api';
 import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
@@ -35,6 +36,7 @@ const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'grades', icon: GraduationCap },
   { id: 'questions', icon: FileQuestion },
   { id: 'projects', icon: BookOpen },
+  { id: 'tasks', icon: ClipboardList },
   { id: 'authors', icon: MapPinned },
   { id: 'payments', icon: Wallet },
   { id: 'members', icon: Users },
@@ -203,6 +205,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showProjectManager, setShowProjectManager] = useState(false);
   const [editingProject, setEditingProject] = useState<ApiProject | null>(null);
+  const [taskProjectFilter, setTaskProjectFilter] = useState<number | null>(null);
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
@@ -257,6 +260,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionGradeFilter('');
     setProjectGradeFilter('');
     setSelectedProjectId(null);
+    setTaskProjectFilter(null);
     setMobileMenu(false);
   };
 
@@ -289,6 +293,14 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuery('');
     setStatusFilter('Tümü');
     setSection('questions');
+    setMobileMenu(false);
+  };
+
+  const openTasksForProject = (projectId: number) => {
+    if (!allowed.includes('tasks')) return;
+    setTaskProjectFilter(projectId);
+    setSelectedProjectId(null);
+    setSection('tasks');
     setMobileMenu(false);
   };
 
@@ -659,6 +671,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                   <span><Users size={14}/><strong>{project.authors.length}</strong> Yazar</span>
                   <span><FileQuestion size={14}/><strong>{stats.total}</strong> Soru</span>
                   <span><CheckCircle2 size={14}/><strong>{stats.approved}</strong> Onaylı</span>
+                  <span><ClipboardList size={14}/><strong>{project.taskCount ?? 0}</strong> Görev</span>
                 </div>
                 <div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div>
                 <div className="progress-line"><span style={{ width: project.progress + '%' }} /></div>
@@ -668,6 +681,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             })}</div>}
             {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}
           </>}
+        {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} />}
         {section === 'grades' && <>
           <div className="page-heading">
             <div>
@@ -789,6 +803,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <div><strong>{stats.total}</strong><span>Soru</span></div>
         <div><strong>{stats.review}</strong><span>İncelemede</span></div>
         <div><strong>{stats.approved}</strong><span>Onaylı</span></div>
+        <div><strong>{selectedProject.taskCount ?? 0}</strong><span>Görev</span></div>
         <div><strong>%{selectedProject.progress}</strong><span>İlerleme</span></div>
       </div>})()}
       <div className="project-detail-body">
@@ -803,6 +818,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       </div>
       <div className="project-detail-footer">
         {selectedProject.canManage&&<button className="secondary-button project-manage-button" onClick={()=>openProjectEdit(selectedProject)}><PencilLine size={15}/> Projeyi Düzenle</button>}
+        <button className="secondary-button" onClick={()=>openTasksForProject(selectedProject.id)}>Görevleri aç <ClipboardList size={15}/></button>
         <button className="secondary-button" onClick={()=>{setSelectedGrade(selectedProject.targetGrade);setSelectedProjectId(null);setSection('grades')}}>Sınıfı aç <GraduationCap size={15}/></button>
         <button className="primary-button" onClick={()=>openQuestionsForProject(selectedProject.id)}>Proje sorularını aç <ArrowRight size={15}/></button>
       </div>
