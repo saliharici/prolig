@@ -62,7 +62,7 @@ const date = (value: string) => new Intl.DateTimeFormat('tr-TR', { day: 'numeric
 const todayHeading = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' }).format(new Date()).toLocaleUpperCase('tr-TR');
 
 function Status({ value }: { value: string }) {
-  const slug = ({ 'İncelemede': 'review', 'Onaylandı': 'approved', 'Ödendi': 'paid', 'Revizyon': 'revision', 'Reddedildi': 'rejected', 'Taslak': 'draft', 'Bekliyor': 'pending', 'Aktif': 'approved', 'Davet edildi': 'pending', 'Üretimde': 'review', 'Editörde': 'revision', 'Planlama': 'draft', 'Tamamlandı': 'approved' } as Record<string, string>)[value] || 'draft';
+  const slug = ({ 'İncelemede': 'review', 'Onaylandı': 'approved', 'Ödendi': 'paid', 'Revizyon': 'revision', 'Reddedildi': 'rejected', 'Taslak': 'draft', 'Bekliyor': 'pending', 'Aktif': 'approved', 'Davet edildi': 'pending', 'Üretimde': 'review', 'Editörde': 'revision', 'Planlama': 'draft', 'Tamamlandı': 'approved', 'İptal': 'rejected' } as Record<string, string>)[value] || 'draft';
   return <span className={`demo-status ${slug}`}><i />{value}</span>;
 }
 
