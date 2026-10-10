@@ -1,21 +1,68 @@
-import React from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
   BookOpen,
   CheckCircle2,
-  FileCheck2,
+  ClipboardCheck,
+  CreditCard,
+  FileQuestion,
   GraduationCap,
   History,
+  ListChecks,
+  MessageSquareText,
   PenTool,
   ShieldCheck,
   Users,
   Workflow
 } from 'lucide-react';
 
+const projectPulse = [
+  {
+    status: 'DEVAM EDİYOR',
+    code: 'PILOT-MAT-8-001',
+    title: '8. Sınıf Matematik Pilot Soru Bankası',
+    meta: 'Pilot doğrulama akışı',
+    badge: '8. Sınıf'
+  },
+  {
+    status: 'KONTROL',
+    code: 'EDİTÖR AKIŞI',
+    title: 'İçerik inceleme ve revizyon döngüsü',
+    meta: 'Rol bazlı kontrol',
+    badge: 'İnceleme'
+  },
+  {
+    status: 'PLANLAMA',
+    code: 'YENİ PROJE',
+    title: 'Yeni yayın projeleri için ekip ve görev planlama',
+    meta: 'Proje yönetimi',
+    badge: 'Planlama'
+  }
+];
+
+const platformFeatures = [
+  { icon: BookOpen, title: 'Proje Yönetimi', copy: 'Proje kapsamı, sınıf, branş, ekip ve yaşam döngüsünü tek yerde yönetin.' },
+  { icon: ListChecks, title: 'Görev Takibi', copy: 'Görevleri atayın, terminleri izleyin ve kontrol bekleyen işleri görün.' },
+  { icon: FileQuestion, title: 'Soru Üretimi', copy: 'Yazar–editör üretim ve inceleme akışını proje kapsamıyla birlikte yürütün.' },
+  { icon: MessageSquareText, title: 'Kurumsal Mesajlar', copy: 'Yetki kapsamındaki ekip üyeleriyle kayıtlı ve kontrollü iletişim kurun.' },
+  { icon: Users, title: 'Yazar Ağı', copy: 'Yazarları branş ve coğrafi kapsamlarıyla birlikte yönetin.' },
+  { icon: CreditCard, title: 'Hakedişler', copy: 'Onaylanan üretimi ödeme ve hakediş sürecine kontrollü biçimde taşıyın.' },
+  { icon: ShieldCheck, title: 'Rol & Yetki', copy: 'Her rol yalnız kendi görev ve sorumluluk alanındaki veriyi görür.' },
+  { icon: History, title: 'İşlem Geçmişi', copy: 'Kritik işlemleri denetlenebilir bir kayıt iziyle takip edin.' }
+];
+
+const processSteps = [
+  { no: '01', icon: BookOpen, title: 'Projeyi oluştur', copy: 'Branş, hedef sınıf ve proje kapsamını tanımlayın.' },
+  { no: '02', icon: Users, title: 'Ekibi oluştur', copy: 'Yetki kapsamındaki yazar ve koordinasyon ekibini projeye bağlayın.' },
+  { no: '03', icon: ClipboardCheck, title: 'Görevleri ata', copy: 'Sorumlu, öncelik ve termin bilgileriyle üretim işlerini planlayın.' },
+  { no: '04', icon: PenTool, title: 'İçeriği üret', copy: 'Yazarlar proje ve branş kapsamındaki içerikleri hazırlar.' },
+  { no: '05', icon: ShieldCheck, title: 'Kontrol et', copy: 'Editör ve koordinatörler inceleme, revizyon ve onay akışını yürütür.' },
+  { no: '06', icon: CheckCircle2, title: 'Süreci tamamla', copy: 'Onaylanan üretim proje ve hakediş akışına taşınır.' }
+];
+
 export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: () => void; onApplyClick: () => void }) {
   return (
-    <div className="public-shell">
+    <div className="public-shell public-v2">
       <div className="public-ambient public-ambient-one" />
       <div className="public-ambient public-ambient-two" />
 
@@ -31,8 +78,9 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
 
           <nav className="public-nav" aria-label="Sayfa bölümleri">
             <a href="#anasayfa">Ana Sayfa</a>
+            <a href="#platform">Platform</a>
+            <a href="#projeler">Projeler</a>
             <a href="#nasil-calisir">Nasıl Çalışır</a>
-            <a href="#yayinlar">Yayınlarımız</a>
             <a href="#pilot">Pilot</a>
           </nav>
 
@@ -46,18 +94,18 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
       </header>
 
       <main className="public-main">
-        <section id="anasayfa" className="public-hero public-major-section">
+        <section id="anasayfa" className="public-hero public-major-section public-v2-hero">
           <div className="public-hero-copy">
             <div className="public-hero-eyebrow">
-              <span /> YAYINCILIK İŞ AKIŞI PLATFORMU
+              <span /> YAYIN OPERASYON PLATFORMU
             </div>
             <h1>
-              Yayın üretim sürecini
-              <span>tek merkezden yönetin.</span>
+              Yayın üretiminden
+              <span>ekip koordinasyonuna.</span>
             </h1>
             <p>
-              Yazar, editör, koordinatör, proje ve ödeme süreçlerini rol bazlı ve
-              denetlenebilir bir iş akışında birleştirin.
+              Proje, soru üretimi, görev takibi, kurumsal mesajlaşma ve hakediş süreçlerini
+              rol bazlı, izlenebilir ve tek merkezden yönetilen bir çalışma alanında birleştirin.
             </p>
 
             <div className="public-hero-actions">
@@ -71,154 +119,148 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
 
             <div className="public-trust-row">
               <div><ShieldCheck size={15} /><span>Rol bazlı yetkilendirme</span></div>
-              <div><Workflow size={15} /><span>Uçtan uca iş akışı</span></div>
+              <div><Workflow size={15} /><span>Proje → görev → içerik akışı</span></div>
               <div><History size={15} /><span>İzlenebilir süreç</span></div>
             </div>
           </div>
 
-          <div className="public-hero-visual" aria-label="Pro-Lig ürün iş akışı önizlemesi">
-            <div className="public-product-preview">
-              <div className="public-product-preview-header">
+          <div className="public-hero-visual" aria-label="PRO-LİG operasyon merkezi ürün önizlemesi">
+            <div className="public-v2-console">
+              <div className="public-v2-console-head">
                 <div className="public-product-preview-brand">
                   <span className="public-product-preview-mark">P</span>
                   <div>
                     <small>PRO-LİG</small>
-                    <strong>ÇALIŞMA AKIŞI</strong>
+                    <strong>OPERASYON MERKEZİ</strong>
                   </div>
                 </div>
-                <span className="public-product-preview-live"><i /> Canlı Pilot Akış</span>
+                <span className="public-product-preview-live"><i /> Ürün Önizlemesi</span>
               </div>
 
-              <div className="public-product-preview-body">
-                <div className="public-product-preview-caption">
+              <div className="public-v2-console-body">
+                <div className="public-v2-console-caption">
                   <div>
-                    <span>YAYIN SÜRECİ</span>
-                    <strong>İçerik üretim durumu</strong>
+                    <span>TEK ÇALIŞMA ALANI</span>
+                    <strong>Yayın üretim sürecinin merkez görünümü</strong>
                   </div>
-                  <small>3 aşama</small>
+                  <Workflow size={18} />
                 </div>
 
-                <ol className="public-product-preview-flow">
-                  <li className="completed">
-                    <div className="public-product-preview-icon"><FileCheck2 size={17} /></div>
-                    <div className="public-product-preview-step">
-                      <span>01 · Yazar</span>
-                      <strong>Soru / içerik hazırlandı</strong>
-                    </div>
-                    <span className="public-product-status">Tamamlandı</span>
-                  </li>
-                  <li className="review">
-                    <div className="public-product-preview-icon"><PenTool size={17} /></div>
-                    <div className="public-product-preview-step">
-                      <span>02 · Editör</span>
-                      <strong>İçerik incelemeye alındı</strong>
-                    </div>
-                    <span className="public-product-status">İncelemede</span>
-                  </li>
-                  <li className="waiting">
-                    <div className="public-product-preview-icon"><ShieldCheck size={17} /></div>
-                    <div className="public-product-preview-step">
-                      <span>03 · Koordinatör</span>
-                      <strong>Yayın süreci kontrolü</strong>
-                    </div>
-                    <span className="public-product-status">Bekliyor</span>
-                  </li>
-                </ol>
+                <div className="public-v2-module-grid">
+                  <div><BookOpen size={17}/><span><small>PROJELER</small><strong>Kapsam ve ekip</strong></span></div>
+                  <div><ListChecks size={17}/><span><small>GÖREVLER</small><strong>Termin ve sorumlu</strong></span></div>
+                  <div><FileQuestion size={17}/><span><small>SORULAR</small><strong>Üretim ve kontrol</strong></span></div>
+                  <div><MessageSquareText size={17}/><span><small>MESAJLAR</small><strong>Ekip iletişimi</strong></span></div>
+                </div>
 
-                <div className="public-product-project">
-                  <div className="public-product-project-icon"><BookOpen size={18} /></div>
-                  <div className="public-product-project-copy">
-                    <span>PİLOT PROJE</span>
-                    <strong>8. Sınıf Matematik Pilot Soru Bankası</strong>
-                    <small>PILOT-MAT-8-001</small>
+                <div className="public-v2-focus">
+                  <div className="public-v2-focus-top">
+                    <div>
+                      <span>PİLOT AKIŞ</span>
+                      <strong>8. Sınıf Matematik Pilot Soru Bankası</strong>
+                    </div>
+                    <em>PILOT-MAT-8-001</em>
                   </div>
-                  <div className="public-product-project-meta">
-                    <span>8. Sınıf</span>
-                    <span>Matematik</span>
-                    <span>Pilot</span>
+                  <div className="public-v2-progress-track"><span /></div>
+                  <div className="public-v2-focus-flow">
+                    <span><i className="done"/> Proje</span>
+                    <span><i className="done"/> Görev</span>
+                    <span><i className="active"/> Üretim</span>
+                    <span><i/> Kontrol</span>
                   </div>
+                </div>
+
+                <div className="public-v2-console-note">
+                  <ShieldCheck size={15}/>
+                  <span><strong>Yetki kontrollü çalışma alanı</strong><small>Her rol yalnız kendi kapsamındaki işi görür.</small></span>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="nasil-calisir" className="public-process-section public-major-section">
-          <div className="public-section-heading">
-            <span className="public-overline">SADE BİR İŞ AKIŞI</span>
-            <h2>Üretimden onaya kadar herkes ne yapacağını bilir.</h2>
-            <p>Her rol kendi kapsamındaki işi görür; süreç, kullanıcıyı gereksiz ayrıntıyla yormadan ilerler.</p>
+        <section id="projeler" className="public-pulse-section public-major-section">
+          <div className="public-pulse-heading">
+            <div>
+              <span className="public-overline">PROJE NABZI</span>
+              <h2>Yayın projeleri hareket halinde.</h2>
+            </div>
+            <p>Bu alan, kamuya açık tanıtım için güvenli proje akışı örneklerini gösterir; iç sistem verileri yayınlanmaz.</p>
           </div>
 
-          <div className="public-process-grid">
-            <article className="public-process-card">
-              <div className="public-card-number">01</div>
-              <div className="public-card-icon teal"><PenTool size={21} /></div>
-              <h3>İçeriği hazırla</h3>
-              <p>Yazarlar kendilerine tanımlanan branş ve proje kapsamındaki içerikleri oluşturur.</p>
-            </article>
-            <article className="public-process-card">
-              <div className="public-card-number">02</div>
-              <div className="public-card-icon amber"><ShieldCheck size={21} /></div>
-              <h3>İncele ve geliştir</h3>
-              <p>Editörler yalnız yetkili oldukları kapsamda içerikleri değerlendirir ve gerektiğinde revizyon ister.</p>
-            </article>
-            <article className="public-process-card">
-              <div className="public-card-number">03</div>
-              <div className="public-card-icon blue"><CheckCircle2 size={21} /></div>
-              <h3>Süreci tamamla</h3>
-              <p>Onaylanan çalışmalar proje ve hakediş akışına taşınır; işlem geçmişi izlenebilir kalır.</p>
-            </article>
+          <div className="public-pulse-shell" aria-label="Proje nabzı akan proje bandı">
+            <div className="public-pulse-label"><span/><strong>CANLI AKIŞ</strong></div>
+            <div className="public-pulse-viewport">
+              <div className="public-pulse-track">
+                {[0, 1].map(copy => (
+                  <div className="public-pulse-copy" key={copy} aria-hidden={copy === 1 ? true : undefined}>
+                    {projectPulse.map(item => (
+                      <article className="public-pulse-item" key={`${copy}-${item.code}`}>
+                        <span className={`public-pulse-status status-${item.status.toLocaleLowerCase('tr-TR').replaceAll(' ', '-').replaceAll('İ','i').replaceAll('ı','i')}`}>
+                          <i /> {item.status}
+                        </span>
+                        <div className="public-pulse-project">
+                          <small>{item.code}</small>
+                          <strong>{item.title}</strong>
+                        </div>
+                        <span className="public-pulse-meta">{item.meta}</span>
+                        <span className="public-pulse-badge">{item.badge}</span>
+                      </article>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
-        <section id="yayinlar" className="public-publications-section public-major-section">
-          <div className="public-section-heading">
-            <span className="public-overline">YAYINLARIMIZ</span>
-            <h2>Kitap Tanıtımları</h2>
-            <p>Pro-Lig çalışma akışında hazırlanan ve yayın süreci doğrulanan projeleri inceleyin.</p>
+        <section id="platform" className="public-platform-section public-major-section">
+          <div className="public-section-heading public-v2-section-heading">
+            <span className="public-overline">PLATFORM YETENEKLERİ</span>
+            <h2>Yalnız içerik değil, bütün üretim operasyonu.</h2>
+            <p>PRO-LİG, yayın üretiminin farklı parçalarını aynı yetki ve denetim modeli altında bir araya getirir.</p>
           </div>
 
-          <div className="public-publications-track" aria-label="Yayın tanıtımları">
-            <article className="public-publication-card featured">
-              <div className="public-publication-cover" aria-hidden="true">
-                <BookOpen size={29} />
-                <span>8</span>
-                <small>MATEMATİK</small>
-              </div>
-              <div className="public-publication-content">
-                <div className="public-publication-topline">
-                  <span className="public-live-badge"><i /> Pilot</span>
-                  <small>PILOT-MAT-8-001</small>
-                </div>
-                <h3>8. Sınıf Matematik Pilot Soru Bankası</h3>
-                <div className="public-publication-meta">
-                  <div><span>BRANŞ</span><strong>Matematik</strong></div>
-                  <div><span>KADEME</span><strong>8. Sınıf</strong></div>
-                  <div><span>DURUM</span><strong>Pilot</strong></div>
-                </div>
-              </div>
-            </article>
-
-            <article className="public-publication-card placeholder">
-              <div className="public-placeholder-icon"><BookOpen size={24} /></div>
-              <div>
-                <span className="public-overline">YAYIN TAKVİMİ</span>
-                <h3>Yeni yayınlar hazırlanıyor</h3>
-                <p>Yeni yayın projeleri sisteme eklendikçe burada görüntülenecektir.</p>
-              </div>
-            </article>
+          <div className="public-feature-grid">
+            {platformFeatures.map(({ icon: Icon, title, copy }) => (
+              <article className="public-feature-card" key={title}>
+                <div className="public-feature-icon"><Icon size={19}/></div>
+                <h3>{title}</h3>
+                <p>{copy}</p>
+              </article>
+            ))}
           </div>
         </section>
 
-        <section id="pilot" className="public-project-section public-major-section">
+        <section id="nasil-calisir" className="public-process-section public-major-section public-v2-process">
+          <div className="public-section-heading public-v2-section-heading">
+            <span className="public-overline">UÇTAN UCA İŞ AKIŞI</span>
+            <h2>Projeden onaya kadar herkes ne yapacağını bilir.</h2>
+            <p>Süreç proje kapsamıyla başlar, görev ve üretim akışından geçerek denetlenebilir biçimde tamamlanır.</p>
+          </div>
+
+          <div className="public-v2-process-grid">
+            {processSteps.map(({ no, icon: Icon, title, copy }) => (
+              <article className="public-v2-process-card" key={no}>
+                <div className="public-v2-process-top">
+                  <div className="public-card-icon teal"><Icon size={20}/></div>
+                  <span>{no}</span>
+                </div>
+                <h3>{title}</h3>
+                <p>{copy}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="pilot" className="public-project-section public-major-section public-v2-pilot">
           <div className="public-pilot-summary">
             <div className="public-pilot-copy">
-              <span className="public-overline">GÜNCEL PİLOT</span>
-              <h2>Sistemde Yürütülen Pilot Çalışma</h2>
+              <span className="public-overline">REFERANS PİLOT</span>
+              <h2>8. Sınıf Matematik Pilot Soru Bankası</h2>
               <p>
-                PILOT-MAT-8-001 kodlu 8. Sınıf Matematik Pilot Soru Bankası, gerçek iş akışını
-                kontrollü biçimde doğrulamak için kullanılan pilot çalışmadır.
+                PILOT-MAT-8-001, PRO-LİG'in proje, görev, içerik ve kontrol iş akışını
+                kontrollü biçimde doğrulamak için kullanılan referans pilot çalışmadır.
               </p>
             </div>
             <div className="public-project-meta">
@@ -242,7 +284,7 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
       <footer className="public-footer">
         <div className="public-brand footer-brand">
           <div className="public-brand-mark">P</div>
-          <div><strong>PRO-LİG</strong><span>Pilot doğrulama sürümü</span></div>
+          <div><strong>PRO-LİG</strong><span>Yayın ve içerik yönetim platformu</span></div>
         </div>
         <span>© {new Date().getFullYear()} Pro-Lig Platformu</span>
       </footer>
