@@ -63,7 +63,15 @@ const processSteps = [
   { no: '06', icon: CheckCircle2, title: 'Süreci tamamla', copy: 'Onaylanan üretim proje ve hakediş akışına taşınır.' }
 ];
 
-export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: () => void; onApplyClick: () => void }) {
+export function PublicLanding({
+  onLoginClick,
+  onApplyClick,
+  authenticated = false
+}: {
+  onLoginClick: () => void;
+  onApplyClick: () => void;
+  authenticated?: boolean;
+}) {
   return (
     <div className="public-shell public-v2">
       <div className="public-ambient public-ambient-one" />
@@ -88,9 +96,9 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
           </nav>
 
           <div className="public-header-actions">
-            <button className="public-ghost-button" onClick={onApplyClick}>Üyelik Başvurusu</button>
+            {!authenticated && <button className="public-ghost-button" onClick={onApplyClick}>Üyelik Başvurusu</button>}
             <button className="public-primary-button compact" onClick={onLoginClick}>
-              Giriş Yap <ArrowRight size={16} />
+              {authenticated ? 'Çalışma Alanına Dön' : 'Giriş Yap'} <ArrowRight size={16} />
             </button>
           </div>
         </div>
@@ -113,11 +121,11 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
 
             <div className="public-hero-actions">
               <button className="public-primary-button" onClick={onLoginClick}>
-                Canlı Sistemi İncele <ArrowUpRight size={17} />
+                {authenticated ? 'Çalışma Alanına Dön' : 'Canlı Sistemi İncele'} <ArrowUpRight size={17} />
               </button>
-              <button className="public-secondary-button" onClick={onApplyClick}>
+              {!authenticated && <button className="public-secondary-button" onClick={onApplyClick}>
                 Üyelik Başvurusu
-              </button>
+              </button>}
             </div>
 
             <div className="public-trust-row">
