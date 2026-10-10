@@ -1,5 +1,5 @@
 export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'IL_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
-export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'tasks' | 'messages' | 'announcements' | 'authors' | 'payments' | 'members' | 'roles' | 'audit';
+export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'tasks' | 'messages' | 'announcements' | 'authors' | 'reports' | 'payments' | 'members' | 'roles' | 'audit';
 export type QuestionStatus = 'Taslak' | 'İncelemede' | 'Revizyon' | 'Onaylandı' | 'Reddedildi';
 export type PaymentStatus = 'Bekliyor' | 'Onaylandı' | 'Ödendi';
 
@@ -102,19 +102,20 @@ export const sectionLabels: Record<Section, string> = {
   messages: 'Mesajlar',
   announcements: 'Duyurular',
   authors: 'Türkiye Yazar Ağı',
-  payments: 'Hakedişler',
+  reports: 'Raporlar',
+  payments: 'Telif ve Ödemeler',
   members: 'Üye Yönetimi',
   roles: 'Rol ve Yetkiler',
   audit: 'İşlem Geçmişi',
 };
 
 export const permissions: Record<Role, Section[]> = {
-  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'payments', 'members', 'roles', 'audit'],
-  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'members'],
-    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'members'],
-  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements'],
-  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements'],
-  MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements'],
+  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments', 'members', 'roles', 'audit'],
+  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members'],
+    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members'],
+  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports'],
+  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports'],
+  MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements', 'reports'],
 };
 
 export const dataScopes: Record<Role, string> = {
@@ -123,7 +124,7 @@ export const dataScopes: Record<Role, string> = {
     IL_KOORDINATORU: 'İl Koordinatörü',
   EDITOR: 'Tüm sorular ve proje özetleri',
   YAZAR: 'Kendi soruları ve atanmış proje',
-  MUHASEBE: 'Hakediş kayıtları ve proje bağlamı',
+  MUHASEBE: 'Telif ve ödeme kayıtları ile proje bağlamı',
 };
 
 export const actionPermissions: { label: string; roles: Role[] }[] = [
@@ -134,7 +135,7 @@ export const actionPermissions: { label: string; roles: Role[] }[] = [
   { label: 'Kendi görev durumunu ilerlet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR'] },
   { label: 'Yetki kapsamına mesaj gönder', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE'] },
   { label: 'Duyuru yayınla / yönet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'] },
-  { label: 'Hakedişi onayla / ödendi işaretle', roles: ['MUHASEBE', 'GENEL_KOORDINATOR'] },
+  { label: 'Telif/ödeme kaydını onayla / ödendi işaretle', roles: ['MUHASEBE', 'GENEL_KOORDINATOR'] },
   { label: 'İşlem geçmişini görüntüle', roles: ['GENEL_KOORDINATOR'] },
 ];
 
@@ -201,7 +202,7 @@ export const seedData: DemoData = {
     { id: 1, text: 'Matematik sorusu editör incelemesine gönderildi', actor: 'Ayşe Yılmaz', at: '4 Ekim · 10:42', type: 'question', projectId: 1, authorId: 1 },
     { id: 2, text: 'Fen sorusu için revizyon istendi', actor: 'Selin Arslan', at: '3 Ekim · 16:18', type: 'question', projectId: 2, authorId: 2 },
     { id: 3, text: 'Türkçe sorusu yayına hazır olarak onaylandı', actor: 'Selin Arslan', at: '2 Ekim · 14:05', type: 'question', projectId: 3, authorId: 3 },
-    { id: 4, text: 'Ekim ayı hakediş listesi hazırlandı', actor: 'Mert Kaya', at: '1 Ekim · 09:30', type: 'payment', projectId: 1 },
+    { id: 4, text: 'Ekim ayı telif ve ödeme listesi hazırlandı', actor: 'Mert Kaya', at: '1 Ekim · 09:30', type: 'payment', projectId: 1 },
   ],
 };
 

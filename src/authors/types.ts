@@ -7,6 +7,7 @@ export interface ApiAuthor {
   title: string;
   experienceYears: number;
   status: AuthorStatus;
+  createdAt: string;
   branch: { id: number; name: string };
   province: { id: number; name: string; region: string };
   district: { id: number; name: string } | null;

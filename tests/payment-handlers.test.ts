@@ -46,14 +46,14 @@ describe('Payment API Handlers', () => {
     });
 
     it('returns 403 for unauthorized role', async () => {
-      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: 'YAZAR', fullName: 'Test' } as any);
+      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: { code: 'YAZAR' }, fullName: 'Test' } as any);
       const { req, res } = reqRes('GET');
       await handler(req, res);
       expect(res.status).toHaveBeenCalledWith(403);
     });
 
     it('returns 200 for MUHASEBE', async () => {
-      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: 'MUHASEBE', fullName: 'Test' } as any);
+      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: { code: 'MUHASEBE' }, fullName: 'Test' } as any);
       vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
       const { req, res } = reqRes('GET');
       await handler(req, res);
@@ -61,7 +61,7 @@ describe('Payment API Handlers', () => {
     });
 
     it('returns 200 for GENEL_KOORDINATOR', async () => {
-      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: 'GENEL_KOORDINATOR', fullName: 'Test' } as any);
+      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: { code: 'GENEL_KOORDINATOR' }, fullName: 'Test' } as any);
       vi.mocked(prisma.payment.findMany).mockResolvedValue([]);
       const { req, res } = reqRes('GET');
       await handler(req, res);
@@ -71,7 +71,7 @@ describe('Payment API Handlers', () => {
 
   describe('POST approve', () => {
     beforeEach(() => {
-      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: 'MUHASEBE', fullName: 'Test' } as any);
+      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: { code: 'MUHASEBE' }, fullName: 'Test' } as any);
     });
 
     it('returns 200 and writes ActivityLog on success', async () => {
@@ -103,7 +103,7 @@ describe('Payment API Handlers', () => {
 
   describe('POST pay', () => {
     beforeEach(() => {
-      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: 'MUHASEBE', fullName: 'Test' } as any);
+      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: { code: 'MUHASEBE' }, fullName: 'Test' } as any);
     });
 
     it('returns 200, sets date and writes ActivityLog on success', async () => {
@@ -136,7 +136,7 @@ describe('Payment API Handlers', () => {
 
   describe('Invalid requests', () => {
     beforeEach(() => {
-      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: 'MUHASEBE', fullName: 'Test' } as any);
+      vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, role: { code: 'MUHASEBE' }, fullName: 'Test' } as any);
     });
 
     it('returns 400 for unknown action', async () => {

@@ -19,6 +19,7 @@ const selectedAuthor = {
   title: 'Yazar / Öğretmen',
   experienceYears: 5,
   status: 'Aktif',
+  createdAt: new Date('2026-10-01T09:00:00.000Z'),
   user: { fullName: 'Pilot Yazar' },
   branch: { id: 2, name: 'Matematik' },
   province: { id: 34, name: 'İİstanbul', region: 'Marmara' },
