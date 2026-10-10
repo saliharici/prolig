@@ -11,6 +11,12 @@ const config = JSON.parse(fs.readFileSync(path.join(__dirname, '../vercel.json')
 const rewrites = config.rewrites;
 
 const expectedDynamicRewrites: Rewrite[] = [
+  { source: '/api/v1/health', destination: '/api/v1/management?action=health' },
+  { source: '/api/v1/membership/metadata', destination: '/api/v1/management?action=metadata' },
+  { source: '/api/v1/membership/applications/:id', destination: '/api/v1/management?action=application&id=:id' },
+  { source: '/api/v1/membership/applications', destination: '/api/v1/management?action=applications' },
+  { source: '/api/v1/users/:id', destination: '/api/v1/management?action=user&id=:id' },
+  { source: '/api/v1/users', destination: '/api/v1/management?action=users' },
   { source: '/api/v1/payments/:id/approve', destination: '/api/v1/payments?action=approve&id=:id' },
   { source: '/api/v1/payments/:id/pay', destination: '/api/v1/payments?action=pay&id=:id' },
   { source: '/api/v1/questions/:id/workflow', destination: '/api/v1/questions/[id]/workflow' },
@@ -31,16 +37,13 @@ describe('Vercel API rewrites', () => {
     expect(workflowIndex).toBeLessThan(questionIndex);
   });
 
-  it('places all dynamic mappings before the generic API and SPA fallbacks', () => {
+  it('places all dynamic mappings before the generic API fallback', () => {
     const apiFallbackIndex = rewrites.findIndex(rewrite => rewrite.source === '/api/(.*)');
-    const spaFallbackIndex = rewrites.findIndex(rewrite => rewrite.source === '/(.*)');
     expect(apiFallbackIndex).toBeGreaterThanOrEqual(0);
-    expect(spaFallbackIndex).toBeGreaterThan(apiFallbackIndex);
 
     for (const expected of expectedDynamicRewrites) {
       const dynamicIndex = rewrites.findIndex(rewrite => rewrite.source === expected.source);
       expect(dynamicIndex).toBeLessThan(apiFallbackIndex);
-      expect(dynamicIndex).toBeLessThan(spaFallbackIndex);
     }
   });
 
@@ -51,8 +54,9 @@ describe('Vercel API rewrites', () => {
     }
   });
 
-  it('keeps the SPA fallback last', () => {
-    expect(rewrites.at(-1)).toEqual({ source: '/(.*)', destination: '/index.html' });
+  it('does not intercept Vite module requests with an SPA fallback', () => {
+    expect(rewrites).not.toContainEqual({ source: '/(.*)', destination: '/index.html' });
+    expect(rewrites.at(-1)).toEqual({ source: '/api/(.*)', destination: '/api/$1' });
   });
 });
 

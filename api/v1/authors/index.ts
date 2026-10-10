@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (where === null) return res.status(403).json({ error: 'Forbidden' });
 
     const authors = await prisma.authorProfile.findMany({
-      where,
+      where: { AND: [where, { status: 'Aktif' }, { user: { role: { code: 'YAZAR' } } }] },
       select: authorSelect,
       orderBy: [{ province: { name: 'asc' } }, { user: { fullName: 'asc' } }, { id: 'asc' }]
     });

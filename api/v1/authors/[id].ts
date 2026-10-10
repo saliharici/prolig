@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (scope === null) return res.status(403).json({ error: 'Forbidden' });
 
     const author = await prisma.authorProfile.findFirst({
-      where: { AND: [scope, { id: Number(rawId) }] },
+      where: { AND: [scope, { id: Number(rawId) }, { status: 'Aktif' }, { user: { role: { code: 'YAZAR' } } }] },
       select: authorSelect
     });
 

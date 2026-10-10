@@ -70,12 +70,12 @@ describe('Project API handlers', () => {
   });
 
   it('returns scoped collection for a supported role', async () => {
-    authenticateAs('EDITOR', { editorBranchId: 2, editorGrade: '8. Sınıf' });
+    authenticateAs('EDITOR', { editorBranchId: 2, provinceId: 34, editorGrade: '8. Sınıf', branchAssignments: [] });
     vi.mocked(prisma.project.findMany).mockResolvedValue([selectedProject] as any);
     const { req, res } = reqRes();
     await collectionHandler(req, res);
     expect(prisma.project.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { branchId: 2, targetGrade: '8. Sınıf' },
+      where: { branchId: { in: [2] }, projectAuthors: { some: { authorProfile: { provinceId: 34 } } }, targetGrade: '8. Sınıf' },
       orderBy: [{ deadline: 'asc' }, { id: 'asc' }]
     }));
     expect(res.status).toHaveBeenCalledWith(200);

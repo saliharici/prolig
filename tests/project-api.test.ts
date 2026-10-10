@@ -22,10 +22,17 @@ describe('Project read scope', () => {
     expect(buildProjectReadScope({ role: { code: 'IL_KOORDINATORU' } })).toEqual({ id: -1 });
   });
 
-  it('scopes EDITOR by branch and optional grade and fails closed without branch', () => {
-    expect(buildProjectReadScope({ role: { code: 'EDITOR' }, editorBranchId: 7 })).toEqual({ branchId: 7 });
-    expect(buildProjectReadScope({ role: { code: 'EDITOR' }, editorBranchId: 7, editorGrade: '8. Sınıf' })).toEqual({ branchId: 7, targetGrade: '8. Sınıf' });
-    expect(buildProjectReadScope({ role: { code: 'EDITOR' } })).toEqual({ id: -1 });
+  it('scopes EDITOR by branches, geography and optional grade', () => {
+    expect(buildProjectReadScope({ role: { code: 'EDITOR' }, editorBranchId: 7, provinceId: 34 })).toEqual({
+      branchId: { in: [7] },
+      projectAuthors: { some: { authorProfile: { provinceId: 34 } } }
+    });
+    expect(buildProjectReadScope({ role: { code: 'EDITOR' }, branchAssignments: [{ branchId: 7 }, { branchId: 8 }], assignedRegion: 'Marmara', editorGrade: '8. Sınıf' })).toEqual({
+      branchId: { in: [7, 8] },
+      projectAuthors: { some: { authorProfile: { province: { region: 'Marmara' } } } },
+      targetGrade: '8. Sınıf'
+    });
+    expect(buildProjectReadScope({ role: { code: 'EDITOR' }, editorBranchId: 7 })).toEqual({ id: -1 });
   });
 
   it('scopes YAZAR by ProjectAuthor and fails closed without AuthorProfile', () => {

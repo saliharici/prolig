@@ -115,9 +115,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               projectId,
               authorProfileId: user.AuthorProfile.id
             }
-          }
+          },
+          include: { project: { select: { branchId: true } } }
         });
         if (!pa) return res.status(403).json({ error: 'Not assigned to this project' });
+        if (pa.project.branchId !== user.AuthorProfile.branchId) {
+          return res.status(403).json({ error: 'Project branch is outside author branch' });
+        }
       }
       updateData.projectId = projectId;
     }

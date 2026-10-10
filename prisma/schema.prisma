@@ -20,6 +20,14 @@ enum RoleCode {
   MUHASEBE
 }
 
+enum MembershipApplicationStatus {
+  ALINDI
+  INCELEMEDE
+  UYGUN
+  ONAYLANDI
+  REDDEDILDI
+}
+
 enum AuthorStatus {
   Aktif
   Pasif
@@ -101,9 +109,10 @@ model User {
   notifications    Notification[]
   assignedTasks    Task[]         @relation("CoordinatorTasks")
 
-  AuthorProfile AuthorProfile?
-  Payment       Payment[]
-  Question      Question[]
+  AuthorProfile     AuthorProfile?
+  Payment           Payment[]
+  Question          Question[]
+  branchAssignments UserBranchAssignment[]
 
   @@index([email])
   @@index([editorBranchId])
@@ -116,8 +125,9 @@ model Province {
   region         String
   districts      District[]
   authorProfiles AuthorProfile[]
-  institutions   Institution[]
-  users          User[]
+  institutions           Institution[]
+  users                  User[]
+  membershipApplications MembershipApplication[]
 
   @@index([name])
 }
@@ -137,9 +147,46 @@ model Branch {
   name           String          @unique
   category       String
   color          String          @default("#2563eb")
-  authorProfiles AuthorProfile[]
-  projects       Project[]
-  editorBranchUsers User[] @relation("EditorBranch")
+  authorProfiles     AuthorProfile[]
+  projects           Project[]
+  editorBranchUsers  User[] @relation("EditorBranch")
+  userAssignments    UserBranchAssignment[]
+}
+
+model UserBranchAssignment {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branchId  Int
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, branchId])
+  @@index([userId])
+  @@index([branchId])
+}
+
+model MembershipApplication {
+  id              Int                         @id @default(autoincrement())
+  fullName        String
+  email           String
+  phone           String?
+  provinceId      Int
+  province        Province                    @relation(fields: [provinceId], references: [id])
+  districtName    String?
+  institutionName String?
+  requestedRole   String?
+  requestedBranch String?
+  motivation      String?
+  status          MembershipApplicationStatus @default(ALINDI)
+  reviewNote      String?
+  reviewedByName  String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+
+  @@index([email])
+  @@index([provinceId])
+  @@index([status])
 }
 
 model Institution {

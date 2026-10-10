@@ -122,6 +122,7 @@ async function main() {
       };
       if (u.role === 'EDITOR') {
         userCreate.editorBranch = { connect: { id: branch.id } };
+        userCreate.province = { connect: { id: marmara.id } };
       }
       if (u.role === 'BOLGE_KOORDINATORU') {
         userCreate.assignedRegion = 'Marmara';
@@ -135,7 +136,7 @@ async function main() {
         role: { connect: { id: getRoleId(u.role) } },
         assignedRegion: u.role === 'BOLGE_KOORDINATORU' ? 'Marmara' : null,
         editorBranch: u.role === 'EDITOR' ? { connect: { id: branch.id } } : { disconnect: true },
-        province: u.role === 'IL_KOORDINATORU' ? { connect: { id: marmara.id } } : { disconnect: true }
+        province: ['IL_KOORDINATORU', 'EDITOR'].includes(u.role) ? { connect: { id: marmara.id } } : { disconnect: true }
       };
       if (action.type === 'update') {
         userUpdate.passwordHash = action.hash;
@@ -143,6 +144,14 @@ async function main() {
       user = await prisma.user.update({
         where: { email: u.email },
         data: userUpdate
+      });
+    }
+
+    if (u.role === 'EDITOR') {
+      await prisma.userBranchAssignment.upsert({
+        where: { userId_branchId: { userId: user.id, branchId: branch.id } },
+        create: { userId: user.id, branchId: branch.id },
+        update: {}
       });
     }
 

@@ -20,15 +20,15 @@ describe('Question Access Scope', () => {
     expect(buildQuestionReadScope({ role: { code: 'IL_KOORDINATORU' } })).toEqual({ id: -1 });
   });
 
-  it('EDITOR restricted to editorBranchId', () => {
-    expect(buildQuestionReadScope({ role: { code: 'EDITOR' }, editorBranchId: 1 })).toEqual({
-      authorUser: { AuthorProfile: { branchId: 1 } }
+  it('EDITOR restricted to assigned branches and geography', () => {
+    expect(buildQuestionReadScope({ role: { code: 'EDITOR' }, editorBranchId: 1, provinceId: 34 })).toEqual({
+      authorUser: { AuthorProfile: { branchId: { in: [1] }, provinceId: 34 } }
     });
-    expect(buildQuestionReadScope({ role: { code: 'EDITOR' }, editorBranchId: 1, editorGrade: '8. Sınıf' })).toEqual({
-      authorUser: { AuthorProfile: { branchId: 1 } },
+    expect(buildQuestionReadScope({ role: { code: 'EDITOR' }, branchAssignments: [{ branchId: 1 }, { branchId: 2 }], assignedRegion: 'Marmara', editorGrade: '8. Sınıf' })).toEqual({
+      authorUser: { AuthorProfile: { branchId: { in: [1, 2] }, province: { region: 'Marmara' } } },
       grade: '8. Sınıf'
     });
-    expect(buildQuestionReadScope({ role: { code: 'EDITOR' } })).toEqual({ id: -1 });
+    expect(buildQuestionReadScope({ role: { code: 'EDITOR' }, editorBranchId: 1 })).toEqual({ id: -1 });
   });
 
   it('YAZAR sees only own', () => {
@@ -42,13 +42,14 @@ describe('Question Access Scope', () => {
 
 describe('Workflow Permissions', () => {
   it('EDITOR review constraints', () => {
-    const editor = { role: { code: 'EDITOR' }, editorBranchId: 1 };
-    expect(canWorkflowReview({ authorUser: { AuthorProfile: { branchId: 1 } } }, editor)).toBe(true);
-    expect(canWorkflowReview({ authorUser: { AuthorProfile: { branchId: 2 } } }, editor)).toBe(false);
+    const editor = { role: { code: 'EDITOR' }, editorBranchId: 1, provinceId: 34 };
+    expect(canWorkflowReview({ authorUser: { AuthorProfile: { branchId: 1, provinceId: 34 } } }, editor)).toBe(true);
+    expect(canWorkflowReview({ authorUser: { AuthorProfile: { branchId: 2, provinceId: 34 } } }, editor)).toBe(false);
+    expect(canWorkflowReview({ authorUser: { AuthorProfile: { branchId: 1, provinceId: 35 } } }, editor)).toBe(false);
     
-    const strictEditor = { role: { code: 'EDITOR' }, editorBranchId: 1, editorGrade: '8. Sınıf' };
-    expect(canWorkflowReview({ grade: '8. Sınıf', authorUser: { AuthorProfile: { branchId: 1 } } }, strictEditor)).toBe(true);
-    expect(canWorkflowReview({ grade: '7. Sınıf', authorUser: { AuthorProfile: { branchId: 1 } } }, strictEditor)).toBe(false);
+    const strictEditor = { role: { code: 'EDITOR' }, editorBranchId: 1, provinceId: 34, editorGrade: '8. Sınıf' };
+    expect(canWorkflowReview({ grade: '8. Sınıf', authorUser: { AuthorProfile: { branchId: 1, provinceId: 34 } } }, strictEditor)).toBe(true);
+    expect(canWorkflowReview({ grade: '7. Sınıf', authorUser: { AuthorProfile: { branchId: 1, provinceId: 34 } } }, strictEditor)).toBe(false);
   });
 
   it('GENEL can always review', () => {

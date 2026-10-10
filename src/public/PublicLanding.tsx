@@ -1,93 +1,250 @@
 import React from 'react';
-import { BookOpen, Users, PenTool, CheckCircle2, ShieldCheck, ArrowRight, ArrowUpRight, GraduationCap } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
+  CheckCircle2,
+  FileCheck2,
+  GraduationCap,
+  History,
+  PenTool,
+  ShieldCheck,
+  Users,
+  Workflow
+} from 'lucide-react';
 
-export function PublicLanding({ onLoginClick }: { onLoginClick: () => void }) {
+export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: () => void; onApplyClick: () => void }) {
   return (
-    <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'Manrope, sans-serif' }}>
-      <header style={{ background: 'white', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ background: '#1e293b', color: 'white', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', fontWeight: 800 }}>P</div>
-          <strong style={{ fontSize: '1.25rem', color: '#0f172a', letterSpacing: '-0.02em' }}>PRO-LİG</strong>
-        </div>
-        <button className="primary-button" onClick={onLoginClick}>Giriş Yap <ArrowRight size={16} /></button>
-      </header>
+    <div className="public-shell">
+      <div className="public-ambient public-ambient-one" />
+      <div className="public-ambient public-ambient-two" />
 
-      <main>
-        <section style={{ padding: '5rem 2rem', textAlign: 'center', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <span style={{ display: 'inline-block', background: 'rgba(255,255,255,0.1)', padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.85rem', fontWeight: 600, marginBottom: '1.5rem' }}>PİLOT SÜRÜM V1.0</span>
-            <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1.5rem', lineHeight: 1.1 }}>Yeni Nesil Eğitim İçerik Yönetimi</h1>
-            <p style={{ fontSize: '1.1rem', color: '#cbd5e1', marginBottom: '2.5rem', lineHeight: 1.6 }}>Pro-Lig, yayıncılık süreçlerini dijitalleştiren, yazarlar ile editörleri buluşturan ve projelerin hakediş döngüsüne kadar tüm aşamalarını yöneten bütünleşik bir içerik üretim platformudur.</p>
-            <button className="primary-button" style={{ background: 'white', color: '#0f172a', padding: '1rem 2rem', fontSize: '1.1rem' }} onClick={onLoginClick}>
-              Sisteme Giriş Yap <ArrowUpRight size={18} />
+      <header className="public-header">
+        <div className="public-header-inner">
+          <a className="public-brand" href="#anasayfa" aria-label="PRO-LİG ana sayfa">
+            <div className="public-brand-mark">P</div>
+            <div>
+              <strong>PRO-LİG</strong>
+              <span>Yayın ve İçerik Yönetim Platformu</span>
+            </div>
+          </a>
+
+          <nav className="public-nav" aria-label="Sayfa bölümleri">
+            <a href="#anasayfa">Ana Sayfa</a>
+            <a href="#nasil-calisir">Nasıl Çalışır</a>
+            <a href="#yayinlar">Yayınlarımız</a>
+            <a href="#pilot">Pilot</a>
+          </nav>
+
+          <div className="public-header-actions">
+            <button className="public-ghost-button" onClick={onApplyClick}>Üyelik Başvurusu</button>
+            <button className="public-primary-button compact" onClick={onLoginClick}>
+              Giriş Yap <ArrowRight size={16} />
             </button>
           </div>
-        </section>
+        </div>
+      </header>
 
-        <section style={{ padding: '4rem 2rem', maxWidth: '1000px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <h2 style={{ fontSize: '2rem', color: '#1e293b', fontWeight: 800 }}>Süreç Nasıl İşler?</h2>
-            <p style={{ color: '#64748b' }}>Yazarlıktan yayın sürecine uçtan uca içerik döngüsü.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-            <div className="panel" style={{ padding: '2rem', textAlign: 'center' }}>
-              <div style={{ background: '#eef2ff', color: '#4f46e5', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
-                <PenTool size={28} />
-              </div>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#0f172a' }}>1. Yazar Üretimi</h3>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.5 }}>Yazarlar kendilerine atanan proje bağlamında veya genel havuzda yeni sorular hazırlar.</p>
+      <main className="public-main">
+        <section id="anasayfa" className="public-hero public-major-section">
+          <div className="public-hero-copy">
+            <div className="public-hero-eyebrow">
+              <span /> YAYINCILIK İŞ AKIŞI PLATFORMU
             </div>
-            
-            <div className="panel" style={{ padding: '2rem', textAlign: 'center' }}>
-              <div style={{ background: '#fef3c7', color: '#d97706', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
-                <ShieldCheck size={28} />
-              </div>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#0f172a' }}>2. Editör İncelemesi</h3>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.5 }}>İncelemeye gönderilen sorular editörler tarafından değerlendirilir, onaylanır veya revizyon istenir.</p>
-            </div>
-            
-            <div className="panel" style={{ padding: '2rem', textAlign: 'center' }}>
-              <div style={{ background: '#dcfce7', color: '#16a34a', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
-                <CheckCircle2 size={28} />
-              </div>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#0f172a' }}>3. Yayın & Hakediş</h3>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.5 }}>Onaylanan sorular projelerde kullanılır ve muhasebe modülü ile yazar hakedişleri yönetilir.</p>
-            </div>
-          </div>
-        </section>
+            <h1>
+              Yayın üretim sürecini
+              <span>tek merkezden yönetin.</span>
+            </h1>
+            <p>
+              Yazar, editör, koordinatör, proje ve ödeme süreçlerini rol bazlı ve
+              denetlenebilir bir iş akışında birleştirin.
+            </p>
 
-        <section style={{ padding: '4rem 2rem', background: 'white', borderTop: '1px solid #e2e8f0' }}>
-          <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', gap: '3rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 400px' }}>
-              <h2 style={{ fontSize: '2rem', color: '#1e293b', fontWeight: 800, marginBottom: '1rem' }}>Öne Çıkan Projemiz</h2>
-              <p style={{ color: '#64748b', marginBottom: '1.5rem', lineHeight: 1.6 }}>Şu anda odaklandığımız yayın projesi hakkında temel bilgiler.</p>
-              
-              <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                  <div style={{ background: '#e0e7ff', color: '#4338ca', padding: '0.5rem', borderRadius: '8px' }}><BookOpen size={24} /></div>
+            <div className="public-hero-actions">
+              <button className="public-primary-button" onClick={onLoginClick}>
+                Canlı Sistemi İncele <ArrowUpRight size={17} />
+              </button>
+              <button className="public-secondary-button" onClick={onApplyClick}>
+                Üyelik Başvurusu
+              </button>
+            </div>
+
+            <div className="public-trust-row">
+              <div><ShieldCheck size={15} /><span>Rol bazlı yetkilendirme</span></div>
+              <div><Workflow size={15} /><span>Uçtan uca iş akışı</span></div>
+              <div><History size={15} /><span>İzlenebilir süreç</span></div>
+            </div>
+          </div>
+
+          <div className="public-hero-visual" aria-label="Pro-Lig ürün iş akışı önizlemesi">
+            <div className="public-product-preview">
+              <div className="public-product-preview-header">
+                <div className="public-product-preview-brand">
+                  <span className="public-product-preview-mark">P</span>
                   <div>
-                    <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem' }}>8. Sınıf Matematik Pilot Soru Bankası</h4>
-                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>PILOT-MAT-8-001</span>
+                    <small>PRO-LİG</small>
+                    <strong>ÇALIŞMA AKIŞI</strong>
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.5rem' }}>
+                <span className="public-product-preview-live"><i /> Canlı Pilot Akış</span>
+              </div>
+
+              <div className="public-product-preview-body">
+                <div className="public-product-preview-caption">
                   <div>
-                    <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>KADEME</span>
-                    <strong style={{ color: '#0f172a' }}><GraduationCap size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Ortaokul</strong>
+                    <span>YAYIN SÜRECİ</span>
+                    <strong>İçerik üretim durumu</strong>
                   </div>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>YAZAR KADROSU</span>
-                    <strong style={{ color: '#0f172a' }}><Users size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Pilot Yazar Ağı</strong>
+                  <small>3 aşama</small>
+                </div>
+
+                <ol className="public-product-preview-flow">
+                  <li className="completed">
+                    <div className="public-product-preview-icon"><FileCheck2 size={17} /></div>
+                    <div className="public-product-preview-step">
+                      <span>01 · Yazar</span>
+                      <strong>Soru / içerik hazırlandı</strong>
+                    </div>
+                    <span className="public-product-status">Tamamlandı</span>
+                  </li>
+                  <li className="review">
+                    <div className="public-product-preview-icon"><PenTool size={17} /></div>
+                    <div className="public-product-preview-step">
+                      <span>02 · Editör</span>
+                      <strong>İçerik incelemeye alındı</strong>
+                    </div>
+                    <span className="public-product-status">İncelemede</span>
+                  </li>
+                  <li className="waiting">
+                    <div className="public-product-preview-icon"><ShieldCheck size={17} /></div>
+                    <div className="public-product-preview-step">
+                      <span>03 · Koordinatör</span>
+                      <strong>Yayın süreci kontrolü</strong>
+                    </div>
+                    <span className="public-product-status">Bekliyor</span>
+                  </li>
+                </ol>
+
+                <div className="public-product-project">
+                  <div className="public-product-project-icon"><BookOpen size={18} /></div>
+                  <div className="public-product-project-copy">
+                    <span>PİLOT PROJE</span>
+                    <strong>8. Sınıf Matematik Pilot Soru Bankası</strong>
+                    <small>PILOT-MAT-8-001</small>
+                  </div>
+                  <div className="public-product-project-meta">
+                    <span>8. Sınıf</span>
+                    <span>Matematik</span>
+                    <span>Pilot</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="nasil-calisir" className="public-process-section public-major-section">
+          <div className="public-section-heading">
+            <span className="public-overline">SADE BİR İŞ AKIŞI</span>
+            <h2>Üretimden onaya kadar herkes ne yapacağını bilir.</h2>
+            <p>Her rol kendi kapsamındaki işi görür; süreç, kullanıcıyı gereksiz ayrıntıyla yormadan ilerler.</p>
+          </div>
+
+          <div className="public-process-grid">
+            <article className="public-process-card">
+              <div className="public-card-number">01</div>
+              <div className="public-card-icon teal"><PenTool size={21} /></div>
+              <h3>İçeriği hazırla</h3>
+              <p>Yazarlar kendilerine tanımlanan branş ve proje kapsamındaki içerikleri oluşturur.</p>
+            </article>
+            <article className="public-process-card">
+              <div className="public-card-number">02</div>
+              <div className="public-card-icon amber"><ShieldCheck size={21} /></div>
+              <h3>İncele ve geliştir</h3>
+              <p>Editörler yalnız yetkili oldukları kapsamda içerikleri değerlendirir ve gerektiğinde revizyon ister.</p>
+            </article>
+            <article className="public-process-card">
+              <div className="public-card-number">03</div>
+              <div className="public-card-icon blue"><CheckCircle2 size={21} /></div>
+              <h3>Süreci tamamla</h3>
+              <p>Onaylanan çalışmalar proje ve hakediş akışına taşınır; işlem geçmişi izlenebilir kalır.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="yayinlar" className="public-publications-section public-major-section">
+          <div className="public-section-heading">
+            <span className="public-overline">YAYINLARIMIZ</span>
+            <h2>Kitap Tanıtımları</h2>
+            <p>Pro-Lig çalışma akışında hazırlanan ve yayın süreci doğrulanan projeleri inceleyin.</p>
+          </div>
+
+          <div className="public-publications-track" aria-label="Yayın tanıtımları">
+            <article className="public-publication-card featured">
+              <div className="public-publication-cover" aria-hidden="true">
+                <BookOpen size={29} />
+                <span>8</span>
+                <small>MATEMATİK</small>
+              </div>
+              <div className="public-publication-content">
+                <div className="public-publication-topline">
+                  <span className="public-live-badge"><i /> Pilot</span>
+                  <small>PILOT-MAT-8-001</small>
+                </div>
+                <h3>8. Sınıf Matematik Pilot Soru Bankası</h3>
+                <div className="public-publication-meta">
+                  <div><span>BRANŞ</span><strong>Matematik</strong></div>
+                  <div><span>KADEME</span><strong>8. Sınıf</strong></div>
+                  <div><span>DURUM</span><strong>Pilot</strong></div>
+                </div>
+              </div>
+            </article>
+
+            <article className="public-publication-card placeholder">
+              <div className="public-placeholder-icon"><BookOpen size={24} /></div>
+              <div>
+                <span className="public-overline">YAYIN TAKVİMİ</span>
+                <h3>Yeni yayınlar hazırlanıyor</h3>
+                <p>Yeni yayın projeleri sisteme eklendikçe burada görüntülenecektir.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="pilot" className="public-project-section public-major-section">
+          <div className="public-pilot-summary">
+            <div className="public-pilot-copy">
+              <span className="public-overline">GÜNCEL PİLOT</span>
+              <h2>Sistemde Yürütülen Pilot Çalışma</h2>
+              <p>
+                PILOT-MAT-8-001 kodlu 8. Sınıf Matematik Pilot Soru Bankası, gerçek iş akışını
+                kontrollü biçimde doğrulamak için kullanılan pilot çalışmadır.
+              </p>
+            </div>
+            <div className="public-project-meta">
+              <div>
+                <GraduationCap size={18} />
+                <span><small>KADEME</small><strong>Ortaokul</strong></span>
+              </div>
+              <div>
+                <Users size={18} />
+                <span><small>YAZAR KADROSU</small><strong>Pilot Yazar Ağı</strong></span>
+              </div>
+              <div>
+                <BookOpen size={18} />
+                <span><small>PROJE KODU</small><strong>PILOT-MAT-8-001</strong></span>
               </div>
             </div>
           </div>
         </section>
       </main>
-      
-      <footer style={{ padding: '2rem', textAlign: 'center', borderTop: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.9rem' }}>
-        &copy; {new Date().getFullYear()} Pro-Lig Platformu. Tüm hakları saklıdır. Pilot doğrulama sürümü.
+
+      <footer className="public-footer">
+        <div className="public-brand footer-brand">
+          <div className="public-brand-mark">P</div>
+          <div><strong>PRO-LİG</strong><span>Pilot doğrulama sürümü</span></div>
+        </div>
+        <span>© {new Date().getFullYear()} Pro-Lig Platformu</span>
       </footer>
     </div>
   );

@@ -1,3 +1,5 @@
+import { editorBranchIds } from './member-access.js';
+
 export function buildQuestionReadScope(user: any) {
   const roleCode = user.role.code;
 
@@ -30,17 +32,18 @@ export function buildQuestionReadScope(user: any) {
   }
 
   if (roleCode === 'EDITOR') {
-    if (!user.editorBranchId) return { id: -1 }; // Fail closed
-    const scope: any = {
-      authorUser: {
-        AuthorProfile: {
-          branchId: user.editorBranchId
-        }
-      }
-    };
-    if (user.editorGrade) {
-      scope.grade = user.editorGrade;
+    const branchIds = editorBranchIds(user);
+    if (branchIds.length === 0) return { id: -1 }; // Fail closed
+    const profileScope: any = { branchId: { in: branchIds } };
+    if (user.provinceId) {
+      profileScope.provinceId = user.provinceId;
+    } else if (user.assignedRegion) {
+      profileScope.province = { region: user.assignedRegion };
+    } else {
+      return { id: -1 };
     }
+    const scope: any = { authorUser: { AuthorProfile: profileScope } };
+    if (user.editorGrade) scope.grade = user.editorGrade;
     return scope;
   }
 
@@ -57,8 +60,17 @@ export function buildQuestionReadScope(user: any) {
 export function canWorkflowReview(question: any, user: any) {
   if (user.role.code === 'GENEL_KOORDINATOR') return true;
   if (user.role.code === 'EDITOR') {
-    if (!user.editorBranchId) return false;
-    if (question.authorUser?.AuthorProfile?.branchId !== user.editorBranchId) return false;
+    const branchIds = editorBranchIds(user);
+    if (branchIds.length === 0) return false;
+    const profile = question.authorUser?.AuthorProfile;
+    if (!branchIds.includes(profile?.branchId)) return false;
+    if (user.provinceId) {
+      if (profile?.provinceId !== user.provinceId) return false;
+    } else if (user.assignedRegion) {
+      if (profile?.province?.region !== user.assignedRegion) return false;
+    } else {
+      return false;
+    }
     if (user.editorGrade && question.grade !== user.editorGrade) return false;
     return true;
   }

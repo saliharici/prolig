@@ -135,11 +135,16 @@ describe('Question API Handlers', () => {
       expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { authorUser: { AuthorProfile: { provinceId: 35 } } } }));
     });
 
-    it('EDITOR receives branch filter and grade filter', async () => {
-      setupUser('EDITOR', { editorBranchId: 2, editorGrade: 'Lise' });
+    it('EDITOR receives branch, geography and grade filters', async () => {
+      setupUser('EDITOR', { editorBranchId: 2, provinceId: 34, editorGrade: 'Lise', branchAssignments: [] });
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
-      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { authorUser: { AuthorProfile: { branchId: 2 } }, grade: 'Lise' } }));
+      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          authorUser: { AuthorProfile: { branchId: { in: [2] }, provinceId: 34 } },
+          grade: 'Lise'
+        }
+      }));
     });
 
     it('EDITOR missing branch returns fail-closed', async () => {
@@ -452,8 +457,8 @@ describe('Question API Handlers', () => {
   describe('WORKFLOW', () => {
     const setupEditor = (grade: string | undefined = undefined) => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Editor', status: 'Aktif', role: { code: 'EDITOR' }, editorBranchId: 1, editorGrade: grade } as any);
-      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, status: 'INCELEMEDE', grade: '8', authorUser: { AuthorProfile: { branchId: 1 } } } as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Editor', status: 'Aktif', role: { code: 'EDITOR' }, editorBranchId: 1, provinceId: 34, editorGrade: grade, branchAssignments: [] } as any);
+      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, status: 'INCELEMEDE', grade: '8', authorUser: { AuthorProfile: { branchId: 1, provinceId: 34, province: { id: 34, region: 'Marmara' } } } } as any);
       vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
         const tx = {
           question: { updateMany: vi.fn().mockResolvedValue({ count: 1 }), findUnique: vi.fn().mockResolvedValue({ id: 1 }) },

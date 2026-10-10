@@ -1,0 +1,28 @@
+name: Pro-Lig CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        # package-lock.json on main predates npm 11's full optional-platform lock expansion.
+        # Keep CI read-only with respect to the repository while installing from package.json.
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Unit and contract tests
+        # DB integration suites intentionally require real Pilot DB credentials and are run only in guarded environments.
+        run: npx vitest run --exclude 'tests/integration/**'
