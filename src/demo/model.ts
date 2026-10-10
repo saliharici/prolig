@@ -1,5 +1,5 @@
 export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'IL_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
-export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'tasks' | 'messages' | 'authors' | 'payments' | 'members' | 'roles' | 'audit';
+export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'tasks' | 'messages' | 'authors' | 'reports' | 'payments' | 'members' | 'roles' | 'audit';
 export type QuestionStatus = 'Taslak' | 'İncelemede' | 'Revizyon' | 'Onaylandı' | 'Reddedildi';
 export type PaymentStatus = 'Bekliyor' | 'Onaylandı' | 'Ödendi';
 
@@ -101,6 +101,7 @@ export const sectionLabels: Record<Section, string> = {
   tasks: 'Görev Takibi',
   messages: 'Mesajlar',
   authors: 'Türkiye Yazar Ağı',
+  reports: 'Raporlar',
   payments: 'Telif ve Ödemeler',
   members: 'Üye Yönetimi',
   roles: 'Rol ve Yetkiler',
@@ -108,12 +109,12 @@ export const sectionLabels: Record<Section, string> = {
 };
 
 export const permissions: Record<Role, Section[]> = {
-  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'payments', 'members', 'roles', 'audit'],
-  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'authors', 'grades', 'members'],
-    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'members'],
-  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages'],
-  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages'],
-  MUHASEBE: ['overview', 'payments', 'projects', 'messages'],
+  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'reports', 'payments', 'members', 'roles', 'audit'],
+  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'authors', 'grades', 'reports', 'members'],
+    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'reports', 'members'],
+  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports'],
+  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports'],
+  MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'reports'],
 };
 
 export const dataScopes: Record<Role, string> = {
