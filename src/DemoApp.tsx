@@ -3,7 +3,7 @@ import { AuthUser } from './auth/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   GraduationCap,
-  Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BookOpen,
+  Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BarChart3, BookOpen,
   Bold, Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
   FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText,
   LockKeyhole, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Sparkles, Globe2,
@@ -32,6 +32,7 @@ import { fetchAuthors } from './authors/api';
 import type { ApiAuthor } from './authors/types';
 import { fetchAuditLogs } from './audit/api';
 import type { ApiAuditLog } from './audit/types';
+import { ReportsCenter } from './reports/ReportsCenter';
 import { MemberManagement } from './membership/MemberManagement';
 import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
@@ -45,6 +46,7 @@ const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'tasks', icon: ClipboardList },
   { id: 'messages', icon: MessageSquareText },
   { id: 'authors', icon: MapPinned },
+  { id: 'reports', icon: BarChart3 },
   { id: 'payments', icon: Wallet },
   { id: 'members', icon: Users },
   { id: 'roles', icon: ShieldCheck },
@@ -582,6 +584,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [projectsError, setProjectsError] = useState('');
   const [apiAuthors, setApiAuthors] = useState<ApiAuthor[]>([]);
   const [authorInsightTasks, setAuthorInsightTasks] = useState<ApiTask[]>([]);
+  const [reportTasks, setReportTasks] = useState<ApiTask[]>([]);
+  const [reportTasksLoading, setReportTasksLoading] = useState(false);
+  const [reportTasksError, setReportTasksError] = useState('');
   const [authorsLoading, setAuthorsLoading] = useState(false);
   const [authorsError, setAuthorsError] = useState('');
   const [apiPayments, setApiPayments] = useState<Payment[]>([]);
@@ -693,6 +698,18 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       if (section !== 'authors') return;
       if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role)) return;
       fetchTasks().then(setAuthorInsightTasks).catch(() => setAuthorInsightTasks([]));
+    }, [section, currentUser.role]);
+    useEffect(() => {
+      if (section !== 'reports' || currentUser.role === 'MUHASEBE') return;
+      setReportTasksLoading(true);
+      setReportTasksError('');
+      fetchTasks()
+        .then(setReportTasks)
+        .catch((error: any) => {
+          setReportTasks([]);
+          setReportTasksError(error?.message || 'Görev raporu yüklenemedi.');
+        })
+        .finally(() => setReportTasksLoading(false));
     }, [section, currentUser.role]);
     const [mobileMenu, setMobileMenu] = useState(false);
   const [query, setQuery] = useState('');
@@ -1385,6 +1402,17 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             </section>
           </>}
         </>}
+        {section === 'reports' && <ReportsCenter
+          projects={apiProjects}
+          questions={apiQuestions}
+          tasks={reportTasks}
+          authors={apiAuthors}
+          payments={apiPayments}
+          role={currentUser.role}
+          tasksLoading={reportTasksLoading}
+          tasksError={reportTasksError}
+          authorsError={authorsError}
+        />}
         {section === 'payments' && <PaymentCenter
           payments={apiPayments}
           loading={paymentsLoading}
