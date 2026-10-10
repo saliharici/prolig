@@ -86,19 +86,19 @@ describe('Final UX Stabilization', () => {
   });
 
 
-  it('uses a contextual searchable workspace topbar without duplicate module navigation', () => {
+  it('uses the searchable command topbar and keeps corporate page access', () => {
     const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
     const demoAppCode = fs.readFileSync(demoAppPath, 'utf8');
     const cssPath = path.resolve(__dirname, '../src/demo.css');
     const cssCode = fs.readFileSync(cssPath, 'utf8');
 
-    expect(demoAppCode).toContain('topbar-context');
+    expect(demoAppCode).toContain('topbar-command');
     expect(demoAppCode).toContain('topbar-global-search');
-    expect(demoAppCode).toContain('Kurumsal Sayfa');
+    expect(demoAppCode).toContain('topbarQuickSections');
+    expect(demoAppCode).toContain('onPublicSiteRequest');
     expect(demoAppCode).toContain('runTopbarSearch');
-    expect(demoAppCode).not.toContain('topbarQuickSections');
-    expect(cssCode).toContain('.topbar-context{');
-    expect(cssCode).toContain('.topbar-site-button{');
+    expect(cssCode).toContain('.topbar-command{');
+    expect(cssCode).toContain('.topbar-command-actions');
   });
 
   it('keeps role settings general-only and exposes member management only to coordinators', () => {
