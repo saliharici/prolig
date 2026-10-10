@@ -10,9 +10,9 @@ export class PaymentApiError extends Error {
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     if (response.status === 401) throw new PaymentApiError(401, 'Oturum süresi dolmuş veya yetkisiz.');
-    if (response.status === 403) throw new PaymentApiError(403, 'Hakedişleri görüntüleme yetkiniz yok.');
-    if (response.status === 404) throw new PaymentApiError(404, 'Hakediş bulunamadı.');
-    if (response.status === 409) throw new PaymentApiError(409, 'Hakediş durumu değiştirilmiş, listeyi yenileyin.');
+    if (response.status === 403) throw new PaymentApiError(403, 'Telif ve ödemeleri görüntüleme yetkiniz yok.');
+    if (response.status === 404) throw new PaymentApiError(404, 'Telif/ödeme kaydı bulunamadı.');
+    if (response.status === 409) throw new PaymentApiError(409, 'Telif/ödeme kaydının durumu değiştirilmiş, listeyi yenileyin.');
     if (response.status >= 500) throw new PaymentApiError(response.status, 'Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.');
     throw new PaymentApiError(response.status, 'Bir hata oluştu.');
   }
