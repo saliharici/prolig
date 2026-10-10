@@ -82,6 +82,21 @@ describe('Final UX Stabilization', () => {
   });
 
 
+  it('uses a searchable permission-aware command topbar', () => {
+    const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
+    const demoAppCode = fs.readFileSync(demoAppPath, 'utf8');
+    const cssPath = path.resolve(__dirname, '../src/demo.css');
+    const cssCode = fs.readFileSync(cssPath, 'utf8');
+
+    expect(demoAppCode).toContain('Yayın üretiminde');
+    expect(demoAppCode).toContain('topbar-global-search');
+    expect(demoAppCode).toContain('topbarQuickSections');
+    expect(demoAppCode).toContain("['overview', 'projects', 'tasks', 'messages', 'authors']");
+    expect(demoAppCode).toContain('runTopbarSearch');
+    expect(cssCode).toContain('.topbar-command{');
+    expect(cssCode).toContain('.topbar-quick-nav{');
+  });
+
   it('keeps role settings general-only and exposes member management only to coordinators', () => {
     const modelPath = path.resolve(__dirname, '../src/demo/model.ts');
     const modelCode = fs.readFileSync(modelPath, 'utf8');
