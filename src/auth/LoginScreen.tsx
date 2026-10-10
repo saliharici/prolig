@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle2, Loader2, LockKeyhole, LogIn, Mail } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle2, FileQuestion, ListChecks, Loader2, LockKeyhole, LogIn, Mail, MessageSquareText } from 'lucide-react';
 import { login } from './api';
 
 export interface LoginScreenProps {
@@ -55,10 +55,37 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
             <span className="public-overline">GÜVENLİ ÇALIŞMA ALANI</span>
             <h1>İşinize kaldığınız yerden devam edin.</h1>
             <p>Rolünüz ve yetki kapsamınız doğrultusunda size ait proje, içerik ve değerlendirme ekranlarına erişin.</p>
+            <div className="soft-login-capabilities" aria-label="PRO-LİG platform yetenekleri">
+              <div className="soft-login-capability">
+                <span><BookOpen size={16} /></span>
+                <div><strong>Proje Yönetimi</strong><small>Kapsam, ekip ve ilerleme</small></div>
+              </div>
+              <div className="soft-login-capability">
+                <span><ListChecks size={16} /></span>
+                <div><strong>Görev Takibi</strong><small>Sorumlu, termin ve durum</small></div>
+              </div>
+              <div className="soft-login-capability">
+                <span><FileQuestion size={16} /></span>
+                <div><strong>İçerik Üretimi</strong><small>Soru, inceleme ve revizyon</small></div>
+              </div>
+              <div className="soft-login-capability">
+                <span><MessageSquareText size={16} /></span>
+                <div><strong>Ekip İletişimi</strong><small>Kurumsal mesaj ve duyuru</small></div>
+              </div>
+            </div>
+
+            <div className="soft-login-flow" aria-label="PRO-LİG yayın üretim akışı">
+              <span>PROJE</span><i />
+              <span>GÖREV</span><i />
+              <span>ÜRETİM</span><i />
+              <span>KONTROL</span><i />
+              <span>YAYIN</span>
+            </div>
+
             <div className="soft-login-points">
-              <div><CheckCircle2 size={16} /><span>Rol tabanlı erişim</span></div>
-              <div><CheckCircle2 size={16} /><span>Güvenli oturum yönetimi</span></div>
-              <div><CheckCircle2 size={16} /><span>İzlenebilir işlem geçmişi</span></div>
+              <div><CheckCircle2 size={15} /><span>Rol tabanlı erişim</span></div>
+              <div><CheckCircle2 size={15} /><span>Güvenli oturum</span></div>
+              <div><CheckCircle2 size={15} /><span>İzlenebilir işlem geçmişi</span></div>
             </div>
           </div>
         </aside>
