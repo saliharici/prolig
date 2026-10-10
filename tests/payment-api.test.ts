@@ -32,6 +32,8 @@ describe('Payment API Auth & DTO', () => {
         updatedAt: date,
         
         
+        paymentPeriod: null,
+        compensationEntries: [],
         authorUser: { id: 10, fullName: 'Yazar Adı', email: 'secret@secret.com', passwordHash: 'secret' } as any,
         project: { id: 20, title: 'Proje 1', code: 'PRJ-1' } as any
       });
@@ -45,6 +47,9 @@ describe('Payment API Auth & DTO', () => {
         createdAt: date,
         updatedAt: date,
         author: { id: 10, fullName: 'Yazar Adı' },
+        beneficiary: { id: 10, fullName: 'Yazar Adı' },
+        paymentPeriod: null,
+        entries: [],
         project: { id: 20, title: 'Proje 1', code: 'PRJ-1' }
       });
       const str = JSON.stringify(dto);
@@ -55,3 +60,4 @@ describe('Payment API Auth & DTO', () => {
     });
   });
 });
+

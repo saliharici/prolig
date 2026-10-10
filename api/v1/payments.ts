@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from './_lib/prisma.js';
 import { getCurrentUser } from './_lib/current-user.js';
+import { transitionPayment } from './_lib/payment-settlement.js';
+import { SettlementError, positiveId } from './_lib/payment-periods.js';
 import { checkPaymentAccess } from './_lib/payment-access.js';
 import { paymentSelect, formatPaymentDto } from './_lib/payment-dto.js';
 
@@ -23,83 +25,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
+      if (user.role.code !== 'MUHASEBE') return res.status(403).json({ error: 'Ödemeleri yalnız Muhasebe yönetebilir.' });
       const action = req.query.action;
-      
-      const rawId = req.query.id;
-      if (
-        Array.isArray(rawId) ||
-        typeof rawId !== 'string' ||
-        !/^[1-9]\d*$/.test(rawId)
-      ) {
-        return res.status(400).json({ error: 'Invalid ID' });
-      }
-      const id = Number(rawId);
-      if (!Number.isSafeInteger(id)) {
-        return res.status(400).json({ error: 'Invalid ID' });
-      }
-
-      if (action === 'approve') {
-        const result = await prisma.$transaction(async (tx) => {
-          const current = await tx.payment.findUnique({
-            where: { id },
-            select: { status: true, updatedAt: true, amount: true, projectId: true }
-          });
-
-          if (!current) throw new Error('NOT_FOUND');
-          if (current.status !== 'Bekliyor') throw new Error('INVALID_STATE');
-
-          const { count } = await tx.payment.updateMany({ where: { id, status: 'Bekliyor', updatedAt: current.updatedAt }, data: { status: 'Onaylandi' } }); if (count === 0) throw new Error('Optimistic concurrency conflict');
-
-          await tx.activityLog.create({
-            data: {
-              userName: user.fullName,
-              action: "PAYMENT_APPROVED",
-              entityType: 'Payment',
-              entityId: id, details: JSON.stringify({ previousStatus: current.status })
-            }
-          });
-
-          return { success: true };
-        });
-        return res.status(200).json({ success: true, payment: result });
-      }
-
-      if (action === 'pay') {
-        const result = await prisma.$transaction(async (tx) => {
-          const current = await tx.payment.findUnique({
-            where: { id },
-            select: { status: true, updatedAt: true, amount: true, projectId: true }
-          });
-
-          if (!current) throw new Error('NOT_FOUND');
-          if (current.status !== 'Onaylandi') throw new Error('INVALID_STATE');
-
-          const { count } = await tx.payment.updateMany({ where: { id, status: 'Onaylandi', updatedAt: current.updatedAt }, data: { status: 'Odendi', paymentDate: new Date() } }); if (count === 0) throw new Error('Optimistic concurrency conflict');
-
-          await tx.activityLog.create({
-            data: {
-              userName: user.fullName,
-              action: "PAYMENT_PAID",
-              entityType: 'Payment',
-              entityId: id, details: JSON.stringify({ previousStatus: current.status })
-            }
-          });
-
-          return { success: true };
-        });
-        return res.status(200).json({ success: true, payment: result });
-      }
-
-      return res.status(400).json({ error: 'Unknown action' });
+      const id = positiveId(req.query.id);
+      if (!id) return res.status(400).json({ error: 'Invalid ID' });
+      if (action !== 'approve' && action !== 'pay' && action !== 'cancel') return res.status(400).json({ error: 'Unknown action' });
+      const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+      if (action === 'cancel' && (reason.length < 3 || reason.length > 500)) return res.status(400).json({ error: 'İptal gerekçesi girin (3–500 karakter).' });
+      const result = await prisma.$transaction(tx => transitionPayment(tx, id, action, user, reason), { isolationLevel: 'Serializable', timeout: 30000 });
+      return res.status(200).json({ success: true, payment: result });
     }
-
-    res.setHeader('Allow', ['GET', 'POST']);
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
+    if (error instanceof SettlementError) return res.status(error.status).json({ error: error.message });
+    if (['P2025', 'P2034', 'P2002'].includes(error.code)) return res.status(409).json({ error: 'Conflict' });
     console.error(error);
-    if (error.message === 'NOT_FOUND') return res.status(404).json({ error: 'Not found' });
-    if (error.message === 'INVALID_STATE') return res.status(409).json({ error: 'Conflict' });
-    if (error.message === 'Optimistic concurrency conflict' || error.code === 'P2025') return res.status(409).json({ error: 'Optimistic concurrency conflict' });
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

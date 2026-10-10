@@ -19,6 +19,7 @@ import {
   protectedProjectHistory,
   validateProjectAuthors
 } from '../_lib/project-management.js';
+import { accrueProjectCoordinatorCompletion } from '../_lib/compensation-engine.js';
 
 const patchFields = new Set([
   'title', 'code', 'projectType', 'deadline', 'priority', 'targetGrade',
@@ -235,6 +236,13 @@ async function handlePatch(id: number, user: any, req: VercelRequest, res: Verce
           skipDuplicates: true
         });
       }
+    }
+
+    if (data.status === 'Tamamlandi' && project.status !== 'Tamamlandi') {
+      await accrueProjectCoordinatorCompletion(tx, {
+        id: project.id,
+        coordinatorId: project.coordinatorId
+      });
     }
 
     await tx.activityLog.create({

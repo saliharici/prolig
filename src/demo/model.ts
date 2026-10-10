@@ -111,10 +111,10 @@ export const sectionLabels: Record<Section, string> = {
 
 export const permissions: Record<Role, Section[]> = {
   GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments', 'members', 'roles', 'audit'],
-  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members'],
-    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members'],
-  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports'],
-  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports'],
+  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members', 'payments'],
+    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members', 'payments'],
+  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
+  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
   MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements', 'reports'],
 };
 
@@ -135,7 +135,7 @@ export const actionPermissions: { label: string; roles: Role[] }[] = [
   { label: 'Kendi görev durumunu ilerlet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR'] },
   { label: 'Yetki kapsamına mesaj gönder', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE'] },
   { label: 'Duyuru yayınla / yönet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'] },
-  { label: 'Telif/ödeme kaydını onayla / ödendi işaretle', roles: ['MUHASEBE', 'GENEL_KOORDINATOR'] },
+  { label: 'Telif/ödeme kaydını onayla / ödendi işaretle', roles: ['MUHASEBE'] },
   { label: 'İşlem geçmişini görüntüle', roles: ['GENEL_KOORDINATOR'] },
 ];
 
@@ -247,3 +247,4 @@ export function resetDemoData(): DemoData {
   saveDemoData(data);
   return data;
 }
+

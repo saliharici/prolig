@@ -1,0 +1,82 @@
+.payment-module-tabs{display:flex;align-items:center;gap:6px;margin:-4px 0 14px;padding:5px;border:1px solid #dde8e6;border-radius:11px;background:#f8fbfa;width:max-content;max-width:100%;overflow:auto}
+.payment-module-tabs button{height:32px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#70868b;font-size:8px;font-weight:900;white-space:nowrap}
+.payment-module-tabs button:hover{background:#eef6f4;color:#347d70}
+.payment-module-tabs button.active{background:#fff;color:#1d7566;box-shadow:0 2px 8px rgba(27,76,69,.08)}
+.compensation-rules-panel{display:grid;gap:14px}
+.compensation-policy-card{display:flex;align-items:flex-start;gap:13px;padding:17px 18px;background:linear-gradient(135deg,#f8fcfb,#fff)}
+.compensation-policy-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:#e6f6f1;color:#237d6e;flex:0 0 auto}
+.compensation-policy-card h2{margin:5px 0 4px;font:800 15px Manrope,sans-serif;color:#29474e}
+.compensation-policy-card p{margin:0;color:#7f9498;font-size:8px;line-height:1.55}
+.compensation-rule-editor,.compensation-rule-list,.compensation-history{padding:0;overflow:hidden}
+.compensation-rule-editor>.panel-head,.compensation-rule-list>.panel-head,.compensation-history>.panel-head{padding:16px 18px}
+.compensation-rule-form{display:grid;grid-template-columns:1fr 1.2fr 1.25fr 1fr;gap:11px;padding:14px 18px 17px;border-top:1px solid #e9efee;background:#fbfcfc;align-items:end}
+.compensation-rule-form label{display:grid;gap:6px;color:#698086;font-size:7px;font-weight:900;letter-spacing:.04em}
+.compensation-rule-form select,.compensation-money-input{height:37px;border:1px solid #dce7e5;border-radius:9px;background:#fff}
+.compensation-rule-form select{padding:0 10px;color:#355159;font-size:8px;outline:0}
+.compensation-rule-form select:focus,.compensation-money-input:focus-within{border-color:#76cbb9;box-shadow:0 0 0 3px rgba(44,166,143,.08)}
+.compensation-money-input{display:flex;align-items:center;overflow:hidden}
+.compensation-money-input input{min-width:0;flex:1;height:100%;border:0;outline:0;padding:0 10px;color:#29474e;font-size:9px;background:transparent}
+.compensation-money-input span{height:100%;padding:0 10px;display:grid;place-items:center;background:#f2f6f5;border-left:1px solid #e1e9e7;color:#668084;font-size:8px;font-weight:900}
+.compensation-rule-help{grid-column:1/-2;display:grid;gap:3px;align-self:center;padding:9px 11px;border:1px solid #e4ecea;border-radius:9px;background:#fff}
+.compensation-rule-help strong{color:#426168;font-size:8px}.compensation-rule-help span{color:#92a2a5;font-size:7px}
+.compensation-save-button{height:36px;align-self:center;justify-content:center}
+.compensation-alert{display:flex;align-items:center;gap:8px;min-height:38px;padding:8px 12px;border-radius:9px;font-size:8px;font-weight:700}
+.compensation-alert.error{background:#fff2f0;color:#a54f47;border:1px solid #f2d7d3}.compensation-alert.success{background:#edf9f5;color:#237a69;border:1px solid #d3ece5}
+.compensation-alert button{margin-left:auto;border:0;background:transparent;color:inherit;font-size:7px;font-weight:900;text-decoration:underline}
+.compensation-table{min-width:900px}
+.compensation-project-scope strong,.compensation-project-scope small{display:block}.compensation-project-scope strong{font-size:8px;color:#36535a}.compensation-project-scope small{margin-top:2px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:7px;color:#95a5a8}
+.compensation-default-scope{display:inline-flex;padding:4px 7px;border-radius:999px;background:#edf7f4;color:#2d7e70;font-size:7px;font-weight:900}
+.compensation-price{color:#23454d;font-size:10px}.compensation-deactivate{border:1px solid #ecd8d5;border-radius:7px;background:#fff;color:#a95c54;padding:5px 7px;font-size:7px;font-weight:900}.compensation-deactivate:hover{background:#fff3f1}.compensation-deactivate:disabled{opacity:.5}
+.compensation-state{min-height:125px;display:flex;align-items:center;justify-content:center;gap:8px;color:#8ea0a3;font-size:8px}.compensation-state.compact{min-height:70px}
+.compensation-history-list{display:grid;border-top:1px solid #e9efee}
+.compensation-history-list>div:not(.compensation-state){display:grid;grid-template-columns:1.5fr .75fr .9fr;gap:14px;align-items:center;padding:11px 18px;border-bottom:1px solid #eef2f1}.compensation-history-list>div:last-child{border-bottom:0}
+.compensation-history-list span strong,.compensation-history-list span small{display:block}.compensation-history-list span strong{font-size:8px;color:#3c595f}.compensation-history-list span small{margin-top:2px;font-size:7px;color:#96a6a9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1100px){.compensation-rule-form{grid-template-columns:1fr 1fr}.compensation-rule-help{grid-column:1/2}.compensation-save-button{grid-column:2/3}}
+@media(max-width:700px){.compensation-rule-form{grid-template-columns:1fr}.compensation-rule-help,.compensation-save-button{grid-column:auto}.compensation-history-list>div:not(.compensation-state){grid-template-columns:1fr 1fr}.compensation-history-list>div:not(.compensation-state)>span:last-child{grid-column:1/-1}}
+
+
+.compensation-entries-panel{display:grid;gap:14px}
+.compensation-entry-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.compensation-entry-kpis>article{min-height:100px;padding:15px;display:flex;align-items:flex-start;gap:11px}
+.comp-entry-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto}
+.comp-entry-icon.total{background:#e8f6f2;color:#247f6f}.comp-entry-icon.writer{background:#eaf3ff;color:#3b86c7}.comp-entry-icon.editor{background:#f1edfb;color:#7864b9}.comp-entry-icon.coordinator{background:#fff3de;color:#ca861e}
+.compensation-entry-kpis small,.compensation-entry-kpis strong,.compensation-entry-kpis span{display:block}
+.compensation-entry-kpis small{font-size:6.5px;color:#91a2a5;font-weight:900;letter-spacing:.08em}
+.compensation-entry-kpis strong{margin-top:6px;font:800 17px Manrope,sans-serif;color:#28464d}
+.compensation-entry-kpis span{margin-top:3px;font-size:7px;color:#95a5a8}
+.compensation-entry-workbench{padding:0;overflow:hidden}
+.compensation-entry-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px;border-bottom:1px solid #e9efee}
+.compensation-entry-head h2{margin:5px 0 3px;font:800 16px Manrope,sans-serif;color:#29474e}
+.compensation-entry-head p{margin:0;color:#91a2a5;font-size:8px}
+.compensation-entry-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) 180px minmax(220px,.8fr);gap:9px;padding:11px 18px;border-bottom:1px solid #edf2f1;background:#fbfcfc}
+.compensation-entry-toolbar select{height:35px;border:1px solid #dce7e5;border-radius:9px;background:#fff;color:#496269;padding:0 9px;font-size:8px;outline:0}
+.compensation-entry-toolbar select:focus{border-color:#75c9b8;box-shadow:0 0 0 3px rgba(44,166,143,.08)}
+.compensation-entry-search{width:100%}
+.compensation-entry-table{min-width:1040px}
+.compensation-entry-table td>strong{font-size:8.5px;color:#38565d}
+.comp-source strong,.comp-source small{display:block}.comp-source strong{font-size:8px;color:#38565d}.comp-source small{margin-top:2px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:7px;color:#97a6a9}
+.compensation-entry-table td>small{font-size:6.5px;color:#98a7aa}
+.comp-entry-status{display:inline-flex;align-items:center;min-height:23px;padding:0 7px;border-radius:999px;font-size:6.5px;font-weight:900;white-space:nowrap;background:#edf6f3;color:#337d70}
+.comp-entry-status.odendi{background:#e5f6ed;color:#247657}.comp-entry-status.iptal{background:#fff0ee;color:#b1544b}.comp-entry-status.odemeye_alindi{background:#eaf4ff;color:#377ebc}.comp-entry-status.odeme_bekliyor{background:#fff5e6;color:#a9762b}
+@media(max-width:1100px){.compensation-entry-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.compensation-entry-toolbar{grid-template-columns:1fr 1fr}.compensation-entry-search{grid-column:1/-1}}
+@media(max-width:650px){.compensation-entry-kpis{grid-template-columns:1fr}.compensation-entry-toolbar{grid-template-columns:1fr}.compensation-entry-search{grid-column:auto}}
+
+
+.payment-period-panel { padding: 24px; }
+.period-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.period-actions button, .period-cancel button { border:1px solid #dce3ed; border-radius:8px; padding:9px 13px; background:#fff; color:#18324d; cursor:pointer; }
+.period-actions button.primary-button, .period-create .primary-button { background:#183b64; color:white; }
+.period-actions button:disabled, .period-create button:disabled, .period-cancel button:disabled { opacity:.45; cursor:default; }
+.period-create { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding:20px; background:#f7f9fc; border:1px solid #e0e6ef; border-radius:12px; margin-bottom:20px; }
+.period-create label, .period-cancel label { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; }
+.period-create input, .period-cancel input { min-width:0; padding:10px 12px; border:1px solid #d7dfeb; border-radius:8px; background:white; font:inherit; }
+.period-create small { align-self:center; color:#62748a; }
+.period-detail { border-top:1px solid #e1e7f0; margin-top:20px; padding-top:20px; }
+.period-cancel { display:flex; align-items:end; gap:10px; margin:16px 0; }
+.period-cancel label { flex:1; max-width:540px; }
+.period-selected { background:#f0f5fc; }
+.comp-entry-status.odeme_bekliyor { background:#fff5db; color:#8c6400; }
+.comp-entry-status.odemeye_alindi { background:#e5efff; color:#2454a6; }
+.comp-entry-status.odendi { background:#e2f5eb; color:#177044; }
+.comp-entry-status.iptal { background:#f5e4e4; color:#954141; }
+@media (max-width:700px) { .period-create { grid-template-columns:1fr; } .period-cancel { align-items:stretch; flex-direction:column; } .payment-period-panel { padding:16px; } }

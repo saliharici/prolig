@@ -8,6 +8,8 @@ import { isDistrictInProvince } from '../../shared/district-catalog.js';
 import { handleTaskAction } from './_lib/task-handler.js';
 import { handleMessageAction } from './_lib/message-handler.js';
 import { handleAnnouncementAction } from './_lib/announcement-handler.js';
+import { handlePaymentPeriodAction, type PeriodAction } from './_lib/payment-period-handler.js';
+import { handleCompensationAction } from './_lib/compensation-handler.js';
 
 const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
@@ -140,7 +142,10 @@ async function protectedUserHistory(userId: number, authorProfileId?: number | n
     coordinatedTasks,
     projectMemberships,
     authoredTasks,
-    files
+    files,
+    compensationEntries,
+    compensationRulesCreated,
+    paymentPeriods
   ] = await Promise.all([
     prisma.question.count({ where: { authorUserId: userId } }),
     prisma.payment.count({ where: { authorUserId: userId } }),
@@ -149,7 +154,10 @@ async function protectedUserHistory(userId: number, authorProfileId?: number | n
     prisma.task.count({ where: { assignedCoordinatorId: userId } }),
     authorProfileId ? prisma.projectAuthor.count({ where: { authorProfileId } }) : Promise.resolve(0),
     authorProfileId ? prisma.task.count({ where: { assignedAuthorProfileId: authorProfileId } }) : Promise.resolve(0),
-    authorProfileId ? prisma.fileRecord.count({ where: { authorProfileId } }) : Promise.resolve(0)
+    authorProfileId ? prisma.fileRecord.count({ where: { authorProfileId } }) : Promise.resolve(0),
+    prisma.compensationEntry.count({ where: { userId } }),
+    prisma.compensationRule.count({ where: { createdByUserId: userId } }),
+    prisma.paymentPeriod.count({ where: { OR: [{ createdByUserId: userId }, { approvedByUserId: userId }, { closedByUserId: userId }] } })
   ]);
 
   return {
@@ -159,7 +167,10 @@ async function protectedUserHistory(userId: number, authorProfileId?: number | n
     coordinatedTasks,
     projectMemberships,
     authoredTasks,
-    files
+    files,
+    compensationEntries,
+    compensationRulesCreated,
+    paymentPeriods
   };
 }
 
@@ -208,6 +219,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (action === 'announcements' || action === 'announcement') {
       return handleAnnouncementAction(req, res, user, action);
+    }
+    if (action === 'compensationRules' || action === 'compensationRule' || action === 'compensationEntries') {
+      return handleCompensationAction(req, res, user, action);
+    }
+    if (['paymentPeriods', 'paymentPeriod', 'paymentPeriodPrepare', 'paymentPeriodSettle', 'paymentPeriodClose', 'paymentPeriodCancel'].includes(String(action))) {
+      return handlePaymentPeriodAction(req, res, user, action as PeriodAction);
     }
     if (action === 'auditLogs') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -403,3 +420,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
