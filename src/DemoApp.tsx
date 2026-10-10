@@ -99,6 +99,9 @@ function FinanceOverview({ apiPayments, onNavigate, currentUser, data }: { apiPa
 const auditActionLabels: Record<string, string> = {
   PAYMENT_APPROVED: 'Telif/ödeme kaydı onaylandı',
   PAYMENT_PAID: 'Ödeme tamamlandı',
+  COMPENSATION_RULE_CREATED: 'Ücret tarifesi oluşturuldu',
+  COMPENSATION_RULE_REPLACED: 'Ücret tarifesi güncellendi',
+  COMPENSATION_RULE_DEACTIVATED: 'Ücret tarifesi pasifleştirildi',
   USER_CREATED_AND_ASSIGNED: 'Kullanıcı oluşturuldu ve kapsam atandı',
   USER_ACTIVATED: 'Kullanıcı etkinleştirildi',
   USER_DEACTIVATED: 'Kullanıcı pasifleştirildi',
@@ -122,6 +125,8 @@ const auditActionLabels: Record<string, string> = {
 
 const auditEntityLabels: Record<string, string> = {
   Payment: 'Telif / Ödeme',
+  CompensationRule: 'Ücret Tarifesi',
+  CompensationEntry: 'Ücret Kazanımı',
   User: 'Kullanıcı',
   Question: 'Soru',
   Project: 'Proje',
