@@ -53,6 +53,10 @@
       "destination": "/api/v1/projects/[id]"
     },
     {
+      "source": "/api/v1/tasks/:id",
+      "destination": "/api/v1/tasks?action=item&id=:id"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }
