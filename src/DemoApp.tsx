@@ -24,6 +24,7 @@ import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
 import type { ApiAuthor } from './authors/types';
 import { MemberManagement } from './membership/MemberManagement';
+import { buildGradeLevelSummary } from './demo/grade-summary';
 import './demo.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
@@ -487,19 +488,24 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
             </div>
             <div className="stats-grid">
               {['İlkokul', 'Ortaokul', 'Lise', 'Mezun'].map(lvl => {
-                const authorsCount = apiAuthors.filter(author => author.projectGrades.some(grade => gradesByLevel[lvl]?.includes(grade))).length;
-                const projectsCount = apiProjects.filter(project => gradesByLevel[lvl]?.includes(project.targetGrade)).length;
-                const questionsCount = apiQuestions.filter(q => gradesByLevel[lvl]?.includes(q.grade || '')).length;
+                const summary = buildGradeLevelSummary(gradesByLevel[lvl] ?? [], apiAuthors, apiProjects, apiQuestions);
                 return (
-                  <div key={lvl} className="panel stat-card">
+                  <div key={lvl} className="panel stat-card grade-level-card">
                     <div className="stat-top">
                       <strong>{lvl}</strong>
                       <div className="stat-icon" style={{background: '#eff6ff', color: '#3b82f6'}}><GraduationCap size={18} /></div>
                     </div>
-                    <div style={{marginTop: '15px', display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b'}}>
-                      <div><strong style={{color: '#0f172a', fontSize: '14px'}}>{authorsCount}</strong> Yazar</div>
-                      <div><strong style={{color: '#0f172a', fontSize: '14px'}}>{projectsCount}</strong> Proje</div>
-                      <div><strong style={{color: '#0f172a', fontSize: '14px'}}>{questionsCount}</strong> Soru</div>
+                    <div className="grade-level-metrics">
+                      <div><strong>{summary.authorsCount}</strong><span>Yazar</span></div>
+                      <div><strong>{summary.activeProjectsCount}</strong><span>Aktif Proje</span></div>
+                      <div><strong>{summary.questionsCount}</strong><span>Soru Havuzu</span></div>
+                    </div>
+                    <div className="grade-level-note">
+                      {summary.unassignedQuestionsCount > 0
+                        ? `${summary.unassignedQuestionsCount} soru henüz bir projeye bağlanmamış.`
+                        : summary.questionsCount > 0
+                          ? 'Bu kademedeki sorular proje kapsamıyla tutarlı.'
+                          : 'Bu kademede henüz içerik bulunmuyor.'}
                     </div>
                   </div>
                 );
