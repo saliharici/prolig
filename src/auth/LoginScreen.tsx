@@ -44,12 +44,12 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
 
       <div className="soft-login-layout">
         <aside className="soft-login-intro">
-          <div className="public-brand">
-            <div className="public-brand-mark">P</div>
-            <div>
-              <strong>PRO-LİG</strong>
-              <span>Yayın ve İçerik Yönetim Platformu</span>
-            </div>
+          <div className="public-brand soft-login-brand">
+            <img
+              className="soft-login-brand-logo"
+              src="/brand/prolig-logo-primary.png"
+              alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu"
+            />
           </div>
           <div className="soft-login-copy">
             <span className="public-overline">GÜVENLİ ÇALIŞMA ALANI</span>
