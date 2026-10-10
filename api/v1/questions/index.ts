@@ -129,7 +129,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
           authorProfileId: user.AuthorProfile.id
         }
       },
-      include: { project: { select: { branchId: true } } }
+      include: { project: { select: { branchId: true, targetGrade: true } } }
     });
 
     if (!pa) {
@@ -137,6 +137,12 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     }
     if (pa.project.branchId !== user.AuthorProfile.branchId) {
       return res.status(403).json({ error: 'Project branch is outside author branch' });
+    }
+    if (grade.trim() !== pa.project.targetGrade) {
+      return res.status(409).json({
+        error: 'Question grade must match project target grade',
+        expectedGrade: pa.project.targetGrade
+      });
     }
   }
 
