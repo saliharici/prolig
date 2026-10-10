@@ -3,9 +3,17 @@ import bcrypt from 'bcryptjs';
 import { prisma } from './_lib/prisma.js';
 import { getCurrentUser } from './_lib/current-user.js';
 import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canViewProvince, coordinatorRoles } from './_lib/member-access.js';
+import { MEB_TEACHING_BRANCHES, isMebTeachingBranch } from '../../shared/branch-catalog.js';
 
 const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
+
+async function ensureCanonicalBranches() {
+  await prisma.branch.createMany({
+    data: MEB_TEACHING_BRANCHES.map((name) => ({ name, category: 'MEB' })),
+    skipDuplicates: true
+  });
+}
 
 function positiveInt(value: any): number | null {
   if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value;
@@ -126,7 +134,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const email = clean(req.body?.email,200,true)?.toLowerCase() || null;
       const provinceId = positiveInt(req.body?.provinceId);
       const requestedRole = clean(req.body?.requestedRole,50);
-      if (!fullName || !email || !email.includes('@') || !provinceId || (requestedRole && !['YAZAR','EDITOR'].includes(requestedRole))) return res.status(400).json({ error: 'Invalid application' });
+      const requestedBranch = clean(req.body?.requestedBranch,120,true);
+      if (!fullName || !email || !email.includes('@') || !provinceId || !requestedBranch || !isMebTeachingBranch(requestedBranch) || (requestedRole && !['YAZAR','EDITOR'].includes(requestedRole))) return res.status(400).json({ error: 'Invalid application' });
       const province = await prisma.province.findUnique({ where: { id: provinceId } });
       if (!province) return res.status(400).json({ error: 'Unknown province' });
       const existing = await prisma.membershipApplication.findFirst({ where: { email, status: { in: openStatuses as any } } });
@@ -137,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         districtName: clean(req.body?.districtName,120) || null,
         institutionName: clean(req.body?.institutionName,200) || null,
         requestedRole: requestedRole || null,
-        requestedBranch: clean(req.body?.requestedBranch,120) || null,
+        requestedBranch,
         motivation: clean(req.body?.motivation,1000) || null
       }, include: { province: true }});
       return res.status(201).json({ application });
@@ -148,6 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!coordinatorRoles.has(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
 
     if (action === 'metadata' && req.method === 'GET') {
+      await ensureCanonicalBranches();
       const where = user.role.code === 'GENEL_KOORDINATOR' ? {} : user.role.code === 'BOLGE_KOORDINATORU' ? { region: user.assignedRegion || '__NONE__' } : { id: user.provinceId || -1 };
       const [provinces, branches] = await Promise.all([
         prisma.province.findMany({ where, orderBy: { name: 'asc' } }),
