@@ -372,3 +372,12 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
 .grade-level-metrics span{margin-top:4px;color:#7f9298;font-size:9px;font-weight:700;line-height:1.25}
 .grade-level-note{margin-top:17px;padding-top:12px;border-top:1px solid #edf2f1;color:#94a5a9;font-size:9px;line-height:1.45}
 @media(max-width:600px){.grade-level-metrics{gap:7px}.grade-level-metrics strong{font-size:15px}.grade-level-metrics span{font-size:8px}}
+
+
+/* Lifecycle controls */
+.question-view-toggle{display:inline-flex;align-items:center;gap:4px;padding:3px;border:1px solid #dbe6e5;border-radius:10px;background:#f7faf9}
+.question-view-toggle button{height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 11px;border:0;border-radius:7px;background:transparent;color:#71868c;font-size:10px;font-weight:800;cursor:pointer}
+.question-view-toggle button.active{background:#fff;color:#177f6d;box-shadow:0 2px 7px rgba(18,46,52,.08)}
+.row-actions .danger-action,.danger-action{color:#b42318!important;border-color:#f0c9c5!important;background:#fff8f7!important}
+.row-actions .danger-action:hover,.danger-action:hover{color:#8f1b12!important;border-color:#e6aaa4!important;background:#fff1ef!important}
+@media(max-width:700px){.question-view-toggle{width:100%}.question-view-toggle button{flex:1;justify-content:center}}
