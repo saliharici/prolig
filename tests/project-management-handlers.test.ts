@@ -199,6 +199,49 @@ describe('Project management handlers', () => {
     }));
   });
 
+  it('preserves retained ProjectAuthor rows and only diffs author membership', async () => {
+    vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(genel as any);
+    const secondAssignment = {
+      authorProfileId: 4,
+      authorProfile: {
+        user: { id: 40, fullName: 'İkinci Yazar' },
+        province: { id: 6, name: 'Ankara', region: 'İç Anadolu' }
+      }
+    };
+    vi.mocked(prisma.project.findUnique)
+      .mockResolvedValueOnce(projectRecord({ projectAuthors: [authorAssignment, secondAssignment] }) as any)
+      .mockResolvedValueOnce(projectRecord({ projectAuthors: [authorAssignment] }) as any);
+    vi.mocked(prisma.authorProfile.findMany).mockResolvedValue([
+      {
+        id: 3,
+        branchId: 2,
+        status: 'Aktif',
+        province: { id: 25, name: 'Erzurum', region: 'Doğu Anadolu' },
+        branch: { id: 2, name: 'Matematik' },
+        user: { id: 30, status: 'Aktif', role: { code: 'YAZAR' } }
+      },
+      {
+        id: 5,
+        branchId: 2,
+        status: 'Aktif',
+        province: { id: 35, name: 'İzmir', region: 'Ege' },
+        branch: { id: 2, name: 'Matematik' },
+        user: { id: 50, status: 'Aktif', role: { code: 'YAZAR' } }
+      }
+    ] as any);
+
+    const { req, res } = reqRes('PATCH', { authorProfileIds: [3, 5] }, { id: '10' });
+    await projectHandler(req, res);
+
+    expect(prisma.projectAuthor.deleteMany).toHaveBeenCalledWith({
+      where: { projectId: 10, authorProfileId: { in: [4] } }
+    });
+    expect(prisma.projectAuthor.createMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: [{ projectId: 10, authorProfileId: 5 }]
+    }));
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
+
   it('archives a manageable project and writes audit history', async () => {
     vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(il as any);
     vi.mocked(prisma.project.findUnique)
