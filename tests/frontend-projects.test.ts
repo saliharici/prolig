@@ -29,11 +29,11 @@ describe('Project API frontend client', () => {
 describe('Projects UI source regressions', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf8');
 
-  it('uses API projects for the main page, overview, and grade counts', () => {
+  it('uses API projects for the main page, overview, and centralized grade summaries', () => {
     expect(source).toContain('const [apiProjects, setApiProjects]');
     expect(source).toContain('filteredProjects = apiProjects.filter');
     expect(source).toContain('apiProjects.slice(0, 3)');
-    expect(source).toContain('apiProjects.filter(project => gradesByLevel[lvl]?.includes(project.targetGrade))');
+    expect(source).toContain('buildGradeLevelSummary(gradesByLevel[lvl] ?? [], apiAuthors, apiProjects, apiQuestions)');
   });
 
   it('renders real code and status mapping without fabricating project province', () => {
