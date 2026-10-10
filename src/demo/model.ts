@@ -101,7 +101,7 @@ export const sectionLabels: Record<Section, string> = {
   tasks: 'Görev Takibi',
   messages: 'Mesajlar',
   authors: 'Türkiye Yazar Ağı',
-  payments: 'Hakedişler',
+  payments: 'Telif ve Ödemeler',
   members: 'Üye Yönetimi',
   roles: 'Rol ve Yetkiler',
   audit: 'İşlem Geçmişi',
@@ -122,7 +122,7 @@ export const dataScopes: Record<Role, string> = {
     IL_KOORDINATORU: 'İl Koordinatörü',
   EDITOR: 'Tüm sorular ve proje özetleri',
   YAZAR: 'Kendi soruları ve atanmış proje',
-  MUHASEBE: 'Hakediş kayıtları ve proje bağlamı',
+  MUHASEBE: 'Telif ve ödeme kayıtları ile proje bağlamı',
 };
 
 export const actionPermissions: { label: string; roles: Role[] }[] = [
@@ -132,7 +132,7 @@ export const actionPermissions: { label: string; roles: Role[] }[] = [
   { label: 'Görev oluştur / ata', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'] },
   { label: 'Kendi görev durumunu ilerlet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR'] },
   { label: 'Yetki kapsamına mesaj gönder', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE'] },
-  { label: 'Hakedişi onayla / ödendi işaretle', roles: ['MUHASEBE', 'GENEL_KOORDINATOR'] },
+  { label: 'Telif/ödeme kaydını onayla / ödendi işaretle', roles: ['MUHASEBE', 'GENEL_KOORDINATOR'] },
   { label: 'İşlem geçmişini görüntüle', roles: ['GENEL_KOORDINATOR'] },
 ];
 
