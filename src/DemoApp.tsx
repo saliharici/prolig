@@ -753,6 +753,37 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <><div className="page-heading"><div><div className="eyebrow">DENETİM İZİ</div><h1>İşlem Geçmişi</h1><p>Bu tarayıcıdaki örnek soru ve hakediş adımlarını izleyin.</p></div><span className="heading-chip"><ActivityIcon size={16} /> {data.activities.length} kayıt</span></div><div className="panel table-panel"><div className="table-heading"><strong>Son işlemler</strong><span>Demo verisi · Yerel tarayıcı kaydı</span></div><div className="table-wrap"><table><thead><tr><th>İŞLEM</th><th>UYGULAYAN</th><th>TÜR</th><th>ZAMAN</th></tr></thead><tbody>{data.activities.map(item => <tr key={item.id}><td><strong>{item.text}</strong></td><td>{item.actor}</td><td>{item.type === 'payment' ? 'Hakediş' : item.type === 'project' ? 'Proje' : 'Soru'}</td><td>{item.at}</td></tr>)}</tbody></table></div></div></>}
       </main>
     </div>
+    {selectedProject && <div className="modal-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)setSelectedProjectId(null)}}><div className="project-detail-modal">
+      <div className="modal-head"><div><span className="panel-kicker">PROJE DETAYI</span><h2>{selectedProject.title}</h2></div><button type="button" aria-label="Kapat" onClick={()=>setSelectedProjectId(null)}><X size={20}/></button></div>
+      <div className="project-detail-summary">
+        <div><span>Proje Kodu</span><strong>{selectedProject.code}</strong></div>
+        <div><span>Branş</span><strong>{selectedProject.branch.name}</strong></div>
+        <div><span>Sınıf</span><strong>{selectedProject.targetGrade}</strong></div>
+        <div><span>Durum</span><Status value={projectStatusDisplay(selectedProject.status)}/></div>
+      </div>
+      <p className="project-detail-description">{selectedProject.description||'Bu proje için açıklama girilmemiş.'}</p>
+      {(()=>{const stats=projectQuestionStats(selectedProject.id,apiQuestions);return <div className="project-detail-metrics">
+        <div><strong>{selectedProject.authors.length}</strong><span>Yazar</span></div>
+        <div><strong>{stats.total}</strong><span>Soru</span></div>
+        <div><strong>{stats.review}</strong><span>İncelemede</span></div>
+        <div><strong>{stats.approved}</strong><span>Onaylı</span></div>
+        <div><strong>%{selectedProject.progress}</strong><span>İlerleme</span></div>
+      </div>})()}
+      <div className="project-detail-body">
+        <div>
+          <div className="grade-detail-subhead"><strong>Proje yazarları</strong><span>{selectedProject.authors.length} kişi</span></div>
+          {selectedProject.authors.length?<div className="project-author-list">{selectedProject.authors.map(author=><span key={author.id}><span className="small-avatar">{author.fullName.split(' ').filter(Boolean).map(part=>part[0]).join('').slice(0,2).toLocaleUpperCase('tr-TR')}</span><span><strong>{author.fullName}</strong><small>{author.province.name}</small></span></span>)}</div>:<div className="grade-detail-empty">Projeye henüz yazar atanmamış.</div>}
+        </div>
+        <div>
+          <div className="grade-detail-subhead"><strong>Takvim</strong></div>
+          <div className="project-timeline-info"><span><Clock3 size={15}/> Son teslim <strong>{date(selectedProject.deadline)}</strong></span><span><GraduationCap size={15}/> Hedef sınıf <strong>{selectedProject.targetGrade}</strong></span></div>
+        </div>
+      </div>
+      <div className="project-detail-footer">
+        <button className="secondary-button" onClick={()=>{setSelectedGrade(selectedProject.targetGrade);setSelectedProjectId(null);setSection('grades')}}>Sınıfı aç <GraduationCap size={15}/></button>
+        <button className="primary-button" onClick={()=>openQuestionsForProject(selectedProject.id)}>Proje sorularını aç <ArrowRight size={15}/></button>
+      </div>
+    </div></div>}
     {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) { setShowQuestionForm(false); setEditingQuestion(null); } }}><form className="question-modal pro-editor-modal" onSubmit={handleCreateQuestion}>
         <div className="modal-head"><div><span className="panel-kicker">PROFESYONEL SORU EDİTÖRÜ</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div><button type="button" aria-label="Kapat" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}><X size={20} /></button></div>
         <p>Soru gövdesini hazırlayın, cevap seçeneklerini ve doğru yanıtı belirleyin.</p>
