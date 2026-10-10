@@ -22,6 +22,8 @@ import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/t
 import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
 import { ProjectManagementModal } from './projects/ProjectManagementModal';
 import { TaskTracking } from './tasks/TaskTracking';
+import { MessageCenter } from './messages/MessageCenter';
+import { fetchMessages } from './messages/api';
 import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './payments/api';
 import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
@@ -37,6 +39,7 @@ const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'questions', icon: FileQuestion },
   { id: 'projects', icon: BookOpen },
   { id: 'tasks', icon: ClipboardList },
+  { id: 'messages', icon: MessageSquareText },
   { id: 'authors', icon: MapPinned },
   { id: 'payments', icon: Wallet },
   { id: 'members', icon: Users },
@@ -186,6 +189,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     loadApiQuestions();
     loadApiProjects();
     loadApiAuthors();
+    fetchMessages('inbox').then(result => setMessageUnreadCount(result.counts.unread)).catch(() => undefined);
   }, []);
     const [section, setSection] = useState<Section>('overview');
     const [mobileMenu, setMobileMenu] = useState(false);
@@ -206,6 +210,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [showProjectManager, setShowProjectManager] = useState(false);
   const [editingProject, setEditingProject] = useState<ApiProject | null>(null);
   const [taskProjectFilter, setTaskProjectFilter] = useState<number | null>(null);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
@@ -591,7 +596,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     <aside className={`demo-sidebar ${mobileMenu ? 'open' : ''}`}>
       <div className="brand"><div className="brand-mark"><span>P</span></div><div><strong>PRO LİG</strong><small>İçerik yönetim platformu</small></div></div>
       <div className="sidebar-caption">ÇALIŞMA ALANI</div>
-      <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}</button>)}</nav>
+      <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}{id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}</button>)}</nav>
       <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Hakedişler gerçek Pilot verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
     </aside>
     {mobileMenu && <button className="mobile-shade" aria-label="Menüyü kapat" onClick={() => setMobileMenu(false)} />}
@@ -603,6 +608,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   </div>
   <div className="topbar-right">
     <span className="preview-badge"><span /> ETKİLEŞİMLİ ÖNİZLEME</span>
+    {allowed.includes('messages') && <button type="button" className="topbar-message-button" onClick={() => navigate('messages')} title="Mesajlar" aria-label="Mesajlar"><MessageSquareText size={17}/>{messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}</button>}
     <div className="topbar-profile">
       <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle">
         <span className="profile-badge">
@@ -682,6 +688,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}
           </>}
         {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} />}
+        {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
         {section === 'grades' && <>
           <div className="page-heading">
             <div>
