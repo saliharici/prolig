@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, PencilLine, Plus, RefreshCw, UserPlus, X } from 'lucide-react';
+import { Check, Eye, EyeOff, LockKeyhole, Mail, MapPin, PencilLine, Plus, RefreshCw, UserPlus, UserRound, UsersRound, X } from 'lucide-react';
 import type { AuthUser } from '../auth/types';
 import type { Role } from '../demo/model';
 import { roleLabels } from '../demo/model';
@@ -36,6 +36,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
   const [form,setForm]=useState<FormState>(emptyForm(currentUser.role==='BOLGE_KOORDINATORU'?'YAZAR':'YAZAR'));
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
+  const [showPassword,setShowPassword]=useState(false);
 
   const roles = useMemo<Role[]>(()=> currentUser.role==='GENEL_KOORDINATOR'
     ? ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']
@@ -120,21 +121,109 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
       </tbody></table></div>
     </div>
 
-    {canManage&&<form className="panel" onSubmit={submitUser} style={{marginTop:18}}>
-      <div className="panel-head"><div><span className="panel-kicker">KULLANICI / ROL ATAMA</span><h2>{form.id?'Kullanıcı yetkisini düzenle':'Yeni kullanıcı oluştur'}</h2></div>{form.id&&<button type="button" className="secondary-button" onClick={()=>setForm(emptyForm())}>İptal</button>}</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:12,marginTop:18}}>
-        <label>Ad Soyad<input required value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value})}/></label>
-        <label>E-posta<input required type="email" disabled={Boolean(form.id)} value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>
-        {!form.id&&<label>İlk Şifre<input required minLength={8} type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></label>}
-        <label>Rol<select value={form.role} onChange={e=>setForm({...form,role:e.target.value as Role,branchIds:[]})}>{roles.map(r=><option key={r} value={r}>{roleLabels[r]}</option>)}</select></label>
-        {form.role==='BOLGE_KOORDINATORU'&&<label>Bölge<select value={form.assignedRegion} onChange={e=>setForm({...form,assignedRegion:e.target.value})}><option value="">Seçiniz</option>{REGIONS.map(r=><option key={r}>{r}</option>)}</select></label>}
-        {['IL_KOORDINATORU','YAZAR','EDITOR'].includes(form.role)&&<label>İl<select value={form.provinceId} onChange={e=>setForm({...form,provinceId:e.target.value,assignedRegion:e.target.value?'':form.assignedRegion})}><option value="">Seçiniz</option>{provinces.map(p=><option key={p.id} value={p.id}>{p.name} · {p.region}</option>)}</select></label>}
-        {form.role==='EDITOR'&&<label>Editör bölgesi <select value={form.assignedRegion} onChange={e=>setForm({...form,assignedRegion:e.target.value,provinceId:e.target.value?'':form.provinceId})}><option value="">İl bazlı</option>{REGIONS.filter(r=>currentUser.role==='GENEL_KOORDINATOR'||r===currentUser.assignedRegion).map(r=><option key={r}>{r}</option>)}</select></label>}
-        {form.role==='EDITOR'&&<label>Sınıf filtresi (opsiyonel)<input value={form.editorGrade} onChange={e=>setForm({...form,editorGrade:e.target.value})} placeholder="Örn. 8. Sınıf"/></label>}
-        {['YAZAR','EDITOR'].includes(form.role)&&<div style={{gridColumn:'1 / -1'}}><strong style={{fontSize:12}}>Branş {form.role==='YAZAR'?'(tek)':'(bir veya daha fazla)'}</strong><div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:8}}>{branches.map(b=><label key={b.id} style={{display:'inline-flex',alignItems:'center',gap:6,border:'1px solid #dce8e7',borderRadius:8,padding:'8px 10px'}}><input type={form.role==='YAZAR'?'radio':'checkbox'} checked={form.branchIds.includes(b.id)} onChange={()=>toggleBranch(b.id)}/>{b.name}</label>)}</div></div>}
-        {form.id&&<label>Durum<select value={form.status} onChange={e=>setForm({...form,status:e.target.value as 'Aktif'|'Pasif'})}><option>Aktif</option><option>Pasif</option></select></label>}
+    {canManage&&<form className="panel member-form-card" onSubmit={submitUser}>
+      <div className="member-form-head">
+        <div className="member-form-heading">
+          <span className="member-form-icon"><UserRound size={22}/></span>
+          <div>
+            <span className="panel-kicker">KULLANICI / ROL ATAMA</span>
+            <h2>{form.id?'Kullanıcı yetkisini düzenle':'Yeni kullanıcı oluştur'}</h2>
+            <p>{form.id?'Kullanıcının rolünü, coğrafi kapsamını ve çalışma yetkilerini güncelleyin.':'Sisteme erişim sağlayacak yeni bir kullanıcı oluşturun ve uygun rol ile kapsamı atayın.'}</p>
+          </div>
+        </div>
+        {form.id&&<button type="button" className="secondary-button" onClick={()=>setForm(emptyForm())}>İptal</button>}
       </div>
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:18}}><button className="primary-button" disabled={busy}><Plus size={14}/>{form.id?'Yetkiyi Güncelle':'Kullanıcıyı Oluştur'}</button></div>
+
+      <div className="member-form-divider"/>
+
+      <div className="member-form-grid">
+        <label className="member-field">
+          <span className="member-field-label">Ad Soyad <em>*</em></span>
+          <span className="member-control">
+            <UserRound size={18}/>
+            <input required placeholder="Ad Soyad giriniz" value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value})}/>
+          </span>
+        </label>
+
+        <label className="member-field">
+          <span className="member-field-label">E-posta <em>*</em></span>
+          <span className="member-control">
+            <Mail size={18}/>
+            <input required type="email" placeholder="ornek@firma.com" disabled={Boolean(form.id)} value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/>
+          </span>
+        </label>
+
+        {!form.id&&<label className="member-field">
+          <span className="member-field-label">İlk Şifre <em>*</em></span>
+          <span className="member-control member-password-control">
+            <LockKeyhole size={18}/>
+            <input required minLength={8} type={showPassword?'text':'password'} placeholder="En az 8 karakter" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/>
+            <button type="button" className="member-password-toggle" aria-label={showPassword?'Şifreyi gizle':'Şifreyi göster'} onClick={()=>setShowPassword(value=>!value)}>
+              {showPassword?<EyeOff size={17}/>:<Eye size={17}/>}
+            </button>
+          </span>
+        </label>}
+
+        <label className="member-field">
+          <span className="member-field-label">Rol <em>*</em></span>
+          <span className="member-control member-select-control">
+            <UsersRound size={18}/>
+            <select value={form.role} onChange={e=>setForm({...form,role:e.target.value as Role,branchIds:[]})}>{roles.map(r=><option key={r} value={r}>{roleLabels[r]}</option>)}</select>
+          </span>
+        </label>
+
+        {form.role==='BOLGE_KOORDINATORU'&&<label className="member-field">
+          <span className="member-field-label">Bölge <em>*</em></span>
+          <span className="member-control member-select-control">
+            <MapPin size={18}/>
+            <select value={form.assignedRegion} onChange={e=>setForm({...form,assignedRegion:e.target.value})}><option value="">Seçiniz</option>{REGIONS.map(r=><option key={r}>{r}</option>)}</select>
+          </span>
+        </label>}
+
+        {['IL_KOORDINATORU','YAZAR','EDITOR'].includes(form.role)&&<label className="member-field">
+          <span className="member-field-label">İl <em>*</em></span>
+          <span className="member-control member-select-control">
+            <MapPin size={18}/>
+            <select value={form.provinceId} onChange={e=>setForm({...form,provinceId:e.target.value,assignedRegion:e.target.value?'':form.assignedRegion})}><option value="">Seçiniz</option>{provinces.map(p=><option key={p.id} value={p.id}>{p.name} · {p.region}</option>)}</select>
+          </span>
+        </label>}
+
+        {form.role==='EDITOR'&&<label className="member-field">
+          <span className="member-field-label">Editör bölgesi <small>Opsiyonel</small></span>
+          <span className="member-control member-select-control">
+            <MapPin size={18}/>
+            <select value={form.assignedRegion} onChange={e=>setForm({...form,assignedRegion:e.target.value,provinceId:e.target.value?'':form.provinceId})}><option value="">İl bazlı</option>{REGIONS.filter(r=>currentUser.role==='GENEL_KOORDINATOR'||r===currentUser.assignedRegion).map(r=><option key={r}>{r}</option>)}</select>
+          </span>
+        </label>}
+
+        {form.role==='EDITOR'&&<label className="member-field">
+          <span className="member-field-label">Sınıf filtresi <small>Opsiyonel</small></span>
+          <span className="member-control">
+            <UsersRound size={18}/>
+            <input value={form.editorGrade} onChange={e=>setForm({...form,editorGrade:e.target.value})} placeholder="Örn. 8. Sınıf"/>
+          </span>
+        </label>}
+
+        {form.id&&<label className="member-field">
+          <span className="member-field-label">Durum</span>
+          <span className="member-control member-select-control">
+            <Check size={18}/>
+            <select value={form.status} onChange={e=>setForm({...form,status:e.target.value as 'Aktif'|'Pasif'})}><option>Aktif</option><option>Pasif</option></select>
+          </span>
+        </label>}
+
+        {['YAZAR','EDITOR'].includes(form.role)&&<div className="member-branch-field">
+          <div className="member-branch-head">
+            <div><strong>Branş seçimi</strong><span>{form.role==='YAZAR'?'Yazar için tek branş seçin.':'Editör için bir veya daha fazla branş seçebilirsiniz.'}</span></div>
+          </div>
+          <div className="member-branch-options">{branches.map(b=><label key={b.id} className={form.branchIds.includes(b.id)?'selected':''}><input type={form.role==='YAZAR'?'radio':'checkbox'} checked={form.branchIds.includes(b.id)} onChange={()=>toggleBranch(b.id)}/><span>{b.name}</span></label>)}</div>
+        </div>}
+      </div>
+
+      <div className="member-form-footer">
+        <p>Rol ve coğrafi kapsam, oturum açıldığında kullanıcının görebileceği kayıtları belirler.</p>
+        <button className="primary-button member-submit-button" disabled={busy}><Plus size={16}/>{form.id?'Yetkiyi Güncelle':'Kullanıcıyı Oluştur'}</button>
+      </div>
     </form>}
   </div>;
 }
