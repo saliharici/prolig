@@ -46,20 +46,24 @@ describe('Public Landing V2', () => {
     expect(landing).not.toContain('8. Sınıf LGS Soru Bankası');
   });
 
-  it('uses the new PRO-LIG brand asset in header and footer', () => {
-    expect(landing).toContain('src="/prolig-logo.webp"');
+  it('uses the primary PRO-LIG brand asset in header and footer', () => {
+    expect(landing).toContain('src="/brand/prolig-logo-primary.png"');
     expect(landing).toContain('public-brand-logo');
     expect(landing).not.toContain('<div className="public-brand-mark">P</div>');
     expect(css).toContain('.public-brand-logo{');
     expect(css).toContain('.footer-brand-logo{');
   });
 
-  it('uses the same brand asset inside the authenticated workspace', () => {
+  it('uses dedicated inverse and operations brand variants where appropriate', () => {
     const app = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf8');
+    const login = fs.readFileSync(path.join(__dirname, '../src/auth/LoginScreen.tsx'), 'utf8');
     expect(app).toContain('className="app-brand-logo"');
-    expect(app).toContain('src="/prolig-logo.webp"');
+    expect(app).toContain('src="/brand/prolig-logo-inverse.png"');
+    expect(login).toContain('src="/brand/prolig-logo-primary.png"');
+    expect(landing).toContain('src="/brand/prolig-logo-operations.png"');
     expect(app).not.toContain('<div className="brand-mark"><span>P</span></div>');
     expect(css).toContain('.app-brand-logo{');
+    expect(css).toContain('.public-operations-logo{');
   });
 
   it('updates public navigation to platform, projects, workflow and pilot', () => {
