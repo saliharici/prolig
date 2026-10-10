@@ -1,0 +1,31 @@
+.compensation-rules-panel{display:grid;gap:14px}
+.compensation-policy-card{display:flex;align-items:flex-start;gap:13px;padding:17px 18px;background:linear-gradient(135deg,#f8fcfb,#fff)}
+.compensation-policy-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:#e6f6f1;color:#237d6e;flex:0 0 auto}
+.compensation-policy-card h2{margin:5px 0 4px;font:800 15px Manrope,sans-serif;color:#29474e}
+.compensation-policy-card p{margin:0;color:#7f9498;font-size:8px;line-height:1.55}
+.compensation-rule-editor,.compensation-rule-list,.compensation-history{padding:0;overflow:hidden}
+.compensation-rule-editor>.panel-head,.compensation-rule-list>.panel-head,.compensation-history>.panel-head{padding:16px 18px}
+.compensation-rule-form{display:grid;grid-template-columns:1fr 1.2fr 1.25fr 1fr;gap:11px;padding:14px 18px 17px;border-top:1px solid #e9efee;background:#fbfcfc;align-items:end}
+.compensation-rule-form label{display:grid;gap:6px;color:#698086;font-size:7px;font-weight:900;letter-spacing:.04em}
+.compensation-rule-form select,.compensation-money-input{height:37px;border:1px solid #dce7e5;border-radius:9px;background:#fff}
+.compensation-rule-form select{padding:0 10px;color:#355159;font-size:8px;outline:0}
+.compensation-rule-form select:focus,.compensation-money-input:focus-within{border-color:#76cbb9;box-shadow:0 0 0 3px rgba(44,166,143,.08)}
+.compensation-money-input{display:flex;align-items:center;overflow:hidden}
+.compensation-money-input input{min-width:0;flex:1;height:100%;border:0;outline:0;padding:0 10px;color:#29474e;font-size:9px;background:transparent}
+.compensation-money-input span{height:100%;padding:0 10px;display:grid;place-items:center;background:#f2f6f5;border-left:1px solid #e1e9e7;color:#668084;font-size:8px;font-weight:900}
+.compensation-rule-help{grid-column:1/-2;display:grid;gap:3px;align-self:center;padding:9px 11px;border:1px solid #e4ecea;border-radius:9px;background:#fff}
+.compensation-rule-help strong{color:#426168;font-size:8px}.compensation-rule-help span{color:#92a2a5;font-size:7px}
+.compensation-save-button{height:36px;align-self:center;justify-content:center}
+.compensation-alert{display:flex;align-items:center;gap:8px;min-height:38px;padding:8px 12px;border-radius:9px;font-size:8px;font-weight:700}
+.compensation-alert.error{background:#fff2f0;color:#a54f47;border:1px solid #f2d7d3}.compensation-alert.success{background:#edf9f5;color:#237a69;border:1px solid #d3ece5}
+.compensation-alert button{margin-left:auto;border:0;background:transparent;color:inherit;font-size:7px;font-weight:900;text-decoration:underline}
+.compensation-table{min-width:900px}
+.compensation-project-scope strong,.compensation-project-scope small{display:block}.compensation-project-scope strong{font-size:8px;color:#36535a}.compensation-project-scope small{margin-top:2px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:7px;color:#95a5a8}
+.compensation-default-scope{display:inline-flex;padding:4px 7px;border-radius:999px;background:#edf7f4;color:#2d7e70;font-size:7px;font-weight:900}
+.compensation-price{color:#23454d;font-size:10px}.compensation-deactivate{border:1px solid #ecd8d5;border-radius:7px;background:#fff;color:#a95c54;padding:5px 7px;font-size:7px;font-weight:900}.compensation-deactivate:hover{background:#fff3f1}.compensation-deactivate:disabled{opacity:.5}
+.compensation-state{min-height:125px;display:flex;align-items:center;justify-content:center;gap:8px;color:#8ea0a3;font-size:8px}.compensation-state.compact{min-height:70px}
+.compensation-history-list{display:grid;border-top:1px solid #e9efee}
+.compensation-history-list>div:not(.compensation-state){display:grid;grid-template-columns:1.5fr .75fr .9fr;gap:14px;align-items:center;padding:11px 18px;border-bottom:1px solid #eef2f1}.compensation-history-list>div:last-child{border-bottom:0}
+.compensation-history-list span strong,.compensation-history-list span small{display:block}.compensation-history-list span strong{font-size:8px;color:#3c595f}.compensation-history-list span small{margin-top:2px;font-size:7px;color:#96a6a9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1100px){.compensation-rule-form{grid-template-columns:1fr 1fr}.compensation-rule-help{grid-column:1/2}.compensation-save-button{grid-column:2/3}}
+@media(max-width:700px){.compensation-rule-form{grid-template-columns:1fr}.compensation-rule-help,.compensation-save-button{grid-column:auto}.compensation-history-list>div:not(.compensation-state){grid-template-columns:1fr 1fr}.compensation-history-list>div:not(.compensation-state)>span:last-child{grid-column:1/-1}}
