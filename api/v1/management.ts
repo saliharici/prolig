@@ -7,6 +7,7 @@ import { MEB_TEACHING_BRANCHES, isMebTeachingBranch } from '../../shared/branch-
 import { isDistrictInProvince } from '../../shared/district-catalog.js';
 import { handleTaskAction } from './_lib/task-handler.js';
 import { handleMessageAction } from './_lib/message-handler.js';
+import { handleAnnouncementAction } from './_lib/announcement-handler.js';
 
 const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
@@ -204,6 +205,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (action === 'messages' || action === 'message' || action === 'messageRecipients') {
       return handleMessageAction(req, res, user, action);
+    }
+    if (action === 'announcements' || action === 'announcement') {
+      return handleAnnouncementAction(req, res, user, action);
     }
     if (!coordinatorRoles.has(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
 

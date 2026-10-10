@@ -5,7 +5,7 @@ import {
   GraduationCap,
   Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BookOpen,
   Bold, Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
-  FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText,
+  FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText, Megaphone,
   LockKeyhole, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Sparkles,
   PencilLine, Trash2, Underline, Users, Wallet, X,
 } from 'lucide-react';
@@ -24,6 +24,8 @@ import { ProjectManagementModal } from './projects/ProjectManagementModal';
 import { TaskTracking } from './tasks/TaskTracking';
 import { MessageCenter } from './messages/MessageCenter';
 import { fetchMessages } from './messages/api';
+import { AnnouncementCenter } from './announcements/AnnouncementCenter';
+import { fetchAnnouncements } from './announcements/api';
 import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './payments/api';
 import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
@@ -40,6 +42,7 @@ const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'projects', icon: BookOpen },
   { id: 'tasks', icon: ClipboardList },
   { id: 'messages', icon: MessageSquareText },
+  { id: 'announcements', icon: Megaphone },
   { id: 'authors', icon: MapPinned },
   { id: 'payments', icon: Wallet },
   { id: 'members', icon: Users },
@@ -190,6 +193,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     loadApiProjects();
     loadApiAuthors();
     fetchMessages('inbox').then(result => setMessageUnreadCount(result.counts.unread)).catch(() => undefined);
+    fetchAnnouncements('active').then(result => setAnnouncementUnreadCount(result.counts.unread)).catch(() => undefined);
   }, []);
     const [section, setSection] = useState<Section>('overview');
     const [mobileMenu, setMobileMenu] = useState(false);
@@ -211,6 +215,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [editingProject, setEditingProject] = useState<ApiProject | null>(null);
   const [taskProjectFilter, setTaskProjectFilter] = useState<number | null>(null);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const [announcementUnreadCount, setAnnouncementUnreadCount] = useState(0);
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
@@ -596,7 +601,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     <aside className={`demo-sidebar ${mobileMenu ? 'open' : ''}`}>
       <div className="brand"><div className="brand-mark"><span>P</span></div><div><strong>PRO LİG</strong><small>İçerik yönetim platformu</small></div></div>
       <div className="sidebar-caption">ÇALIŞMA ALANI</div>
-      <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}{id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}</button>)}</nav>
+      <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}{id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}{id === 'announcements' && announcementUnreadCount > 0 && <em>{announcementUnreadCount}</em>}</button>)}</nav>
       <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Hakedişler gerçek Pilot verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
     </aside>
     {mobileMenu && <button className="mobile-shade" aria-label="Menüyü kapat" onClick={() => setMobileMenu(false)} />}
@@ -608,6 +613,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   </div>
   <div className="topbar-right">
     <span className="preview-badge"><span /> ETKİLEŞİMLİ ÖNİZLEME</span>
+    {allowed.includes('announcements') && <button type="button" className="topbar-message-button topbar-announcement-button" onClick={() => navigate('announcements')} title="Duyurular" aria-label="Duyurular"><Megaphone size={17}/>{announcementUnreadCount > 0 && <em>{announcementUnreadCount}</em>}</button>}
     {allowed.includes('messages') && <button type="button" className="topbar-message-button" onClick={() => navigate('messages')} title="Mesajlar" aria-label="Mesajlar"><MessageSquareText size={17}/>{messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}</button>}
     <div className="topbar-profile">
       <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle">
@@ -689,6 +695,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           </>}
         {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} />}
         {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
+        {section === 'announcements' && <AnnouncementCenter onUnreadChange={setAnnouncementUnreadCount} />}
         {section === 'grades' && <>
           <div className="page-heading">
             <div>
