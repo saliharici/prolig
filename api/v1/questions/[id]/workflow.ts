@@ -4,6 +4,7 @@ import { getCurrentUser } from '../../_lib/current-user.js';
 import { formatQuestionDto } from '../../_lib/question-dto.js';
 import { canWorkflowReview } from '../../_lib/question-access.js';
 import { isQuestionArchived } from '../../_lib/question-archive.js';
+import { accrueQuestionApproval } from '../../_lib/compensation-engine.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -105,6 +106,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           project: true
         }
       });
+
+      if (action === 'approve') {
+        await accrueQuestionApproval(tx, {
+          id: q!.id,
+          authorUserId: q!.authorUserId,
+          projectId: q!.projectId
+        }, user);
+      }
 
       await tx.activityLog.create({
         data: {
