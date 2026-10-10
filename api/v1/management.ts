@@ -212,7 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (action === 'messages' || action === 'message' || action === 'messageRecipients') {
       return handleMessageAction(req, res, user, action);
     }
-    if (action === 'compensationRules' || action === 'compensationRule') {
+    if (action === 'compensationRules' || action === 'compensationRule' || action === 'compensationEntries') {
       return handleCompensationAction(req, res, user, action);
     }
     if (action === 'auditLogs') {
