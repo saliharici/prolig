@@ -1,5 +1,5 @@
 export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'IL_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
-export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'authors' | 'payments' | 'members' | 'roles' | 'audit';
+export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'tasks' | 'authors' | 'payments' | 'members' | 'roles' | 'audit';
 export type QuestionStatus = 'Taslak' | 'İncelemede' | 'Revizyon' | 'Onaylandı' | 'Reddedildi';
 export type PaymentStatus = 'Bekliyor' | 'Onaylandı' | 'Ödendi';
 
@@ -98,6 +98,7 @@ export const sectionLabels: Record<Section, string> = {
   questions: 'Soru Havuzu',
   grades: 'Eğitim Kademeleri',
   projects: 'Projeler',
+  tasks: 'Görev Takibi',
   authors: 'Türkiye Yazar Ağı',
   payments: 'Hakedişler',
   members: 'Üye Yönetimi',
@@ -106,11 +107,11 @@ export const sectionLabels: Record<Section, string> = {
 };
 
 export const permissions: Record<Role, Section[]> = {
-  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'authors', 'payments', 'members', 'roles', 'audit'],
-  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'authors', 'grades', 'members'],
-    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'authors', 'members'],
-  EDITOR: ['overview', 'grades', 'questions', 'projects'],
-  YAZAR: ['overview', 'grades', 'questions', 'projects'],
+  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'authors', 'payments', 'members', 'roles', 'audit'],
+  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'authors', 'grades', 'members'],
+    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'authors', 'members'],
+  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks'],
+  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks'],
   MUHASEBE: ['overview', 'payments', 'projects'],
 };
 
@@ -127,6 +128,8 @@ export const actionPermissions: { label: string; roles: Role[] }[] = [
   { label: 'Soru taslağı oluştur', roles: ['YAZAR'] },
   { label: 'Kendi sorusunu incelemeye gönder', roles: ['YAZAR'] },
   { label: 'Soruyu onayla / revizyona gönder', roles: ['EDITOR', 'GENEL_KOORDINATOR'] },
+  { label: 'Görev oluştur / ata', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'] },
+  { label: 'Kendi görev durumunu ilerlet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR'] },
   { label: 'Hakedişi onayla / ödendi işaretle', roles: ['MUHASEBE', 'GENEL_KOORDINATOR'] },
   { label: 'İşlem geçmişini görüntüle', roles: ['GENEL_KOORDINATOR'] },
 ];
