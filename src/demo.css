@@ -507,3 +507,63 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
 .project-detail-footer{display:flex;justify-content:flex-end;gap:9px;margin-top:21px;padding-top:17px;border-top:1px solid #edf1f1}
 @media(max-width:900px){.grade-selector-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.grade-detail-columns{grid-template-columns:1fr}.project-detail-body{grid-template-columns:1fr}}
 @media(max-width:640px){.grade-selector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grade-detail-head{flex-direction:column}.grade-detail-actions{width:100%;flex-direction:column}.grade-detail-stats,.project-detail-metrics,.project-detail-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.project-card-counts{grid-template-columns:1fr}.project-detail-footer{flex-direction:column}.project-detail-footer button{width:100%}}
+
+
+/* Project management CRUD */
+.page-heading-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.project-management-modal{width:min(900px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.65)}
+.project-management-head{padding:26px 28px 20px;border-bottom:1px solid #eaf0ef}
+.project-management-head p{margin:6px 0 0;max-width:650px;color:#83979c;font-size:10px;line-height:1.6}
+.project-management-error{margin:18px 28px 0;padding:11px 13px;border:1px solid #f2c2bc;background:#fff3f1;border-radius:10px;color:#a43d34;font-size:10px;font-weight:700}
+.project-archive-notice{display:flex;align-items:flex-start;gap:10px;margin:18px 28px 0;padding:12px 14px;border:1px solid #d8e6e3;background:#f5faf8;border-radius:10px;color:#607b80}
+.project-archive-notice strong,.project-archive-notice span{display:block}
+.project-archive-notice strong{font-size:10px;color:#34525a}
+.project-archive-notice span{margin-top:3px;font-size:9px;color:#81959a}
+.project-metadata-note{margin:16px 28px 0}
+.project-management-fields{border:0;margin:0;padding:0;min-width:0}
+.project-management-fields:disabled{opacity:.72}
+.project-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px;padding:24px 28px 10px}
+.project-form-grid label>span:first-child{display:block;margin-bottom:7px;color:#60747a;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.project-form-grid label>span em{color:#d24f45;font-style:normal}
+.project-form-grid input,.project-form-grid select,.project-form-grid textarea{width:100%;border:1px solid #d9e4e2;border-radius:10px;background:#fff;padding:11px 12px;color:#233d45;font-size:11px;outline:0}
+.project-form-grid input:focus,.project-form-grid select:focus,.project-form-grid textarea:focus{border-color:#58c5b1;box-shadow:0 0 0 3px rgba(48,197,170,.1)}
+.project-form-grid textarea{min-height:105px;resize:vertical;line-height:1.55}
+.project-span-two{grid-column:1/-1}
+.project-input-icon{display:flex!important;align-items:center;gap:8px;border:1px solid #d9e4e2;border-radius:10px;padding:0 10px;color:#779096}
+.project-input-icon input{border:0!important;box-shadow:none!important;padding-left:0!important}
+.project-progress-control{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:9px 11px;border:1px solid #d9e4e2;border-radius:10px;background:#fafcfc}
+.project-progress-control input{padding:0;border:0;box-shadow:none}
+.project-progress-control strong{min-width:38px;text-align:right;color:#2e5d57;font-size:11px}
+.project-author-picker{margin:12px 28px 8px;padding:17px;border:1px solid #e1e9e8;border-radius:13px;background:#fbfcfc}
+.project-author-picker-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.project-author-picker-head>div{display:flex;align-items:flex-start;gap:9px}
+.project-author-picker-head strong,.project-author-picker-head span{display:block}
+.project-author-picker-head strong{color:#324e56;font-size:10px}
+.project-author-picker-head>div span{margin-top:3px;color:#8da0a4;font-size:8px}
+.project-author-picker-head>span{padding:5px 8px;border-radius:999px;background:#eef7f4;color:#318272;font-size:8px;font-weight:800}
+.project-author-picker-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+.project-author-picker-grid>button{display:flex;align-items:center;gap:9px;text-align:left;border:1px solid #e0e8e7;border-radius:10px;background:#fff;padding:10px;cursor:pointer}
+.project-author-picker-grid>button:hover,.project-author-picker-grid>button.selected{border-color:#72c8b7;background:#f2fbf8}
+.project-author-check{width:21px;height:21px;border-radius:6px;border:1px solid #cbdad7;display:grid;place-items:center;color:#fff;background:#fff;flex:0 0 auto}
+.project-author-picker-grid>button.selected .project-author-check{background:#2ca78f;border-color:#2ca78f}
+.project-author-picker-grid strong,.project-author-picker-grid small{display:block}
+.project-author-picker-grid strong{font-size:10px;color:#334e55}
+.project-author-picker-grid small{margin-top:3px;color:#8ca0a4;font-size:8px}
+.project-management-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 28px 26px;border-top:1px solid #edf1f1;margin-top:18px}
+.project-danger-actions,.project-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.danger-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #e7b8b2;border-radius:9px;background:#fff5f3;color:#a63b32;padding:10px 13px;font-size:9px;font-weight:800;cursor:pointer}
+.danger-button:hover{background:#fee9e5}
+.danger-button:disabled{opacity:.55;cursor:not-allowed}
+.project-manage-button{margin-right:auto}
+@media(max-width:760px){
+  .page-heading-actions{width:100%;justify-content:flex-start}
+  .project-form-grid{grid-template-columns:1fr;padding:20px}
+  .project-span-two{grid-column:auto}
+  .project-author-picker{margin:10px 20px}
+  .project-author-picker-grid{grid-template-columns:1fr}
+  .project-management-head{padding:22px 20px 18px}
+  .project-management-error,.project-archive-notice,.project-metadata-note{margin-left:20px;margin-right:20px}
+  .project-management-footer{padding:18px 20px 22px;flex-direction:column;align-items:stretch}
+  .project-danger-actions,.project-save-actions{width:100%}
+  .project-danger-actions button,.project-save-actions button{flex:1}
+}

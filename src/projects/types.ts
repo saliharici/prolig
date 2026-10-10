@@ -6,6 +6,8 @@ export interface ApiProject {
   title: string;
   code: string;
   projectType: string;
+  coordinatorId?: number | null;
+  canManage?: boolean;
   progress: number;
   deadline: string;
   status: ProjectStatus;
@@ -22,3 +24,20 @@ export interface ApiProject {
     province: { id: number; name: string; region: string };
   }>;
 }
+
+export interface CreateProjectInput {
+  title: string;
+  code: string;
+  projectType: string;
+  deadline: string;
+  priority: ProjectPriority;
+  targetGrade: string;
+  branchId: number;
+  description?: string | null;
+  authorProfileIds: number[];
+}
+
+export type UpdateProjectInput = Partial<CreateProjectInput> & {
+  progress?: number;
+  status?: Exclude<ProjectStatus, 'Arsiv'>;
+};

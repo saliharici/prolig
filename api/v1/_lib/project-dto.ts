@@ -5,6 +5,7 @@ export const projectSelect = {
   title: true,
   code: true,
   projectType: true,
+  coordinatorId: true,
   progress: true,
   deadline: true,
   status: true,
@@ -31,12 +32,14 @@ export const projectSelect = {
 
 type SelectedProject = Prisma.ProjectGetPayload<{ select: typeof projectSelect }>;
 
-export function formatProjectDto(project: SelectedProject) {
+export function formatProjectDto(project: SelectedProject, canManage = false) {
   return {
     id: project.id,
     title: project.title,
     code: project.code,
     projectType: project.projectType,
+    coordinatorId: project.coordinatorId,
+    canManage,
     progress: project.progress,
     deadline: project.deadline,
     status: project.status,
