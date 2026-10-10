@@ -226,12 +226,22 @@ describe('Question API Frontend Client', () => {
       const modalEnd = demoAppCode.indexOf('{editingApiQuestion && !showQuestionForm');
       const questionModalCode = demoAppCode.slice(modalStart, modalEnd);
 
-      expect(questionModalCode).toContain('apiProjects.map');
+      expect(questionModalCode).toContain('questionAssignableProjects.map');
       expect(questionModalCode).not.toContain('data.projects');
       expect(questionModalCode).toContain('Genel Soru Havuzu');
       expect(questionModalCode).toContain('Projeler yükleniyor...');
       expect(questionModalCode).toContain('Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.');
       expect(questionModalCode).not.toMatch(/projectId:\s*1|setQuestionProjectId\(1\)/);
+    });
+
+    it('locks class fields to a selected project target grade', () => {
+      const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
+      expect(demoAppCode).toContain('const changeQuestionProject = (value: string)');
+      expect(demoAppCode).toContain('setQuestionGrade(project.targetGrade)');
+      expect(demoAppCode).toContain('disabled={questionProjectId!==null}');
+      expect(demoAppCode).toContain('Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.');
+      expect(demoAppCode).toContain('questionProjectFilter');
+      expect(demoAppCode).toContain('questionGradeFilter');
     });
 
     it('creates with the selection and delegates differential PATCH construction', () => {
