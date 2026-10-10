@@ -77,24 +77,28 @@ describe('Final UX Stabilization', () => {
     expect(authGateCode).toContain('const [showApplication, setShowApplication] = useState(false);');
     expect(authGateCode).toContain('<MembershipApplicationScreen onBack={() => setShowApplication(false)} />');
     expect(authGateCode).toContain('<PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />');
+    expect(authGateCode).toContain('const [showPublicPreview, setShowPublicPreview] = useState(false);');
+    expect(authGateCode).toContain('<PublicLanding');
+    expect(authGateCode).toContain('authenticated');
+    expect(authGateCode).toContain('onPublicSiteRequest={() => setShowPublicPreview(true)}');
     expect(authGateCode).toContain('<LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }}');
     expect(authGateCode).toContain('setShowLogin(false);');
   });
 
 
-  it('uses a searchable permission-aware command topbar', () => {
+  it('uses a contextual searchable workspace topbar without duplicate module navigation', () => {
     const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
     const demoAppCode = fs.readFileSync(demoAppPath, 'utf8');
     const cssPath = path.resolve(__dirname, '../src/demo.css');
     const cssCode = fs.readFileSync(cssPath, 'utf8');
 
-    expect(demoAppCode).toContain('Yayın üretiminde');
+    expect(demoAppCode).toContain('topbar-context');
     expect(demoAppCode).toContain('topbar-global-search');
-    expect(demoAppCode).toContain('topbarQuickSections');
-    expect(demoAppCode).toContain("['overview', 'projects', 'tasks', 'messages', 'authors']");
+    expect(demoAppCode).toContain('Kurumsal Sayfa');
     expect(demoAppCode).toContain('runTopbarSearch');
-    expect(cssCode).toContain('.topbar-command{');
-    expect(cssCode).toContain('.topbar-quick-nav{');
+    expect(demoAppCode).not.toContain('topbarQuickSections');
+    expect(cssCode).toContain('.topbar-context{');
+    expect(cssCode).toContain('.topbar-site-button{');
   });
 
   it('keeps role settings general-only and exposes member management only to coordinators', () => {
