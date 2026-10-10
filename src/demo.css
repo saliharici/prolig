@@ -889,9 +889,23 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
 
 
 /* Authenticated PRO-LIG brand */
-.app-brand{height:94px;padding:0 20px;justify-content:flex-start}
-.app-brand-logo{display:block;width:188px;max-width:100%;height:auto;object-fit:contain;object-position:left center}
+.app-brand{
+  height:94px;
+  padding:0 22px;
+  justify-content:flex-start;
+  border-bottom:1px solid rgba(255,255,255,.09)
+}
+.app-brand-logo{
+  display:block;
+  width:184px;
+  max-width:100%;
+  height:auto;
+  object-fit:contain;
+  object-position:left center;
+  filter:brightness(0) invert(1);
+  opacity:.96
+}
 @media(max-width:760px){
-  .app-brand{height:78px;padding:0 17px}
-  .app-brand-logo{width:166px}
+  .app-brand{height:78px;padding:0 18px}
+  .app-brand-logo{width:164px}
 }
