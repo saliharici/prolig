@@ -1,4 +1,4 @@
-import type { CompensationRule, CompensationRuleInput } from './types';
+import type { CompensationEntry, CompensationRule, CompensationRuleInput } from './types';
 
 export class CompensationApiError extends Error {
   constructor(public status: number, message: string) {
@@ -47,4 +47,12 @@ export async function deactivateCompensationRule(id: number): Promise<Compensati
   });
   const body = await parse<{ rule: CompensationRule }>(response);
   return body.rule;
+}
+
+
+export async function fetchCompensationEntries(limit = 300): Promise<CompensationEntry[]> {
+  const safeLimit = Number.isSafeInteger(limit) ? Math.min(Math.max(limit, 1), 500) : 300;
+  const response = await fetch(`/api/v1/compensation/entries?limit=${safeLimit}`, { credentials: 'include' });
+  const body = await parse<{ entries: CompensationEntry[] }>(response);
+  return body.entries;
 }
