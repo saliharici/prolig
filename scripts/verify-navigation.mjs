@@ -37,7 +37,10 @@ async function assertNoOverflow(page) {
 }
 async function openDrawer(page) {
   await page.getByRole('button', { name: 'Ana menüyü aç', exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('#workspace-navigation')?.getAttribute('aria-modal') === 'true' && document.body.style.position === 'fixed');
+  await page.waitForFunction(() => {
+    const panel = document.querySelector('#workspace-navigation');
+    return panel?.getAttribute('aria-modal') === 'true' && document.body.style.position === 'fixed' && Math.abs(panel.getBoundingClientRect().left) < 0.5;
+  });
 }
 async function waitClosed(page) {
   await page.waitForFunction(() => document.querySelector('#workspace-navigation')?.getAttribute('aria-hidden') === 'true' && document.body.style.position !== 'fixed');
