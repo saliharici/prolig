@@ -4,6 +4,7 @@ import { prisma } from './_lib/prisma.js';
 import { getCurrentUser } from './_lib/current-user.js';
 import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canViewProvince, coordinatorRoles } from './_lib/member-access.js';
 import { MEB_TEACHING_BRANCHES, isMebTeachingBranch } from '../../shared/branch-catalog.js';
+import { isDistrictInProvince } from '../../shared/district-catalog.js';
 
 const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
@@ -34,7 +35,7 @@ const userInclude = {
   role: true,
   province: true,
   branchAssignments: { select: { branchId: true } },
-  AuthorProfile: { select: { id: true, branchId: true, provinceId: true } }
+  AuthorProfile: { select: { id: true, branchId: true, provinceId: true, districtId: true, district: { select: { id: true, name: true } } } }
 };
 function userDto(user: any) {
   return {
@@ -50,6 +51,7 @@ async function validateAssignment(actor: any, payload: any) {
   const roleCode = clean(payload.role, 50, true);
   if (!roleCode || !canonicalRoles.has(roleCode) || !canAssignRole(actor, roleCode)) return { error: 'Role assignment is not allowed' } as const;
   const provinceId = payload.provinceId == null ? null : positiveInt(payload.provinceId);
+  const districtName = payload.districtName == null ? null : clean(payload.districtName, 120, true);
   const assignedRegion = payload.assignedRegion == null ? null : clean(payload.assignedRegion, 100, true);
   const editorGrade = payload.editorGrade == null ? null : clean(payload.editorGrade, 50, true);
   const branchIds: number[] = [];
@@ -69,12 +71,13 @@ async function validateAssignment(actor: any, payload: any) {
   if (roleCode === 'EDITOR' && (branchIds.length === 0 || (!province && !assignedRegion) || (province && assignedRegion))) {
     return { error: 'Editor requires branches and exactly one geographic scope' } as const;
   }
-  if (roleCode === 'YAZAR' && (!province || branchIds.length !== 1)) return { error: 'Author province and exactly one branch are required' } as const;
+  if (roleCode === 'YAZAR' && (!province || branchIds.length !== 1 || !districtName)) return { error: 'Author province, district and exactly one branch are required' } as const;
+  if (roleCode === 'YAZAR' && districtName && !isDistrictInProvince(provinceId, districtName)) return { error: 'District does not belong to selected province' } as const;
   if (branchIds.length) {
     const count = await prisma.branch.count({ where: { id: { in: branchIds } } });
     if (count !== branchIds.length) return { error: 'Unknown branch' } as const;
   }
-  return { roleCode, provinceId, assignedRegion, editorGrade, branchIds } as const;
+  return { roleCode, provinceId, districtName: roleCode === 'YAZAR' ? districtName : null, assignedRegion, editorGrade, branchIds } as const;
 }
 async function applyAssignment(tx: any, userId: number, v: any, status: string) {
   const role = await tx.role.findUnique({ where: { code: v.roleCode } });
@@ -92,14 +95,16 @@ async function applyAssignment(tx: any, userId: number, v: any, status: string) 
   }
   const existingAuthor = await tx.authorProfile.findUnique({ where: { userId } });
   if (v.roleCode === 'YAZAR') {
+    let district = await tx.district.findFirst({ where: { provinceId: v.provinceId, name: v.districtName } });
+    if (!district) district = await tx.district.create({ data: { provinceId: v.provinceId, name: v.districtName } });
     if (existingAuthor) {
       await tx.authorProfile.update({
         where: { userId },
-        data: { provinceId: v.provinceId, branchId: v.branchIds[0], status: 'Aktif' }
+        data: { provinceId: v.provinceId, districtId: district.id, branchId: v.branchIds[0], status: 'Aktif' }
       });
     } else {
       await tx.authorProfile.create({
-        data: { userId, provinceId: v.provinceId, branchId: v.branchIds[0], experienceYears: 0, status: 'Aktif' }
+        data: { userId, provinceId: v.provinceId, districtId: district.id, branchId: v.branchIds[0], experienceYears: 0, status: 'Aktif' }
       });
     }
   } else if (existingAuthor) {
@@ -133,9 +138,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const fullName = clean(req.body?.fullName,120,true);
       const email = clean(req.body?.email,200,true)?.toLowerCase() || null;
       const provinceId = positiveInt(req.body?.provinceId);
+      const districtName = clean(req.body?.districtName,120,true);
       const requestedRole = clean(req.body?.requestedRole,50);
       const requestedBranch = clean(req.body?.requestedBranch,120,true);
-      if (!fullName || !email || !email.includes('@') || !provinceId || !requestedBranch || !isMebTeachingBranch(requestedBranch) || (requestedRole && !['YAZAR','EDITOR'].includes(requestedRole))) return res.status(400).json({ error: 'Invalid application' });
+      if (!fullName || !email || !email.includes('@') || !provinceId || !districtName || !isDistrictInProvince(provinceId, districtName) || !requestedBranch || !isMebTeachingBranch(requestedBranch) || (requestedRole && !['YAZAR','EDITOR'].includes(requestedRole))) return res.status(400).json({ error: 'Invalid application' });
       const province = await prisma.province.findUnique({ where: { id: provinceId } });
       if (!province) return res.status(400).json({ error: 'Unknown province' });
       const existing = await prisma.membershipApplication.findFirst({ where: { email, status: { in: openStatuses as any } } });
@@ -143,7 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const application = await prisma.membershipApplication.create({ data: {
         fullName, email, provinceId,
         phone: clean(req.body?.phone,40) || null,
-        districtName: clean(req.body?.districtName,120) || null,
+        districtName,
         institutionName: clean(req.body?.institutionName,200) || null,
         requestedRole: requestedRole || null,
         requestedBranch,
@@ -213,7 +219,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const base = await tx.user.create({ data: { username: email, email, passwordHash, fullName, roleId: role.id, status: 'Aktif' } });
         await applyAssignment(tx, base.id, v, 'Aktif');
         if (applicationId) await tx.membershipApplication.update({ where: { id: applicationId }, data: { status: 'ONAYLANDI', reviewedByName: user.fullName } });
-        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_CREATED_AND_ASSIGNED', entityType: 'User', entityId: base.id, details: JSON.stringify({ role: v.roleCode, provinceId: v.provinceId, assignedRegion: v.assignedRegion, branchIds: v.branchIds }) } });
+        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_CREATED_AND_ASSIGNED', entityType: 'User', entityId: base.id, details: JSON.stringify({ role: v.roleCode, provinceId: v.provinceId, districtName: v.districtName, assignedRegion: v.assignedRegion, branchIds: v.branchIds }) } });
         return tx.user.findUnique({ where: { id: base.id }, include: userInclude });
       });
       return res.status(201).json({ user: userDto(created) });
@@ -231,7 +237,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!status || !['Aktif','Pasif'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
       const updated = await prisma.$transaction(async (tx: any) => {
         await applyAssignment(tx,id,v,status);
-        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_ROLE_SCOPE_UPDATED', entityType: 'User', entityId: id, details: JSON.stringify({ fromRole: target.role.code, toRole: v.roleCode, provinceId: v.provinceId, assignedRegion: v.assignedRegion, branchIds: v.branchIds, status }) } });
+        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_ROLE_SCOPE_UPDATED', entityType: 'User', entityId: id, details: JSON.stringify({ fromRole: target.role.code, toRole: v.roleCode, provinceId: v.provinceId, districtName: v.districtName, assignedRegion: v.assignedRegion, branchIds: v.branchIds, status }) } });
         return tx.user.findUnique({ where: { id }, include: userInclude });
       });
       return res.status(200).json({ user: userDto(updated) });
