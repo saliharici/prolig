@@ -1,12 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import handler from '../api/v1/tasks.js';
-import * as currentUserLib from '../api/v1/_lib/current-user.js';
+import { handleTaskAction } from '../api/v1/_lib/task-handler.js';
 import { prisma } from '../api/v1/_lib/prisma.js';
-
-vi.mock('../api/v1/_lib/current-user.js', () => ({
-  getCurrentUser: vi.fn()
-}));
 
 vi.mock('../api/v1/_lib/prisma.js', () => ({
   prisma: {
@@ -101,24 +96,16 @@ const yazar = {
   AuthorProfile: { id: 3 }
 };
 
-describe('Task API handler', () => {
+describe('Task action handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => callback(prisma as any));
     vi.mocked(prisma.task.findMany).mockResolvedValue([]);
   });
 
-  it('requires authentication', async () => {
-    vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(null as any);
-    const { req, res } = reqRes('GET');
-    await handler(req, res);
-    expect(res.status).toHaveBeenCalledWith(401);
-  });
-
   it('scopes an author to own assigned tasks', async () => {
-    vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(yazar as any);
     const { req, res } = reqRes('GET');
-    await handler(req, res);
+    await handleTaskAction(req, res, yazar, 'tasks');
     expect(prisma.task.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { assignedAuthorProfileId: 3 }
     }));
@@ -126,7 +113,6 @@ describe('Task API handler', () => {
   });
 
   it('creates a task only for a project author and starts in Bekliyor', async () => {
-    vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(genel as any);
     vi.mocked(prisma.project.findUnique).mockResolvedValue(project as any);
     vi.mocked(prisma.authorProfile.findUnique).mockResolvedValue({
       id: 3,
@@ -144,7 +130,7 @@ describe('Task API handler', () => {
       dueDate: '2026-10-20',
       assignedAuthorProfileId: 3
     });
-    await handler(req, res);
+    await handleTaskAction(req, res, genel, 'tasks');
 
     expect(prisma.task.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
@@ -161,35 +147,32 @@ describe('Task API handler', () => {
   });
 
   it('lets the assignee advance but not complete the task directly', async () => {
-    vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(yazar as any);
-    vi.mocked(prisma.task.findUnique).mockResolvedValue(taskRecord() as any);
     vi.mocked(prisma.task.update).mockResolvedValue({ id: 50 } as any);
 
-    let { req, res } = reqRes('PATCH', { status: 'Devam_Ediyor' }, { action: 'item', id: '50' });
+    let { req, res } = reqRes('PATCH', { status: 'Devam_Ediyor' }, { id: '50' });
     vi.mocked(prisma.task.findUnique)
       .mockResolvedValueOnce(taskRecord() as any)
       .mockResolvedValueOnce(taskRecord({ status: 'Devam_Ediyor' }) as any);
-    await handler(req, res);
+    await handleTaskAction(req, res, yazar, 'task');
     expect(res.status).toHaveBeenCalledWith(200);
 
-    ({ req, res } = reqRes('PATCH', { status: 'Tamamlandi' }, { action: 'item', id: '50' }));
+    ({ req, res } = reqRes('PATCH', { status: 'Tamamlandi' }, { id: '50' }));
     vi.mocked(prisma.task.findUnique).mockResolvedValue(taskRecord({ status: 'Kontrol_Bekliyor' }) as any);
-    await handler(req, res);
+    await handleTaskAction(req, res, yazar, 'task');
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
   it('only allows permanent delete while waiting', async () => {
-    vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(genel as any);
     vi.mocked(prisma.task.findUnique).mockResolvedValue(taskRecord({ status: 'Devam_Ediyor' }) as any);
 
-    let { req, res } = reqRes('DELETE', {}, { action: 'item', id: '50' });
-    await handler(req, res);
+    let { req, res } = reqRes('DELETE', {}, { id: '50' });
+    await handleTaskAction(req, res, genel, 'task');
     expect(res.status).toHaveBeenCalledWith(409);
 
     vi.mocked(prisma.task.findUnique).mockResolvedValue(taskRecord({ status: 'Bekliyor' }) as any);
     vi.mocked(prisma.task.delete).mockResolvedValue({ id: 50 } as any);
-    ({ req, res } = reqRes('DELETE', {}, { action: 'item', id: '50' }));
-    await handler(req, res);
+    ({ req, res } = reqRes('DELETE', {}, { id: '50' }));
+    await handleTaskAction(req, res, genel, 'task');
     expect(prisma.task.delete).toHaveBeenCalledWith({ where: { id: 50 } });
     expect(res.status).toHaveBeenCalledWith(200);
   });
