@@ -25,8 +25,11 @@ describe('Public Landing V2', () => {
     expect(landing).toContain('{[0, 1].map(copy => (');
     expect(landing).toContain('8. Sınıf Matematik Pilot Soru Bankası');
     expect(css).toContain('@keyframes publicTicker');
-    expect(css).toContain('animation:publicTicker 30s linear infinite');
+    expect(css).toContain('animation:publicTicker 38s linear infinite');
     expect(css).toContain('.public-pulse-shell:hover .public-pulse-track{animation-play-state:paused}');
+    expect(landing).toContain('public-pulse-fade-left');
+    expect(landing).toContain('public-pulse-signal');
+    expect(css).toContain('publicPulseGlow');
   });
 
   it('degrades the ticker to horizontal touch scrolling on mobile and respects reduced motion', () => {
