@@ -23,7 +23,7 @@ describe('Public Landing V2', () => {
     expect(landing).toContain('PROJE NABZI');
     expect(landing).toContain('public-pulse-track');
     expect(landing).toContain('{[0, 1].map(copy => (');
-    expect(landing).toContain('8. Sınıf Matematik Pilot Soru Bankası');
+    expect(landing).toContain('8. Sınıf Matematik Soru Bankası');
     expect(css).toContain('@keyframes publicTicker');
     expect(css).toContain('animation:publicTicker 38s linear infinite');
     expect(css).toContain('.public-pulse-shell:hover .public-pulse-track{animation-play-state:paused}');
@@ -39,9 +39,10 @@ describe('Public Landing V2', () => {
     expect(css).toContain('.public-pulse-track{animation:none}');
   });
 
-  it('keeps the public reference pilot copy neutral and canonical', () => {
-    expect(landing).toContain('PILOT-MAT-8-001');
-    expect(landing).toContain('Pilot Yazar Ağı');
+  it('presents a neutral publishing workflow without pilot or internal project identifiers', () => {
+    expect(landing).not.toContain('PILOT-MAT-8-001');
+    expect(landing).not.toContain('REFERANS PİLOT');
+    expect(landing).toContain('Yazar ve editör ekibi');
     expect(landing).not.toContain('Ülke Geneli');
     expect(landing).not.toContain('8. Sınıf LGS Soru Bankası');
   });
@@ -66,10 +67,10 @@ describe('Public Landing V2', () => {
     expect(css).toContain('.public-operations-logo{');
   });
 
-  it('updates public navigation to platform, projects, workflow and pilot', () => {
+  it('updates public navigation to platform, projects and publishing workflow', () => {
     expect(landing).toContain('<a href="#platform">Platform</a>');
     expect(landing).toContain('<a href="#projeler">Projeler</a>');
     expect(landing).toContain('<a href="#nasil-calisir">Nasıl Çalışır</a>');
-    expect(landing).toContain('<a href="#pilot">Pilot</a>');
+    expect(landing).toContain('<a href="#yayin-projesi">Yayın Akışı</a>');
   });
 });

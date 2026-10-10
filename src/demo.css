@@ -1294,3 +1294,64 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
 .audit-empty span{margin-top:4px;font-size:8px}
 
 @media(max-width:900px){.audit-toolbar{align-items:stretch;flex-direction:column}.audit-search{width:100%}.audit-type-tabs{justify-content:flex-start;overflow:auto;flex-wrap:nowrap}}
+
+/* Workspace navigation: grouped desktop rail and accessible mobile drawer. */
+.workspace-navigation{width:256px;flex:0 0 256px;min-height:0;height:100dvh;overflow:hidden;background:linear-gradient(180deg,#102b36 0%,#15343e 100%);border-right:1px solid rgba(13,38,49,.14);z-index:40}
+.workspace-navigation .brand.app-brand{height:88px;min-height:88px;flex-shrink:0;padding:0 20px;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(255,255,255,.1)}
+.workspace-navigation .app-brand-logo{width:180px;max-width:calc(100% - 4px);height:auto}
+.sidebar-close{display:none}
+.workspace-navigation .workspace-navigation-scroll{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 12px 18px;scrollbar-width:thin;scrollbar-color:#47636c transparent;scrollbar-gutter:stable}
+.workspace-navigation-group{margin:0 0 16px}
+.workspace-navigation-group:last-child{margin-bottom:0}
+.workspace-navigation-group>h2{margin:0 10px 7px;color:#a2bcc1;font-size:10px;font-weight:700;letter-spacing:.09em;line-height:1.5;text-transform:uppercase}
+.workspace-navigation .nav-link{position:relative;min-height:44px;height:auto;margin:3px 0;padding:11px 12px;gap:11px;border:1px solid transparent;border-radius:10px;color:#d2e0e2;font-size:13px;font-weight:500;line-height:1.35;box-shadow:none;transition:background .16s,color .16s,border-color .16s}
+.workspace-navigation .nav-link>span{flex:1;min-width:0}
+.workspace-navigation .nav-link>svg{flex-shrink:0;color:#9cb8bf}
+.workspace-navigation .nav-link:hover{background:rgba(255,255,255,.07);color:#fff;transform:none}
+.workspace-navigation .nav-link.active{background:#23554f;border-color:#39756a;color:#fff;font-weight:700;box-shadow:none}
+.workspace-navigation .nav-link.active>svg{color:#a0efd8}
+.workspace-navigation .nav-link.active::before{content:"";position:absolute;left:-1px;top:10px;bottom:10px;width:3px;border-radius:4px;background:#7ae3c4}
+.workspace-navigation .nav-link em{margin-left:0;min-width:22px;padding:2px 6px;border-radius:6px;background:#e1f5ef;color:#17483e;font-size:10px;font-weight:800;text-align:center;line-height:1.4}
+.workspace-navigation .sidebar-active-indicator{margin-left:0;opacity:.8}
+.workspace-navigation :is(button,a):focus-visible{outline:3px solid #a0efd8;outline-offset:2px}
+.workspace-navigation-footer{flex-shrink:0;margin-top:auto;padding:14px 14px max(16px,env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.1);background:rgba(8,28,36,.22)}
+.sidebar-account{display:flex;align-items:center;gap:10px;padding:0 2px 12px}
+.sidebar-account-avatar{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:11px;overflow:hidden;background:#31565d;color:#f0fffa;font-size:12px;font-weight:800}
+.sidebar-account-avatar img{width:100%;height:100%;object-fit:cover}
+.sidebar-account>div{min-width:0;flex:1}
+.sidebar-account strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f5fafa;font-size:12px;font-weight:700}
+.sidebar-account small{display:block;margin-top:4px;color:#b3cbd0;font-size:10px;line-height:1.4}
+.sidebar-account-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sidebar-account-actions button{display:flex;align-items:center;justify-content:flex-start;gap:7px;min-height:44px;padding:7px 8px;border:1px solid rgba(255,255,255,.13);border-radius:9px;background:transparent;color:#d2e0e2;font-size:11px;text-align:left;line-height:1.25}
+.sidebar-account-actions button:hover{background:rgba(255,255,255,.08);color:#fff}
+.sidebar-account-actions svg{flex-shrink:0}
+.workspace-skip-link{position:fixed;top:10px;left:12px;z-index:150;padding:12px 16px;border-radius:9px;background:#fff;color:#173f46;font-weight:700;transform:translateY(-160%);box-shadow:0 4px 16px rgba(10,30,38,.2)}
+.workspace-skip-link:focus{transform:translateY(0)}
+.topbar-brand-message>.workspace-context{display:flex;flex-direction:column;gap:4px;transform:none;line-height:1.3}
+.topbar-brand-message .workspace-context span{margin:0;font:500 10px 'DM Sans',sans-serif;color:#6a8086;letter-spacing:.04em}
+.topbar-brand-message .workspace-context strong{font:700 13px Manrope,sans-serif;color:#24414a;white-space:normal}
+.demo-main .topbar-profile-main{min-height:44px}
+#workspace-content:focus{outline:none}
+@media(max-width:960px){
+  .workspace-navigation{position:fixed;inset:0 auto 0 0;width:min(320px,calc(100vw - 48px));flex-basis:auto;min-height:0;height:100dvh;max-height:100dvh;transform:translateX(-105%);visibility:hidden;pointer-events:none;z-index:120;transition:transform .24s ease;box-shadow:12px 0 44px rgba(8,25,33,.2)}
+  .workspace-navigation.open{transform:translateX(0);visibility:visible;pointer-events:auto}
+  .workspace-navigation .brand.app-brand{height:80px;min-height:80px;padding:0 16px}
+  .workspace-navigation .app-brand-logo{width:180px;max-width:calc(100% - 52px)}
+  .sidebar-close{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:1px solid rgba(255,255,255,.17);border-radius:11px;background:rgba(255,255,255,.05);color:#fff}
+  .sidebar-close:hover{background:rgba(255,255,255,.12)}
+  .mobile-shade{display:block;position:fixed;inset:0;z-index:110;background:rgba(7,23,31,.56);backdrop-filter:blur(3px);touch-action:none}
+  .demo-main .topbar-command{position:sticky;top:0;min-height:68px;grid-template-columns:auto minmax(0,1fr) auto;padding:10px 12px;gap:10px}
+  .topbar-command .topbar-brand-message{display:flex}
+  .topbar-brand-message>.workspace-context{display:none}
+  .demo-main .mobile-toggle{display:grid;place-items:center;width:44px;height:44px;margin:0;border:1px solid #dbe7e5;border-radius:11px;background:#fff;color:#24474e}
+  .demo-main .topbar-global-search{height:44px;padding-left:10px}
+  .demo-main .topbar-global-search input{font-size:16px}
+  .demo-main .topbar-global-search>button{width:44px;height:44px}
+  .topbar-command .topbar-quick-nav,.topbar-command .profile-info,.topbar-command .profile-edit-glyph,.topbar-command .logout-button{display:none}
+  .topbar-command .topbar-profile{padding:2px}
+  .demo-main .topbar-profile-main{min-width:44px;padding:4px}
+  .demo-main .content{padding-bottom:max(32px,env(safe-area-inset-bottom))}
+}
+@media(prefers-reduced-motion:reduce){
+  .workspace-navigation,.workspace-navigation .nav-link,.workspace-skip-link{transition:none}
+}

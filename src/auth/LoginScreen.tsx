@@ -140,7 +140,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
           </form>
 
           <div className="soft-login-footnote">
-            Pilot ortamı · Yetkisiz erişim ve işlemler kayıt altına alınır.
+            Rol bazlı erişim · İşlem geçmişi
           </div>
         </section>
       </div>

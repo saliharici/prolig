@@ -141,14 +141,14 @@ describe('Final UX Stabilization', () => {
     const landingPath = path.resolve(__dirname, '../src/public/PublicLanding.tsx');
     const landingCode = fs.readFileSync(landingPath, 'utf8');
 
-    // canonical project title is present
-    expect(landingCode).toContain('8. Sınıf Matematik Pilot Soru Bankası');
+    // Public publishing example does not expose internal project identifiers.
+    expect(landingCode).toContain('8. Sınıf Matematik Soru Bankası');
     
     // unsupported "8. Sınıf LGS Soru Bankası" is absent
     expect(landingCode).not.toContain('8. Sınıf LGS Soru Bankası');
 
     // neutral truthful label
-    expect(landingCode).toContain('Pilot Yazar Ağı');
+    expect(landingCode).toContain('Yazar ve editör ekibi');
     
     // unsupported "Ülke Geneli" claim is absent
     expect(landingCode).not.toContain('Ülke Geneli');
