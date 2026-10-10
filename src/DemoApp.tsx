@@ -6,7 +6,7 @@ import {
   Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BookOpen,
   Bold, Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
   FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText,
-  LockKeyhole, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Sparkles,
+  LockKeyhole, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Sparkles, Globe2,
   PencilLine, Trash2, Underline, Users, Wallet, X,
 } from 'lucide-react';
 import {
@@ -265,7 +265,7 @@ function AuthorNetworkInsights({
   );
 }
 
-export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated }: { currentUser: AuthUser; onLogoutRequest: () => void; onProfileUpdated: () => Promise<void> }) {
+export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated, onPublicSiteRequest }: { currentUser: AuthUser; onLogoutRequest: () => void; onProfileUpdated: () => Promise<void>; onPublicSiteRequest: () => void }) {
   const [data, setData] = useState<DemoData>(loadDemoData);
   const [showProfile, setShowProfile] = useState(false);
   const [apiQuestions, setApiQuestions] = useState<ApiQuestion[]>([]);
@@ -819,10 +819,6 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setToast(`"${term}" için erişilebilir bir sonuç bulunamadı.`);
   };
 
-  const topbarQuickSections = sections.filter(item =>
-    ['overview', 'projects', 'tasks', 'messages', 'authors'].includes(item.id) && allowed.includes(item.id)
-  );
-
   return <div className="demo-shell">
     <aside className={`demo-sidebar ${mobileMenu ? 'open' : ''}`}>
       <div className="brand app-brand">
@@ -834,10 +830,17 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     </aside>
     {mobileMenu && <button className="mobile-shade" aria-label="Menüyü kapat" onClick={() => setMobileMenu(false)} />}
     <div className="demo-main">
-      <header className="topbar topbar-command">
-        <div className="topbar-brand-message">
+      <header className="topbar topbar-context">
+        <div className="topbar-context-left">
           <button className="mobile-toggle" aria-label="Menüyü aç" onClick={() => setMobileMenu(true)}><Menu size={22} /></button>
-          <div><strong>Yayın üretiminde</strong><span>daha güçlü ekipler için…</span></div>
+          <div className="topbar-context-copy">
+            <div className="breadcrumbs">
+              <span>Çalışma Alanı</span>
+              <ArrowRight size={13}/>
+              <strong>{sectionLabels[section]}</strong>
+            </div>
+            <small>{roleLabels[currentUser.role]} · Yetki kapsamınıza göre gösteriliyor</small>
+          </div>
         </div>
 
         <form className="topbar-global-search" onSubmit={runTopbarSearch}>
@@ -851,37 +854,40 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           <button type="submit" aria-label="Ara"><Search size={16}/></button>
         </form>
 
-        <nav className="topbar-quick-nav" aria-label="Hızlı modül geçişi">
-          {topbarQuickSections.map(({ id, icon: Icon }) => (
-            <button
-              key={id}
-              className={section === id ? 'active' : ''}
-              onClick={() => navigate(id)}
-              title={sectionLabels[id]}
-            >
-              <span className="topbar-quick-icon">
-                <Icon size={17}/>
-                {id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}
-              </span>
-              <small>{id === 'overview' ? 'Ana Sayfa' : id === 'tasks' ? 'Görevler' : id === 'authors' ? 'Yazar Ağı' : sectionLabels[id]}</small>
-            </button>
-          ))}
-        </nav>
+        <div className="topbar-utilities">
+          <button type="button" className="topbar-site-button" onClick={onPublicSiteRequest}>
+            <Globe2 size={16}/>
+            <span>Kurumsal Sayfa</span>
+          </button>
 
-        <div className="topbar-profile">
-          <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle">
-            <span className="profile-badge">
-              {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
-            </span>
-            <span className="profile-info">
-              <strong>{currentUser.fullName}</strong>
-              <small>{roleLabels[currentUser.role]}</small>
-            </span>
-            <PencilLine size={14} className="profile-edit-glyph" />
-          </button>
-          <button className="logout-button" onClick={onLogoutRequest} title="Çıkış Yap" aria-label="Çıkış Yap">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-          </button>
+          {allowed.includes('messages') && (
+            <button
+              type="button"
+              className="topbar-message-button"
+              onClick={() => navigate('messages')}
+              title="Mesajlar"
+              aria-label="Mesajlar"
+            >
+              <MessageSquareText size={17}/>
+              {messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}
+            </button>
+          )}
+
+          <div className="topbar-profile">
+            <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle">
+              <span className="profile-badge">
+                {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
+              </span>
+              <span className="profile-info">
+                <strong>{currentUser.fullName}</strong>
+                <small>{roleLabels[currentUser.role]}</small>
+              </span>
+              <PencilLine size={14} className="profile-edit-glyph" />
+            </button>
+            <button className="logout-button" onClick={onLogoutRequest} title="Çıkış Yap" aria-label="Çıkış Yap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            </button>
+          </div>
         </div>
       </header>
       <main className="content">
