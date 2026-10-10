@@ -140,7 +140,9 @@ async function protectedUserHistory(userId: number, authorProfileId?: number | n
     coordinatedTasks,
     projectMemberships,
     authoredTasks,
-    files
+    files,
+    compensationEntries,
+    compensationRulesCreated
   ] = await Promise.all([
     prisma.question.count({ where: { authorUserId: userId } }),
     prisma.payment.count({ where: { authorUserId: userId } }),
@@ -149,7 +151,9 @@ async function protectedUserHistory(userId: number, authorProfileId?: number | n
     prisma.task.count({ where: { assignedCoordinatorId: userId } }),
     authorProfileId ? prisma.projectAuthor.count({ where: { authorProfileId } }) : Promise.resolve(0),
     authorProfileId ? prisma.task.count({ where: { assignedAuthorProfileId: authorProfileId } }) : Promise.resolve(0),
-    authorProfileId ? prisma.fileRecord.count({ where: { authorProfileId } }) : Promise.resolve(0)
+    authorProfileId ? prisma.fileRecord.count({ where: { authorProfileId } }) : Promise.resolve(0),
+    prisma.compensationEntry.count({ where: { userId } }),
+    prisma.compensationRule.count({ where: { createdByUserId: userId } })
   ]);
 
   return {
@@ -159,7 +163,9 @@ async function protectedUserHistory(userId: number, authorProfileId?: number | n
     coordinatedTasks,
     projectMemberships,
     authoredTasks,
-    files
+    files,
+    compensationEntries,
+    compensationRulesCreated
   };
 }
 
