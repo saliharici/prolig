@@ -32,6 +32,7 @@ import { fetchAuthors } from './authors/api';
 import type { ApiAuthor } from './authors/types';
 import { fetchAuditLogs } from './audit/api';
 import type { ApiAuditLog } from './audit/types';
+import { CompensationRulesPanel } from './compensation/CompensationRulesPanel';
 import { ReportsCenter } from './reports/ReportsCenter';
 import { MemberManagement } from './membership/MemberManagement';
 import { ProfileModal } from './profile/ProfileModal';
@@ -238,6 +239,7 @@ function AuditLogCenter({
 
 function PaymentCenter({
   payments,
+  projects,
   loading,
   error,
   onRetry,
@@ -245,12 +247,14 @@ function PaymentCenter({
   currentUser
 }: {
   payments: Payment[];
+  projects: ApiProject[];
   loading: boolean;
   error: string;
   onRetry: () => void;
   onAdvance: (id: number, currentStatus: string) => void;
   currentUser: AuthUser;
 }) {
+  const [financeTab, setFinanceTab] = useState<'overview' | 'rates'>('overview');
   const [paymentView, setPaymentView] = useState<'Tümü' | Payment['status']>('Tümü');
   const [paymentSearch, setPaymentSearch] = useState('');
 
@@ -293,6 +297,15 @@ function PaymentCenter({
       </div>
       <span className="heading-chip"><ShieldCheck size={16} /> {roleLabels[currentUser.role]} yetkisi</span>
     </div>
+
+    <div className="payment-module-tabs" role="tablist" aria-label="Telif ve Ödemeler bölümleri">
+      <button className={financeTab === 'overview' ? 'active' : ''} onClick={() => setFinanceTab('overview')}>Genel Bakış</button>
+      <button className={financeTab === 'rates' ? 'active' : ''} onClick={() => setFinanceTab('rates')}>Ücret Tarifeleri</button>
+    </div>
+
+    {financeTab === 'rates' ? (
+      <CompensationRulesPanel projects={projects} currentRole={currentUser.role} />
+    ) : <>
 
     <div className="payment-kpi-grid">
       <article className="panel payment-kpi">
@@ -392,6 +405,7 @@ function PaymentCenter({
         </div>}
       </div>}
     </section>
+    </>}
   </>;
 }
 
@@ -1415,6 +1429,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         />}
         {section === 'payments' && <PaymentCenter
           payments={apiPayments}
+          projects={apiProjects}
           loading={paymentsLoading}
           error={paymentsError}
           onRetry={fetchPayments}
