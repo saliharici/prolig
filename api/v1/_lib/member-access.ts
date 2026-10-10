@@ -84,5 +84,8 @@ export function canAssignRole(actor: any, roleCode: string): boolean {
   if (actorRole === 'BOLGE_KOORDINATORU') {
     return regionAssignableRoles.has(roleCode);
   }
+  if (actorRole === 'IL_KOORDINATORU') {
+    return ['EDITOR', 'YAZAR'].includes(roleCode);
+  }
   return false;
 }

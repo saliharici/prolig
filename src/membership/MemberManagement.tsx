@@ -28,7 +28,7 @@ const emptyForm = (role: Role = 'YAZAR'): FormState => ({
 
 export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
   const canSee = ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(currentUser.role);
-  const canManage = ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU'].includes(currentUser.role);
+  const canManage = ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(currentUser.role);
   const [applications,setApplications]=useState<MembershipApplication[]>([]);
   const [users,setUsers]=useState<ManagedUser[]>([]);
   const [provinces,setProvinces]=useState<ProvinceOption[]>([]);
@@ -39,7 +39,9 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
 
   const roles = useMemo<Role[]>(()=> currentUser.role==='GENEL_KOORDINATOR'
     ? ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']
-    : ['IL_KOORDINATORU','EDITOR','YAZAR'], [currentUser.role]);
+    : currentUser.role==='BOLGE_KOORDINATORU'
+      ? ['IL_KOORDINATORU','EDITOR','YAZAR']
+      : ['EDITOR','YAZAR'], [currentUser.role]);
 
   const load=async()=>{
     if(!canSee) return;

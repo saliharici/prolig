@@ -45,7 +45,7 @@ describe('member scope helpers', () => {
     expect(canViewProvince({ role: { code: 'IL_KOORDINATORU' }, provinceId: 34 }, erzurum)).toBe(false);
   });
 
-  it('allows general coordinator to assign every canonical role but limits region coordinator', () => {
+  it('enforces hierarchical role assignment for general, region and province coordinators', () => {
     const general = { role: { code: 'GENEL_KOORDINATOR' } };
     for (const role of ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']) {
       expect(canAssignRole(general, role)).toBe(true);
@@ -57,5 +57,13 @@ describe('member scope helpers', () => {
     expect(canAssignRole(region, 'BOLGE_KOORDINATORU')).toBe(false);
     expect(canAssignRole(region, 'GENEL_KOORDINATOR')).toBe(false);
     expect(canAssignRole(region, 'MUHASEBE')).toBe(false);
+
+    const province = { role: { code: 'IL_KOORDINATORU' } };
+    expect(canAssignRole(province, 'EDITOR')).toBe(true);
+    expect(canAssignRole(province, 'YAZAR')).toBe(true);
+    expect(canAssignRole(province, 'IL_KOORDINATORU')).toBe(false);
+    expect(canAssignRole(province, 'BOLGE_KOORDINATORU')).toBe(false);
+    expect(canAssignRole(province, 'GENEL_KOORDINATOR')).toBe(false);
+    expect(canAssignRole(province, 'MUHASEBE')).toBe(false);
   });
 });

@@ -81,6 +81,24 @@ describe('Final UX Stabilization', () => {
     expect(authGateCode).toContain('setShowLogin(false);');
   });
 
+
+  it('keeps role settings general-only and exposes member management only to coordinators', () => {
+    const modelPath = path.resolve(__dirname, '../src/demo/model.ts');
+    const modelCode = fs.readFileSync(modelPath, 'utf8');
+    const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
+    const demoAppCode = fs.readFileSync(demoAppPath, 'utf8');
+
+    expect(modelCode).toContain("GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'authors', 'payments', 'members', 'roles', 'audit']");
+    expect(modelCode).toContain("BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'authors', 'grades', 'members']");
+    expect(modelCode).toContain("IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'authors', 'members']");
+    expect(modelCode).toContain("EDITOR: ['overview', 'grades', 'questions', 'projects']");
+    expect(modelCode).toContain("YAZAR: ['overview', 'grades', 'questions', 'projects']");
+    expect(modelCode).toContain("MUHASEBE: ['overview', 'payments', 'projects']");
+    expect(demoAppCode).toContain("{section === 'members'");
+    expect(demoAppCode).toContain("{section === 'roles' && currentUser.role === 'GENEL_KOORDINATOR'");
+    expect(demoAppCode).not.toContain("{section === 'roles' && <MemberManagement");
+  });
+
   it('Landing page copy is accurate and neutral', () => {
     const landingPath = path.resolve(__dirname, '../src/public/PublicLanding.tsx');
     const landingCode = fs.readFileSync(landingPath, 'utf8');

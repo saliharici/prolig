@@ -1,5 +1,5 @@
 export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'IL_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
-export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'authors' | 'payments' | 'roles' | 'audit';
+export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'authors' | 'payments' | 'members' | 'roles' | 'audit';
 export type QuestionStatus = 'Taslak' | 'İncelemede' | 'Revizyon' | 'Onaylandı' | 'Reddedildi';
 export type PaymentStatus = 'Bekliyor' | 'Onaylandı' | 'Ödendi';
 
@@ -100,17 +100,18 @@ export const sectionLabels: Record<Section, string> = {
   projects: 'Projeler',
   authors: 'Türkiye Yazar Ağı',
   payments: 'Hakedişler',
+  members: 'Üye Yönetimi',
   roles: 'Rol ve Yetkiler',
   audit: 'İşlem Geçmişi',
 };
 
 export const permissions: Record<Role, Section[]> = {
-  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'authors', 'payments', 'roles', 'audit'],
-  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'authors', 'grades', 'roles'],
-    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'authors', 'roles'],
-  EDITOR: ['overview', 'grades', 'questions', 'projects', 'roles'],
-  YAZAR: ['overview', 'grades', 'questions', 'projects', 'roles'],
-  MUHASEBE: ['overview', 'payments', 'projects', 'roles'],
+  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'authors', 'payments', 'members', 'roles', 'audit'],
+  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'authors', 'grades', 'members'],
+    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'authors', 'members'],
+  EDITOR: ['overview', 'grades', 'questions', 'projects'],
+  YAZAR: ['overview', 'grades', 'questions', 'projects'],
+  MUHASEBE: ['overview', 'payments', 'projects'],
 };
 
 export const dataScopes: Record<Role, string> = {
