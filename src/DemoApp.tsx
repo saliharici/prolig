@@ -647,40 +647,91 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}
           </>}
         {section === 'grades' && <>
-            <div className="page-heading">
-              <div>
-                <div className="eyebrow">EĞİTİM KADEMELERİ</div>
-                <h1>Sınıflar ve Kademeler</h1>
-                <p>İlkokul, Ortaokul, Lise ve Mezun kademelerindeki içerik ve yazar dağılımını inceleyin.</p>
-              </div>
-              <span className="heading-chip"><GraduationCap size={16} /> 4 Kademe</span>
+          <div className="page-heading">
+            <div>
+              <div className="eyebrow">EĞİTİM KADEMELERİ</div>
+              <h1>Sınıflar ve Kademeler</h1>
+              <p>Kademe özetinden sınıf düzeyine inin; ilgili projeleri, yazarları ve soru üretimini aynı bağlamda görün.</p>
             </div>
-            <div className="stats-grid">
-              {['İlkokul', 'Ortaokul', 'Lise', 'Mezun'].map(lvl => {
-                const summary = buildGradeLevelSummary(gradesByLevel[lvl] ?? [], apiAuthors, apiProjects, apiQuestions);
-                return (
-                  <div key={lvl} className="panel stat-card grade-level-card">
-                    <div className="stat-top">
-                      <strong>{lvl}</strong>
-                      <div className="stat-icon" style={{background: '#eff6ff', color: '#3b82f6'}}><GraduationCap size={18} /></div>
-                    </div>
-                    <div className="grade-level-metrics">
-                      <div><strong>{summary.authorsCount}</strong><span>Yazar</span></div>
-                      <div><strong>{summary.activeProjectsCount}</strong><span>Aktif Proje</span></div>
-                      <div><strong>{summary.questionsCount}</strong><span>Soru Havuzu</span></div>
-                    </div>
-                    <div className="grade-level-note">
-                      {summary.unassignedQuestionsCount > 0
-                        ? `${summary.unassignedQuestionsCount} soru henüz bir projeye bağlanmamış.`
-                        : summary.questionsCount > 0
-                          ? 'Bu kademedeki sorular proje kapsamıyla tutarlı.'
-                          : 'Bu kademede henüz içerik bulunmuyor.'}
-                    </div>
+            <span className="heading-chip"><GraduationCap size={16} /> 13 Sınıf Düzeyi</span>
+          </div>
+          <div className="stats-grid">
+            {['İlkokul', 'Ortaokul', 'Lise', 'Mezun'].map(lvl => {
+              const summary = buildGradeLevelSummary(gradesByLevel[lvl] ?? [], apiAuthors, apiProjects, apiQuestions);
+              return (
+                <div key={lvl} className="panel stat-card grade-level-card">
+                  <div className="stat-top">
+                    <strong>{lvl}</strong>
+                    <div className="stat-icon" style={{background: '#eff6ff', color: '#3b82f6'}}><GraduationCap size={18} /></div>
                   </div>
-                );
-              })}
+                  <div className="grade-level-metrics">
+                    <div><strong>{summary.authorsCount}</strong><span>Yazar</span></div>
+                    <div><strong>{summary.activeProjectsCount}</strong><span>Aktif Proje</span></div>
+                    <div><strong>{summary.questionsCount}</strong><span>Soru Havuzu</span></div>
+                  </div>
+                  <div className="grade-level-note">
+                    {summary.unassignedQuestionsCount > 0
+                      ? summary.unassignedQuestionsCount + ' soru henüz bir projeye bağlanmamış.'
+                      : summary.questionsCount > 0
+                        ? 'Bu kademedeki sorular proje kapsamıyla tutarlı.'
+                        : 'Bu kademede henüz içerik bulunmuyor.'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <section className="panel grade-directory">
+            <div className="panel-head"><div><span className="panel-kicker">SINIF DÜZEYİ</span><h2>1–12. Sınıf ve Mezun</h2></div><span className="heading-chip">{ALL_GRADES.length} düzey</span></div>
+            <div className="grade-selector-grid">{ALL_GRADES.map(grade => {
+              const detail = buildGradeDetail(grade, apiProjects, apiQuestions);
+              return <button key={grade} className={selectedGrade===grade?'active':''} onClick={()=>setSelectedGrade(grade)}>
+                <strong>{grade}</strong><span>{detail.activeProjects.length} proje · {detail.questions.length} soru</span>
+              </button>;
+            })}</div>
+          </section>
+
+          <section className="panel grade-detail-panel">
+            <div className="grade-detail-head">
+              <div><span className="panel-kicker">{selectedGradeDetail.level||'SINIF'}</span><h2>{selectedGrade}</h2><p>Bu sınıfa bağlı gerçek proje, yazar ve aktif soru havuzu özeti.</p></div>
+              <div className="grade-detail-actions">
+                <button className="secondary-button" onClick={()=>openProjectsForGrade(selectedGrade)}>Projeleri aç <BookOpen size={15}/></button>
+                <button className="secondary-button" onClick={()=>openQuestionsForGrade(selectedGrade)}>Soruları aç <FileQuestion size={15}/></button>
+              </div>
             </div>
-          </>}
+            <div className="grade-detail-stats">
+              <div><strong>{selectedGradeDetail.activeProjects.length}</strong><span>Aktif Proje</span></div>
+              <div><strong>{selectedGradeDetail.authors.length}</strong><span>Yazar</span></div>
+              <div><strong>{selectedGradeDetail.questions.length}</strong><span>Soru</span></div>
+              <div><strong>{selectedGradeDetail.approvedQuestions}</strong><span>Onaylı</span></div>
+              <div><strong>{selectedGradeDetail.reviewQuestions}</strong><span>İncelemede</span></div>
+            </div>
+            <div className="grade-detail-columns">
+              <div>
+                <div className="grade-detail-subhead"><strong>Projeler</strong><span>{selectedGradeDetail.projects.length} kayıt</span></div>
+                {selectedGradeDetail.projects.length ? selectedGradeDetail.projects.map(project =>
+                  <button key={project.id} className="grade-project-row" onClick={()=>setSelectedProjectId(project.id)}>
+                    <span><strong>{project.title}</strong><small>{project.code} · {project.branch.name}</small></span><Status value={projectStatusDisplay(project.status)}/>
+                  </button>
+                ) : <div className="grade-detail-empty">Bu sınıfta proje yok.</div>}
+              </div>
+              <div>
+                <div className="grade-detail-subhead"><strong>Yazarlar</strong><span>{selectedGradeDetail.authors.length} kişi</span></div>
+                {selectedGradeDetail.authors.length ? <div className="grade-author-list">{selectedGradeDetail.authors.map(author =>
+                  <span key={author.id}><Users size={13}/>{author.fullName}{author.provinceName ? ' · ' + author.provinceName : ''}</span>
+                )}</div> : <div className="grade-detail-empty">Bu sınıfta yazar yok.</div>}
+              </div>
+              <div>
+                <div className="grade-detail-subhead"><strong>Soru akışı</strong><span>{selectedGradeDetail.questions.length} soru</span></div>
+                <div className="grade-question-flow">
+                  <span>Genel havuz <strong>{selectedGradeDetail.unassignedQuestions}</strong></span>
+                  <span>İncelemede <strong>{selectedGradeDetail.reviewQuestions}</strong></span>
+                  <span>Onaylı <strong>{selectedGradeDetail.approvedQuestions}</strong></span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </>}
 
         {section === 'authors' && <>
           <div className="page-heading"><div><div className="eyebrow">UZMAN AĞI · COĞRAFİ GÖRÜNÜM</div><h1>Türkiye Yazar Ağı</h1><p>Oturum kapsamınızdaki yazarların illere, branşlara ve proje kademelerine dağılımını inceleyin.</p></div><span className="heading-chip"><Users size={16} /> {apiAuthors.length} yazar</span></div>
