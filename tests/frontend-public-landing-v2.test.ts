@@ -54,6 +54,14 @@ describe('Public Landing V2', () => {
     expect(css).toContain('.footer-brand-logo{');
   });
 
+  it('uses the same brand asset inside the authenticated workspace', () => {
+    const app = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf8');
+    expect(app).toContain('className="app-brand-logo"');
+    expect(app).toContain('src="/prolig-logo.webp"');
+    expect(app).not.toContain('<div className="brand-mark"><span>P</span></div>');
+    expect(css).toContain('.app-brand-logo{');
+  });
+
   it('updates public navigation to platform, projects, workflow and pilot', () => {
     expect(landing).toContain('<a href="#platform">Platform</a>');
     expect(landing).toContain('<a href="#projeler">Projeler</a>');
