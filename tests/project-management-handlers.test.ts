@@ -9,6 +9,11 @@ vi.mock('../api/v1/_lib/current-user.js', () => ({
   getCurrentUser: vi.fn()
 }));
 
+vi.mock('../api/v1/_lib/compensation-engine.js', () => ({
+  accrueQuestionApproval: vi.fn(),
+  accrueProjectCoordinatorCompletion: vi.fn()
+}));
+
 vi.mock('../api/v1/_lib/prisma.js', () => ({
   prisma: {
     branch: { findUnique: vi.fn() },
