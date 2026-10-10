@@ -24,6 +24,7 @@ import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
 import type { ApiAuthor } from './authors/types';
 import { MemberManagement } from './membership/MemberManagement';
+import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
 import './demo.css';
 
@@ -86,8 +87,9 @@ function PermissionDetails({ currentRole }: { currentRole: Role }) {
   </div>;
 }
 
-export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser: AuthUser; onLogoutRequest: () => void }) {
+export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated }: { currentUser: AuthUser; onLogoutRequest: () => void; onProfileUpdated: () => Promise<void> }) {
   const [data, setData] = useState<DemoData>(loadDemoData);
+  const [showProfile, setShowProfile] = useState(false);
   const [apiQuestions, setApiQuestions] = useState<ApiQuestion[]>([]);
   const [archivedQuestions, setArchivedQuestions] = useState<ApiQuestion[]>([]);
   const [questionView, setQuestionView] = useState<'active' | 'archived'>('active');
@@ -506,15 +508,18 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   </div>
   <div className="topbar-right">
     <span className="preview-badge"><span /> ETKİLEŞİMLİ ÖNİZLEME</span>
-    <div className="topbar-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'white', padding: '0.3rem 0.5rem 0.3rem 0.3rem', borderRadius: '2rem', border: '1px solid #e2e8f0' }}>
-      <div className="profile-badge" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600 }}>
-        {currentUser.fullName.split(' ').map((n: string) => n[0]).join('')}
-      </div>
-      <div className="profile-info" style={{ display: 'flex', flexDirection: 'column' }}>
-        <strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>{currentUser.fullName}</strong>
-        <small style={{ fontSize: '0.75rem', color: '#64748b' }}>{roleLabels[currentUser.role]}</small>
-      </div>
-      <button className="logout-button" onClick={onLogoutRequest} title="Çıkış Yap" style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.2rem', marginLeft: '0.25rem', display: 'flex', alignItems: 'center' }}>
+    <div className="topbar-profile">
+      <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle">
+        <span className="profile-badge">
+          {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
+        </span>
+        <span className="profile-info">
+          <strong>{currentUser.fullName}</strong>
+          <small>{roleLabels[currentUser.role]}</small>
+        </span>
+        <PencilLine size={14} className="profile-edit-glyph" />
+      </button>
+      <button className="logout-button" onClick={onLogoutRequest} title="Çıkış Yap" aria-label="Çıkış Yap">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
       </button>
     </div>
@@ -635,6 +640,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
         {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setReviewingQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>
       </form></div>}
+      {showProfile && <ProfileModal user={currentUser} onClose={() => setShowProfile(false)} onSaved={async () => { await onProfileUpdated(); setToast('Profil bilgileriniz güncellendi.'); }} />}
       {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
   </div>;
 }
