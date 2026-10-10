@@ -120,7 +120,7 @@ async function unreadCount(userId: number) {
   });
 }
 
-function dto(announcement: any, userId: number, unreadLinks: Set<string>, manageable: boolean) {
+function dto(announcement: any, unreadLinks: Set<string>, manageable: boolean) {
   return {
     id: announcement.id,
     title: announcement.title,
@@ -177,7 +177,6 @@ async function listAnnouncements(user: any, req: VercelRequest, res: VercelRespo
   const creators = await creationLogs(announcements.map((item) => item.id));
   const result = announcements.map((item) => dto(
     item,
-    user.id,
     unreadLinks,
     user.role.code === 'GENEL_KOORDINATOR' || creators.get(item.id) === user.id
   ));
@@ -209,7 +208,7 @@ async function getAnnouncement(id: number, user: any, res: VercelResponse) {
   }
 
   return res.status(200).json({
-    announcement: dto(announcement, user.id, new Set<string>(), await canManage(user, id)),
+    announcement: dto(announcement, new Set<string>(), await canManage(user, id)),
     unread: await unreadCount(user.id)
   });
 }
@@ -271,7 +270,7 @@ async function createAnnouncement(user: any, req: VercelRequest, res: VercelResp
   });
 
   return res.status(201).json({
-    announcement: dto(created, user.id, new Set([linkFor(created.id)]), true),
+    announcement: dto(created, new Set([linkFor(created.id)]), true),
     unread: await unreadCount(user.id)
   });
 }
@@ -298,7 +297,7 @@ async function updateAnnouncement(id: number, user: any, req: VercelRequest, res
       });
       return changed;
     });
-    return res.status(200).json({ announcement: dto(updated, user.id, new Set<string>(), true), unread: await unreadCount(user.id) });
+    return res.status(200).json({ announcement: dto(updated, new Set<string>(), true), unread: await unreadCount(user.id) });
   }
 
   if (announcement.isArchived) return res.status(409).json({ error: 'Restore the announcement before editing' });
@@ -353,5 +352,5 @@ async function updateAnnouncement(id: number, user: any, req: VercelRequest, res
     return changed;
   });
 
-  return res.status(200).json({ announcement: dto(updated, user.id, new Set<string>(), true), unread: await unreadCount(user.id) });
+  return res.status(200).json({ announcement: dto(updated, new Set<string>(), true), unread: await unreadCount(user.id) });
 }
