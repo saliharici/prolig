@@ -302,3 +302,55 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
   html:has(.public-shell){scroll-behavior:auto}
   .public-primary-button,.public-secondary-button,.public-ghost-button,.public-nav a,.public-nav a:after,.public-process-card{transition:none}
 }
+
+
+/* Member management form */
+.member-form-card{margin-top:18px;padding:0;overflow:hidden;border:1px solid #e1e9e8;border-radius:16px;box-shadow:0 14px 36px rgba(18,46,52,.055)}
+.member-form-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:28px 30px 22px}
+.member-form-heading{display:flex;align-items:flex-start;gap:16px;min-width:0}
+.member-form-icon{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto;color:#14a68b;background:linear-gradient(145deg,#e7f9f4,#dff4f0);border:1px solid #d7f0eb}
+.member-form-heading h2{font-size:20px;margin:5px 0 5px;color:#18343d;letter-spacing:-.035em}
+.member-form-heading p{margin:0;color:#809399;font-size:12px;line-height:1.55;max-width:720px}
+.member-form-divider{height:1px;background:#e9efee;margin:0 30px}
+.member-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 28px;padding:28px 30px 10px}
+.member-field{display:block;margin:0;color:#263f49;font-size:12px;font-weight:800;min-width:0}
+.member-field-label{display:flex;align-items:center;gap:5px;margin-bottom:9px;color:#213944;font-size:12px;font-weight:800}
+.member-field-label em{font-style:normal;color:#e54d42}
+.member-field-label small{margin-left:4px;color:#9aabad;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.member-control{height:50px;display:flex;align-items:center;gap:11px;padding:0 14px;border:1px solid #d8e3e2;border-radius:10px;background:#fff;transition:border-color .18s,box-shadow .18s,background .18s}
+.member-control:focus-within{border-color:#59c5b2;box-shadow:0 0 0 3px rgba(48,197,170,.11);background:#fff}
+.member-control>svg{flex:0 0 auto;color:#80949a}
+.member-control input,.member-control select{width:100%;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#213944;font-size:12px;padding:0}
+.member-control input::placeholder{color:#a8b5b8}
+.member-control input:disabled{color:#7d8f94;cursor:not-allowed}
+.member-select-control select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,#536d75 50%),linear-gradient(135deg,#536d75 50%,transparent 50%);background-position:calc(100% - 14px) 21px,calc(100% - 9px) 21px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:29px}
+.member-password-control{padding-right:8px}
+.member-password-toggle{width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;border:0;border-radius:8px;background:transparent;color:#81969b}
+.member-password-toggle:hover{background:#f0f6f5;color:#2a7468}
+.member-branch-field{grid-column:1/-1;border:1px solid #e2eae9;border-radius:12px;background:#fbfdfc;padding:17px 18px}
+.member-branch-head strong,.member-branch-head span{display:block}
+.member-branch-head strong{color:#263f49;font-size:12px}
+.member-branch-head span{margin-top:3px;color:#91a2a6;font-size:10px}
+.member-branch-options{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.member-branch-options label{display:inline-flex;align-items:center;gap:7px;margin:0;padding:9px 11px;border:1px solid #dce7e5;border-radius:9px;background:#fff;color:#596f76;font-size:10px;font-weight:700;cursor:pointer;transition:.18s}
+.member-branch-options label:hover{border-color:#9ed9cf;background:#f7fcfa}
+.member-branch-options label.selected{border-color:#62c8b6;background:#eaf8f4;color:#167f6c;box-shadow:0 0 0 2px rgba(48,197,170,.06)}
+.member-branch-options input{accent-color:#1ca78c}
+.member-form-footer{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 30px 28px}
+.member-form-footer p{margin:0;color:#9aa9ac;font-size:10px;line-height:1.5}
+.member-submit-button{min-width:170px;min-height:44px;border-radius:10px;font-size:11px;padding:12px 18px;box-shadow:0 9px 20px rgba(28,167,140,.2)}
+.member-submit-button:disabled{opacity:.65;cursor:not-allowed}
+
+@media(max-width:800px){
+  .member-form-head{padding:22px 20px 18px}
+  .member-form-divider{margin:0 20px}
+  .member-form-grid{grid-template-columns:1fr;padding:22px 20px 8px;gap:17px}
+  .member-form-footer{padding:18px 20px 22px;align-items:stretch;flex-direction:column}
+  .member-form-footer p{max-width:none}
+  .member-submit-button{width:100%}
+}
+@media(max-width:520px){
+  .member-form-heading{gap:12px}
+  .member-form-icon{width:42px;height:42px;border-radius:11px}
+  .member-form-heading h2{font-size:18px}
+}
