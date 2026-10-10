@@ -802,7 +802,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     }
 
     const questionMatch = apiQuestions.some(question =>
-      `${question.content} ${question.grade} ${question.author.fullName} ${question.author.branchName || ''}`
+      `${question.content} ${question.grade || ''} ${question.author?.fullName || ''} ${question.author?.branchName || ''}`
         .toLocaleLowerCase('tr-TR').includes(normalized)
     );
     if (questionMatch && allowed.includes('questions')) {
