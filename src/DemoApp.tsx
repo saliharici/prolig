@@ -19,6 +19,7 @@ import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnsw
 import type { ApiQuestion, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
+import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
 import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './payments/api';
 import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
@@ -194,6 +195,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [questionGrade, setQuestionGrade] = useState('8. Sınıf');
   const [questionProjectId, setQuestionProjectId] = useState<number | null>(null);
   const [originalQuestionProjectId, setOriginalQuestionProjectId] = useState<number | null>(null);
+  const [questionProjectFilter, setQuestionProjectFilter] = useState<number | null>(null);
+  const [questionGradeFilter, setQuestionGradeFilter] = useState('');
+  const [projectGradeFilter, setProjectGradeFilter] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState('8. Sınıf');
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
@@ -231,10 +237,55 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const activeProjects = apiProjects.filter(project => !['Tamamlandi', 'Arsiv'].includes(project.status)).length;
   const questionLevels = Object.keys(gradesByLevel);
   const questionGrades = gradesByLevel[questionLevel] || [];
+  const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
+  const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
+  const questionAssignableProjects = apiProjects.filter(project =>
+    !['Tamamlandi', 'Arsiv'].includes(project.status) || project.id === originalQuestionProjectId
+  );
   
   const navigate = (target: Section) => {
     if (!allowed.includes(target)) return;
-    setSection(target); setQuery(''); setAuthorProvince(''); setStatusFilter('Tümü'); setMobileMenu(false);
+    setSection(target);
+    setQuery('');
+    setAuthorProvince('');
+    setStatusFilter('Tümü');
+    setQuestionProjectFilter(null);
+    setQuestionGradeFilter('');
+    setProjectGradeFilter('');
+    setSelectedProjectId(null);
+    setMobileMenu(false);
+  };
+
+  const openProjectsForGrade = (grade: string) => {
+    if (!allowed.includes('projects')) return;
+    setProjectGradeFilter(grade);
+    setSelectedProjectId(null);
+    setQuery('');
+    setSection('projects');
+    setMobileMenu(false);
+  };
+
+  const openQuestionsForProject = (projectId: number) => {
+    if (!allowed.includes('questions')) return;
+    setQuestionProjectFilter(projectId);
+    setQuestionGradeFilter('');
+    setQuestionView('active');
+    setQuery('');
+    setStatusFilter('Tümü');
+    setSelectedProjectId(null);
+    setSection('questions');
+    setMobileMenu(false);
+  };
+
+  const openQuestionsForGrade = (grade: string) => {
+    if (!allowed.includes('questions')) return;
+    setQuestionGradeFilter(grade);
+    setQuestionProjectFilter(null);
+    setQuestionView('active');
+    setQuery('');
+    setStatusFilter('Tümü');
+    setSection('questions');
+    setMobileMenu(false);
   };
     const log = (text: string, type: 'question' | 'payment', projectId: number, authorId?: number) => ({ id: Math.max(0, ...data.activities.map(item => item.id)) + 1, text, actor: currentUser.fullName, at: 'Az önce', type, projectId, authorId });
   
@@ -297,7 +348,19 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionGrade(gradesByLevel[level]?.[0] || '');
   };
   const changeQuestionGrade = (grade: string) => {
+    if (questionProjectId !== null) return;
     setQuestionGrade(grade);
+  };
+
+  const changeQuestionProject = (value: string) => {
+    const projectId = value ? Number(value) : null;
+    setQuestionProjectId(projectId);
+    if (projectId === null) return;
+    const project = apiProjects.find(item => item.id === projectId);
+    if (!project) return;
+    const level = levelForGrade(project.targetGrade);
+    if (level) setQuestionLevel(level);
+    setQuestionGrade(project.targetGrade);
   };
   const applyQuestionMarkup = (before: string, after = before, placeholder = 'metin') => {
     const editor = questionEditorRef.current;
@@ -363,14 +426,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setEditingQuestion(question);
     setQuestionTitle(question.content);
     
-    const grade = question.grade || '8. Sınıf';
-    let level = 'Ortaokul';
-    for (const [lvl, grades] of Object.entries(gradesByLevel)) {
-      if (grades.includes(grade)) {
-        level = lvl;
-        break;
-      }
-    }
+    const linkedProject = question.projectId ? apiProjects.find(project => project.id === question.projectId) : null;
+    const grade = linkedProject?.targetGrade || question.grade || '8. Sınıf';
+    const level = levelForGrade(grade) || 'Ortaokul';
     setQuestionLevel(level);
     setQuestionGrade(grade);
 
@@ -455,6 +513,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     const statusLabel = statusDisplay(q.status);
     
     return (statusFilter === 'Tümü' || statusLabel === statusFilter) &&
+      (!questionProjectFilter || q.projectId === questionProjectFilter) &&
+      (!questionGradeFilter || q.grade === questionGradeFilter || (q.projectId ? apiProjects.find(project => project.id === q.projectId)?.targetGrade === questionGradeFilter : false)) &&
       `${q.content} ${q.grade} ${q.objectiveCode || ''} ${authorName} ${branchName} ${projectTitle}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR'));
   });
   
@@ -480,6 +540,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     return map[status];
   }
   const filteredProjects = apiProjects.filter(project =>
+    (!projectGradeFilter || project.targetGrade === projectGradeFilter) &&
     `${project.title} ${project.code} ${project.branch.name} ${project.targetGrade} ${project.status}`
       .toLocaleLowerCase('tr-TR')
       .includes(query.toLocaleLowerCase('tr-TR'))
