@@ -886,3 +886,12 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
 @media(max-width:520px){
   .public-brand-logo{width:144px}
 }
+
+
+/* Authenticated PRO-LIG brand */
+.app-brand{height:94px;padding:0 20px;justify-content:flex-start}
+.app-brand-logo{display:block;width:188px;max-width:100%;height:auto;object-fit:contain;object-position:left center}
+@media(max-width:760px){
+  .app-brand{height:78px;padding:0 17px}
+  .app-brand-logo{width:166px}
+}
