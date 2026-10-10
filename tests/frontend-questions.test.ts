@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, ApiError } from '../src/questions/api';
+import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from '../src/questions/api';
 import fs from 'fs';
 import path from 'path';
 
@@ -151,6 +151,31 @@ describe('Question API Frontend Client', () => {
     }));
   });
 
+
+  it('fetchQuestions can request archived records without changing the active default', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => [] });
+    await fetchQuestions('archived');
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions?archive=archived', expect.objectContaining({
+      credentials: 'include'
+    }));
+  });
+
+  it('uses the existing question endpoint for archive and delete lifecycle actions', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 9, isArchived: true }) });
+    await changeQuestionArchive(9, 'archive');
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/questions/9', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ action: 'archive' })
+    }));
+
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ deleted: true, id: 9 }) });
+    await deleteQuestion(9);
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/questions/9', expect.objectContaining({
+      method: 'DELETE',
+      credentials: 'include'
+    }));
+  });
+
   describe('Error Mapping', () => {
     const runErrorTest = async (status: number, body: any, expectedMessage: string) => {
       fetchMock.mockResolvedValueOnce({
@@ -188,8 +213,11 @@ describe('Question API Frontend Client', () => {
       // Transparency copy states data is real
       expect(demoAppCode).toContain('Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır');
       
-      // Dashboard uses apiQuestions for stats
+      // Dashboard uses active apiQuestions for stats
       expect(demoAppCode).toContain('apiQuestions.filter');
+      expect(demoAppCode).toContain("questionView === 'archived' ? archivedQuestions : apiQuestions");
+      expect(demoAppCode).toContain('handleQuestionArchive');
+      expect(demoAppCode).toContain('handleQuestionDelete');
     });
 
     it('uses scoped API projects in the Question form and preserves General Soru Havuzu', () => {
