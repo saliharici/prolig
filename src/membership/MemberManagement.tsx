@@ -5,6 +5,7 @@ import type { Role } from '../demo/model';
 import { roleLabels } from '../demo/model';
 import { createManagedUser, fetchApplications, fetchManagedUsers, fetchMembershipMetadata, reviewApplication, updateManagedUser } from './api';
 import type { BranchOption, ManagedUser, MembershipApplication, ProvinceOption } from './types';
+import { districtsForProvince } from '../../shared/district-catalog';
 
 const REGIONS = ['Akdeniz','Doğu Anadolu','Ege','Güneydoğu Anadolu','İç Anadolu','Karadeniz','Marmara'];
 
@@ -16,6 +17,7 @@ type FormState = {
   password: string;
   role: Role;
   provinceId: string;
+  districtName: string;
   assignedRegion: string;
   editorGrade: string;
   branchIds: number[];
@@ -23,7 +25,7 @@ type FormState = {
 };
 
 const emptyForm = (role: Role = 'YAZAR'): FormState => ({
-  fullName:'', email:'', password:'', role, provinceId:'', assignedRegion:'', editorGrade:'', branchIds:[], status:'Aktif'
+  fullName:'', email:'', password:'', role, provinceId:'', districtName:'', assignedRegion:'', editorGrade:'', branchIds:[], status:'Aktif'
 });
 
 export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
@@ -71,16 +73,22 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     });
   };
   const startFromApplication=(app:MembershipApplication)=>{
+    const requestedBranchId = branches.find((branch) => branch.name === app.requestedBranch)?.id;
     setForm({
       ...emptyForm((app.requestedRole || 'YAZAR') as Role),
-      applicationId:app.id, fullName:app.fullName, email:app.email, provinceId:String(app.provinceId)
+      applicationId:app.id,
+      fullName:app.fullName,
+      email:app.email,
+      provinceId:String(app.provinceId),
+      districtName:app.districtName||'',
+      branchIds:requestedBranchId?[requestedBranchId]:[]
     });
     window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
   };
   const editUser=(u:ManagedUser)=>{
     setForm({
       id:u.id, fullName:u.fullName, email:u.email, password:'', role:u.role,
-      provinceId:u.province?.id?String(u.province.id):'', assignedRegion:u.assignedRegion||'',
+      provinceId:u.province?.id?String(u.province.id):'', districtName:u.authorProfile?.district?.name||'', assignedRegion:u.assignedRegion||'',
       editorGrade:u.editorGrade||'', branchIds:u.role==='YAZAR'&&u.authorProfile?[u.authorProfile.branchId]:u.branchIds,
       status:(u.status==='Pasif'?'Pasif':'Aktif')
     });
@@ -92,6 +100,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
       const payload:any={
         fullName:form.fullName,email:form.email,role:form.role,status:form.status,
         provinceId:form.provinceId?Number(form.provinceId):null,
+        districtName:form.role==='YAZAR'?(form.districtName||null):null,
         assignedRegion:form.assignedRegion||null,
         editorGrade:form.editorGrade||null,
         branchIds:form.branchIds,
@@ -113,7 +122,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
       <div className="table-heading"><div><strong>Üyelik Başvuruları</strong><span>Rol + coğrafi kapsam + branş değerlendirmesi</span></div><button className="text-button" onClick={load}><RefreshCw size={14}/> Yenile</button></div>
       {error && <div style={{padding:14,color:'#b91c1c'}}>{error}</div>}
       <div className="table-wrap"><table><thead><tr><th>AD SOYAD</th><th>İL / BÖLGE</th><th>TALEP</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>
-        {applications.map(app=><tr key={app.id}><td><strong>{app.fullName}</strong><small>{app.email}</small></td><td>{app.province.name}<small>{app.province.region}</small></td><td>{app.requestedRole==='EDITOR'?'Editör':'Yazar'}<small>{app.requestedBranch||'Branş belirtilmedi'}</small></td><td>{app.status}</td><td><div className="row-actions">
+        {applications.map(app=><tr key={app.id}><td><strong>{app.fullName}</strong><small>{app.email}</small></td><td>{app.province.name}<small>{app.districtName?`${app.districtName} · ${app.province.region}`:app.province.region}</small></td><td>{app.requestedRole==='EDITOR'?'Editör':'Yazar'}<small>{app.requestedBranch||'Branş belirtilmedi'}</small></td><td>{app.status}</td><td><div className="row-actions">
           {app.status!=='ONAYLANDI'&&<button onClick={()=>review(app,'UYGUN')}><Check size={13}/> Uygun</button>}
           {app.status!=='ONAYLANDI'&&<button onClick={()=>review(app,'REDDEDILDI')}><X size={13}/> Reddet</button>}
           {canManage&&app.status!=='ONAYLANDI'&&<button onClick={()=>startFromApplication(app)}><UserPlus size={13}/> Hesap oluştur</button>}
@@ -175,7 +184,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
           <span className="member-field-label">Rol <em>*</em></span>
           <span className="member-control member-select-control">
             <UsersRound size={18}/>
-            <select value={form.role} onChange={e=>setForm({...form,role:e.target.value as Role,branchIds:[]})}>{roles.map(r=><option key={r} value={r}>{roleLabels[r]}</option>)}</select>
+            <select value={form.role} onChange={e=>setForm({...form,role:e.target.value as Role,branchIds:[],districtName:e.target.value==='YAZAR'?form.districtName:''})}>{roles.map(r=><option key={r} value={r}>{roleLabels[r]}</option>)}</select>
           </span>
         </label>
 
@@ -191,7 +200,18 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
           <span className="member-field-label">İl <em>*</em></span>
           <span className="member-control member-select-control">
             <MapPin size={18}/>
-            <select value={form.provinceId} onChange={e=>setForm({...form,provinceId:e.target.value,assignedRegion:e.target.value?'':form.assignedRegion})}><option value="">Seçiniz</option>{provinces.map(p=><option key={p.id} value={p.id}>{p.name} · {p.region}</option>)}</select>
+            <select value={form.provinceId} onChange={e=>setForm({...form,provinceId:e.target.value,districtName:'',assignedRegion:e.target.value?'':form.assignedRegion})}><option value="">Seçiniz</option>{provinces.map(p=><option key={p.id} value={p.id}>{p.name} · {p.region}</option>)}</select>
+          </span>
+        </label>}
+
+        {form.role==='YAZAR'&&<label className="member-field">
+          <span className="member-field-label">İlçe <em>*</em></span>
+          <span className="member-control member-select-control">
+            <MapPin size={18}/>
+            <select required disabled={!form.provinceId} value={form.districtName} onChange={e=>setForm({...form,districtName:e.target.value})}>
+              <option value="">{form.provinceId?'İlçe seçiniz':'Önce il seçiniz'}</option>
+              {districtsForProvince(form.provinceId).map(district=><option key={district} value={district}>{district}</option>)}
+            </select>
           </span>
         </label>}
 
