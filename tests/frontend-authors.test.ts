@@ -52,10 +52,12 @@ describe('Author API Frontend Client', () => {
       expect(demoAppCode).toContain('Branşlara Göre Dağılım');
       expect(demoAppCode).toContain('Yaklaşan Teslim Tarihleri');
       expect(demoAppCode).toContain('Son Eklenen Yazarlar');
+      expect(demoAppCode).toContain('Kademelere Göre Dağılım');
       expect(demoAppCode).toContain('fetchTasks().then(setAuthorInsightTasks)');
       expect(demoAppCode).toContain('new Date(b.createdAt).getTime()');
       expect(cssCode).toContain('.author-insights{');
       expect(cssCode).toContain('.author-donut{');
+      expect(cssCode).toContain('.author-level-list{');
     });
 
     it('verifies DemoApp.tsx and AuthorMap.tsx use apiAuthors and do not contain old dummy texts', () => {
