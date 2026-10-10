@@ -1072,3 +1072,49 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
   .topbar-command .topbar-profile{padding:3px}
   .topbar-command .logout-button{display:none}
 }
+
+
+/* === CONTEXTUAL WORKSPACE TOPBAR === */
+.topbar-context{
+  min-height:76px;
+  height:auto;
+  display:grid;
+  grid-template-columns:minmax(210px,.9fr) minmax(320px,1.35fr) auto;
+  gap:18px;
+  align-items:center;
+  padding:8px 24px;
+  background:rgba(255,255,255,.94)!important;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.topbar-context-left{display:flex;align-items:center;min-width:0}
+.topbar-context-copy{display:grid;gap:4px;min-width:0}
+.topbar-context-copy .breadcrumbs{gap:8px}
+.topbar-context-copy>small{color:#97a7aa;font-size:8px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-utilities{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+.topbar-site-button{height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 11px;border:1px solid #dce7e5;border-radius:10px;background:#fff;color:#49666d;font-size:8px;font-weight:900;white-space:nowrap}
+.topbar-site-button:hover{background:#eef8f5;border-color:#cce8e0;color:#1d796a}
+.topbar-context .topbar-profile{margin-left:2px}
+@media(max-width:1180px){
+  .topbar-context{grid-template-columns:minmax(180px,.8fr) minmax(260px,1fr) auto;gap:12px}
+  .topbar-site-button span{display:none}
+  .topbar-site-button{width:38px;padding:0;justify-content:center}
+}
+@media(max-width:930px){
+  .topbar-context{grid-template-columns:minmax(0,1fr) auto}
+  .topbar-context-left{display:none}
+}
+@media(max-width:800px){
+  .topbar-context{min-height:67px;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding:7px 14px}
+  .topbar-context-left{display:flex}
+  .topbar-context-copy{display:none}
+  .topbar-context .mobile-toggle{margin-right:0}
+  .topbar-context .topbar-global-search{height:36px}
+  .topbar-context .topbar-global-search>button{height:36px;width:36px}
+  .topbar-context .profile-info,.topbar-context .profile-edit-glyph{display:none}
+}
+@media(max-width:560px){
+  .topbar-context .topbar-site-button,.topbar-context .topbar-message-button{display:none}
+  .topbar-context .topbar-profile{padding:3px}
+  .topbar-context .logout-button{display:none}
+}
