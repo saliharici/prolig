@@ -1,5 +1,5 @@
 export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'IL_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
-export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'tasks' | 'messages' | 'authors' | 'payments' | 'members' | 'roles' | 'audit';
+export type Section = 'overview' | 'grades' | 'questions' | 'projects' | 'tasks' | 'messages' | 'announcements' | 'authors' | 'payments' | 'members' | 'roles' | 'audit';
 export type QuestionStatus = 'Taslak' | 'İncelemede' | 'Revizyon' | 'Onaylandı' | 'Reddedildi';
 export type PaymentStatus = 'Bekliyor' | 'Onaylandı' | 'Ödendi';
 
@@ -100,6 +100,7 @@ export const sectionLabels: Record<Section, string> = {
   projects: 'Projeler',
   tasks: 'Görev Takibi',
   messages: 'Mesajlar',
+  announcements: 'Duyurular',
   authors: 'Türkiye Yazar Ağı',
   payments: 'Hakedişler',
   members: 'Üye Yönetimi',
@@ -108,12 +109,12 @@ export const sectionLabels: Record<Section, string> = {
 };
 
 export const permissions: Record<Role, Section[]> = {
-  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'payments', 'members', 'roles', 'audit'],
-  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'authors', 'grades', 'members'],
-    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'members'],
-  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages'],
-  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages'],
-  MUHASEBE: ['overview', 'payments', 'projects', 'messages'],
+  GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'payments', 'members', 'roles', 'audit'],
+  BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'members'],
+    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'members'],
+  EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements'],
+  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements'],
+  MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements'],
 };
 
 export const dataScopes: Record<Role, string> = {
@@ -132,6 +133,7 @@ export const actionPermissions: { label: string; roles: Role[] }[] = [
   { label: 'Görev oluştur / ata', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'] },
   { label: 'Kendi görev durumunu ilerlet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR'] },
   { label: 'Yetki kapsamına mesaj gönder', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE'] },
+  { label: 'Duyuru yayınla / yönet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'] },
   { label: 'Hakedişi onayla / ödendi işaretle', roles: ['MUHASEBE', 'GENEL_KOORDINATOR'] },
   { label: 'İşlem geçmişini görüntüle', roles: ['GENEL_KOORDINATOR'] },
 ];

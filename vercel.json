@@ -73,6 +73,14 @@
       "destination": "/api/v1/management?action=messages"
     },
     {
+      "source": "/api/v1/announcements/:id",
+      "destination": "/api/v1/management?action=announcement&id=:id"
+    },
+    {
+      "source": "/api/v1/announcements",
+      "destination": "/api/v1/management?action=announcements"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }
