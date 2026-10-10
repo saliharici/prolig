@@ -199,7 +199,7 @@ export const seedData: DemoData = {
     { id: 1, text: 'Matematik sorusu editör incelemesine gönderildi', actor: 'Ayşe Yılmaz', at: '4 Ekim · 10:42', type: 'question', projectId: 1, authorId: 1 },
     { id: 2, text: 'Fen sorusu için revizyon istendi', actor: 'Selin Arslan', at: '3 Ekim · 16:18', type: 'question', projectId: 2, authorId: 2 },
     { id: 3, text: 'Türkçe sorusu yayına hazır olarak onaylandı', actor: 'Selin Arslan', at: '2 Ekim · 14:05', type: 'question', projectId: 3, authorId: 3 },
-    { id: 4, text: 'Ekim ayı hakediş listesi hazırlandı', actor: 'Mert Kaya', at: '1 Ekim · 09:30', type: 'payment', projectId: 1 },
+    { id: 4, text: 'Ekim ayı telif ve ödeme listesi hazırlandı', actor: 'Mert Kaya', at: '1 Ekim · 09:30', type: 'payment', projectId: 1 },
   ],
 };
 
