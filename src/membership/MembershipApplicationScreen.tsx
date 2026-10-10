@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { submitMembershipApplication } from './api';
 import { PROVINCES } from './provinces';
+import { MEB_TEACHING_BRANCHES } from '../../shared/branch-catalog';
 
 type FormState = {
   fullName: string;
@@ -303,15 +304,24 @@ export function MembershipApplicationScreen({
                       Branş <em>*</em>
                     </span>
 
-                    <input
-                      className="membership-control"
+                    <select
+                      className="membership-control membership-select"
                       required
                       value={form.requestedBranch}
                       onChange={(event) =>
                         change('requestedBranch', event.target.value)
                       }
-                      placeholder="Örn. Matematik"
-                    />
+                    >
+                      <option value="" disabled>
+                        Branş seçiniz
+                      </option>
+
+                      {MEB_TEACHING_BRANCHES.map((branch) => (
+                        <option key={branch} value={branch}>
+                          {branch}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                 </div>
               </section>
