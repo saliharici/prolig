@@ -205,6 +205,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (action === 'messages' || action === 'message' || action === 'messageRecipients') {
       return handleMessageAction(req, res, user, action);
     }
+    if (action === 'auditLogs') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+      if (user.role.code !== 'GENEL_KOORDINATOR') return res.status(403).json({ error: 'Forbidden' });
+      const rawLimit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 100;
+      const limit = Number.isSafeInteger(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 100;
+      const logs = await prisma.activityLog.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+        select: {
+          id: true,
+          userName: true,
+          action: true,
+          entityType: true,
+          entityId: true,
+          details: true,
+          createdAt: true
+        }
+      });
+      return res.status(200).json({ logs });
+    }
     if (!coordinatorRoles.has(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
 
     if (action === 'metadata' && req.method === 'GET') {
