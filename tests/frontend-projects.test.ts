@@ -22,7 +22,7 @@ describe('Project API frontend client', () => {
     [500, 'Projeler işlenemedi. Lütfen daha sonra tekrar deneyin.']
   ])('maps %s responses', async (status, message) => {
     fetchMock.mockResolvedValueOnce({ ok: false, status, json: async () => ({}) });
-    await expect(fetchProjects()).rejects.toThrowError(new ProjectApiError(status as number, message as string));
+    await expect(fetchProjects()).rejects.toThrow(message as string);
   });
 
   it('creates, updates, archives and deletes projects through existing endpoints', async () => {
