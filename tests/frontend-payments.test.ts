@@ -17,13 +17,13 @@ describe('Payment API Frontend Client', () => {
     expect(apiCode).toContain('payPayment');
   });
 
-  it('DemoApp uses real payments through the operational Hakediş center', () => {
+  it('DemoApp uses real payments through the operational Telif ve Ödemeler center', () => {
     const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
     const code = fs.readFileSync(demoAppPath, 'utf8');
 
     expect(code).not.toContain("total('Bekliyor') => data.payments");
     expect(code).toContain('function PaymentCenter(');
-    expect(code).toContain('Hakediş Merkezi');
+    expect(code).toContain('Telif ve Ödeme Merkezi');
     expect(code).toContain('İŞLEM KUYRUĞU');
     expect(code).toContain('filteredPayments.map(payment =>');
     expect(code).toContain('onAdvance(payment.id, payment.status)');
