@@ -3,6 +3,7 @@ import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { buildQuestionReadScope } from '../_lib/question-access.js';
 import { formatQuestionDto } from '../_lib/question-dto.js';
+import { getQuestionArchiveStateMap } from '../_lib/question-archive.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -47,7 +48,21 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     orderBy: { createdAt: 'desc' }
   });
 
-  return res.status(200).json(questions.map(formatQuestionDto));
+  const archiveMode = req.query.archive === 'archived'
+    ? 'archived'
+    : req.query.archive === 'all'
+      ? 'all'
+      : 'active';
+  const archiveState = await getQuestionArchiveStateMap(questions.map((question) => question.id));
+  const visible = questions.filter((question) => {
+    const archived = archiveState.get(question.id) === true;
+    if (archiveMode === 'all') return true;
+    return archiveMode === 'archived' ? archived : !archived;
+  });
+
+  return res.status(200).json(
+    visible.map((question) => formatQuestionDto(question, archiveState.get(question.id) === true))
+  );
 }
 
 async function handlePost(req: VercelRequest, res: VercelResponse) {
