@@ -51,6 +51,7 @@ const question = (id: number, userId: number, grade: string, projectId: number |
   projectId,
   createdAt: '2026-10-10',
   updatedAt: '2026-10-10',
+  isArchived: false,
   author: { id: userId, fullName: `Yazar ${userId}`, branchName: 'Matematik' },
   project: projectId ? { id: projectId, title: `Proje ${projectId}`, code: `P-${projectId}` } : null,
 });
