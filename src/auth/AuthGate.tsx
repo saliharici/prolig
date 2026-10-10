@@ -26,6 +26,15 @@ export function AuthGate() {
     }
   };
 
+  const refreshAuthenticatedUser = async () => {
+    const user = await fetchMe();
+    if (!user) {
+      setAuthState({ status: 'unauthenticated' });
+      return;
+    }
+    setAuthState({ status: 'authenticated', user });
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -79,5 +88,5 @@ export function AuthGate() {
   }
 
   // Authenticated
-  return <DemoApp currentUser={authState.user} onLogoutRequest={handleLogout} />;
+  return <DemoApp currentUser={authState.user} onLogoutRequest={handleLogout} onProfileUpdated={refreshAuthenticatedUser} />;
 }

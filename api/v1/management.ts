@@ -2,7 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcryptjs';
 import { prisma } from './_lib/prisma.js';
 import { getCurrentUser } from './_lib/current-user.js';
-import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canViewProvince, coordinatorRoles } from './_lib/member-access.js';
+import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canManageUserLifecycle, canViewProvince, coordinatorRoles } from './_lib/member-access.js';
 import { MEB_TEACHING_BRANCHES, isMebTeachingBranch } from '../../shared/branch-catalog.js';
 import { isDistrictInProvince } from '../../shared/district-catalog.js';
 
@@ -127,6 +127,43 @@ async function targetInActorScope(actor: any, target: any) {
   return canViewProvince(actor, province);
 }
 
+
+async function protectedUserHistory(userId: number, authorProfileId?: number | null) {
+  const [
+    questions,
+    payments,
+    sentMessages,
+    receivedMessages,
+    coordinatedTasks,
+    projectMemberships,
+    authoredTasks,
+    files
+  ] = await Promise.all([
+    prisma.question.count({ where: { authorUserId: userId } }),
+    prisma.payment.count({ where: { authorUserId: userId } }),
+    prisma.message.count({ where: { senderId: userId } }),
+    prisma.message.count({ where: { receiverId: userId } }),
+    prisma.task.count({ where: { assignedCoordinatorId: userId } }),
+    authorProfileId ? prisma.projectAuthor.count({ where: { authorProfileId } }) : Promise.resolve(0),
+    authorProfileId ? prisma.task.count({ where: { assignedAuthorProfileId: authorProfileId } }) : Promise.resolve(0),
+    authorProfileId ? prisma.fileRecord.count({ where: { authorProfileId } }) : Promise.resolve(0)
+  ]);
+
+  return {
+    questions,
+    payments,
+    messages: sentMessages + receivedMessages,
+    coordinatedTasks,
+    projectMemberships,
+    authoredTasks,
+    files
+  };
+}
+
+function hasProtectedUserHistory(history: Record<string, number>) {
+  return Object.values(history).some((count) => count > 0);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const action = typeof req.query.action === 'string' ? req.query.action : '';
@@ -224,6 +261,92 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       return res.status(201).json({ user: userDto(created) });
     }
+    if (action === 'user' && req.method === 'POST') {
+      const id = positiveInt(req.query.id);
+      if (!id) return res.status(400).json({ error: 'Invalid ID' });
+      if (id === user.id) return res.status(409).json({ error: 'Self lifecycle changes are not allowed' });
+
+      const target = await prisma.user.findUnique({ where: { id }, include: userInclude });
+      if (!target || !(await targetInActorScope(user, target)) || !canManageUserLifecycle(user, target)) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      const lifecycleAction = clean(req.body?.action, 30, true);
+      if (!lifecycleAction || !['activate', 'deactivate'].includes(lifecycleAction)) {
+        return res.status(400).json({ error: 'Invalid lifecycle action' });
+      }
+
+      const nextStatus = lifecycleAction === 'activate' ? 'Aktif' : 'Pasif';
+      const updated = await prisma.$transaction(async (tx: any) => {
+        const changed = await tx.user.update({
+          where: { id },
+          data: { status: nextStatus },
+          include: userInclude
+        });
+
+        if (target.role.code === 'YAZAR' && target.AuthorProfile) {
+          await tx.authorProfile.update({
+            where: { userId: id },
+            data: { status: lifecycleAction === 'activate' ? 'Aktif' : 'Pasif' }
+          });
+        }
+
+        await tx.activityLog.create({
+          data: {
+            userName: user.fullName,
+            action: lifecycleAction === 'activate' ? 'USER_ACTIVATED' : 'USER_DEACTIVATED',
+            entityType: 'User',
+            entityId: id,
+            details: JSON.stringify({ targetRole: target.role.code, previousStatus: target.status, nextStatus })
+          }
+        });
+
+        return changed;
+      });
+
+      return res.status(200).json({ user: userDto(updated) });
+    }
+
+    if (action === 'user' && req.method === 'DELETE') {
+      const id = positiveInt(req.query.id);
+      if (!id) return res.status(400).json({ error: 'Invalid ID' });
+      if (id === user.id) return res.status(409).json({ error: 'Self deletion is not allowed' });
+
+      const target = await prisma.user.findUnique({ where: { id }, include: userInclude });
+      if (!target || !(await targetInActorScope(user, target)) || !canManageUserLifecycle(user, target)) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      const history = await protectedUserHistory(id, target.AuthorProfile?.id);
+      if (hasProtectedUserHistory(history)) {
+        return res.status(409).json({
+          error: 'Historical records exist. Deactivate this user instead of deleting.',
+          protectedRelations: history
+        });
+      }
+
+      await prisma.$transaction(async (tx: any) => {
+        await tx.user.delete({ where: { id } });
+        await tx.activityLog.create({
+          data: {
+            userName: user.fullName,
+            action: 'USER_DELETED',
+            entityType: 'User',
+            entityId: id,
+            details: JSON.stringify({
+              fullName: target.fullName,
+              email: target.email,
+              role: target.role.code,
+              provinceId: target.province?.id ?? target.AuthorProfile?.provinceId ?? null,
+              assignedRegion: target.assignedRegion ?? null
+            })
+          }
+        });
+      });
+
+      return res.status(200).json({ deleted: true, id });
+    }
+
     if (action === 'user' && req.method === 'PATCH') {
       if (!['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
       const id = positiveInt(req.query.id);

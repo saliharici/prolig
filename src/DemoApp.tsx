@@ -3,18 +3,18 @@ import { AuthUser } from './auth/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   GraduationCap,
-  Activity as ActivityIcon, ArrowRight, ArrowUpRight, BookOpen,
+  Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BookOpen,
   Bold, Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
   FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText,
   LockKeyhole, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Sparkles,
-  PencilLine, Underline, Users, Wallet, X,
+  PencilLine, Trash2, Underline, Users, Wallet, X,
 } from 'lucide-react';
 import {
   actionPermissions, dataScopes, loadDemoData, permissions, resetDemoData, roleLabels, rolePeople, saveDemoData,
   sectionLabels, type DemoData, type Question, type QuestionStatus, type Role, type Section,
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
-import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, ApiError } from './questions/api';
+import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
 import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
 import type { ApiQuestion, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
@@ -24,6 +24,7 @@ import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
 import type { ApiAuthor } from './authors/types';
 import { MemberManagement } from './membership/MemberManagement';
+import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
 import './demo.css';
 
@@ -86,9 +87,12 @@ function PermissionDetails({ currentRole }: { currentRole: Role }) {
   </div>;
 }
 
-export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser: AuthUser; onLogoutRequest: () => void }) {
+export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated }: { currentUser: AuthUser; onLogoutRequest: () => void; onProfileUpdated: () => Promise<void> }) {
   const [data, setData] = useState<DemoData>(loadDemoData);
+  const [showProfile, setShowProfile] = useState(false);
   const [apiQuestions, setApiQuestions] = useState<ApiQuestion[]>([]);
+  const [archivedQuestions, setArchivedQuestions] = useState<ApiQuestion[]>([]);
+  const [questionView, setQuestionView] = useState<'active' | 'archived'>('active');
   const [apiLoading, setApiLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [apiProjects, setApiProjects] = useState<ApiProject[]>([]);
@@ -124,11 +128,26 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
     setApiLoading(true);
     setApiError('');
     try {
-      const result = await fetchQuestions();
+      const result = await fetchQuestions('active');
       setApiQuestions(result);
       return result;
     } catch (e: any) {
       setApiError(e.message || 'Soru havuzu yüklenemedi.');
+      return [];
+    } finally {
+      setApiLoading(false);
+    }
+  };
+
+  const loadArchivedQuestions = async () => {
+    setApiLoading(true);
+    setApiError('');
+    try {
+      const result = await fetchQuestions('archived');
+      setArchivedQuestions(result);
+      return result;
+    } catch (e: any) {
+      setApiError(e.message || 'Arşiv yüklenemedi.');
       return [];
     } finally {
       setApiLoading(false);
@@ -380,7 +399,56 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   };
   const reset = () => { setData(resetDemoData()); setToast('Örnek veriler başlangıç durumuna döndürüldü'); };
 
-  const filteredQuestions = apiQuestions.filter(q => {
+  const canArchiveQuestionUi = (q: ApiQuestion) => {
+    if (currentUser.role === 'GENEL_KOORDINATOR') return true;
+    if (['BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(currentUser.role)) return q.status !== 'INCELEMEDE';
+    if (currentUser.role === 'EDITOR') return ['ONAYLANDI','REDDEDILDI'].includes(q.status);
+    if (currentUser.role === 'YAZAR') return q.author?.id === currentUser.id && ['TASLAK','REVIZYON','REDDEDILDI'].includes(q.status);
+    return false;
+  };
+
+  const canRestoreQuestionUi = (q: ApiQuestion) => {
+    if (currentUser.role === 'GENEL_KOORDINATOR') return true;
+    if (['BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(currentUser.role)) return true;
+    if (currentUser.role === 'EDITOR') return ['ONAYLANDI','REDDEDILDI'].includes(q.status);
+    if (currentUser.role === 'YAZAR') return q.author?.id === currentUser.id && ['TASLAK','REVIZYON','REDDEDILDI'].includes(q.status);
+    return false;
+  };
+
+  const canDeleteQuestionUi = (q: ApiQuestion) => {
+    if (currentUser.role === 'GENEL_KOORDINATOR') return true;
+    if (['BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(currentUser.role)) return q.isArchived && ['TASLAK','REVIZYON','REDDEDILDI'].includes(q.status);
+    if (currentUser.role === 'EDITOR') return q.isArchived && q.status === 'REDDEDILDI';
+    if (currentUser.role === 'YAZAR') return q.author?.id === currentUser.id && ['TASLAK','REVIZYON','REDDEDILDI'].includes(q.status);
+    return false;
+  };
+
+  const handleQuestionArchive = async (q: ApiQuestion) => {
+    const action = q.isArchived ? 'restore' : 'archive';
+    const verb = action === 'archive' ? 'arşivlemek' : 'arşivden çıkarmak';
+    if (!window.confirm(`#${q.id} numaralı soruyu ${verb} istediğinize emin misiniz?`)) return;
+    try {
+      await changeQuestionArchive(q.id, action);
+      setToast(action === 'archive' ? 'Soru arşivlendi.' : 'Soru arşivden çıkarıldı.');
+      await Promise.all([loadApiQuestions(), loadArchivedQuestions()]);
+    } catch (e: any) {
+      setToast(e.message || 'Soru arşiv işlemi başarısız.');
+    }
+  };
+
+  const handleQuestionDelete = async (q: ApiQuestion) => {
+    if (!window.confirm(`#${q.id} numaralı soruyu KALICI olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
+    try {
+      await deleteQuestion(q.id);
+      setToast('Soru kalıcı olarak silindi.');
+      await Promise.all([loadApiQuestions(), loadArchivedQuestions()]);
+    } catch (e: any) {
+      setToast(e.message || 'Soru silinemedi.');
+    }
+  };
+
+  const questionList = questionView === 'archived' ? archivedQuestions : apiQuestions;
+  const filteredQuestions = questionList.filter(q => {
     const authorName = q.author?.fullName || '';
     const branchName = q.author?.branchName || '';
     const projectTitle = q.project?.title || 'Genel Soru Havuzu';
@@ -440,15 +508,18 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
   </div>
   <div className="topbar-right">
     <span className="preview-badge"><span /> ETKİLEŞİMLİ ÖNİZLEME</span>
-    <div className="topbar-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'white', padding: '0.3rem 0.5rem 0.3rem 0.3rem', borderRadius: '2rem', border: '1px solid #e2e8f0' }}>
-      <div className="profile-badge" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600 }}>
-        {currentUser.fullName.split(' ').map((n: string) => n[0]).join('')}
-      </div>
-      <div className="profile-info" style={{ display: 'flex', flexDirection: 'column' }}>
-        <strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>{currentUser.fullName}</strong>
-        <small style={{ fontSize: '0.75rem', color: '#64748b' }}>{roleLabels[currentUser.role]}</small>
-      </div>
-      <button className="logout-button" onClick={onLogoutRequest} title="Çıkış Yap" style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.2rem', marginLeft: '0.25rem', display: 'flex', alignItems: 'center' }}>
+    <div className="topbar-profile">
+      <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle">
+        <span className="profile-badge">
+          {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
+        </span>
+        <span className="profile-info">
+          <strong>{currentUser.fullName}</strong>
+          <small>{roleLabels[currentUser.role]}</small>
+        </span>
+        <PencilLine size={14} className="profile-edit-glyph" />
+      </button>
+      <button className="logout-button" onClick={onLogoutRequest} title="Çıkış Yap" aria-label="Çıkış Yap">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
       </button>
     </div>
@@ -472,10 +543,17 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
           <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section></div>
           <section className="panel projects-preview"><div className="panel-head"><div><span className="panel-kicker">YAKLAŞAN TESLİMLER</span><h2>Devam eden projeler</h2></div><button className="text-button" onClick={() => navigate('projects')}>Projeleri görüntüle <ArrowRight size={16} /></button></div>{projectsLoading && <div className="empty-state">Projeler yükleniyor...</div>}{projectsError && !projectsLoading && <div className="empty-state">{projectsError}</div>}{!projectsLoading && !projectsError && <div className="project-mini-grid">{apiProjects.slice(0, 3).map(project => <div className="project-mini" key={project.id}><div className="project-mini-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div><strong>{project.title}</strong><small><Clock3 size={14} /> {date(project.deadline)}</small><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>İlerleme</span><strong>%{project.progress}</strong></div></div>)}</div>}</section>
         </>}
-        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını yönetin.'}</p></div>{currentUser.role === 'YAZAR' && <button className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div></div><div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Canlı Pilot verisi · Kayıtlar oturum rolünüzün sunucu kapsamına göre listelenir.</span></div>
+        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını yönetin.'}</p></div>{currentUser.role === 'YAZAR' && questionView === 'active' && <button className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div><div className="question-view-toggle"><button className={questionView==='active'?'active':''} onClick={()=>setQuestionView('active')}><FileQuestion size={14}/> Aktif</button><button className={questionView==='archived'?'active':''} onClick={async()=>{setQuestionView('archived');if(archivedQuestions.length===0) await loadArchivedQuestions();}}><Archive size={14}/> Arşiv</button></div></div><div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Canlı Pilot verisi · Kayıtlar oturum rolünüzün sunucu kapsamına göre listelenir.</span></div>
 {apiLoading && <div className="loading-state" style={{padding: '2rem', textAlign: 'center'}}>Sorular yükleniyor...</div>}
 {apiError && !apiLoading && <div className="error-state" style={{padding: '2rem', textAlign: 'center', color: '#ef4444'}}><div>{apiError}</div><button className="secondary-button" onClick={loadApiQuestions} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
-{!apiLoading && !apiError && <div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>BRANŞ</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => { return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}</small>{q.editorNote && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.editorNote}</small>}</td><td>{q.author?.fullName}</td><td>{q.author?.branchName || '-'}</td><td>{q.project?.title || 'Genel Soru Havuzu'}</td><td><Status value={statusDisplay(q.status)} /></td><td>{new Date(q.updatedAt).toLocaleDateString('tr-TR')}</td><td><div className="row-actions">{currentUser.role === 'YAZAR' && ['TASLAK', 'REVIZYON'].includes(q.status) && <><button onClick={() => openYazarEdit(q)} title="Düzenle"><PencilLine size={15} /></button><button onClick={() => handleYazarSubmit(q)}>İncelemeye gönder <ArrowRight size={14} /></button></>}{['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && q.status === 'INCELEMEDE' && <button onClick={() => openEditorReview(q)} title="Değerlendir"><CheckCircle2 size={15} /> İncele</button>}{!(currentUser.role === 'YAZAR' && ['TASLAK', 'REVIZYON'].includes(q.status)) && !(['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && q.status === 'INCELEMEDE') && <span className="no-action">—</span>}</div></td></tr>; })}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div>}</div></>}
+{!apiLoading && !apiError && <div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>BRANŞ</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => {
+  const canEdit = !q.isArchived && currentUser.role === 'YAZAR' && ['TASLAK', 'REVIZYON'].includes(q.status);
+  const canReview = !q.isArchived && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && q.status === 'INCELEMEDE';
+  const canArchive = q.isArchived ? canRestoreQuestionUi(q) : canArchiveQuestionUi(q);
+  const canDelete = canDeleteQuestionUi(q);
+  const hasAction = canEdit || canReview || canArchive || canDelete;
+  return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}</small>{q.editorNote && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.editorNote}</small>}</td><td>{q.author?.fullName}</td><td>{q.author?.branchName || '-'}</td><td>{q.project?.title || 'Genel Soru Havuzu'}</td><td><Status value={statusDisplay(q.status)} /></td><td>{new Date(q.updatedAt).toLocaleDateString('tr-TR')}</td><td><div className="row-actions">{canEdit && <><button onClick={() => openYazarEdit(q)} title="Düzenle"><PencilLine size={15} /></button><button onClick={() => handleYazarSubmit(q)}>İncelemeye gönder <ArrowRight size={14} /></button></>}{canReview && <button onClick={() => openEditorReview(q)} title="Değerlendir"><CheckCircle2 size={15} /> İncele</button>}{canArchive && <button onClick={() => handleQuestionArchive(q)} title={q.isArchived?'Arşivden çıkar':'Arşivle'}>{q.isArchived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {q.isArchived?'Geri al':'Arşivle'}</button>}{canDelete && <button className="danger-action" onClick={() => handleQuestionDelete(q)} title="Kalıcı sil"><Trash2 size={15}/> Sil</button>}{!hasAction && <span className="no-action">—</span>}</div></td></tr>;
+})}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div>}</div></>}
           {section === 'projects' && <><div className="page-heading"><div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Sunucu kapsamınızdaki gerçek Pilot projelerinin ilerlemesini takip edin.</p></div><span className="heading-chip"><BookOpen size={16} /> {apiProjects.length} proje</span></div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje, kod, branş veya sınıf ara..." value={query} onChange={e => setQuery(e.target.value)} /></div></div>{projectsLoading && <div className="panel empty-state">Projeler yükleniyor...</div>}{projectsError && !projectsLoading && <div className="panel empty-state"><div>{projectsError}</div><button className="secondary-button" onClick={loadApiProjects} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}{!projectsLoading && !projectsError && <div className="project-grid">{filteredProjects.map(project => <div className="panel project-card" key={project.id}><div className="project-card-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div><span className="project-code">{project.code}</span><h2>{project.title}</h2><p>{project.branch.name} · {project.targetGrade} · {project.projectType}</p><div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div></div>)}</div>}{!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}</>}
         {section === 'grades' && <>
             <div className="page-heading">
@@ -562,6 +640,7 @@ export default function DemoApp({ currentUser, onLogoutRequest }: { currentUser:
         {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setReviewingQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>
       </form></div>}
+      {showProfile && <ProfileModal user={currentUser} onClose={() => setShowProfile(false)} onSaved={async () => { await onProfileUpdated(); setToast('Profil bilgileriniz güncellendi.'); }} />}
       {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
   </div>;
 }

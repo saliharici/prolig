@@ -1,4 +1,4 @@
-import { AuthUser } from './types';
+import { AuthUser, UpdateMyProfileInput } from './types';
 import { Role } from '../demo/model';
 
 export const validateRole = (role: any): Role | null => {
@@ -68,7 +68,13 @@ export const fetchMe = async (): Promise<AuthUser | null> => {
     fullName,
     role: validatedRole,
     provinceId: provinceId ?? null,
-    assignedRegion: assignedRegion ?? null
+    assignedRegion: assignedRegion ?? null,
+    ...(data.user.phone !== undefined ? { phone: data.user.phone } : {}),
+    ...(data.user.avatarUrl !== undefined ? { avatarUrl: data.user.avatarUrl } : {}),
+    ...(data.user.province !== undefined ? { province: data.user.province } : {}),
+    ...(data.user.editorGrade !== undefined ? { editorGrade: data.user.editorGrade } : {}),
+    ...(data.user.editorBranches !== undefined ? { editorBranches: data.user.editorBranches } : {}),
+    ...(data.user.authorProfile !== undefined ? { authorProfile: data.user.authorProfile } : {})
   };
 };
 
@@ -97,4 +103,29 @@ export const login = async (email: string, password: string): Promise<void> => {
       throw new Error('Sunucu hatası, lütfen daha sonra tekrar deneyin.');
     }
   }
+};
+
+
+export const updateMyProfile = async (input: UpdateMyProfileInput): Promise<AuthUser> => {
+  const res = await fetch('/api/v1/auth/me', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(input)
+  });
+
+  if (!res.ok) {
+    let message = 'Profil güncellenemedi.';
+    try {
+      const body = await res.json();
+      if (typeof body?.error === 'string') message = body.error;
+    } catch {
+      // Keep safe generic message.
+    }
+    throw new Error(message);
+  }
+
+  const data = await res.json();
+  if (!data?.user) throw new Error('Geçersiz profil yanıtı');
+  return data.user as AuthUser;
 };

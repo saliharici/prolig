@@ -89,3 +89,25 @@ export function canAssignRole(actor: any, roleCode: string): boolean {
   }
   return false;
 }
+
+
+export function canManageUserLifecycle(actor: any, target: any): boolean {
+  const actorRole = actor?.role?.code;
+  const targetRole = target?.role?.code;
+  if (!actorRole || !targetRole) return false;
+
+  // Peer General Coordinators cannot deactivate/delete one another.
+  if (actorRole === 'GENEL_KOORDINATOR') {
+    return targetRole !== 'GENEL_KOORDINATOR';
+  }
+
+  if (actorRole === 'BOLGE_KOORDINATORU') {
+    return ['IL_KOORDINATORU', 'EDITOR', 'YAZAR'].includes(targetRole);
+  }
+
+  if (actorRole === 'IL_KOORDINATORU') {
+    return ['EDITOR', 'YAZAR'].includes(targetRole);
+  }
+
+  return false;
+}

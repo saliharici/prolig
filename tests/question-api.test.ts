@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildQuestionReadScope, canWorkflowReview } from '../api/v1/_lib/question-access.js';
+import { buildQuestionReadScope, canArchiveQuestion, canDeleteQuestion, canRestoreQuestion, canWorkflowReview } from '../api/v1/_lib/question-access.js';
 
 describe('Question Access Scope', () => {
   it('GENEL sees all', () => {
@@ -54,5 +54,39 @@ describe('Workflow Permissions', () => {
 
   it('GENEL can always review', () => {
     expect(canWorkflowReview({}, { role: { code: 'GENEL_KOORDINATOR' } })).toBe(true);
+  });
+});
+
+
+describe('Question Lifecycle Permissions', () => {
+  const ownDraft = { authorUserId: 5, status: 'TASLAK' };
+  const rejected = { authorUserId: 8, status: 'REDDEDILDI' };
+  const approved = { authorUserId: 8, status: 'ONAYLANDI' };
+
+  it('allows authors to manage only their own editable/rejected questions', () => {
+    const author = { id: 5, role: { code: 'YAZAR' } };
+    expect(canArchiveQuestion(ownDraft, author)).toBe(true);
+    expect(canDeleteQuestion(ownDraft, author, false)).toBe(true);
+    expect(canArchiveQuestion({ authorUserId: 6, status: 'TASLAK' }, author)).toBe(false);
+    expect(canArchiveQuestion({ authorUserId: 5, status: 'ONAYLANDI' }, author)).toBe(false);
+  });
+
+  it('requires archive before coordinator/editor permanent deletion', () => {
+    const province = { role: { code: 'IL_KOORDINATORU' } };
+    expect(canDeleteQuestion(rejected, province, false)).toBe(false);
+    expect(canDeleteQuestion(rejected, province, true)).toBe(true);
+    expect(canDeleteQuestion(approved, province, true)).toBe(false);
+
+    const editor = { role: { code: 'EDITOR' } };
+    expect(canArchiveQuestion(rejected, editor)).toBe(true);
+    expect(canDeleteQuestion(rejected, editor, true)).toBe(true);
+    expect(canDeleteQuestion(approved, editor, true)).toBe(false);
+  });
+
+  it('gives General Coordinator full lifecycle control', () => {
+    const general = { role: { code: 'GENEL_KOORDINATOR' } };
+    expect(canArchiveQuestion(approved, general)).toBe(true);
+    expect(canRestoreQuestion(approved, general)).toBe(true);
+    expect(canDeleteQuestion(approved, general, false)).toBe(true);
   });
 });

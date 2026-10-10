@@ -1,4 +1,4 @@
-export function formatQuestionDto(question: any) {
+export function formatQuestionDto(question: any, isArchived = false) {
   return {
     id: question.id,
     content: question.content,
@@ -14,6 +14,7 @@ export function formatQuestionDto(question: any) {
     projectId: question.projectId,
     createdAt: question.createdAt,
     updatedAt: question.updatedAt,
+    isArchived,
     author: question.authorUser ? {
       id: question.authorUser.id,
       fullName: question.authorUser.fullName,

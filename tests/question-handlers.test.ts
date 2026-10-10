@@ -15,6 +15,7 @@ vi.mock('../api/v1/_lib/prisma.js', () => ({
     user: { findUnique: vi.fn() },
     question: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
     projectAuthor: { findUnique: vi.fn() },
+    activityLog: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
     $transaction: vi.fn()
   }
 }));
@@ -32,6 +33,8 @@ function mockReqRes(method: string, body: any = {}, query: any = {}): { req: Ver
 describe('Question API Handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(prisma.activityLog.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.activityLog.findFirst).mockResolvedValue(null);
   });
 
   describe('AUTH', () => {

@@ -38,3 +38,20 @@ export async function updateManagedUser(id: number, payload: Record<string, unkn
     method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
   }));
 }
+
+
+export async function changeManagedUserLifecycle(id: number, action: 'activate' | 'deactivate') {
+  return json<{ user: ManagedUser }>(await fetch(`/api/v1/users/${id}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action })
+  }));
+}
+
+export async function deleteManagedUser(id: number) {
+  return json<{ deleted: true; id: number }>(await fetch(`/api/v1/users/${id}`, {
+    method: 'DELETE',
+    credentials: 'include'
+  }));
+}

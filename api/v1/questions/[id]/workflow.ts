@@ -3,6 +3,7 @@ import { prisma } from '../../_lib/prisma.js';
 import { getCurrentUser } from '../../_lib/current-user.js';
 import { formatQuestionDto } from '../../_lib/question-dto.js';
 import { canWorkflowReview } from '../../_lib/question-access.js';
+import { isQuestionArchived } from '../../_lib/question-archive.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -30,6 +31,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!question) {
       return res.status(404).json({ error: 'Not found' });
+    }
+
+    if (await isQuestionArchived(id)) {
+      return res.status(409).json({ error: 'Archived question must be restored before workflow actions' });
     }
 
     let newStatus = '';

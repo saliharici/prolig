@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Eye, EyeOff, LockKeyhole, Mail, MapPin, PencilLine, Plus, RefreshCw, Search, UserPlus, UserRound, UsersRound, X } from 'lucide-react';
+import { Check, Eye, EyeOff, LockKeyhole, Mail, MapPin, PencilLine, Plus, RefreshCw, Search, Trash2, UserCheck, UserPlus, UserRound, UsersRound, UserX, X } from 'lucide-react';
 import type { AuthUser } from '../auth/types';
 import type { Role } from '../demo/model';
 import { roleLabels } from '../demo/model';
-import { createManagedUser, fetchApplications, fetchManagedUsers, fetchMembershipMetadata, reviewApplication, updateManagedUser } from './api';
+import { changeManagedUserLifecycle, createManagedUser, deleteManagedUser, fetchApplications, fetchManagedUsers, fetchMembershipMetadata, reviewApplication, updateManagedUser } from './api';
 import type { BranchOption, ManagedUser, MembershipApplication, ProvinceOption } from './types';
 import { districtsForProvince } from '../../shared/district-catalog';
 
@@ -52,6 +52,14 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     if (!query) return branches;
     return branches.filter((branch) => branch.name.toLocaleLowerCase('tr-TR').includes(query));
   }, [branches, branchQuery]);
+
+  const canManageLifecycle = (target: ManagedUser) => {
+    if (target.id === currentUser.id) return false;
+    if (currentUser.role === 'GENEL_KOORDINATOR') return target.role !== 'GENEL_KOORDINATOR';
+    if (currentUser.role === 'BOLGE_KOORDINATORU') return ['IL_KOORDINATORU','EDITOR','YAZAR'].includes(target.role);
+    if (currentUser.role === 'IL_KOORDINATORU') return ['EDITOR','YAZAR'].includes(target.role);
+    return false;
+  };
 
   const load=async()=>{
     if(!canSee) return;
@@ -112,6 +120,30 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     } catch(e:any){setError(e.message||'Kullanıcı kaydedilemedi.');}
     finally{setBusy(false);}
   };
+
+  const toggleUserStatus=async(user:ManagedUser)=>{
+    const action = user.status==='Pasif'?'activate':'deactivate';
+    const verb = action==='activate'?'aktifleştirmek':'pasife almak';
+    if(!window.confirm(`${user.fullName} kullanıcısını ${verb} istediğinize emin misiniz?`)) return;
+    setBusy(true); setError('');
+    try{
+      await changeManagedUserLifecycle(user.id,action);
+      await load();
+    }catch(e:any){setError(e.message||'Kullanıcı durumu güncellenemedi.');}
+    finally{setBusy(false);}
+  };
+
+  const removeUser=async(user:ManagedUser)=>{
+    if(!window.confirm(`${user.fullName} kullanıcısını kalıcı olarak silmek istediğinize emin misiniz? Geçmiş kaydı varsa sistem silmeye izin vermeyecektir.`)) return;
+    setBusy(true); setError('');
+    try{
+      await deleteManagedUser(user.id);
+      if(form.id===user.id) setForm(emptyForm());
+      await load();
+    }catch(e:any){setError(e.message||'Kullanıcı silinemedi.');}
+    finally{setBusy(false);}
+  };
+
   const review=async(app:MembershipApplication,status:'UYGUN'|'REDDEDILDI'|'INCELEMEDE')=>{
     setBusy(true); setError('');
     try{await reviewApplication(app.id,status); await load();}catch(e:any){setError(e.message||'Başvuru güncellenemedi.');}finally{setBusy(false);}
@@ -133,7 +165,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     <div className="panel" style={{padding:0,overflow:'hidden',marginTop:18}}>
       <div className="table-heading"><div><strong>Kullanıcılar</strong><span>{currentUser.role==='GENEL_KOORDINATOR'?'Türkiye geneli':currentUser.role==='BOLGE_KOORDINATORU'?'Yalnız kendi bölgeniz':'Yalnız kendi iliniz'}</span></div></div>
       <div className="table-wrap"><table><thead><tr><th>KULLANICI</th><th>ROL</th><th>KAPSAM</th><th>BRANŞ</th><th>DURUM</th><th></th></tr></thead><tbody>
-        {users.map(u=><tr key={u.id}><td><strong>{u.fullName}</strong><small>{u.email}</small></td><td>{roleLabels[u.role]}</td><td>{u.assignedRegion||(u.province?`${u.province.name}${u.role==='YAZAR'&&u.authorProfile?.district?.name?` / ${u.authorProfile.district.name}`:''}`:'Türkiye')}</td><td>{u.role==='YAZAR'&&u.authorProfile?branches.find(b=>b.id===u.authorProfile?.branchId)?.name||'-':u.branchIds.map(id=>branches.find(b=>b.id===id)?.name).filter(Boolean).join(', ')||'-'}</td><td>{u.status}</td><td>{canManage&&u.id!==currentUser.id&&<button className="text-button" onClick={()=>editUser(u)}><PencilLine size={13}/> Düzenle</button>}</td></tr>)}
+        {users.map(u=><tr key={u.id}><td><strong>{u.fullName}</strong><small>{u.email}</small></td><td>{roleLabels[u.role]}</td><td>{u.assignedRegion||(u.province?`${u.province.name}${u.role==='YAZAR'&&u.authorProfile?.district?.name?` / ${u.authorProfile.district.name}`:''}`:'Türkiye')}</td><td>{u.role==='YAZAR'&&u.authorProfile?branches.find(b=>b.id===u.authorProfile?.branchId)?.name||'-':u.branchIds.map(id=>branches.find(b=>b.id===id)?.name).filter(Boolean).join(', ')||'-'}</td><td>{u.status}</td><td><div className="row-actions">{canManage&&u.id!==currentUser.id&&<button className="text-button" onClick={()=>editUser(u)}><PencilLine size={13}/> Düzenle</button>}{canManage&&canManageLifecycle(u)&&<button className="text-button" onClick={()=>toggleUserStatus(u)}>{u.status==='Pasif'?<UserCheck size={13}/>:<UserX size={13}/>} {u.status==='Pasif'?'Aktifleştir':'Pasife al'}</button>}{canManage&&canManageLifecycle(u)&&<button className="text-button danger-action" onClick={()=>removeUser(u)}><Trash2 size={13}/> Sil</button>}</div></td></tr>)}
       </tbody></table></div>
     </div>
 
