@@ -102,13 +102,15 @@ function AuthorNetworkInsights({
   tasks,
   onProvinceSelect,
   onOpenTasks,
-  onShowDirectory
+  onShowDirectory,
+  onOpenGrades
 }: {
   authors: ApiAuthor[];
   tasks: ApiTask[];
   onProvinceSelect: (province: string) => void;
   onOpenTasks: () => void;
   onShowDirectory: () => void;
+  onOpenGrades: () => void;
 }) {
   const provinceRows = useMemo(() => {
     const counts = new Map<string, number>();
@@ -146,6 +148,11 @@ function AuthorNetworkInsights({
     () => [...authors].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5),
     [authors]
   );
+
+  const levelRows = useMemo(() => Object.entries(gradesByLevel).map(([level, grades]) => ({
+    level,
+    count: authors.filter(author => author.projectGrades.some(grade => grades.includes(grade))).length
+  })), [authors]);
 
   const total = authors.length || 1;
   const maxProvince = Math.max(1, ...provinceRows.map(([, count]) => count));
@@ -235,6 +242,23 @@ function AuthorNetworkInsights({
               <time>{new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short' }).format(new Date(author.createdAt))}</time>
             </button>;
           }) : <div className="author-insight-empty">Yazar kaydı bulunmuyor.</div>}
+        </div>
+      </article>
+
+      <article className="panel author-insight-card author-insight-levels">
+        <div className="author-insight-head">
+          <div><GraduationCap size={16}/><strong>Kademelere Göre Dağılım</strong></div>
+          <button onClick={onOpenGrades}>Kademeler</button>
+        </div>
+        <div className="author-level-list">
+          {levelRows.map(({ level, count }) => (
+            <button key={level} onClick={onOpenGrades}>
+              <span>{level}</span>
+              <i><b style={{ width: `${authors.length ? Math.max(count ? 12 : 0, Math.round((count / authors.length) * 100)) : 0}%` }} /></i>
+              <strong>{count}</strong>
+            </button>
+          ))}
+          <small>Bir yazar, görev aldığı proje kademelerine göre birden fazla satırda yer alabilir.</small>
         </div>
       </article>
     </section>
@@ -943,6 +967,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               onProvinceSelect={showAuthorsForProvince}
               onOpenTasks={() => navigate('tasks')}
               onShowDirectory={() => document.getElementById('author-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              onOpenGrades={() => navigate('grades')}
             />
             <section id="author-list" className="author-network-list">
               <div className="author-network-list-heading"><div><span className="panel-kicker">YAZAR REHBERİ</span><h2>{authorProvince ? `${authorProvince} yazarları` : 'Tüm yazarlar'}</h2><p>Haritadan bir il seçip listeyi süzebilir veya yazar ve branş arayabilirsiniz.</p></div><span className="heading-chip">{filteredAuthors.length} kayıt</span></div>
