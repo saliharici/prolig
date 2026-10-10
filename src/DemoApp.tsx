@@ -388,6 +388,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [editingProject, setEditingProject] = useState<ApiProject | null>(null);
   const [taskProjectFilter, setTaskProjectFilter] = useState<number | null>(null);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const [topbarSearch, setTopbarSearch] = useState('');
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
@@ -769,6 +770,59 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     document.getElementById('author-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const runTopbarSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    const term = topbarSearch.trim();
+    if (!term) return;
+    const normalized = term.toLocaleLowerCase('tr-TR');
+
+    const authorMatch = apiAuthors.some(author =>
+      `${author.fullName} ${author.branch.name} ${author.province.name} ${author.district?.name || ''} ${author.institution?.name || ''}`
+        .toLocaleLowerCase('tr-TR').includes(normalized)
+    );
+    if (authorMatch && allowed.includes('authors')) {
+      setSection('authors');
+      setAuthorProvince('');
+      setQuery(term);
+      setMobileMenu(false);
+      return;
+    }
+
+    const projectMatch = apiProjects.some(project =>
+      `${project.title} ${project.code} ${project.branch.name} ${project.targetGrade}`
+        .toLocaleLowerCase('tr-TR').includes(normalized)
+    );
+    if (projectMatch && allowed.includes('projects')) {
+      setSection('projects');
+      setProjectGradeFilter('');
+      setQuery(term);
+      setSelectedProjectId(null);
+      setMobileMenu(false);
+      return;
+    }
+
+    const questionMatch = apiQuestions.some(question =>
+      `${question.content} ${question.grade} ${question.author.fullName} ${question.author.branchName || ''}`
+        .toLocaleLowerCase('tr-TR').includes(normalized)
+    );
+    if (questionMatch && allowed.includes('questions')) {
+      setSection('questions');
+      setQuestionView('active');
+      setQuestionProjectFilter(null);
+      setQuestionGradeFilter('');
+      setStatusFilter('Tümü');
+      setQuery(term);
+      setMobileMenu(false);
+      return;
+    }
+
+    setToast(`"${term}" için erişilebilir bir sonuç bulunamadı.`);
+  };
+
+  const topbarQuickSections = sections.filter(item =>
+    ['overview', 'projects', 'tasks', 'messages', 'authors'].includes(item.id) && allowed.includes(item.id)
+  );
+
   return <div className="demo-shell">
     <aside className={`demo-sidebar ${mobileMenu ? 'open' : ''}`}>
       <div className="brand app-brand">
@@ -780,31 +834,56 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     </aside>
     {mobileMenu && <button className="mobile-shade" aria-label="Menüyü kapat" onClick={() => setMobileMenu(false)} />}
     <div className="demo-main">
-      <header className="topbar">
-  <div className="topbar-left">
-    <button className="mobile-toggle" aria-label="Menüyü aç" onClick={() => setMobileMenu(true)}><Menu size={22} /></button>
-    <div className="breadcrumbs"><span>Çalışma Alanı</span><ArrowRight size={14} /><strong>{sectionLabels[section]}</strong></div>
-  </div>
-  <div className="topbar-right">
-    <span className="preview-badge"><span /> ETKİLEŞİMLİ ÖNİZLEME</span>
-    {allowed.includes('messages') && <button type="button" className="topbar-message-button" onClick={() => navigate('messages')} title="Mesajlar" aria-label="Mesajlar"><MessageSquareText size={17}/>{messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}</button>}
-    <div className="topbar-profile">
-      <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle">
-        <span className="profile-badge">
-          {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
-        </span>
-        <span className="profile-info">
-          <strong>{currentUser.fullName}</strong>
-          <small>{roleLabels[currentUser.role]}</small>
-        </span>
-        <PencilLine size={14} className="profile-edit-glyph" />
-      </button>
-      <button className="logout-button" onClick={onLogoutRequest} title="Çıkış Yap" aria-label="Çıkış Yap">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-      </button>
-    </div>
-  </div>
-</header>
+      <header className="topbar topbar-command">
+        <div className="topbar-brand-message">
+          <button className="mobile-toggle" aria-label="Menüyü aç" onClick={() => setMobileMenu(true)}><Menu size={22} /></button>
+          <div><strong>Yayın üretiminde</strong><span>daha güçlü ekipler için…</span></div>
+        </div>
+
+        <form className="topbar-global-search" onSubmit={runTopbarSearch}>
+          <Search size={16}/>
+          <input
+            value={topbarSearch}
+            onChange={event => setTopbarSearch(event.target.value)}
+            placeholder="Yazar, il, branş, proje veya soru ara..."
+            aria-label="PRO-LİG genel arama"
+          />
+          <button type="submit" aria-label="Ara"><Search size={16}/></button>
+        </form>
+
+        <nav className="topbar-quick-nav" aria-label="Hızlı modül geçişi">
+          {topbarQuickSections.map(({ id, icon: Icon }) => (
+            <button
+              key={id}
+              className={section === id ? 'active' : ''}
+              onClick={() => navigate(id)}
+              title={sectionLabels[id]}
+            >
+              <span className="topbar-quick-icon">
+                <Icon size={17}/>
+                {id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}
+              </span>
+              <small>{id === 'overview' ? 'Ana Sayfa' : id === 'tasks' ? 'Görevler' : id === 'authors' ? 'Yazar Ağı' : sectionLabels[id]}</small>
+            </button>
+          ))}
+        </nav>
+
+        <div className="topbar-profile">
+          <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle">
+            <span className="profile-badge">
+              {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
+            </span>
+            <span className="profile-info">
+              <strong>{currentUser.fullName}</strong>
+              <small>{roleLabels[currentUser.role]}</small>
+            </span>
+            <PencilLine size={14} className="profile-edit-glyph" />
+          </button>
+          <button className="logout-button" onClick={onLogoutRequest} title="Çıkış Yap" aria-label="Çıkış Yap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </button>
+        </div>
+      </header>
       <main className="content">
         <div className="demo-notice">
   <div><Sparkles size={17} /><strong>Pro Lig test ortamı</strong><span>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Hakedişler gerçek Pilot verileridir.</span></div>
