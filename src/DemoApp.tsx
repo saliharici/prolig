@@ -19,6 +19,7 @@ import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnsw
 import type { ApiQuestion, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
+import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
 import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './payments/api';
 import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
@@ -194,6 +195,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [questionGrade, setQuestionGrade] = useState('8. Sınıf');
   const [questionProjectId, setQuestionProjectId] = useState<number | null>(null);
   const [originalQuestionProjectId, setOriginalQuestionProjectId] = useState<number | null>(null);
+  const [questionProjectFilter, setQuestionProjectFilter] = useState<number | null>(null);
+  const [questionGradeFilter, setQuestionGradeFilter] = useState('');
+  const [projectGradeFilter, setProjectGradeFilter] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState('8. Sınıf');
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
@@ -231,10 +237,55 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const activeProjects = apiProjects.filter(project => !['Tamamlandi', 'Arsiv'].includes(project.status)).length;
   const questionLevels = Object.keys(gradesByLevel);
   const questionGrades = gradesByLevel[questionLevel] || [];
+  const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
+  const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
+  const questionAssignableProjects = apiProjects.filter(project =>
+    !['Tamamlandi', 'Arsiv'].includes(project.status) || project.id === originalQuestionProjectId
+  );
   
   const navigate = (target: Section) => {
     if (!allowed.includes(target)) return;
-    setSection(target); setQuery(''); setAuthorProvince(''); setStatusFilter('Tümü'); setMobileMenu(false);
+    setSection(target);
+    setQuery('');
+    setAuthorProvince('');
+    setStatusFilter('Tümü');
+    setQuestionProjectFilter(null);
+    setQuestionGradeFilter('');
+    setProjectGradeFilter('');
+    setSelectedProjectId(null);
+    setMobileMenu(false);
+  };
+
+  const openProjectsForGrade = (grade: string) => {
+    if (!allowed.includes('projects')) return;
+    setProjectGradeFilter(grade);
+    setSelectedProjectId(null);
+    setQuery('');
+    setSection('projects');
+    setMobileMenu(false);
+  };
+
+  const openQuestionsForProject = (projectId: number) => {
+    if (!allowed.includes('questions')) return;
+    setQuestionProjectFilter(projectId);
+    setQuestionGradeFilter('');
+    setQuestionView('active');
+    setQuery('');
+    setStatusFilter('Tümü');
+    setSelectedProjectId(null);
+    setSection('questions');
+    setMobileMenu(false);
+  };
+
+  const openQuestionsForGrade = (grade: string) => {
+    if (!allowed.includes('questions')) return;
+    setQuestionGradeFilter(grade);
+    setQuestionProjectFilter(null);
+    setQuestionView('active');
+    setQuery('');
+    setStatusFilter('Tümü');
+    setSection('questions');
+    setMobileMenu(false);
   };
     const log = (text: string, type: 'question' | 'payment', projectId: number, authorId?: number) => ({ id: Math.max(0, ...data.activities.map(item => item.id)) + 1, text, actor: currentUser.fullName, at: 'Az önce', type, projectId, authorId });
   
@@ -297,7 +348,19 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionGrade(gradesByLevel[level]?.[0] || '');
   };
   const changeQuestionGrade = (grade: string) => {
+    if (questionProjectId !== null) return;
     setQuestionGrade(grade);
+  };
+
+  const changeQuestionProject = (value: string) => {
+    const projectId = value ? Number(value) : null;
+    setQuestionProjectId(projectId);
+    if (projectId === null) return;
+    const project = apiProjects.find(item => item.id === projectId);
+    if (!project) return;
+    const level = levelForGrade(project.targetGrade);
+    if (level) setQuestionLevel(level);
+    setQuestionGrade(project.targetGrade);
   };
   const applyQuestionMarkup = (before: string, after = before, placeholder = 'metin') => {
     const editor = questionEditorRef.current;
@@ -363,14 +426,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setEditingQuestion(question);
     setQuestionTitle(question.content);
     
-    const grade = question.grade || '8. Sınıf';
-    let level = 'Ortaokul';
-    for (const [lvl, grades] of Object.entries(gradesByLevel)) {
-      if (grades.includes(grade)) {
-        level = lvl;
-        break;
-      }
-    }
+    const linkedProject = question.projectId ? apiProjects.find(project => project.id === question.projectId) : null;
+    const grade = linkedProject?.targetGrade || question.grade || '8. Sınıf';
+    const level = levelForGrade(grade) || 'Ortaokul';
     setQuestionLevel(level);
     setQuestionGrade(grade);
 
@@ -455,6 +513,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     const statusLabel = statusDisplay(q.status);
     
     return (statusFilter === 'Tümü' || statusLabel === statusFilter) &&
+      (!questionProjectFilter || q.projectId === questionProjectFilter) &&
+      (!questionGradeFilter || q.grade === questionGradeFilter || (q.projectId ? apiProjects.find(project => project.id === q.projectId)?.targetGrade === questionGradeFilter : false)) &&
       `${q.content} ${q.grade} ${q.objectiveCode || ''} ${authorName} ${branchName} ${projectTitle}`.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR'));
   });
   
@@ -480,6 +540,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     return map[status];
   }
   const filteredProjects = apiProjects.filter(project =>
+    (!projectGradeFilter || project.targetGrade === projectGradeFilter) &&
     `${project.title} ${project.code} ${project.branch.name} ${project.targetGrade} ${project.status}`
       .toLocaleLowerCase('tr-TR')
       .includes(query.toLocaleLowerCase('tr-TR'))
@@ -543,7 +604,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section></div>
           <section className="panel projects-preview"><div className="panel-head"><div><span className="panel-kicker">YAKLAŞAN TESLİMLER</span><h2>Devam eden projeler</h2></div><button className="text-button" onClick={() => navigate('projects')}>Projeleri görüntüle <ArrowRight size={16} /></button></div>{projectsLoading && <div className="empty-state">Projeler yükleniyor...</div>}{projectsError && !projectsLoading && <div className="empty-state">{projectsError}</div>}{!projectsLoading && !projectsError && <div className="project-mini-grid">{apiProjects.slice(0, 3).map(project => <div className="project-mini" key={project.id}><div className="project-mini-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div><strong>{project.title}</strong><small><Clock3 size={14} /> {date(project.deadline)}</small><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>İlerleme</span><strong>%{project.progress}</strong></div></div>)}</div>}</section>
         </>}
-        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını yönetin.'}</p></div>{currentUser.role === 'YAZAR' && questionView === 'active' && <button className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div><div className="question-view-toggle"><button className={questionView==='active'?'active':''} onClick={()=>setQuestionView('active')}><FileQuestion size={14}/> Aktif</button><button className={questionView==='archived'?'active':''} onClick={async()=>{setQuestionView('archived');if(archivedQuestions.length===0) await loadArchivedQuestions();}}><Archive size={14}/> Arşiv</button></div></div><div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Canlı Pilot verisi · Kayıtlar oturum rolünüzün sunucu kapsamına göre listelenir.</span></div>
+        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını yönetin.'}</p></div>{currentUser.role === 'YAZAR' && questionView === 'active' && <button className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div><div className="question-view-toggle"><button className={questionView==='active'?'active':''} onClick={()=>setQuestionView('active')}><FileQuestion size={14}/> Aktif</button><button className={questionView==='archived'?'active':''} onClick={async()=>{setQuestionView('archived');if(archivedQuestions.length===0) await loadArchivedQuestions();}}><Archive size={14}/> Arşiv</button></div></div>{(questionProjectFilter||questionGradeFilter)&&<div className="context-filter-bar"><span>{questionProjectFilter?apiProjects.find(project=>project.id===questionProjectFilter)?.title||'Proje filtresi':questionGradeFilter}</span><button onClick={()=>{setQuestionProjectFilter(null);setQuestionGradeFilter('')}}>Filtreyi kaldır <X size={13}/></button></div>}<div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Canlı Pilot verisi · Kayıtlar oturum rolünüzün sunucu kapsamına göre listelenir.</span></div>
 {apiLoading && <div className="loading-state" style={{padding: '2rem', textAlign: 'center'}}>Sorular yükleniyor...</div>}
 {apiError && !apiLoading && <div className="error-state" style={{padding: '2rem', textAlign: 'center', color: '#ef4444'}}><div>{apiError}</div><button className="secondary-button" onClick={loadApiQuestions} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
 {!apiLoading && !apiError && <div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>BRANŞ</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => {
@@ -554,42 +615,123 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const hasAction = canEdit || canReview || canArchive || canDelete;
   return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}</small>{q.editorNote && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.editorNote}</small>}</td><td>{q.author?.fullName}</td><td>{q.author?.branchName || '-'}</td><td>{q.project?.title || 'Genel Soru Havuzu'}</td><td><Status value={statusDisplay(q.status)} /></td><td>{new Date(q.updatedAt).toLocaleDateString('tr-TR')}</td><td><div className="row-actions">{canEdit && <><button onClick={() => openYazarEdit(q)} title="Düzenle"><PencilLine size={15} /></button><button onClick={() => handleYazarSubmit(q)}>İncelemeye gönder <ArrowRight size={14} /></button></>}{canReview && <button onClick={() => openEditorReview(q)} title="Değerlendir"><CheckCircle2 size={15} /> İncele</button>}{canArchive && <button onClick={() => handleQuestionArchive(q)} title={q.isArchived?'Arşivden çıkar':'Arşivle'}>{q.isArchived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {q.isArchived?'Geri al':'Arşivle'}</button>}{canDelete && <button className="danger-action" onClick={() => handleQuestionDelete(q)} title="Kalıcı sil"><Trash2 size={15}/> Sil</button>}{!hasAction && <span className="no-action">—</span>}</div></td></tr>;
 })}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div>}</div></>}
-          {section === 'projects' && <><div className="page-heading"><div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Sunucu kapsamınızdaki gerçek Pilot projelerinin ilerlemesini takip edin.</p></div><span className="heading-chip"><BookOpen size={16} /> {apiProjects.length} proje</span></div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje, kod, branş veya sınıf ara..." value={query} onChange={e => setQuery(e.target.value)} /></div></div>{projectsLoading && <div className="panel empty-state">Projeler yükleniyor...</div>}{projectsError && !projectsLoading && <div className="panel empty-state"><div>{projectsError}</div><button className="secondary-button" onClick={loadApiProjects} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}{!projectsLoading && !projectsError && <div className="project-grid">{filteredProjects.map(project => <div className="panel project-card" key={project.id}><div className="project-card-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div><span className="project-code">{project.code}</span><h2>{project.title}</h2><p>{project.branch.name} · {project.targetGrade} · {project.projectType}</p><div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div></div>)}</div>}{!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}</>}
-        {section === 'grades' && <>
+          {section === 'projects' && <>
             <div className="page-heading">
-              <div>
-                <div className="eyebrow">EĞİTİM KADEMELERİ</div>
-                <h1>Sınıflar ve Kademeler</h1>
-                <p>İlkokul, Ortaokul, Lise ve Mezun kademelerindeki içerik ve yazar dağılımını inceleyin.</p>
-              </div>
-              <span className="heading-chip"><GraduationCap size={16} /> 4 Kademe</span>
+              <div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Sunucu kapsamınızdaki projeleri; sınıf, yazar ve soru üretimiyle birlikte izleyin.</p></div>
+              <span className="heading-chip"><BookOpen size={16} /> {filteredProjects.length} proje</span>
             </div>
-            <div className="stats-grid">
-              {['İlkokul', 'Ortaokul', 'Lise', 'Mezun'].map(lvl => {
-                const summary = buildGradeLevelSummary(gradesByLevel[lvl] ?? [], apiAuthors, apiProjects, apiQuestions);
-                return (
-                  <div key={lvl} className="panel stat-card grade-level-card">
-                    <div className="stat-top">
-                      <strong>{lvl}</strong>
-                      <div className="stat-icon" style={{background: '#eff6ff', color: '#3b82f6'}}><GraduationCap size={18} /></div>
-                    </div>
-                    <div className="grade-level-metrics">
-                      <div><strong>{summary.authorsCount}</strong><span>Yazar</span></div>
-                      <div><strong>{summary.activeProjectsCount}</strong><span>Aktif Proje</span></div>
-                      <div><strong>{summary.questionsCount}</strong><span>Soru Havuzu</span></div>
-                    </div>
-                    <div className="grade-level-note">
-                      {summary.unassignedQuestionsCount > 0
-                        ? `${summary.unassignedQuestionsCount} soru henüz bir projeye bağlanmamış.`
-                        : summary.questionsCount > 0
-                          ? 'Bu kademedeki sorular proje kapsamıyla tutarlı.'
-                          : 'Bu kademede henüz içerik bulunmuyor.'}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="toolbar">
+              <div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje, kod, branş veya sınıf ara..." value={query} onChange={e => setQuery(e.target.value)} /></div>
+              {projectGradeFilter && <button className="context-filter-chip" onClick={()=>setProjectGradeFilter('')}>{projectGradeFilter} <X size={13}/></button>}
             </div>
+            {projectsLoading && <div className="panel empty-state">Projeler yükleniyor...</div>}
+            {projectsError && !projectsLoading && <div className="panel empty-state"><div>{projectsError}</div><button className="secondary-button" onClick={loadApiProjects} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
+            {!projectsLoading && !projectsError && <div className="project-grid">{filteredProjects.map(project => {
+              const stats = projectQuestionStats(project.id, apiQuestions);
+              return <button type="button" className="panel project-card project-card-button" key={project.id} onClick={()=>setSelectedProjectId(project.id)}>
+                <div className="project-card-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div>
+                <span className="project-code">{project.code}</span>
+                <h2>{project.title}</h2>
+                <p>{project.branch.name} · {project.targetGrade} · {project.projectType}</p>
+                <div className="project-card-counts">
+                  <span><Users size={14}/><strong>{project.authors.length}</strong> Yazar</span>
+                  <span><FileQuestion size={14}/><strong>{stats.total}</strong> Soru</span>
+                  <span><CheckCircle2 size={14}/><strong>{stats.approved}</strong> Onaylı</span>
+                </div>
+                <div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div>
+                <div className="progress-line"><span style={{ width: project.progress + '%' }} /></div>
+                <div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div>
+                <span className="project-open-hint">Detayı aç <ArrowRight size={14}/></span>
+              </button>;
+            })}</div>}
+            {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}
           </>}
+        {section === 'grades' && <>
+          <div className="page-heading">
+            <div>
+              <div className="eyebrow">EĞİTİM KADEMELERİ</div>
+              <h1>Sınıflar ve Kademeler</h1>
+              <p>Kademe özetinden sınıf düzeyine inin; ilgili projeleri, yazarları ve soru üretimini aynı bağlamda görün.</p>
+            </div>
+            <span className="heading-chip"><GraduationCap size={16} /> 13 Sınıf Düzeyi</span>
+          </div>
+          <div className="stats-grid">
+            {['İlkokul', 'Ortaokul', 'Lise', 'Mezun'].map(lvl => {
+              const summary = buildGradeLevelSummary(gradesByLevel[lvl] ?? [], apiAuthors, apiProjects, apiQuestions);
+              return (
+                <div key={lvl} className="panel stat-card grade-level-card">
+                  <div className="stat-top">
+                    <strong>{lvl}</strong>
+                    <div className="stat-icon" style={{background: '#eff6ff', color: '#3b82f6'}}><GraduationCap size={18} /></div>
+                  </div>
+                  <div className="grade-level-metrics">
+                    <div><strong>{summary.authorsCount}</strong><span>Yazar</span></div>
+                    <div><strong>{summary.activeProjectsCount}</strong><span>Aktif Proje</span></div>
+                    <div><strong>{summary.questionsCount}</strong><span>Soru Havuzu</span></div>
+                  </div>
+                  <div className="grade-level-note">
+                    {summary.unassignedQuestionsCount > 0
+                      ? summary.unassignedQuestionsCount + ' soru henüz bir projeye bağlanmamış.'
+                      : summary.questionsCount > 0
+                        ? 'Bu kademedeki sorular proje kapsamıyla tutarlı.'
+                        : 'Bu kademede henüz içerik bulunmuyor.'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <section className="panel grade-directory">
+            <div className="panel-head"><div><span className="panel-kicker">SINIF DÜZEYİ</span><h2>1–12. Sınıf ve Mezun</h2></div><span className="heading-chip">{ALL_GRADES.length} düzey</span></div>
+            <div className="grade-selector-grid">{ALL_GRADES.map(grade => {
+              const detail = buildGradeDetail(grade, apiProjects, apiQuestions);
+              return <button key={grade} className={selectedGrade===grade?'active':''} onClick={()=>setSelectedGrade(grade)}>
+                <strong>{grade}</strong><span>{detail.activeProjects.length} proje · {detail.questions.length} soru</span>
+              </button>;
+            })}</div>
+          </section>
+
+          <section className="panel grade-detail-panel">
+            <div className="grade-detail-head">
+              <div><span className="panel-kicker">{selectedGradeDetail.level||'SINIF'}</span><h2>{selectedGrade}</h2><p>Bu sınıfa bağlı gerçek proje, yazar ve aktif soru havuzu özeti.</p></div>
+              <div className="grade-detail-actions">
+                <button className="secondary-button" onClick={()=>openProjectsForGrade(selectedGrade)}>Projeleri aç <BookOpen size={15}/></button>
+                <button className="secondary-button" onClick={()=>openQuestionsForGrade(selectedGrade)}>Soruları aç <FileQuestion size={15}/></button>
+              </div>
+            </div>
+            <div className="grade-detail-stats">
+              <div><strong>{selectedGradeDetail.activeProjects.length}</strong><span>Aktif Proje</span></div>
+              <div><strong>{selectedGradeDetail.authors.length}</strong><span>Yazar</span></div>
+              <div><strong>{selectedGradeDetail.questions.length}</strong><span>Soru</span></div>
+              <div><strong>{selectedGradeDetail.approvedQuestions}</strong><span>Onaylı</span></div>
+              <div><strong>{selectedGradeDetail.reviewQuestions}</strong><span>İncelemede</span></div>
+            </div>
+            <div className="grade-detail-columns">
+              <div>
+                <div className="grade-detail-subhead"><strong>Projeler</strong><span>{selectedGradeDetail.projects.length} kayıt</span></div>
+                {selectedGradeDetail.projects.length ? selectedGradeDetail.projects.map(project =>
+                  <button key={project.id} className="grade-project-row" onClick={()=>setSelectedProjectId(project.id)}>
+                    <span><strong>{project.title}</strong><small>{project.code} · {project.branch.name}</small></span><Status value={projectStatusDisplay(project.status)}/>
+                  </button>
+                ) : <div className="grade-detail-empty">Bu sınıfta proje yok.</div>}
+              </div>
+              <div>
+                <div className="grade-detail-subhead"><strong>Yazarlar</strong><span>{selectedGradeDetail.authors.length} kişi</span></div>
+                {selectedGradeDetail.authors.length ? <div className="grade-author-list">{selectedGradeDetail.authors.map(author =>
+                  <span key={author.id}><Users size={13}/>{author.fullName}{author.provinceName ? ' · ' + author.provinceName : ''}</span>
+                )}</div> : <div className="grade-detail-empty">Bu sınıfta yazar yok.</div>}
+              </div>
+              <div>
+                <div className="grade-detail-subhead"><strong>Soru akışı</strong><span>{selectedGradeDetail.questions.length} soru</span></div>
+                <div className="grade-question-flow">
+                  <span>Genel havuz <strong>{selectedGradeDetail.unassignedQuestions}</strong></span>
+                  <span>İncelemede <strong>{selectedGradeDetail.reviewQuestions}</strong></span>
+                  <span>Onaylı <strong>{selectedGradeDetail.approvedQuestions}</strong></span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </>}
 
         {section === 'authors' && <>
           <div className="page-heading"><div><div className="eyebrow">UZMAN AĞI · COĞRAFİ GÖRÜNÜM</div><h1>Türkiye Yazar Ağı</h1><p>Oturum kapsamınızdaki yazarların illere, branşlara ve proje kademelerine dağılımını inceleyin.</p></div><span className="heading-chip"><Users size={16} /> {apiAuthors.length} yazar</span></div>
@@ -611,11 +753,42 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <><div className="page-heading"><div><div className="eyebrow">DENETİM İZİ</div><h1>İşlem Geçmişi</h1><p>Bu tarayıcıdaki örnek soru ve hakediş adımlarını izleyin.</p></div><span className="heading-chip"><ActivityIcon size={16} /> {data.activities.length} kayıt</span></div><div className="panel table-panel"><div className="table-heading"><strong>Son işlemler</strong><span>Demo verisi · Yerel tarayıcı kaydı</span></div><div className="table-wrap"><table><thead><tr><th>İŞLEM</th><th>UYGULAYAN</th><th>TÜR</th><th>ZAMAN</th></tr></thead><tbody>{data.activities.map(item => <tr key={item.id}><td><strong>{item.text}</strong></td><td>{item.actor}</td><td>{item.type === 'payment' ? 'Hakediş' : item.type === 'project' ? 'Proje' : 'Soru'}</td><td>{item.at}</td></tr>)}</tbody></table></div></div></>}
       </main>
     </div>
+    {selectedProject && <div className="modal-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)setSelectedProjectId(null)}}><div className="project-detail-modal">
+      <div className="modal-head"><div><span className="panel-kicker">PROJE DETAYI</span><h2>{selectedProject.title}</h2></div><button type="button" aria-label="Kapat" onClick={()=>setSelectedProjectId(null)}><X size={20}/></button></div>
+      <div className="project-detail-summary">
+        <div><span>Proje Kodu</span><strong>{selectedProject.code}</strong></div>
+        <div><span>Branş</span><strong>{selectedProject.branch.name}</strong></div>
+        <div><span>Sınıf</span><strong>{selectedProject.targetGrade}</strong></div>
+        <div><span>Durum</span><Status value={projectStatusDisplay(selectedProject.status)}/></div>
+      </div>
+      <p className="project-detail-description">{selectedProject.description||'Bu proje için açıklama girilmemiş.'}</p>
+      {(()=>{const stats=projectQuestionStats(selectedProject.id,apiQuestions);return <div className="project-detail-metrics">
+        <div><strong>{selectedProject.authors.length}</strong><span>Yazar</span></div>
+        <div><strong>{stats.total}</strong><span>Soru</span></div>
+        <div><strong>{stats.review}</strong><span>İncelemede</span></div>
+        <div><strong>{stats.approved}</strong><span>Onaylı</span></div>
+        <div><strong>%{selectedProject.progress}</strong><span>İlerleme</span></div>
+      </div>})()}
+      <div className="project-detail-body">
+        <div>
+          <div className="grade-detail-subhead"><strong>Proje yazarları</strong><span>{selectedProject.authors.length} kişi</span></div>
+          {selectedProject.authors.length?<div className="project-author-list">{selectedProject.authors.map(author=><span key={author.id}><span className="small-avatar">{author.fullName.split(' ').filter(Boolean).map(part=>part[0]).join('').slice(0,2).toLocaleUpperCase('tr-TR')}</span><span><strong>{author.fullName}</strong><small>{author.province.name}</small></span></span>)}</div>:<div className="grade-detail-empty">Projeye henüz yazar atanmamış.</div>}
+        </div>
+        <div>
+          <div className="grade-detail-subhead"><strong>Takvim</strong></div>
+          <div className="project-timeline-info"><span><Clock3 size={15}/> Son teslim <strong>{date(selectedProject.deadline)}</strong></span><span><GraduationCap size={15}/> Hedef sınıf <strong>{selectedProject.targetGrade}</strong></span></div>
+        </div>
+      </div>
+      <div className="project-detail-footer">
+        <button className="secondary-button" onClick={()=>{setSelectedGrade(selectedProject.targetGrade);setSelectedProjectId(null);setSection('grades')}}>Sınıfı aç <GraduationCap size={15}/></button>
+        <button className="primary-button" onClick={()=>openQuestionsForProject(selectedProject.id)}>Proje sorularını aç <ArrowRight size={15}/></button>
+      </div>
+    </div></div>}
     {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) { setShowQuestionForm(false); setEditingQuestion(null); } }}><form className="question-modal pro-editor-modal" onSubmit={handleCreateQuestion}>
         <div className="modal-head"><div><span className="panel-kicker">PROFESYONEL SORU EDİTÖRÜ</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div><button type="button" aria-label="Kapat" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}><X size={20} /></button></div>
         <p>Soru gövdesini hazırlayın, cevap seçeneklerini ve doğru yanıtı belirleyin.</p>
-        <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
-        <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => setQuestionProjectId(event.target.value ? Number(event.target.value) : null)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && apiProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : <small className="field-help">Genel havuzu veya size atanmış gerçek bir projeyi seçin.</small>}</label>
+        <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
+        <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
         <label className="question-editor-label">Soru gövdesi</label>
         <div className="question-editor-shell">
           <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">

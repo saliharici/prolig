@@ -48,7 +48,7 @@ describe('Final UX Stabilization', () => {
     expect(demoAppCode).toContain('setEditingQuestion(question)');
     
     // Grade initialization
-    expect(demoAppCode).toContain('const grade = question.grade || \'8. Sınıf\';');
+    expect(demoAppCode).toContain("const grade = linkedProject?.targetGrade || question.grade || '8. Sınıf';");
     expect(demoAppCode).toContain('setQuestionLevel(level);');
   });
 

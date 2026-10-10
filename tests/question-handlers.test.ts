@@ -67,7 +67,7 @@ describe('Question API Handlers', () => {
 
     it('POST unexpected projectAuthor lookup DB failure -> controlled 500', async () => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1 } } as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1, branchId: 1 } } as any);
       vi.mocked(prisma.projectAuthor.findUnique).mockRejectedValue(new Error('DB Error'));
       const { req, res } = mockReqRes('POST', { content: 'Valid content', grade: '8. Sınıf', options: ['A','B','C','D'], correctAnswer: 'A', projectId: 1 });
       await handlerGetPost(req, res);
@@ -183,7 +183,7 @@ describe('Question API Handlers', () => {
 
     const setupYazar = (hasProfile = true) => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Test Yazar', status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: hasProfile ? { id: 1 } : null } as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Test Yazar', status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: hasProfile ? { id: 1, branchId: 1 } : null } as any);
       
       vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
         const tx = {
@@ -291,6 +291,25 @@ describe('Question API Handlers', () => {
       expect(res.status).toHaveBeenCalledWith(403);
     });
 
+    it('enforces project target grade on create', async () => {
+      setupYazar();
+      vi.mocked(prisma.projectAuthor.findUnique).mockResolvedValue({
+        project: { branchId: 1, targetGrade: '8. Sınıf' }
+      } as any);
+
+      let { req, res } = mockReqRes('POST', { ...validBody, grade: '7. Sınıf', projectId: 10 });
+      await handlerGetPost(req, res);
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        error: 'Question grade must match project target grade',
+        expectedGrade: '8. Sınıf'
+      }));
+
+      ({ req, res } = mockReqRes('POST', { ...validBody, grade: '8. Sınıf', projectId: 10 }));
+      await handlerGetPost(req, res);
+      expect(res.status).toHaveBeenCalledWith(201);
+    });
+
     it('null projectId accepted', async () => {
       setupYazar();
       const { req, res } = mockReqRes('POST', { ...validBody, projectId: null });
@@ -302,7 +321,7 @@ describe('Question API Handlers', () => {
   describe('PATCH', () => {
     const setupYazar = () => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Yazar', status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1 } } as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Yazar', status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1, branchId: 1 } } as any);
       vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'TASLAK', updatedAt: new Date() } as any);
       
       vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
@@ -414,6 +433,29 @@ describe('Question API Handlers', () => {
       const { req, res } = mockReqRes('PATCH', { projectId: 0 }, { id: '1' });
       await handlerPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('enforces project target grade when editing a linked question', async () => {
+      setupYazar();
+      vi.mocked(prisma.question.findUnique).mockResolvedValue({
+        id: 1,
+        authorUserId: 1,
+        status: 'TASLAK',
+        updatedAt: new Date(),
+        projectId: 10,
+        grade: '8. Sınıf'
+      } as any);
+      vi.mocked(prisma.projectAuthor.findUnique).mockResolvedValue({
+        project: { branchId: 1, targetGrade: '8. Sınıf' }
+      } as any);
+
+      const { req, res } = mockReqRes('PATCH', { grade: '7. Sınıf' }, { id: '1' });
+      await handlerPatch(req, res);
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        error: 'Question grade must match project target grade',
+        expectedGrade: '8. Sınıf'
+      }));
     });
 
     it('unassigned project -> 403', async () => {
