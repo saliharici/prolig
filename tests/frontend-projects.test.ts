@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fetchProjects, ProjectApiError } from '../src/projects/api';
+import { changeProjectLifecycle, createProject, deleteProject, fetchProjects, ProjectApiError, updateProject } from '../src/projects/api';
 
 const fetchMock = vi.fn();
 global.fetch = fetchMock;
@@ -18,11 +18,41 @@ describe('Project API frontend client', () => {
 
   it.each([
     [401, 'Oturum süresi dolmuş veya yetkisiz.'],
-    [403, 'Projeleri görüntüleme yetkiniz yok.'],
-    [500, 'Projeler yüklenemedi. Lütfen daha sonra tekrar deneyin.']
+    [403, 'Bu proje işlemi için yetkiniz yok.'],
+    [500, 'Projeler işlenemedi. Lütfen daha sonra tekrar deneyin.']
   ])('maps %s responses', async (status, message) => {
     fetchMock.mockResolvedValueOnce({ ok: false, status, json: async () => ({}) });
     await expect(fetchProjects()).rejects.toThrowError(new ProjectApiError(status as number, message as string));
+  });
+
+  it('creates, updates, archives and deletes projects through existing endpoints', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 11 }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 11 }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 11, status: 'Arsiv' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ deleted: true, id: 11 }) });
+
+    const createInput = {
+      title: '8. Sınıf Matematik',
+      code: 'MAT-8-2027',
+      projectType: 'Soru Bankası',
+      deadline: '2027-06-30',
+      priority: 'Normal' as const,
+      targetGrade: '8. Sınıf',
+      branchId: 2,
+      description: null,
+      authorProfileIds: [3]
+    };
+
+    await createProject(createInput);
+    await updateProject(11, { progress: 25, status: 'Planlama', authorProfileIds: [3] });
+    await changeProjectLifecycle(11, 'archive');
+    await deleteProject(11);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/projects', expect.objectContaining({ method: 'POST', credentials: 'include' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/projects/11', expect.objectContaining({ method: 'PATCH', credentials: 'include' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/v1/projects/11', expect.objectContaining({ method: 'POST', body: JSON.stringify({ action: 'archive' }) }));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/v1/projects/11', expect.objectContaining({ method: 'DELETE', credentials: 'include' }));
   });
 });
 
@@ -60,9 +90,18 @@ describe('Projects UI source regressions', () => {
     expect(source).toContain('PROJE DETAYI');
   });
 
-  it('does not add project mutation controls or clients', () => {
+  it('adds coordinator project management without creating a separate project-management endpoint', () => {
     const client = fs.readFileSync(path.join(__dirname, '../src/projects/api.ts'), 'utf8');
-    expect(client).not.toMatch(/createProject|updateProject|deleteProject/);
-    expect(client).not.toMatch(/method:\s*['"](?:POST|PATCH|DELETE)['"]/);
+    const modal = fs.readFileSync(path.join(__dirname, '../src/projects/ProjectManagementModal.tsx'), 'utf8');
+    expect(client).toContain('createProject');
+    expect(client).toContain('updateProject');
+    expect(client).toContain('changeProjectLifecycle');
+    expect(client).toContain('deleteProject');
+    expect(source).toContain('Yeni Proje');
+    expect(source).toContain('Projeyi Düzenle');
+    expect(source).toContain('<ProjectManagementModal');
+    expect(modal).toContain('Proje yazarları');
+    expect(modal).toContain('Arşivden Çıkar');
+    expect(modal).toContain('Kalıcı Sil');
   });
 });
