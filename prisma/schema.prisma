@@ -74,6 +74,28 @@ enum QuestionStatus {
   REDDEDILDI
 }
 
+enum CompensationEarningType {
+  QUESTION_AUTHOR
+  QUESTION_EDITOR
+  PROJECT_PROVINCE_COORDINATOR
+  PROJECT_REGION_COORDINATOR
+  PROJECT_GENERAL_COORDINATOR
+}
+
+enum CompensationUnitType {
+  QUESTION
+  PROJECT
+  PERIOD
+}
+
+enum CompensationEntryStatus {
+  HAK_EDILDI
+  ODEME_BEKLIYOR
+  ODEMEYE_ALINDI
+  ODENDI
+  IPTAL
+}
+
 model Role {
   id          Int      @id @default(autoincrement())
   code        RoleCode @unique
@@ -113,6 +135,8 @@ model User {
   Payment           Payment[]
   Question          Question[]
   branchAssignments UserBranchAssignment[]
+  compensationRulesCreated CompensationRule[] @relation("CompensationRuleCreatedBy")
+  compensationEntries CompensationEntry[] @relation("CompensationEntryUser")
 
   @@index([email])
   @@index([editorBranchId])
@@ -255,6 +279,8 @@ model Project {
 
   Payment  Payment[]
   Question Question[]
+  compensationRules CompensationRule[]
+  compensationEntries CompensationEntry[]
 
   @@index([status])
   @@index([deadline])
@@ -322,6 +348,57 @@ model Payment {
   updatedAt    DateTime      @updatedAt
 
   @@index([status])
+}
+
+model CompensationRule {
+  id              Int                     @id @default(autoincrement())
+  roleCode        RoleCode
+  earningType     CompensationEarningType
+  unitType        CompensationUnitType
+  unitPrice       Decimal                 @db.Decimal(12, 2)
+  projectId       Int?
+  project         Project?                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  validFrom       DateTime                @default(now())
+  validTo         DateTime?
+  isActive        Boolean                 @default(true)
+  createdByUserId Int
+  createdByUser   User                    @relation("CompensationRuleCreatedBy", fields: [createdByUserId], references: [id])
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  entries         CompensationEntry[]
+
+  @@index([roleCode, earningType, isActive])
+  @@index([projectId, isActive])
+  @@index([validFrom])
+}
+
+model CompensationEntry {
+  id          Int                     @id @default(autoincrement())
+  userId      Int
+  user        User                    @relation("CompensationEntryUser", fields: [userId], references: [id])
+  roleCode    RoleCode
+  earningType CompensationEarningType
+  projectId   Int?
+  project     Project?                @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  questionId  Int?
+  question    Question?               @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  ruleId      Int
+  rule        CompensationRule        @relation(fields: [ruleId], references: [id])
+  sourceKey   String                  @unique
+  quantity    Int                     @default(1)
+  unitPrice   Decimal                 @db.Decimal(12, 2)
+  amount      Decimal                 @db.Decimal(12, 2)
+  status      CompensationEntryStatus @default(HAK_EDILDI)
+  earnedAt    DateTime                @default(now())
+  approvedAt  DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([userId, status])
+  @@index([projectId, status])
+  @@index([questionId])
+  @@index([earningType, earnedAt])
 }
 
 model FileRecord {
@@ -415,6 +492,7 @@ model Question {
   editorNote String?
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
+  compensationEntries CompensationEntry[]
 
   @@index([authorUserId])
   @@index([projectId])
