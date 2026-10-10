@@ -110,13 +110,15 @@ describe('Project API handlers', () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it.each(['POST', 'PATCH', 'DELETE'])('returns 405 for %s without exposing mutation APIs', async method => {
-    let { req, res } = reqRes(method);
+  it('returns 405 for unsupported PUT methods while mutation methods are handled explicitly', async () => {
+    let { req, res } = reqRes('PUT');
     await collectionHandler(req, res);
     expect(res.status).toHaveBeenCalledWith(405);
+    expect(res.setHeader).toHaveBeenCalledWith('Allow', ['GET', 'POST']);
 
-    ({ req, res } = reqRes(method, { id: '1' }));
+    ({ req, res } = reqRes('PUT', { id: '1' }));
     await detailHandler(req, res);
     expect(res.status).toHaveBeenCalledWith(405);
+    expect(res.setHeader).toHaveBeenCalledWith('Allow', ['GET', 'PATCH', 'POST', 'DELETE']);
   });
 });
