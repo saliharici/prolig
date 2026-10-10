@@ -61,6 +61,18 @@
       "destination": "/api/v1/management?action=tasks"
     },
     {
+      "source": "/api/v1/messages/recipients",
+      "destination": "/api/v1/management?action=messageRecipients"
+    },
+    {
+      "source": "/api/v1/messages/:id",
+      "destination": "/api/v1/management?action=message&id=:id"
+    },
+    {
+      "source": "/api/v1/messages",
+      "destination": "/api/v1/management?action=messages"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }
