@@ -89,6 +89,166 @@ function FinanceOverview({ apiPayments, onNavigate, currentUser, data }: { apiPa
   </>;
 }
 
+
+function PaymentCenter({
+  payments,
+  loading,
+  error,
+  onRetry,
+  onAdvance,
+  currentUser
+}: {
+  payments: Payment[];
+  loading: boolean;
+  error: string;
+  onRetry: () => void;
+  onAdvance: (id: number, currentStatus: string) => void;
+  currentUser: AuthUser;
+}) {
+  const [paymentView, setPaymentView] = useState<'Tümü' | Payment['status']>('Tümü');
+  const [paymentSearch, setPaymentSearch] = useState('');
+
+  const activePayments = useMemo(() => payments.filter(payment => payment.status !== 'Iptal'), [payments]);
+  const countFor = (status: Payment['status']) => payments.filter(payment => payment.status === status).length;
+  const amountFor = (status: Payment['status']) => sumPayments(payments, status);
+  const totalVolume = activePayments.reduce((sum, payment) => sum + toKurus(payment.amount), 0);
+
+  const now = new Date();
+  const paidThisMonth = payments.filter(payment => {
+    if (payment.status !== 'Odendi' || !payment.paymentDate) return false;
+    const paidAt = new Date(payment.paymentDate);
+    return paidAt.getFullYear() === now.getFullYear() && paidAt.getMonth() === now.getMonth();
+  });
+  const paidThisMonthAmount = paidThisMonth.reduce((sum, payment) => sum + toKurus(payment.amount), 0);
+
+  const filteredPayments = useMemo(() => {
+    const term = paymentSearch.trim().toLocaleLowerCase('tr-TR');
+    return payments.filter(payment => {
+      if (paymentView !== 'Tümü' && payment.status !== paymentView) return false;
+      if (!term) return true;
+      return `${payment.author?.fullName || ''} ${payment.project?.title || ''} ${payment.project?.code || ''} ${payment.contractNo || ''}`
+        .toLocaleLowerCase('tr-TR')
+        .includes(term);
+    });
+  }, [payments, paymentView, paymentSearch]);
+
+  const workflow = [
+    { status: 'Bekliyor' as const, label: 'Onay Bekliyor', note: 'Kontrol edilip onaylanacak', tone: 'amber' },
+    { status: 'Onaylandi' as const, label: 'Ödeme Sırasında', note: 'Ödendi olarak kapatılacak', tone: 'blue' },
+    { status: 'Odendi' as const, label: 'Tamamlandı', note: 'Ödeme süreci kapandı', tone: 'green' }
+  ];
+
+  return <>
+    <div className="page-heading payment-page-heading">
+      <div>
+        <div className="eyebrow">FİNANS OPERASYONU</div>
+        <h1>Hakediş Merkezi</h1>
+        <p>Onay bekleyen kayıtları kontrol edin, ödeme sırasını yönetin ve tamamlanan hakedişleri izleyin.</p>
+      </div>
+      <span className="heading-chip"><ShieldCheck size={16} /> {roleLabels[currentUser.role]} yetkisi</span>
+    </div>
+
+    <div className="payment-kpi-grid">
+      <article className="panel payment-kpi">
+        <span className="payment-kpi-icon amber"><Clock3 size={17}/></span>
+        <div><small>ONAY BEKLEYEN</small><strong>{moneyKurus(amountFor('Bekliyor'))}</strong><span>{countFor('Bekliyor')} kayıt kontrol bekliyor</span></div>
+      </article>
+      <article className="panel payment-kpi">
+        <span className="payment-kpi-icon blue"><CheckCircle2 size={17}/></span>
+        <div><small>ÖDEME SIRASINDA</small><strong>{moneyKurus(amountFor('Onaylandi'))}</strong><span>{countFor('Onaylandi')} kayıt ödeme bekliyor</span></div>
+      </article>
+      <article className="panel payment-kpi">
+        <span className="payment-kpi-icon green"><Wallet size={17}/></span>
+        <div><small>BU AY ÖDENEN</small><strong>{moneyKurus(paidThisMonthAmount)}</strong><span>{paidThisMonth.length} ödeme tamamlandı</span></div>
+      </article>
+      <article className="panel payment-kpi">
+        <span className="payment-kpi-icon purple"><Sigma size={17}/></span>
+        <div><small>TOPLAM HACİM</small><strong>{moneyKurus(totalVolume)}</strong><span>{activePayments.length} aktif hakediş kaydı</span></div>
+      </article>
+    </div>
+
+    <section className="panel payment-flow-panel">
+      <div className="panel-head payment-flow-head">
+        <div><span className="panel-kicker">İŞLEM AKIŞI</span><h2>Hakediş durumu</h2></div>
+        <span className="payment-flow-note">Bir sonraki işlemi bekleyen kayıtları öne çıkarır.</span>
+      </div>
+      <div className="payment-flow-grid">
+        {workflow.map((step, index) => {
+          const count = countFor(step.status);
+          const amount = amountFor(step.status);
+          const ratio = activePayments.length ? Math.round((count / activePayments.length) * 100) : 0;
+          return <button key={step.status} className={`payment-flow-step ${paymentView === step.status ? 'active' : ''}`} onClick={() => setPaymentView(step.status)}>
+            <span className={`payment-flow-number ${step.tone}`}>{index + 1}</span>
+            <span className="payment-flow-copy"><strong>{step.label}</strong><small>{step.note}</small></span>
+            <span className="payment-flow-metrics"><strong>{count}</strong><small>{moneyKurus(amount)}</small></span>
+            <i><b style={{width: `${ratio}%`}} /></i>
+          </button>;
+        })}
+      </div>
+    </section>
+
+    <section className="panel payment-workbench">
+      <div className="payment-workbench-head">
+        <div>
+          <span className="panel-kicker">İŞLEM KUYRUĞU</span>
+          <h2>Hakediş kayıtları</h2>
+          <p>{filteredPayments.length} kayıt gösteriliyor.</p>
+        </div>
+        <button className="secondary-button payment-refresh" onClick={onRetry}><RotateCcw size={15}/> Yenile</button>
+      </div>
+
+      <div className="payment-toolbar">
+        <div className="search-box payment-search">
+          <Search size={17}/>
+          <input
+            value={paymentSearch}
+            onChange={event => setPaymentSearch(event.target.value)}
+            placeholder="Yazar, proje, kod veya sözleşme ara..."
+            aria-label="Hakedişlerde ara"
+          />
+        </div>
+        <div className="payment-filter-tabs" aria-label="Hakediş durum filtresi">
+          {(['Tümü', 'Bekliyor', 'Onaylandi', 'Odendi'] as const).map(status => (
+            <button key={status} className={paymentView === status ? 'active' : ''} onClick={() => setPaymentView(status)}>
+              {status === 'Onaylandi' ? 'Onaylandı' : status === 'Odendi' ? 'Ödendi' : status}
+              <span>{status === 'Tümü' ? activePayments.length : countFor(status)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading && <div className="payment-state"><RotateCcw size={18} className="spin"/> Hakedişler yükleniyor...</div>}
+      {error && !loading && <div className="payment-state payment-state-error"><strong>{error}</strong><span>Yetkiniz ve oturumunuz doğrulandıktan sonra tekrar deneyin.</span><button className="secondary-button" onClick={onRetry}><RotateCcw size={15}/> Tekrar Dene</button></div>}
+      {!loading && !error && <div className="table-wrap payment-table-wrap">
+        <table className="payment-table">
+          <thead><tr><th>KAYIT</th><th>YAZAR</th><th>PROJE / SÖZLEŞME</th><th>TUTAR</th><th>DURUM</th><th>İŞLEM</th></tr></thead>
+          <tbody>{filteredPayments.map(payment => {
+            const statusLabel = payment.status === 'Onaylandi' ? 'Onaylandı' : payment.status === 'Odendi' ? 'Ödendi' : payment.status === 'Iptal' ? 'İptal' : 'Bekliyor';
+            return <tr key={payment.id}>
+              <td><div className="payment-date-cell"><strong>{date(payment.createdAt)}</strong><small>{payment.paymentDate ? `Ödeme: ${date(payment.paymentDate)}` : `#${payment.id}`}</small></div></td>
+              <td><div className="person-cell"><span className="small-avatar">{(payment.author?.fullName || '—').split(' ').filter(Boolean).map(part => part[0]).join('').slice(0,2).toLocaleUpperCase('tr-TR')}</span><div><strong>{payment.author?.fullName || 'Atanmamış'}</strong><small>Hakediş sahibi</small></div></div></td>
+              <td><div className="payment-project-cell"><strong>{payment.project?.title || payment.contractNo || 'Bağlantısız kayıt'}</strong><small>{payment.project?.code || payment.contractNo || '—'}</small></div></td>
+              <td><strong className="payment-amount">{moneyKurus(toKurus(payment.amount))}</strong></td>
+              <td><Status value={statusLabel} /></td>
+              <td><div className="row-actions payment-actions">
+                {payment.status === 'Bekliyor' && <button onClick={() => onAdvance(payment.id, payment.status)}>Onayla <ArrowRight size={14}/></button>}
+                {payment.status === 'Onaylandi' && <button onClick={() => onAdvance(payment.id, payment.status)}>Ödendi İşaretle <ArrowRight size={14}/></button>}
+                {payment.status === 'Odendi' && <span className="no-action"><CheckCircle2 size={13}/> Tamamlandı</span>}
+                {payment.status === 'Iptal' && <span className="no-action">İptal</span>}
+              </div></td>
+            </tr>;
+          })}</tbody>
+        </table>
+        {filteredPayments.length === 0 && <div className="payment-empty">
+          <Wallet size={24}/>
+          <strong>{payments.length === 0 ? 'Henüz hakediş kaydı yok' : 'Bu filtrede kayıt bulunamadı'}</strong>
+          <span>{payments.length === 0 ? 'Hakediş kayıtları oluşturulduğunda finans akışı burada başlayacak.' : 'Arama veya durum filtresini değiştirin.'}</span>
+        </div>}
+      </div>}
+    </section>
+  </>;
+}
+
 function PermissionDetails({ currentRole }: { currentRole: Role }) {
   return <div className="permission-details">
     <section className="panel"><div className="panel-head"><div><span className="panel-kicker">İŞLEM YETKİLERİ</span><h2>Kim hangi adımı uygulayabilir?</h2></div><ShieldCheck size={19} className="muted-icon" /></div><div className="table-wrap"><table className="matrix action-matrix"><thead><tr><th>İŞLEM</th>{roles.map(item => <th key={item} className={currentRole === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{actionPermissions.map(action => <tr key={action.label}><td><strong>{action.label}</strong></td>{roles.map(persona => <td key={persona} className={currentRole === persona ? 'current-role' : ''}>{action.roles.includes(persona) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></section>
@@ -1060,7 +1220,14 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             </section>
           </>}
         </>}
-        {section === 'payments' && <><div className="page-heading"><div><div className="eyebrow">FİNANS AKIŞI</div><h1>Hakedişler</h1><p>Gerçek Pilot hakediş kayıtlarını onaylayın ve ödendi olarak işaretleyin.</p></div><span className="heading-chip"><Wallet size={16} /> Pilot verisi</span></div><div className="stats-grid payments-stats"><StatCard label="Bekleyen" value={moneyKurus(sumPayments(apiPayments, 'Bekliyor'))} note="Onay bekleyen hakediş" icon={Clock3} tone="amber" /><StatCard label="Onaylanan" value={moneyKurus(sumPayments(apiPayments, 'Onaylandi'))} note="Ödeme sırasına alınan" icon={CheckCircle2} tone="blue" /><StatCard label="Ödenen" value={moneyKurus(sumPayments(apiPayments, 'Odendi'))} note="Tamamlanan işlemler" icon={Wallet} tone="green" /></div><div className="panel table-panel"><div className="table-heading"><strong>Hakediş listesi</strong><span>Gerçek Pilot kayıtları</span></div>{paymentsLoading && <div className="loading-state" style={{padding: '2rem'}}>Yükleniyor...</div>}{paymentsError && !paymentsLoading && <div className="error-state" style={{padding: '2rem'}}><div>{paymentsError}</div><button className="secondary-button" onClick={fetchPayments} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}{!paymentsLoading && !paymentsError && <div className="table-wrap"><table><thead><tr><th>YAZAR</th><th>PROJE</th><th>TUTAR</th><th>ÖDEME TARİHİ</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>{apiPayments.map(payment => <tr key={payment.id}><td><strong>{payment.author?.fullName}</strong></td><td>{payment.project?.title || payment.contractNo}</td><td><strong>{moneyKurus(toKurus(payment.amount))}</strong></td><td>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString('tr-TR') : '-'}</td><td><Status value={payment.status === 'Onaylandi' ? 'Onaylandı' : payment.status === 'Odendi' ? 'Ödendi' : 'Bekliyor'} /></td><td><div className="row-actions">{payment.status !== 'Odendi' && payment.status !== 'Iptal' ? <button onClick={() => updatePayment(payment.id, payment.status)}>{payment.status === 'Bekliyor' ? 'Onayla' : 'Ödendi işaretle'} <ArrowRight size={14} /></button> : <span className="no-action">Tamamlandı</span>}</div></td></tr>)}</tbody></table>{apiPayments.length === 0 && <div className="empty-state">Hakediş kaydı bulunamadı.</div>}</div>}</div></>}
+        {section === 'payments' && <PaymentCenter
+          payments={apiPayments}
+          loading={paymentsLoading}
+          error={paymentsError}
+          onRetry={fetchPayments}
+          onAdvance={updatePayment}
+          currentUser={currentUser}
+        />}
         {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>Şu an Pilot oturumu ile {roleLabels[currentUser.role]} rolündesiniz.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Kanonik Rol</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Soru Havuzu, Projeler ve Yazar Ağı sunucu tarafında oturum rolünüze göre kapsamlanır. Hakedişler gerçek Pilot verileridir.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ve Genel Koordinatör Pilot hakedişleri onaylayıp ödendi olarak işaretleyebilir.</p><button className="text-button" onClick={() => navigate('payments')}>Hakediş listesine git <ArrowRight size={16} /></button></div></div></>}
         {section === 'members' && <><div className="page-heading"><div><div className="eyebrow">ÜYELİK VE KULLANICI YÖNETİMİ</div><h1>Üye Yönetimi</h1><p>Başvuruları coğrafi yetki kapsamınıza göre değerlendirin ve izin verilen rollerde kullanıcı hesapları oluşturun.</p></div><span className="heading-chip"><Users size={16} /> Hiyerarşik kapsam</span></div><MemberManagement currentUser={currentUser} /></>}
         {section === 'roles' && currentUser.role === 'GENEL_KOORDINATOR' && <PermissionDetails currentRole={currentUser.role} />}
