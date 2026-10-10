@@ -27,6 +27,24 @@ const ruleSelect = {
   createdByUser: { select: { id: true, fullName: true } }
 } as const;
 
+const entrySelect = {
+  id: true,
+  roleCode: true,
+  earningType: true,
+  quantity: true,
+  unitPrice: true,
+  amount: true,
+  status: true,
+  earnedAt: true,
+  approvedAt: true,
+  paidAt: true,
+  sourceKey: true,
+  questionId: true,
+  user: { select: { id: true, fullName: true } },
+  project: { select: { id: true, title: true, code: true } },
+  rule: { select: { id: true, unitType: true } }
+} as const;
+
 function positiveInt(value: unknown): number | null {
   if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value;
   if (typeof value === 'string' && /^[1-9]\d*$/.test(value)) {
@@ -43,6 +61,26 @@ function parseMoney(value: unknown): string | null {
   const amount = Number(raw);
   if (!Number.isFinite(amount) || amount <= 0 || amount > 9999999999.99) return null;
   return amount.toFixed(2);
+}
+
+function entryDto(entry: any) {
+  return {
+    id: entry.id,
+    roleCode: entry.roleCode,
+    earningType: entry.earningType,
+    quantity: entry.quantity,
+    unitPrice: entry.unitPrice.toFixed(2),
+    amount: entry.amount.toFixed(2),
+    status: entry.status,
+    earnedAt: entry.earnedAt,
+    approvedAt: entry.approvedAt,
+    paidAt: entry.paidAt,
+    sourceKey: entry.sourceKey,
+    questionId: entry.questionId,
+    user: entry.user,
+    project: entry.project,
+    unitType: entry.rule.unitType
+  };
 }
 
 function ruleDto(rule: any) {
@@ -75,9 +113,14 @@ export async function handleCompensationAction(
   req: VercelRequest,
   res: VercelResponse,
   user: any,
-  action: 'compensationRules' | 'compensationRule'
+  action: 'compensationRules' | 'compensationRule' | 'compensationEntries'
 ) {
   if (!canReadRules(user)) return res.status(403).json({ error: 'Forbidden' });
+
+  if (action === 'compensationEntries') {
+    if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+    return listEntries(req, res);
+  }
 
   if (action === 'compensationRules') {
     if (req.method === 'GET') return listRules(req, res);
@@ -91,6 +134,17 @@ export async function handleCompensationAction(
   if (req.method === 'PATCH') return deactivateRule(id, req, res, user);
   res.setHeader('Allow', ['PATCH']);
   return res.status(405).json({ error: 'Method not allowed' });
+}
+
+async function listEntries(req: VercelRequest, res: VercelResponse) {
+  const rawLimit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 200;
+  const limit = Number.isSafeInteger(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 200;
+  const entries = await prisma.compensationEntry.findMany({
+    select: entrySelect,
+    orderBy: [{ earnedAt: 'desc' }, { id: 'desc' }],
+    take: limit
+  });
+  return res.status(200).json({ entries: entries.map(entryDto) });
 }
 
 async function listRules(req: VercelRequest, res: VercelResponse) {
