@@ -69,10 +69,10 @@ export function AuthorMap({ authors, scopeProvinces, initialProvince, onShowAuth
   return <div className="author-map-layout">
     <section className="panel author-map-panel">
       <div className="author-map-top">
-        <div><span className="panel-kicker">81 İL · YAZAR DAĞILIMI</span><h2>Türkiye Yazar Ağı Haritası</h2><p>İlleri seçerek Pilot yazarları ve branşlarını inceleyin.</p></div>
+        <div><span className="panel-kicker">81 İL · YAZAR DAĞILIMI</span><h2>Türkiye Yazar Ağı Haritası</h2><p>İlleri seçerek yazarları ve branşlarını inceleyin.</p></div>
         <span className="author-map-scope"><MapPin size={15} /> {scopeProvinces ? `${scopeProvinces[0]} kapsamı` : 'Türkiye geneli'}</span>
       </div>
-      <div className="author-map-summary"><div><strong>{authors.length}</strong><span>Pilot yazar</span></div><div><strong>{coveredProvinces}</strong><span>ilde kayıt</span></div><div><strong>{authors.filter(author => author.status === 'Aktif').length}</strong><span>aktif yazar</span></div></div>
+      <div className="author-map-summary"><div><strong>{authors.length}</strong><span>kayıtlı yazar</span></div><div><strong>{coveredProvinces}</strong><span>ilde kayıt</span></div><div><strong>{authors.filter(author => author.status === 'Aktif').length}</strong><span>aktif yazar</span></div></div>
       <div className="author-map-controls">
         <div className="author-map-search"><Search size={17} /><input value={search} onChange={event => setSearch(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && searchResults[0]) selectProvince(searchResults[0]); }} placeholder="İl ara..." aria-label="Haritada il ara" />
           {searchResults.length > 0 && <div className="author-map-results">{searchResults.map(province => <button key={province.id} onClick={() => selectProvince(province)}>{province.name}<small>{authorsByProvince.get(province.name)?.length || 0} yazar</small></button>)}</div>}
@@ -82,7 +82,7 @@ export function AuthorMap({ authors, scopeProvinces, initialProvince, onShowAuth
       {!scopeProvinces && <div className="author-map-regions" aria-label="Bölge filtresi">{regions.map(item => <button key={item} className={region === item ? 'selected' : ''} onClick={() => selectRegion(item)}>{item}</button>)}</div>}
       <div className="author-map-canvas">
         <div className="author-map-water-label">KARADENİZ <span>·</span> MARMARA <span>·</span> EGE <span>·</span> AKDENİZ</div>
-        <svg viewBox={TURKEY_MAP_VIEWBOX} role="group" aria-label="Türkiye illeri üzerinde Pilot yazar dağılımı" style={{ transform: `scale(${zoom})` }}>
+        <svg viewBox={TURKEY_MAP_VIEWBOX} role="group" aria-label="Türkiye illeri üzerinde yazar dağılımı" style={{ transform: `scale(${zoom})` }}>
           {TURKEY_MAP_PROVINCES.map(province => {
             const count = authorsByProvince.get(province.name)?.length || 0;
             const inScope = !scopeProvinces || scopeProvinces.includes(province.name);
@@ -105,7 +105,7 @@ export function AuthorMap({ authors, scopeProvinces, initialProvince, onShowAuth
       <div className="author-map-detail-heading"><strong>Bu ildeki yazarlar</strong><span>{selectedAuthors.length} kayıt</span></div>
       <div className="author-map-author-list">{selectedAuthors.length ? selectedAuthors.map(author => <div key={author.id} className="author-map-author"><span className="small-avatar">{author.initials}</span><div><strong>{author.name}</strong><small>{author.subject} · {author.status}</small></div></div>) : <div className="author-map-empty"><Users size={23} /><strong>Bu ilde yazar kaydı yok</strong><span>Haritadaki renkli illerden birini seçin.</span></div>}</div>
       {selectedAuthors.length > 0 && <button className="author-map-list-button" onClick={() => onShowAuthors(selected.name)}>{selected.name} yazarlarını listede göster <ArrowRight size={16} /></button>}
-      <div className="author-map-footnote">Bu harita, oturum kapsamınızdaki gerçek Pilot yazar verilerini gösterir.</div>
+      <div className="author-map-footnote">Bu harita, yetki kapsamınızdaki yazarların illere göre dağılımını gösterir.</div>
     </aside>
   </div>;
 }

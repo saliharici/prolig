@@ -1,16 +1,16 @@
 import { toKurus } from './payments/money';
 import { AuthUser } from './auth/types';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   GraduationCap,
   Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BarChart3, BookOpen,
-  Bold, Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
+  Bold, Check, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, ClipboardList, Clock3,
   FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText, Megaphone,
-  LockKeyhole, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Sparkles, Globe2,
+  LockKeyhole, LogOut, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Globe2,
   PencilLine, Trash2, Underline, Users, Wallet, X,
 } from 'lucide-react';
 import {
-  actionPermissions, dataScopes, loadDemoData, permissions, resetDemoData, roleLabels, rolePeople, saveDemoData,
+  actionPermissions, dataScopes, loadDemoData, permissions, roleLabels, rolePeople, saveDemoData,
   sectionLabels, type DemoData, type Question, type QuestionStatus, type Role, type Section,
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
@@ -41,6 +41,7 @@ import { ReportsCenter } from './reports/ReportsCenter';
 import { MemberManagement } from './membership/MemberManagement';
 import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
+import { useNavigationDrawer } from './navigation/useNavigationDrawer';
 import './demo.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
@@ -57,6 +58,12 @@ const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'members', icon: Users },
   { id: 'roles', icon: ShieldCheck },
   { id: 'audit', icon: ActivityIcon },
+];
+const navigationGroups: { id: string; label: string; sections: Section[] }[] = [
+  { id: 'overview', label: 'Genel Bakış', sections: ['overview', 'reports'] },
+  { id: 'production', label: 'Üretim', sections: ['projects', 'tasks', 'grades', 'questions', 'authors'] },
+  { id: 'communication', label: 'İletişim', sections: ['messages', 'announcements'] },
+  { id: 'management', label: 'Hesap ve Yönetim', sections: ['payments', 'members', 'roles', 'audit'] },
 ];
 const roles = Object.keys(roleLabels) as Role[];
 const gradesByLevel: Record<string, string[]> = {
@@ -90,10 +97,10 @@ function FinanceOverview({ apiPayments, onNavigate, currentUser, data }: { apiPa
       <StatCard label="Bekleyen telif" value={moneyKurus(sumPayments(apiPayments, 'Bekliyor'))} note="Onay sırasındaki tutar" icon={Clock3} tone="amber" />
       <StatCard label="Onaylanan" value={moneyKurus(sumPayments(apiPayments, 'Onaylandi'))} note="Ödeme sırasındaki tutar" icon={CheckCircle2} tone="blue" />
       <StatCard label="Ödenen" value={moneyKurus(sumPayments(apiPayments, 'Odendi'))} note="Tamamlanan ödeme" icon={Wallet} tone="green" />
-      <StatCard label="Toplam kayıt" value={apiPayments.length} note="Pilot telif/ödeme kaydı" icon={ClipboardList} tone="purple" />
+      <StatCard label="Toplam kayıt" value={apiPayments.length} note="Telif ve ödeme kaydı" icon={ClipboardList} tone="purple" />
     </div>
     <div className="overview-grid">
-      <section className="panel"><div className="panel-head"><div><span className="panel-kicker">FİNANS AKIŞI</span><h2>Telif ve ödeme süreci</h2></div><button className="text-button" onClick={() => onNavigate('payments')}>Tüm telif ve ödemeler <ArrowRight size={16} /></button></div><p className="panel-sub">Gerçek Pilot verisi onay ve ödeme adımları.</p><div className="pipeline" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>{(['Bekliyor', 'Onaylandi', 'Odendi'] as const).map((status, index) => <div key={status} className="pipeline-step"><span className={`pipeline-dot dot-${index + 1}`}><span>{apiPayments.filter(payment => payment.status === status).length}</span></span><strong>{status === 'Onaylandi' ? 'Onaylandı' : status === 'Odendi' ? 'Ödendi' : 'Bekliyor'}</strong><small>{index === 0 ? 'Kontrol edilir' : index === 1 ? 'Ödeme sırasına alınır' : 'Süreç tamamlanır'}</small>{index < 2 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><Wallet size={20} /></div><div><strong>Ödeme sürecini yönetin</strong><span>Telif ve ödeme listesindeki işlemleri kullanın.</span></div><button onClick={() => onNavigate('payments')}><ArrowUpRight size={18} /></button></div></section>
+      <section className="panel"><div className="panel-head"><div><span className="panel-kicker">FİNANS AKIŞI</span><h2>Telif ve ödeme süreci</h2></div><button className="text-button" onClick={() => onNavigate('payments')}>Tüm telif ve ödemeler <ArrowRight size={16} /></button></div><p className="panel-sub">Onay ve ödeme adımlarının güncel durumu.</p><div className="pipeline" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>{(['Bekliyor', 'Onaylandi', 'Odendi'] as const).map((status, index) => <div key={status} className="pipeline-step"><span className={`pipeline-dot dot-${index + 1}`}><span>{apiPayments.filter(payment => payment.status === status).length}</span></span><strong>{status === 'Onaylandi' ? 'Onaylandı' : status === 'Odendi' ? 'Ödendi' : 'Bekliyor'}</strong><small>{index === 0 ? 'Kontrol edilir' : index === 1 ? 'Ödeme sırasına alınır' : 'Süreç tamamlanır'}</small>{index < 2 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><Wallet size={20} /></div><div><strong>Ödeme sürecini yönetin</strong><span>Telif ve ödeme listesindeki işlemleri kullanın.</span></div><button onClick={() => onNavigate('payments')}><ArrowUpRight size={18} /></button></div></section>
       <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER (ÖRNEK)</span><h2>İşlem Geçmişi</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{data.activities.filter(item => item.type === 'payment').slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className="activity-glyph payment"><Wallet size={16} /></span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section>
     </div>
   </>;
@@ -755,7 +762,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         })
         .finally(() => setReportTasksLoading(false));
     }, [section, currentUser.role]);
-    const [mobileMenu, setMobileMenu] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const closeMobileMenu = useCallback(() => setMobileMenu(false), []);
+  const navigationDrawer = useNavigationDrawer(mobileMenu, closeMobileMenu);
   const [query, setQuery] = useState('');
   const [authorProvince, setAuthorProvince] = useState('');
   const [statusFilter, setStatusFilter] = useState('Tümü');
@@ -1059,7 +1068,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       if (e.status === 409) fetchPayments();
     }
   };
-  const reset = () => { setData(resetDemoData()); setToast('Örnek veriler başlangıç durumuna döndürüldü'); };
+
 
   const canArchiveQuestionUi = (q: ApiQuestion) => {
     if (currentUser.role === 'GENEL_KOORDINATOR') return true;
@@ -1211,20 +1220,64 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   );
 
   return <div className="demo-shell">
-    <aside className={`demo-sidebar ${mobileMenu ? 'open' : ''}`}>
+    <a className="workspace-skip-link" href="#workspace-content">İçeriğe geç</a>
+    <aside
+      id="workspace-navigation"
+      ref={navigationDrawer.panelRef}
+      className={['demo-sidebar', 'workspace-navigation', mobileMenu ? 'open' : ''].join(' ')}
+      aria-label="Ana menü"
+      role={navigationDrawer.isMobile && mobileMenu ? 'dialog' : undefined}
+      aria-modal={navigationDrawer.isMobile && mobileMenu ? true : undefined}
+      aria-hidden={navigationDrawer.isMobile && !mobileMenu ? true : undefined}
+      inert={navigationDrawer.isMobile && !mobileMenu}
+      tabIndex={-1}
+    >
       <div className="brand app-brand">
         <img className="app-brand-logo" src="/brand/prolig-logo-inverse.png" alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu" />
+        <button type="button" className="sidebar-close" onClick={closeMobileMenu} aria-label="Ana menüyü kapat"><X size={20} aria-hidden="true" /></button>
       </div>
-      <div className="sidebar-caption">ÇALIŞMA ALANI</div>
-      <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}{id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}{id === 'announcements' && announcementUnreadCount > 0 && <em>{announcementUnreadCount}</em>}</button>)}</nav>
-      <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Telif ve ödeme kayıtları gerçek Pilot verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
+      <nav className="workspace-navigation-scroll" aria-label="Çalışma alanı bölümleri">
+        {navigationGroups.map(group => {
+          const items = group.sections.flatMap(id => sections.filter(item => item.id === id && allowed.includes(id)));
+          if (items.length === 0) return null;
+          return <section className="workspace-navigation-group" key={group.id} aria-labelledby={'navigation-group-' + group.id}>
+            <h2 id={'navigation-group-' + group.id}>{group.label}</h2>
+            {items.map(({ id, icon: Icon }) => <button
+              type="button"
+              key={id}
+              className={'nav-link' + (section === id ? ' active' : '')}
+              aria-current={section === id ? 'page' : undefined}
+              onClick={() => navigate(id)}
+            >
+              <Icon size={19} aria-hidden="true" />
+              <span>{sectionLabels[id]}</span>
+              {id === 'questions' && pendingQuestions > 0 && <em aria-label={pendingQuestions + ' inceleme bekleyen soru'}>{pendingQuestions > 99 ? '99+' : pendingQuestions}</em>}
+              {id === 'messages' && messageUnreadCount > 0 && <em aria-label={messageUnreadCount + ' okunmamış mesaj'}>{messageUnreadCount > 99 ? '99+' : messageUnreadCount}</em>}
+              {id === 'announcements' && announcementUnreadCount > 0 && <em aria-label={announcementUnreadCount + ' okunmamış duyuru'}>{announcementUnreadCount > 99 ? '99+' : announcementUnreadCount}</em>}
+              {section === id && <ChevronRight className="sidebar-active-indicator" size={15} aria-hidden="true" />}
+            </button>)}
+          </section>;
+        })}
+      </nav>
+      <div className="workspace-navigation-footer">
+        <div className="sidebar-account">
+          <span className="sidebar-account-avatar">
+            {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.fullName.split(' ').filter(Boolean).map(name => name[0]).join('').slice(0, 2).toLocaleUpperCase('tr-TR')}
+          </span>
+          <div><strong title={currentUser.fullName}>{currentUser.fullName}</strong><small>{roleLabels[currentUser.role]}</small></div>
+        </div>
+        <div className="sidebar-account-actions">
+          <button type="button" onClick={() => { closeMobileMenu(); onPublicSiteRequest(); }}><Globe2 size={17} aria-hidden="true" /><span>Kurumsal Sayfa</span></button>
+          <button type="button" onClick={() => { closeMobileMenu(); onLogoutRequest(); }}><LogOut size={17} aria-hidden="true" /><span>Çıkış Yap</span></button>
+        </div>
+      </div>
     </aside>
-    {mobileMenu && <button className="mobile-shade" aria-label="Menüyü kapat" onClick={() => setMobileMenu(false)} />}
-    <div className="demo-main">
+    {navigationDrawer.isMobile && mobileMenu && <div className="mobile-shade" aria-hidden="true" onClick={closeMobileMenu} />}
+    <div className="demo-main" inert={navigationDrawer.isMobile && mobileMenu}>
       <header className="topbar topbar-command">
         <div className="topbar-brand-message">
-          <button className="mobile-toggle" aria-label="Menüyü aç" onClick={() => setMobileMenu(true)}><Menu size={22} /></button>
-          <div><strong>Yayın üretiminde</strong><span>daha güçlü ekipler için…</span></div>
+          <button type="button" ref={navigationDrawer.triggerRef} className="mobile-toggle" aria-label="Ana menüyü aç" aria-controls="workspace-navigation" aria-expanded={mobileMenu} aria-haspopup="dialog" onClick={() => setMobileMenu(true)}><Menu size={22} aria-hidden="true" /></button>
+          <div className="workspace-context"><span>Çalışma Alanı</span><strong>{sectionLabels[section]}</strong></div>
         </div>
 
         <form className="topbar-global-search" onSubmit={runTopbarSearch}>
@@ -1245,6 +1298,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               className={section === id ? 'active' : ''}
               onClick={() => navigate(id)}
               title={sectionLabels[id]}
+              aria-current={section === id ? 'page' : undefined}
             >
               <span className="topbar-quick-icon">
                 <Icon size={17}/>
@@ -1261,7 +1315,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             <Globe2 size={16}/>
           </button>
           <div className="topbar-profile">
-            <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle">
+            <button type="button" className="topbar-profile-main" onClick={() => setShowProfile(true)} title="Profilimi düzenle" aria-label="Profilimi düzenle">
               <span className="profile-badge">
                 {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.fullName.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
               </span>
@@ -1277,11 +1331,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           </div>
         </div>
       </header>
-      <main className="content">
-        <div className="demo-notice">
-  <div><Sparkles size={17} /><strong>Pro Lig test ortamı</strong><span>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Telif ve ödeme kayıtları gerçek Pilot verileridir.</span></div>
-  <button onClick={() => navigate('roles')}>Rolleri incele <ArrowRight size={15} /></button>
-</div>
+      <main id="workspace-content" className="content" tabIndex={-1}>
+
         {section === 'overview' && currentUser.role === 'MUHASEBE' && <FinanceOverview apiPayments={apiPayments} data={data} onNavigate={navigate} currentUser={currentUser} />}
         {section === 'overview' && currentUser.role !== 'MUHASEBE' && <>
           <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>{currentUser.role === 'YAZAR' ? 'Sorularınızı hazırlayın, editör değerlendirmesini takip edin.' : 'Üretim sürecindeki son durumu tek yerden takip edin.'}</p></div><span className="heading-chip"><ShieldCheck size={16} /> {roleLabels[currentUser.role]} görünümü</span></div>
@@ -1295,7 +1346,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section></div>
           <section className="panel projects-preview"><div className="panel-head"><div><span className="panel-kicker">YAKLAŞAN TESLİMLER</span><h2>Devam eden projeler</h2></div><button className="text-button" onClick={() => navigate('projects')}>Projeleri görüntüle <ArrowRight size={16} /></button></div>{projectsLoading && <div className="empty-state">Projeler yükleniyor...</div>}{projectsError && !projectsLoading && <div className="empty-state">{projectsError}</div>}{!projectsLoading && !projectsError && <div className="project-mini-grid">{apiProjects.slice(0, 3).map(project => <div className="project-mini" key={project.id}><div className="project-mini-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div><strong>{project.title}</strong><small><Clock3 size={14} /> {date(project.deadline)}</small><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>İlerleme</span><strong>%{project.progress}</strong></div></div>)}</div>}</section>
         </>}
-        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını yönetin.'}</p></div>{currentUser.role === 'YAZAR' && questionView === 'active' && <button className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div><div className="question-view-toggle"><button className={questionView==='active'?'active':''} onClick={()=>setQuestionView('active')}><FileQuestion size={14}/> Aktif</button><button className={questionView==='archived'?'active':''} onClick={async()=>{setQuestionView('archived');if(archivedQuestions.length===0) await loadArchivedQuestions();}}><Archive size={14}/> Arşiv</button></div></div>{(questionProjectFilter||questionGradeFilter)&&<div className="context-filter-bar"><span>{questionProjectFilter?apiProjects.find(project=>project.id===questionProjectFilter)?.title||'Proje filtresi':questionGradeFilter}</span><button onClick={()=>{setQuestionProjectFilter(null);setQuestionGradeFilter('')}}>Filtreyi kaldır <X size={13}/></button></div>}<div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Canlı Pilot verisi · Kayıtlar oturum rolünüzün sunucu kapsamına göre listelenir.</span></div>
+        {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını yönetin.'}</p></div>{currentUser.role === 'YAZAR' && questionView === 'active' && <button className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div><div className="question-view-toggle"><button className={questionView==='active'?'active':''} onClick={()=>setQuestionView('active')}><FileQuestion size={14}/> Aktif</button><button className={questionView==='archived'?'active':''} onClick={async()=>{setQuestionView('archived');if(archivedQuestions.length===0) await loadArchivedQuestions();}}><Archive size={14}/> Arşiv</button></div></div>{(questionProjectFilter||questionGradeFilter)&&<div className="context-filter-bar"><span>{questionProjectFilter?apiProjects.find(project=>project.id===questionProjectFilter)?.title||'Proje filtresi':questionGradeFilter}</span><button onClick={()=>{setQuestionProjectFilter(null);setQuestionGradeFilter('')}}>Filtreyi kaldır <X size={13}/></button></div>}<div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Kayıtlar rolünüzün yetki kapsamına göre listelenir.</span></div>
 {apiLoading && <div className="loading-state" style={{padding: '2rem', textAlign: 'center'}}>Sorular yükleniyor...</div>}
 {apiError && !apiLoading && <div className="error-state" style={{padding: '2rem', textAlign: 'center', color: '#ef4444'}}><div>{apiError}</div><button className="secondary-button" onClick={loadApiQuestions} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
 {!apiLoading && !apiError && <div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>BRANŞ</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => {
@@ -1469,7 +1520,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           onAdvance={updatePayment}
           currentUser={currentUser}
         />}
-        {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>Şu an Pilot oturumu ile {roleLabels[currentUser.role]} rolündesiniz.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Kanonik Rol</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Soru Havuzu, Projeler ve Yazar Ağı sunucu tarafında oturum rolünüze göre kapsamlanır. Telif ve ödeme kayıtları gerçek Pilot verileridir.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ödeme sürecini yürütür; Genel Koordinatör finansal durumu denetler.</p><button className="text-button" onClick={() => navigate('payments')}>Telif ve ödemelere git <ArrowRight size={16} /></button></div></div></>}
+        {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>{roleLabels[currentUser.role]} rolüyle oturum açtınız.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Yetki Rolü</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Sorular, projeler ve yazar bilgileri rolünüzün yetki kapsamına göre gösterilir. Telif ve ödemeler, yetkili kullanıcılar tarafından yönetilir.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ödeme sürecini yürütür; Genel Koordinatör finansal durumu denetler.</p><button className="text-button" onClick={() => navigate('payments')}>Telif ve ödemelere git <ArrowRight size={16} /></button></div></div></>}
         {section === 'members' && <><div className="page-heading"><div><div className="eyebrow">ÜYELİK VE KULLANICI YÖNETİMİ</div><h1>Üye Yönetimi</h1><p>Başvuruları coğrafi yetki kapsamınıza göre değerlendirin ve izin verilen rollerde kullanıcı hesapları oluşturun.</p></div><span className="heading-chip"><Users size={16} /> Hiyerarşik kapsam</span></div><MemberManagement currentUser={currentUser} /></>}
         {section === 'roles' && currentUser.role === 'GENEL_KOORDINATOR' && <PermissionDetails currentRole={currentUser.role} />}
         {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <AuditLogCenter logs={auditLogs} loading={auditLoading} error={auditError} onRetry={loadAuditLogs} />}

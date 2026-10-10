@@ -72,12 +72,12 @@ describe('Projects UI source regressions', () => {
     expect(source).not.toContain('{project.branch.name} · {project.targetGrade} · {project.province}');
   });
 
-  it('has loading, error, empty, retry, and truthful transparency copy', () => {
+  it('has loading, error, empty and retry without obsolete test-environment copy', () => {
     expect(source).toContain('projectsLoading');
     expect(source).toContain('projectsError');
     expect(source).toContain('loadApiProjects');
     expect(source).toContain('Proje bulunamadı.');
-    expect(source).toContain('Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır');
+    expect(source).not.toContain('Pro Lig test ortamı');
   });
 
   it('integrates project cards, class drilldown and project detail without fake counters', () => {

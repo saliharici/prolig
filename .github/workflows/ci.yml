@@ -32,3 +32,10 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Navigation browser checks
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/prolig-navigation-preview.log 2>&1 &
+          node scripts/verify-navigation.mjs

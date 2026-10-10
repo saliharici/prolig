@@ -19,9 +19,9 @@ import {
 const projectPulse = [
   {
     status: 'DEVAM EDİYOR',
-    code: 'PILOT-MAT-8-001',
-    title: '8. Sınıf Matematik Pilot Soru Bankası',
-    meta: 'Pilot doğrulama akışı',
+    code: 'MATEMATİK · 8. SINIF',
+    title: '8. Sınıf Matematik Soru Bankası',
+    meta: 'Yayın hazırlık akışı',
     signal: 'Üretim aktif',
     badge: '8. Sınıf'
   },
@@ -92,7 +92,7 @@ export function PublicLanding({
             <a href="#platform">Platform</a>
             <a href="#projeler">Projeler</a>
             <a href="#nasil-calisir">Nasıl Çalışır</a>
-            <a href="#pilot">Pilot</a>
+            <a href="#yayin-projesi">Yayın Akışı</a>
           </nav>
 
           <div className="public-header-actions">
@@ -135,7 +135,7 @@ export function PublicLanding({
             </div>
           </div>
 
-          <div className="public-hero-visual" aria-label="PRO-LİG operasyon merkezi ürün önizlemesi">
+          <div className="public-hero-visual" aria-label="PRO-LİG operasyon merkezi görünümü">
             <div className="public-v2-console">
               <div className="public-v2-console-head">
                 <div className="public-product-preview-brand public-product-preview-brand-image">
@@ -145,7 +145,7 @@ export function PublicLanding({
                     alt="PRO-LİG Operasyon Merkezi"
                   />
                 </div>
-                <span className="public-product-preview-live"><i /> Ürün Önizlemesi</span>
+                <span className="public-product-preview-live"><i /> Yayın Yönetimi</span>
               </div>
 
               <div className="public-v2-console-body">
@@ -167,10 +167,10 @@ export function PublicLanding({
                 <div className="public-v2-focus">
                   <div className="public-v2-focus-top">
                     <div>
-                      <span>PİLOT AKIŞ</span>
-                      <strong>8. Sınıf Matematik Pilot Soru Bankası</strong>
+                      <span>YAYIN AKIŞI</span>
+                      <strong>8. Sınıf Matematik Soru Bankası</strong>
                     </div>
-                    <em>PILOT-MAT-8-001</em>
+                    <em>MATEMATİK · 8. SINIF</em>
                   </div>
                   <div className="public-v2-progress-track"><span /></div>
                   <div className="public-v2-focus-flow">
@@ -196,7 +196,7 @@ export function PublicLanding({
               <span className="public-overline">PROJE NABZI</span>
               <h2>Yayın projeleri hareket halinde.</h2>
             </div>
-            <p>Bu alan, kamuya açık tanıtım için güvenli proje akışı örneklerini gösterir; iç sistem verileri yayınlanmaz.</p>
+            <p>Proje planlama, içerik üretimi ve editör kontrolünü tek akışta birleştirin.</p>
           </div>
 
           <div className="public-pulse-shell" aria-label="Proje nabzı akan proje bandı">
@@ -276,14 +276,14 @@ export function PublicLanding({
           </div>
         </section>
 
-        <section id="pilot" className="public-project-section public-major-section public-v2-pilot">
+        <section id="yayin-projesi" className="public-project-section public-major-section public-v2-pilot">
           <div className="public-pilot-summary">
             <div className="public-pilot-copy">
-              <span className="public-overline">REFERANS PİLOT</span>
-              <h2>8. Sınıf Matematik Pilot Soru Bankası</h2>
+              <span className="public-overline">YAYIN PROJESİ</span>
+              <h2>8. Sınıf Matematik Soru Bankası</h2>
               <p>
-                PILOT-MAT-8-001, PRO-LİG'in proje, görev, içerik ve kontrol iş akışını
-                kontrollü biçimde doğrulamak için kullanılan referans pilot çalışmadır.
+                Bir soru bankasının kapsamını belirleyin, ekibini oluşturun ve içerik üretimini
+                editör kontrolüyle birlikte yönetin.
               </p>
             </div>
             <div className="public-project-meta">
@@ -293,11 +293,11 @@ export function PublicLanding({
               </div>
               <div>
                 <Users size={18} />
-                <span><small>YAZAR KADROSU</small><strong>Pilot Yazar Ağı</strong></span>
+                <span><small>YAZAR KADROSU</small><strong>Yazar ve editör ekibi</strong></span>
               </div>
               <div>
                 <BookOpen size={18} />
-                <span><small>PROJE KODU</small><strong>PILOT-MAT-8-001</strong></span>
+                <span><small>BRANŞ</small><strong>Matematik</strong></span>
               </div>
             </div>
           </div>

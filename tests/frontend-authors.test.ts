@@ -67,18 +67,19 @@ describe('Author API Frontend Client', () => {
       // Author page uses apiAuthors
       expect(demoAppCode).toContain('apiAuthors.map(');
       
-      // Top transparency copy
-      expect(demoAppCode).toContain('Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır');
+      // Production screens do not display obsolete test-environment banners.
+      expect(demoAppCode).not.toContain('Pro Lig test ortamı');
+      expect(demoAppCode).not.toContain('Örnek verileri sıfırla');
       
       // Map copy checks
       expect(mapCode).not.toContain('örnek yazar');
       expect(mapCode).not.toContain('örnek kayıt');
-      expect(mapCode).toContain('Pilot yazar');
+      expect(mapCode).toContain('yetki kapsamınızdaki yazarların');
+      expect(mapCode).not.toContain('Pilot yazar');
       
       // Dashboard uses apiAuthors for counts
       expect(demoAppCode).toContain('apiAuthors.length.toString(');
       
-      // Payments still uses demo authors
       
     });
   });
