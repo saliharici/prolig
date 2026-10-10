@@ -50,6 +50,16 @@ describe('Projects UI source regressions', () => {
     expect(source).toContain('Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır');
   });
 
+  it('integrates project cards, class drilldown and project detail without fake counters', () => {
+    expect(source).toContain('projectQuestionStats(project.id, apiQuestions)');
+    expect(source).toContain('project.authors.length');
+    expect(source).toContain('13 Sınıf Düzeyi');
+    expect(source).toContain('buildGradeDetail(selectedGrade, apiProjects, apiQuestions)');
+    expect(source).toContain('openProjectsForGrade(selectedGrade)');
+    expect(source).toContain('openQuestionsForProject(selectedProject.id)');
+    expect(source).toContain('PROJE DETAYI');
+  });
+
   it('does not add project mutation controls or clients', () => {
     const client = fs.readFileSync(path.join(__dirname, '../src/projects/api.ts'), 'utf8');
     expect(client).not.toMatch(/createProject|updateProject|deleteProject/);
