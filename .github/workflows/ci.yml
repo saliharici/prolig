@@ -2,7 +2,7 @@ name: Pro-Lig CI
 
 on:
   push:
-    branches: [feat/compensation-engine]
+    branches: [main, feat/compensation-engine]
   pull_request:
     branches: [main]
   workflow_dispatch:

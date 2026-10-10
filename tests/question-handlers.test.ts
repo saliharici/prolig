@@ -686,10 +686,12 @@ describe('Question API Handlers', () => {
   describe('SECURITY', () => {
     it('getCurrentUser uses select to omit passwordHash', async () => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ status: 'Aktif' } as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, status: 'Aktif', role: { code: 'GENEL_KOORDINATOR' } } as any);
+      vi.mocked(prisma.question.findMany).mockResolvedValue([]);
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
       
+      expect(res.status).toHaveBeenCalledWith(200);
       const findUniqueCall = vi.mocked(prisma.user.findUnique).mock.calls[0][0];
       expect(findUniqueCall?.select).toBeDefined();
       expect(findUniqueCall?.select).not.toHaveProperty("passwordHash");
