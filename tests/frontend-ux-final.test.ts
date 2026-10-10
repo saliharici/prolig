@@ -107,12 +107,12 @@ describe('Final UX Stabilization', () => {
     const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
     const demoAppCode = fs.readFileSync(demoAppPath, 'utf8');
 
-    expect(modelCode).toContain("GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'reports', 'payments', 'members', 'roles', 'audit']");
-    expect(modelCode).toContain("BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'authors', 'grades', 'reports', 'members']");
-    expect(modelCode).toContain("IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'authors', 'reports', 'members']");
-    expect(modelCode).toContain("EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports']");
-    expect(modelCode).toContain("YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'reports']");
-    expect(modelCode).toContain("MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'reports']");
+    expect(modelCode).toContain("GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments', 'members', 'roles', 'audit']");
+    expect(modelCode).toContain("BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members']");
+    expect(modelCode).toContain("IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members']");
+    expect(modelCode).toContain("EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports']");
+    expect(modelCode).toContain("YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports']");
+    expect(modelCode).toContain("MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements', 'reports']");
     expect(demoAppCode).toContain("{section === 'members'");
     expect(demoAppCode).toContain("{section === 'roles' && currentUser.role === 'GENEL_KOORDINATOR'");
     expect(demoAppCode).not.toContain("{section === 'roles' && <MemberManagement");

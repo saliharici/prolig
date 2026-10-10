@@ -5,7 +5,7 @@ import {
   GraduationCap,
   Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BarChart3, BookOpen,
   Bold, Check, CheckCircle2, ChevronDown, CircleHelp, ClipboardList, Clock3,
-  FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText,
+  FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText, Megaphone,
   LockKeyhole, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Sparkles, Globe2,
   PencilLine, Trash2, Underline, Users, Wallet, X,
 } from 'lucide-react';
@@ -26,6 +26,8 @@ import { fetchTasks } from './tasks/api';
 import type { ApiTask } from './tasks/types';
 import { MessageCenter } from './messages/MessageCenter';
 import { fetchMessages } from './messages/api';
+import { AnnouncementCenter } from './announcements/AnnouncementCenter';
+import { fetchAnnouncements } from './announcements/api';
 import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './payments/api';
 import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
@@ -45,6 +47,7 @@ const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'projects', icon: BookOpen },
   { id: 'tasks', icon: ClipboardList },
   { id: 'messages', icon: MessageSquareText },
+  { id: 'announcements', icon: Megaphone },
   { id: 'authors', icon: MapPinned },
   { id: 'reports', icon: BarChart3 },
   { id: 'payments', icon: Wallet },
@@ -688,6 +691,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     loadApiProjects();
     loadApiAuthors();
     fetchMessages('inbox').then(result => setMessageUnreadCount(result.counts.unread)).catch(() => undefined);
+    fetchAnnouncements('active').then(result => setAnnouncementUnreadCount(result.counts.unread)).catch(() => undefined);
   }, []);
     const [section, setSection] = useState<Section>('overview');
     useEffect(() => {
@@ -730,6 +734,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [editingProject, setEditingProject] = useState<ApiProject | null>(null);
   const [taskProjectFilter, setTaskProjectFilter] = useState<number | null>(null);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const [announcementUnreadCount, setAnnouncementUnreadCount] = useState(0);
   const [topbarSearch, setTopbarSearch] = useState('');
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
@@ -1162,7 +1167,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   };
 
   const topbarQuickSections = sections.filter(item =>
-    ['overview', 'projects', 'tasks', 'messages', 'authors'].includes(item.id) && allowed.includes(item.id)
+    ['overview', 'projects', 'tasks', 'messages', 'announcements', 'authors'].includes(item.id) && allowed.includes(item.id)
   );
 
   return <div className="demo-shell">
@@ -1171,7 +1176,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <img className="app-brand-logo" src="/brand/prolig-logo-inverse.png" alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu" />
       </div>
       <div className="sidebar-caption">ÇALIŞMA ALANI</div>
-      <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}{id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}</button>)}</nav>
+      <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}{id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}{id === 'announcements' && announcementUnreadCount > 0 && <em>{announcementUnreadCount}</em>}</button>)}</nav>
       <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Telif ve ödeme kayıtları gerçek Pilot verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
     </aside>
     {mobileMenu && <button className="mobile-shade" aria-label="Menüyü kapat" onClick={() => setMobileMenu(false)} />}
@@ -1204,6 +1209,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               <span className="topbar-quick-icon">
                 <Icon size={17}/>
                 {id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}
+                {id === 'announcements' && announcementUnreadCount > 0 && <em>{announcementUnreadCount}</em>}
               </span>
               <small>{id === 'overview' ? 'Ana Sayfa' : id === 'tasks' ? 'Görevler' : id === 'authors' ? 'Yazar Ağı' : sectionLabels[id]}</small>
             </button>
@@ -1294,6 +1300,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           </>}
         {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} />}
         {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
+        {section === 'announcements' && <AnnouncementCenter onUnreadChange={setAnnouncementUnreadCount} />}
         {section === 'grades' && <>
           <div className="page-heading">
             <div>
