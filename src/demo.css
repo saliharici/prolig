@@ -902,10 +902,24 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
   height:auto;
   object-fit:contain;
   object-position:left center;
-  filter:brightness(0) invert(1);
-  opacity:.96
+  opacity:.98
 }
 @media(max-width:760px){
   .app-brand{height:78px;padding:0 18px}
   .app-brand-logo{width:164px}
+}
+
+
+/* PRO-LIG logo variants */
+.soft-login-brand{padding:0;height:auto;border:0}
+.soft-login-brand-logo{display:block;width:220px;max-width:100%;height:auto;object-fit:contain;object-position:left center}
+.public-product-preview-brand-image{min-width:0;flex:1}
+.public-operations-logo{display:block;width:176px;max-width:100%;height:auto;object-fit:contain;object-position:left center}
+@media(max-width:720px){
+  .soft-login-brand-logo{width:190px}
+  .public-operations-logo{width:158px}
+}
+@media(max-width:520px){
+  .soft-login-brand-logo{width:170px}
+  .public-operations-logo{width:145px}
 }
