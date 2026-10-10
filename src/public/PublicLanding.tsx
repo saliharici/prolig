@@ -22,6 +22,7 @@ const projectPulse = [
     code: 'PILOT-MAT-8-001',
     title: '8. Sınıf Matematik Pilot Soru Bankası',
     meta: 'Pilot doğrulama akışı',
+    signal: 'Üretim aktif',
     badge: '8. Sınıf'
   },
   {
@@ -29,14 +30,16 @@ const projectPulse = [
     code: 'EDİTÖR AKIŞI',
     title: 'İçerik inceleme ve revizyon döngüsü',
     meta: 'Rol bazlı kontrol',
-    badge: 'İnceleme'
+    signal: 'İnceleme',
+    badge: 'Editör'
   },
   {
     status: 'PLANLAMA',
     code: 'YENİ PROJE',
     title: 'Yeni yayın projeleri için ekip ve görev planlama',
     meta: 'Proje yönetimi',
-    badge: 'Planlama'
+    signal: 'Ekip planı',
+    badge: 'Hazırlık'
   }
 ];
 
@@ -189,8 +192,16 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
           </div>
 
           <div className="public-pulse-shell" aria-label="Proje nabzı akan proje bandı">
-            <div className="public-pulse-label"><span/><strong>CANLI AKIŞ</strong></div>
+            <div className="public-pulse-label">
+              <span className="public-pulse-live-dot"/>
+              <div>
+                <strong>PROJE NABZI</strong>
+                <small>YAYIN OPERASYONU</small>
+              </div>
+            </div>
             <div className="public-pulse-viewport">
+              <div className="public-pulse-fade public-pulse-fade-left" />
+              <div className="public-pulse-fade public-pulse-fade-right" />
               <div className="public-pulse-track">
                 {[0, 1].map(copy => (
                   <div className="public-pulse-copy" key={copy} aria-hidden={copy === 1 ? true : undefined}>
@@ -200,11 +211,15 @@ export function PublicLanding({ onLoginClick, onApplyClick }: { onLoginClick: ()
                           <i /> {item.status}
                         </span>
                         <div className="public-pulse-project">
-                          <small>{item.code}</small>
                           <strong>{item.title}</strong>
+                          <small>{item.code} <b>•</b> {item.meta}</small>
                         </div>
-                        <span className="public-pulse-meta">{item.meta}</span>
+                        <div className="public-pulse-signal">
+                          <small>AKIŞ</small>
+                          <strong>{item.signal}</strong>
+                        </div>
                         <span className="public-pulse-badge">{item.badge}</span>
+                        <ArrowRight className="public-pulse-arrow" size={16}/>
                       </article>
                     ))}
                   </div>
