@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Eye, EyeOff, LockKeyhole, Mail, MapPin, PencilLine, Plus, RefreshCw, UserPlus, UserRound, UsersRound, X } from 'lucide-react';
+import { Check, Eye, EyeOff, LockKeyhole, Mail, MapPin, PencilLine, Plus, RefreshCw, Search, UserPlus, UserRound, UsersRound, X } from 'lucide-react';
 import type { AuthUser } from '../auth/types';
 import type { Role } from '../demo/model';
 import { roleLabels } from '../demo/model';
@@ -37,12 +37,19 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
   const [showPassword,setShowPassword]=useState(false);
+  const [branchQuery,setBranchQuery]=useState('');
 
   const roles = useMemo<Role[]>(()=> currentUser.role==='GENEL_KOORDINATOR'
     ? ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']
     : currentUser.role==='BOLGE_KOORDINATORU'
       ? ['IL_KOORDINATORU','EDITOR','YAZAR']
       : ['EDITOR','YAZAR'], [currentUser.role]);
+
+  const visibleBranches = useMemo(() => {
+    const query = branchQuery.trim().toLocaleLowerCase('tr-TR');
+    if (!query) return branches;
+    return branches.filter((branch) => branch.name.toLocaleLowerCase('tr-TR').includes(query));
+  }, [branches, branchQuery]);
 
   const load=async()=>{
     if(!canSee) return;
@@ -215,8 +222,9 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
         {['YAZAR','EDITOR'].includes(form.role)&&<div className="member-branch-field">
           <div className="member-branch-head">
             <div><strong>Branş seçimi</strong><span>{form.role==='YAZAR'?'Yazar için tek branş seçin.':'Editör için bir veya daha fazla branş seçebilirsiniz.'}</span></div>
+            <span className="member-branch-search"><Search size={15}/><input value={branchQuery} onChange={e=>setBranchQuery(e.target.value)} placeholder="Branş ara..."/></span>
           </div>
-          <div className="member-branch-options">{branches.map(b=><label key={b.id} className={form.branchIds.includes(b.id)?'selected':''}><input type={form.role==='YAZAR'?'radio':'checkbox'} checked={form.branchIds.includes(b.id)} onChange={()=>toggleBranch(b.id)}/><span>{b.name}</span></label>)}</div>
+          <div className="member-branch-options">{visibleBranches.map(b=><label key={b.id} className={form.branchIds.includes(b.id)?'selected':''}><input type={form.role==='YAZAR'?'radio':'checkbox'} checked={form.branchIds.includes(b.id)} onChange={()=>toggleBranch(b.id)}/><span>{b.name}</span></label>)}{visibleBranches.length===0&&<div className="member-branch-empty">Aramanızla eşleşen branş bulunamadı.</div>}</div>
         </div>}
       </div>
 
