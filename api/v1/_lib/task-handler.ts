@@ -170,7 +170,7 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
   }
 
   const title = cleanRequired(body.title, 3, 160);
-  const description = cleanOptional(body.description, 1500);
+  const description = body.description === undefined ? null : cleanOptional(body.description, 1500);
   const projectId = positiveInt(body.projectId);
   const priority = typeof body.priority === 'string' && priorities.has(body.priority) ? body.priority : null;
   const startDate = parseDate(body.startDate);
