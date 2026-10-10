@@ -321,7 +321,7 @@ describe('Question API Handlers', () => {
   describe('PATCH', () => {
     const setupYazar = () => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Yazar', status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1 } } as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Yazar', status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1, branchId: 1 } } as any);
       vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'TASLAK', updatedAt: new Date() } as any);
       
       vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
