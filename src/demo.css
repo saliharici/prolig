@@ -1118,3 +1118,80 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
   .topbar-context .topbar-profile{padding:3px}
   .topbar-context .logout-button{display:none}
 }
+
+
+/* Command topbar utility */
+.topbar-command-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+.topbar-command-actions .topbar-site-button{width:38px;padding:0;justify-content:center}
+@media(max-width:1180px){.topbar-command-actions .topbar-site-button{display:none}}
+
+/* === HAKEDİŞ OPERATIONS CENTER === */
+.payment-page-heading{margin-bottom:20px}
+.payment-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.payment-kpi{min-height:112px;padding:17px;display:flex;align-items:flex-start;gap:13px}
+.payment-kpi-icon{width:35px;height:35px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto}
+.payment-kpi-icon.amber{background:#fff4df;color:#d58b1d}
+.payment-kpi-icon.blue{background:#eaf4ff;color:#3d8ed8}
+.payment-kpi-icon.green{background:#e6f7ef;color:#21936f}
+.payment-kpi-icon.purple{background:#f1edfb;color:#7964bc}
+.payment-kpi>div{min-width:0}
+.payment-kpi small,.payment-kpi strong,.payment-kpi span{display:block}
+.payment-kpi small{font-size:7px;font-weight:900;letter-spacing:.09em;color:#8a9da1}
+.payment-kpi strong{margin-top:7px;color:#213f47;font:800 19px Manrope,sans-serif;white-space:nowrap}
+.payment-kpi span{margin-top:4px;color:#91a2a5;font-size:7px}
+
+.payment-flow-panel{padding:0;margin-bottom:14px;overflow:hidden}
+.payment-flow-head{padding:17px 18px}
+.payment-flow-note{font-size:8px;color:#8fa1a4}
+.payment-flow-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #e9efee}
+.payment-flow-step{position:relative;display:grid;grid-template-columns:34px minmax(0,1fr) auto;grid-template-rows:auto auto;gap:4px 10px;align-items:center;border:0;border-right:1px solid #e9efee;background:#fff;padding:15px 16px;text-align:left;color:inherit}
+.payment-flow-step:last-child{border-right:0}
+.payment-flow-step:hover,.payment-flow-step.active{background:#f7fbfa}
+.payment-flow-step.active{box-shadow:inset 0 3px 0 #2aa58d}
+.payment-flow-number{width:31px;height:31px;border-radius:9px;display:grid;place-items:center;font-size:9px;font-weight:900;grid-row:1/3}
+.payment-flow-number.amber{background:#fff3dd;color:#c8831e}
+.payment-flow-number.blue{background:#eaf4ff;color:#3a86cd}
+.payment-flow-number.green{background:#e6f7ef;color:#218d6c}
+.payment-flow-copy strong,.payment-flow-copy small,.payment-flow-metrics strong,.payment-flow-metrics small{display:block}
+.payment-flow-copy strong{font-size:9px;color:#345259}
+.payment-flow-copy small{margin-top:3px;font-size:7px;color:#94a5a8}
+.payment-flow-metrics{text-align:right}
+.payment-flow-metrics strong{font:800 16px Manrope,sans-serif;color:#28464d}
+.payment-flow-metrics small{margin-top:2px;font-size:6.5px;color:#899da0;white-space:nowrap}
+.payment-flow-step>i{grid-column:2/4;height:4px;border-radius:999px;background:#edf3f1;overflow:hidden}
+.payment-flow-step>i>b{display:block;height:100%;border-radius:inherit;background:#49b79f}
+
+.payment-workbench{padding:0;overflow:hidden}
+.payment-workbench-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px;border-bottom:1px solid #e9efee}
+.payment-workbench-head h2{margin:5px 0 3px;font:800 17px Manrope,sans-serif;color:#25434b}
+.payment-workbench-head p{margin:0;color:#91a2a5;font-size:8px}
+.payment-refresh{height:34px}
+.payment-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px;border-bottom:1px solid #edf2f1;background:#fbfcfc}
+.payment-search{width:min(390px,100%)}
+.payment-filter-tabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.payment-filter-tabs button{height:30px;display:flex;align-items:center;gap:6px;border:1px solid #dfe9e7;border-radius:8px;background:#fff;color:#70868b;padding:0 9px;font-size:7px;font-weight:900}
+.payment-filter-tabs button span{min-width:17px;height:17px;border-radius:999px;background:#eef3f2;display:grid;place-items:center;font-size:6px}
+.payment-filter-tabs button:hover,.payment-filter-tabs button.active{border-color:#adddd2;background:#eef8f5;color:#1e7b6b}
+.payment-filter-tabs button.active span{background:#fff;color:#1e7b6b}
+.payment-table-wrap{overflow:auto}
+.payment-table{min-width:880px}
+.payment-date-cell strong,.payment-date-cell small,.payment-project-cell strong,.payment-project-cell small{display:block}
+.payment-date-cell strong,.payment-project-cell strong{font-size:9px;color:#3b565c}
+.payment-date-cell small,.payment-project-cell small{margin-top:3px;font-size:7px;color:#95a5a8}
+.payment-project-cell{max-width:250px}
+.payment-project-cell strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.payment-amount{color:#203f47;font-size:10px}
+.payment-actions .no-action{display:inline-flex;align-items:center;gap:5px}
+.payment-state{min-height:180px;display:flex;align-items:center;justify-content:center;gap:8px;color:#84999d;font-size:9px}
+.payment-state-error{flex-direction:column;text-align:center;padding:25px}
+.payment-state-error strong{color:#a64d43;font-size:10px}
+.payment-state-error span{color:#95a4a7;font-size:8px}
+.payment-empty{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#91a3a6;padding:28px}
+.payment-empty svg{color:#60ad9d;margin-bottom:8px}
+.payment-empty strong{color:#49666d;font-size:10px}
+.payment-empty span{margin-top:4px;font-size:8px}
+.spin{animation:spin 1s linear infinite}
+
+@media(max-width:1120px){.payment-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.payment-flow-grid{grid-template-columns:1fr}.payment-flow-step{border-right:0;border-bottom:1px solid #e9efee}.payment-flow-step:last-child{border-bottom:0}}
+@media(max-width:720px){.payment-kpi-grid{grid-template-columns:1fr 1fr}.payment-toolbar{align-items:stretch;flex-direction:column}.payment-search{width:100%}.payment-filter-tabs{overflow:auto;flex-wrap:nowrap}.payment-flow-note{display:none}}
+@media(max-width:500px){.payment-kpi-grid{grid-template-columns:1fr}.payment-kpi{min-height:auto}}
