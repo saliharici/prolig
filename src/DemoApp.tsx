@@ -22,6 +22,8 @@ import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/t
 import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
 import { ProjectManagementModal } from './projects/ProjectManagementModal';
 import { TaskTracking } from './tasks/TaskTracking';
+import { fetchTasks } from './tasks/api';
+import type { ApiTask } from './tasks/types';
 import { MessageCenter } from './messages/MessageCenter';
 import { fetchMessages } from './messages/api';
 import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './payments/api';
@@ -94,6 +96,151 @@ function PermissionDetails({ currentRole }: { currentRole: Role }) {
   </div>;
 }
 
+
+function AuthorNetworkInsights({
+  authors,
+  tasks,
+  onProvinceSelect,
+  onOpenTasks,
+  onShowDirectory
+}: {
+  authors: ApiAuthor[];
+  tasks: ApiTask[];
+  onProvinceSelect: (province: string) => void;
+  onOpenTasks: () => void;
+  onShowDirectory: () => void;
+}) {
+  const provinceRows = useMemo(() => {
+    const counts = new Map<string, number>();
+    authors.forEach(author => counts.set(author.province.name, (counts.get(author.province.name) || 0) + 1));
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'tr-TR')).slice(0, 5);
+  }, [authors]);
+
+  const branchRows = useMemo(() => {
+    const counts = new Map<string, number>();
+    authors.forEach(author => counts.set(author.branch.name, (counts.get(author.branch.name) || 0) + 1));
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'tr-TR'));
+    const palette = ['#2b6cb0', '#2aa68c', '#f0a43c', '#7c69c8', '#ef6f61', '#49a6c6'];
+    const primary = sorted.slice(0, 5).map(([name, count], index) => ({ name, count, color: palette[index] }));
+    const remainder = sorted.slice(5).reduce((sum, [, count]) => sum + count, 0);
+    if (remainder > 0) primary.push({ name: 'Diğer', count: remainder, color: palette[5] });
+    return primary;
+  }, [authors]);
+
+  const upcomingTasks = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    return tasks
+      .filter(task => task.status !== 'Tamamlandi' && new Date(task.dueDate).getTime() >= todayStart)
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .slice(0, 4)
+      .map(task => {
+        const due = new Date(task.dueDate);
+        const dueStart = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+        const days = Math.max(0, Math.ceil((dueStart - todayStart) / 86400000));
+        return { ...task, days };
+      });
+  }, [tasks]);
+
+  const recentAuthors = useMemo(
+    () => [...authors].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5),
+    [authors]
+  );
+
+  const total = authors.length || 1;
+  const maxProvince = Math.max(1, ...provinceRows.map(([, count]) => count));
+  const radius = 31;
+  const circumference = 2 * Math.PI * radius;
+  let accumulated = 0;
+  const donutRows = branchRows.map(item => {
+    const fraction = item.count / total;
+    const dash = fraction * circumference;
+    const row = { ...item, dash, offset: -(accumulated * circumference) };
+    accumulated += fraction;
+    return row;
+  });
+
+  return (
+    <section className="author-insights" aria-label="Yazar ağı analitik özeti">
+      <article className="panel author-insight-card author-insight-provinces">
+        <div className="author-insight-head">
+          <div><MapPinned size={16}/><strong>İllere Göre Yazar Dağılımı</strong></div>
+          <button onClick={onShowDirectory}>Tümünü Gör</button>
+        </div>
+        <div className="author-province-bars">
+          {provinceRows.length ? provinceRows.map(([province, count]) => (
+            <button key={province} className="author-province-row" onClick={() => onProvinceSelect(province)}>
+              <span>{province}</span><strong>{count}</strong>
+              <i><b style={{ width: `${Math.max(10, Math.round((count / maxProvince) * 100))}%` }} /></i>
+            </button>
+          )) : <div className="author-insight-empty">İl dağılımı için yazar kaydı yok.</div>}
+        </div>
+      </article>
+
+      <article className="panel author-insight-card author-insight-branches">
+        <div className="author-insight-head">
+          <div><ActivityIcon size={16}/><strong>Branşlara Göre Dağılım</strong></div>
+          <span>{authors.length} yazar</span>
+        </div>
+        <div className="author-branch-body">
+          <div className="author-donut">
+            <svg viewBox="0 0 80 80" aria-label="Branş dağılımı">
+              <circle cx="40" cy="40" r={radius} className="author-donut-track" />
+              {donutRows.map(item => <circle
+                key={item.name}
+                cx="40" cy="40" r={radius}
+                fill="none"
+                stroke={item.color}
+                strokeWidth="10"
+                strokeDasharray={`${item.dash} ${circumference}`}
+                strokeDashoffset={item.offset}
+              />)}
+            </svg>
+            <div><strong>{authors.length}</strong><span>yazar</span></div>
+          </div>
+          <div className="author-branch-legend">
+            {branchRows.map(item => <div key={item.name}><i style={{ background: item.color }} /><span>{item.name}</span><strong>{item.count}</strong></div>)}
+            {!branchRows.length && <div className="author-insight-empty">Branş verisi yok.</div>}
+          </div>
+        </div>
+      </article>
+
+      <article className="panel author-insight-card author-insight-deadlines">
+        <div className="author-insight-head">
+          <div><Clock3 size={16}/><strong>Yaklaşan Teslim Tarihleri</strong></div>
+          <button onClick={onOpenTasks}>Görevler</button>
+        </div>
+        <div className="author-deadline-list">
+          {upcomingTasks.length ? upcomingTasks.map(task => (
+            <button key={task.id} onClick={onOpenTasks}>
+              <span className="author-deadline-date">{date(task.dueDate)}</span>
+              <span><strong>{task.title}</strong><small>{task.project.title}</small></span>
+              <em className={task.days <= 3 ? 'urgent' : task.days <= 7 ? 'soon' : ''}>{task.days === 0 ? 'bugün' : `${task.days} gün`}</em>
+            </button>
+          )) : <div className="author-insight-empty">Yaklaşan açık görev bulunmuyor.</div>}
+        </div>
+      </article>
+
+      <article className="panel author-insight-card author-insight-recent">
+        <div className="author-insight-head">
+          <div><Users size={16}/><strong>Son Eklenen Yazarlar</strong></div>
+          <button onClick={onShowDirectory}>Tümünü Gör</button>
+        </div>
+        <div className="author-recent-list">
+          {recentAuthors.length ? recentAuthors.map(author => {
+            const initials = author.fullName.split(' ').filter(Boolean).map(part => part[0]).join('').slice(0, 2).toLocaleUpperCase('tr-TR');
+            return <button key={author.id} onClick={onShowDirectory}>
+              <span className="small-avatar">{initials}</span>
+              <span><strong>{author.fullName}</strong><small>{author.province.name} · {author.branch.name}</small></span>
+              <time>{new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short' }).format(new Date(author.createdAt))}</time>
+            </button>;
+          }) : <div className="author-insight-empty">Yazar kaydı bulunmuyor.</div>}
+        </div>
+      </article>
+    </section>
+  );
+}
+
 export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated }: { currentUser: AuthUser; onLogoutRequest: () => void; onProfileUpdated: () => Promise<void> }) {
   const [data, setData] = useState<DemoData>(loadDemoData);
   const [showProfile, setShowProfile] = useState(false);
@@ -106,6 +253,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState('');
   const [apiAuthors, setApiAuthors] = useState<ApiAuthor[]>([]);
+  const [authorInsightTasks, setAuthorInsightTasks] = useState<ApiTask[]>([]);
   const [authorsLoading, setAuthorsLoading] = useState(false);
   const [authorsError, setAuthorsError] = useState('');
   const [apiPayments, setApiPayments] = useState<Payment[]>([]);
@@ -192,6 +340,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     fetchMessages('inbox').then(result => setMessageUnreadCount(result.counts.unread)).catch(() => undefined);
   }, []);
     const [section, setSection] = useState<Section>('overview');
+    useEffect(() => {
+      if (section !== 'authors') return;
+      if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role)) return;
+      fetchTasks().then(setAuthorInsightTasks).catch(() => setAuthorInsightTasks([]));
+    }, [section, currentUser.role]);
     const [mobileMenu, setMobileMenu] = useState(false);
   const [query, setQuery] = useState('');
   const [authorProvince, setAuthorProvince] = useState('');
@@ -784,6 +937,13 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           {authorsError && !authorsLoading && <div className="panel empty-state"><div>{authorsError}</div><button className="secondary-button" onClick={loadApiAuthors} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
           {!authorsLoading && !authorsError && <>
             <AuthorMap authors={authorMapAuthors} onShowAuthors={showAuthorsForProvince} />
+            <AuthorNetworkInsights
+              authors={apiAuthors}
+              tasks={authorInsightTasks}
+              onProvinceSelect={showAuthorsForProvince}
+              onOpenTasks={() => navigate('tasks')}
+              onShowDirectory={() => document.getElementById('author-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            />
             <section id="author-list" className="author-network-list">
               <div className="author-network-list-heading"><div><span className="panel-kicker">YAZAR REHBERİ</span><h2>{authorProvince ? `${authorProvince} yazarları` : 'Tüm yazarlar'}</h2><p>Haritadan bir il seçip listeyi süzebilir veya yazar ve branş arayabilirsiniz.</p></div><span className="heading-chip">{filteredAuthors.length} kayıt</span></div>
               <div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Yazarlarda ara" placeholder="Yazar, branş veya il ara..." value={query} onChange={event => setQuery(event.target.value)} /></div>{authorProvince && <button className="author-network-clear" onClick={() => setAuthorProvince('')}>{authorProvince} filtresini kaldır <X size={14} /></button>}</div>
