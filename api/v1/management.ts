@@ -5,6 +5,7 @@ import { getCurrentUser } from './_lib/current-user.js';
 import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canManageUserLifecycle, canViewProvince, coordinatorRoles } from './_lib/member-access.js';
 import { MEB_TEACHING_BRANCHES, isMebTeachingBranch } from '../../shared/branch-catalog.js';
 import { isDistrictInProvince } from '../../shared/district-catalog.js';
+import { handleTaskAction } from './_lib/task-handler.js';
 
 const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
@@ -197,6 +198,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (action === 'tasks' || action === 'task') {
+      return handleTaskAction(req, res, user, action);
+    }
     if (!coordinatorRoles.has(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
 
     if (action === 'metadata' && req.method === 'GET') {
