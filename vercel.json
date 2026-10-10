@@ -61,6 +61,10 @@
       "destination": "/api/v1/management?action=tasks"
     },
     {
+      "source": "/api/v1/compensation/entries",
+      "destination": "/api/v1/management?action=compensationEntries"
+    },
+    {
       "source": "/api/v1/compensation/rules/:id",
       "destination": "/api/v1/management?action=compensationRule&id=:id"
     },
