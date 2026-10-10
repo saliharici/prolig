@@ -15,6 +15,7 @@ export interface ApiQuestion {
   projectId: number | null;
   createdAt: string;
   updatedAt: string;
+  isArchived: boolean;
   author: {
     id: number;
     fullName: string;
