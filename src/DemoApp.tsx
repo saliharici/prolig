@@ -20,6 +20,7 @@ import type { ApiQuestion, QuestionStatus as ApiQuestionStatus, QuestionWorkflow
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
 import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
+import { ProjectManagementModal } from './projects/ProjectManagementModal';
 import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './payments/api';
 import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
@@ -200,6 +201,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [projectGradeFilter, setProjectGradeFilter] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('8. Sınıf');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [showProjectManager, setShowProjectManager] = useState(false);
+  const [editingProject, setEditingProject] = useState<ApiProject | null>(null);
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
@@ -238,6 +241,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const questionLevels = Object.keys(gradesByLevel);
   const questionGrades = gradesByLevel[questionLevel] || [];
   const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
+  const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role);
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
   const questionAssignableProjects = apiProjects.filter(project =>
     !['Tamamlandi', 'Arsiv'].includes(project.status) || project.id === originalQuestionProjectId
@@ -286,6 +290,24 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setStatusFilter('Tümü');
     setSection('questions');
     setMobileMenu(false);
+  };
+
+  const openNewProject = () => {
+    if (!canCreateProjects) return;
+    setEditingProject(null);
+    setShowProjectManager(true);
+  };
+
+  const openProjectEdit = (project: ApiProject) => {
+    if (!project.canManage) return;
+    setEditingProject(project);
+    setSelectedProjectId(null);
+    setShowProjectManager(true);
+  };
+
+  const refreshProjectManagementData = async () => {
+    await Promise.all([loadApiProjects(), loadApiAuthors()]);
+    setToast('Proje bilgileri güncellendi.');
   };
     const log = (text: string, type: 'question' | 'payment', projectId: number, authorId?: number) => ({ id: Math.max(0, ...data.activities.map(item => item.id)) + 1, text, actor: currentUser.fullName, at: 'Az önce', type, projectId, authorId });
   
@@ -617,8 +639,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 })}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div>}</div></>}
           {section === 'projects' && <>
             <div className="page-heading">
-              <div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Sunucu kapsamınızdaki projeleri; sınıf, yazar ve soru üretimiyle birlikte izleyin.</p></div>
-              <span className="heading-chip"><BookOpen size={16} /> {filteredProjects.length} proje</span>
+              <div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Sunucu kapsamınızdaki projeleri; sınıf, yazar ve soru üretimiyle birlikte yönetin.</p></div>
+              <div className="page-heading-actions"><span className="heading-chip"><BookOpen size={16} /> {filteredProjects.length} proje</span>{canCreateProjects&&<button className="primary-button" onClick={openNewProject}><Plus size={17}/> Yeni Proje</button>}</div>
             </div>
             <div className="toolbar">
               <div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje, kod, branş veya sınıf ara..." value={query} onChange={e => setQuery(e.target.value)} /></div>
@@ -780,6 +802,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         </div>
       </div>
       <div className="project-detail-footer">
+        {selectedProject.canManage&&<button className="secondary-button project-manage-button" onClick={()=>openProjectEdit(selectedProject)}><PencilLine size={15}/> Projeyi Düzenle</button>}
         <button className="secondary-button" onClick={()=>{setSelectedGrade(selectedProject.targetGrade);setSelectedProjectId(null);setSection('grades')}}>Sınıfı aç <GraduationCap size={15}/></button>
         <button className="primary-button" onClick={()=>openQuestionsForProject(selectedProject.id)}>Proje sorularını aç <ArrowRight size={15}/></button>
       </div>
@@ -813,6 +836,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setReviewingQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>
       </form></div>}
+      {showProjectManager && <ProjectManagementModal project={editingProject} authors={apiAuthors} onClose={()=>{setShowProjectManager(false);setEditingProject(null)}} onChanged={refreshProjectManagementData} />}
       {showProfile && <ProfileModal user={currentUser} onClose={() => setShowProfile(false)} onSaved={async () => { await onProfileUpdated(); setToast('Profil bilgileriniz güncellendi.'); }} />}
       {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
   </div>;
