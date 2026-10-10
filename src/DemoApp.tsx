@@ -30,6 +30,8 @@ import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './
 import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
 import type { ApiAuthor } from './authors/types';
+import { fetchAuditLogs } from './audit/api';
+import type { ApiAuditLog } from './audit/types';
 import { MemberManagement } from './membership/MemberManagement';
 import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
@@ -75,17 +77,159 @@ function StatCard({ label, value, note, icon: Icon, tone }: { label: string; val
 
 function FinanceOverview({ apiPayments, onNavigate, currentUser, data }: { apiPayments: Payment[]; onNavigate: (section: Section) => void; currentUser: AuthUser; data: DemoData }) {
   return <>
-    <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>Hakedişleri takip edin ve ödeme akışını yönetin.</p></div><span className="heading-chip"><ShieldCheck size={16} /> Muhasebe görünümü</span></div>
+    <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>Telif ve ödeme kayıtlarını takip edin, ödeme akışını yönetin.</p></div><span className="heading-chip"><ShieldCheck size={16} /> Muhasebe görünümü</span></div>
     <div className="stats-grid">
-      <StatCard label="Bekleyen hakediş" value={moneyKurus(sumPayments(apiPayments, 'Bekliyor'))} note="Onay sırasındaki tutar" icon={Clock3} tone="amber" />
+      <StatCard label="Bekleyen telif" value={moneyKurus(sumPayments(apiPayments, 'Bekliyor'))} note="Onay sırasındaki tutar" icon={Clock3} tone="amber" />
       <StatCard label="Onaylanan" value={moneyKurus(sumPayments(apiPayments, 'Onaylandi'))} note="Ödeme sırasındaki tutar" icon={CheckCircle2} tone="blue" />
       <StatCard label="Ödenen" value={moneyKurus(sumPayments(apiPayments, 'Odendi'))} note="Tamamlanan ödeme" icon={Wallet} tone="green" />
-      <StatCard label="Toplam kayıt" value={apiPayments.length} note="Pilot hakediş" icon={ClipboardList} tone="purple" />
+      <StatCard label="Toplam kayıt" value={apiPayments.length} note="Pilot telif/ödeme kaydı" icon={ClipboardList} tone="purple" />
     </div>
     <div className="overview-grid">
-      <section className="panel"><div className="panel-head"><div><span className="panel-kicker">FİNANS AKIŞI</span><h2>Hakediş süreci</h2></div><button className="text-button" onClick={() => onNavigate('payments')}>Tüm hakedişler <ArrowRight size={16} /></button></div><p className="panel-sub">Gerçek Pilot verisi onay ve ödeme adımları.</p><div className="pipeline" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>{(['Bekliyor', 'Onaylandi', 'Odendi'] as const).map((status, index) => <div key={status} className="pipeline-step"><span className={`pipeline-dot dot-${index + 1}`}><span>{apiPayments.filter(payment => payment.status === status).length}</span></span><strong>{status === 'Onaylandi' ? 'Onaylandı' : status === 'Odendi' ? 'Ödendi' : 'Bekliyor'}</strong><small>{index === 0 ? 'Kontrol edilir' : index === 1 ? 'Ödeme sırasına alınır' : 'Süreç tamamlanır'}</small>{index < 2 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><Wallet size={20} /></div><div><strong>Ödeme sürecini yönetin</strong><span>Hakediş listesindeki işlemleri kullanın.</span></div><button onClick={() => onNavigate('payments')}><ArrowUpRight size={18} /></button></div></section>
+      <section className="panel"><div className="panel-head"><div><span className="panel-kicker">FİNANS AKIŞI</span><h2>Telif ve ödeme süreci</h2></div><button className="text-button" onClick={() => onNavigate('payments')}>Tüm telif ve ödemeler <ArrowRight size={16} /></button></div><p className="panel-sub">Gerçek Pilot verisi onay ve ödeme adımları.</p><div className="pipeline" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>{(['Bekliyor', 'Onaylandi', 'Odendi'] as const).map((status, index) => <div key={status} className="pipeline-step"><span className={`pipeline-dot dot-${index + 1}`}><span>{apiPayments.filter(payment => payment.status === status).length}</span></span><strong>{status === 'Onaylandi' ? 'Onaylandı' : status === 'Odendi' ? 'Ödendi' : 'Bekliyor'}</strong><small>{index === 0 ? 'Kontrol edilir' : index === 1 ? 'Ödeme sırasına alınır' : 'Süreç tamamlanır'}</small>{index < 2 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><Wallet size={20} /></div><div><strong>Ödeme sürecini yönetin</strong><span>Telif ve ödeme listesindeki işlemleri kullanın.</span></div><button onClick={() => onNavigate('payments')}><ArrowUpRight size={18} /></button></div></section>
       <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER (ÖRNEK)</span><h2>İşlem Geçmişi</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{data.activities.filter(item => item.type === 'payment').slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className="activity-glyph payment"><Wallet size={16} /></span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section>
     </div>
+  </>;
+}
+
+
+
+const auditActionLabels: Record<string, string> = {
+  PAYMENT_APPROVED: 'Telif/ödeme kaydı onaylandı',
+  PAYMENT_PAID: 'Ödeme tamamlandı',
+  USER_CREATED_AND_ASSIGNED: 'Kullanıcı oluşturuldu ve kapsam atandı',
+  USER_ACTIVATED: 'Kullanıcı etkinleştirildi',
+  USER_DEACTIVATED: 'Kullanıcı pasifleştirildi',
+  USER_DELETED: 'Kullanıcı silindi',
+  USER_ROLE_SCOPE_UPDATED: 'Kullanıcı rolü veya kapsamı güncellendi',
+  MEMBERSHIP_APPLICATION_REVIEWED: 'Üyelik başvurusu değerlendirildi',
+  MESSAGE_SENT: 'Kurumsal mesaj gönderildi',
+  MESSAGE_ARCHIVED: 'Mesaj arşivlendi',
+  MESSAGE_RESTORED: 'Mesaj arşivden çıkarıldı',
+  TASK_CREATED: 'Görev oluşturuldu',
+  TASK_UPDATED: 'Görev güncellendi',
+  TASK_COMPLETED: 'Görev tamamlandı',
+  QUESTION_SUBMITTED: 'Soru incelemeye gönderildi',
+  QUESTION_APPROVED: 'Soru onaylandı',
+  QUESTION_REVISION_REQUESTED: 'Soru için revizyon istendi',
+  QUESTION_REJECTED: 'Soru reddedildi',
+  QUESTION_ARCHIVED: 'Soru arşivlendi',
+  QUESTION_RESTORED: 'Soru arşivden çıkarıldı',
+  QUESTION_DELETED: 'Soru silindi'
+};
+
+const auditEntityLabels: Record<string, string> = {
+  Payment: 'Telif / Ödeme',
+  User: 'Kullanıcı',
+  Question: 'Soru',
+  Project: 'Proje',
+  Task: 'Görev',
+  Message: 'Mesaj',
+  Announcement: 'Duyuru',
+  MembershipApplication: 'Üyelik Başvurusu'
+};
+
+function humanizeAuditAction(action: string) {
+  return auditActionLabels[action] || action.split('_').map(part => part.charAt(0) + part.slice(1).toLocaleLowerCase('tr-TR')).join(' ');
+}
+
+function auditDetailSummary(details: string | null) {
+  if (!details) return '';
+  try {
+    const parsed = JSON.parse(details) as Record<string, unknown>;
+    const entries = Object.entries(parsed).slice(0, 4);
+    return entries.map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`).join(' · ');
+  } catch {
+    return details;
+  }
+}
+
+function AuditLogCenter({
+  logs,
+  loading,
+  error,
+  onRetry
+}: {
+  logs: ApiAuditLog[];
+  loading: boolean;
+  error: string;
+  onRetry: () => void;
+}) {
+  const [auditSearch, setAuditSearch] = useState('');
+  const [auditType, setAuditType] = useState('Tümü');
+
+  const types = useMemo(
+    () => ['Tümü', ...Array.from(new Set(logs.map(log => log.entityType))).sort((a, b) => a.localeCompare(b, 'tr-TR'))],
+    [logs]
+  );
+
+  const filtered = useMemo(() => {
+    const term = auditSearch.trim().toLocaleLowerCase('tr-TR');
+    return logs.filter(log => {
+      if (auditType !== 'Tümü' && log.entityType !== auditType) return false;
+      if (!term) return true;
+      return `${log.userName} ${humanizeAuditAction(log.action)} ${auditEntityLabels[log.entityType] || log.entityType} ${auditDetailSummary(log.details)}`
+        .toLocaleLowerCase('tr-TR')
+        .includes(term);
+    });
+  }, [logs, auditSearch, auditType]);
+
+  return <>
+    <div className="page-heading audit-page-heading">
+      <div>
+        <div className="eyebrow">DENETİM İZİ</div>
+        <h1>İşlem Geçmişi</h1>
+        <p>Sistemde gerçekleşen kritik işlemleri gerçek veritabanı kayıtları üzerinden inceleyin.</p>
+      </div>
+      <span className="heading-chip"><ActivityIcon size={16}/> {logs.length} kayıt</span>
+    </div>
+
+    <section className="panel audit-workbench">
+      <div className="audit-workbench-head">
+        <div>
+          <span className="panel-kicker">SİSTEM AKTİVİTESİ</span>
+          <h2>Son işlemler</h2>
+          <p>En yeni kayıtlar üstte gösterilir. Bu alan yalnız Genel Koordinatör tarafından görüntülenebilir.</p>
+        </div>
+        <button className="secondary-button" onClick={onRetry}><RotateCcw size={15}/> Yenile</button>
+      </div>
+
+      <div className="audit-toolbar">
+        <div className="search-box audit-search">
+          <Search size={17}/>
+          <input
+            value={auditSearch}
+            onChange={event => setAuditSearch(event.target.value)}
+            placeholder="Kullanıcı, işlem veya kayıt türü ara..."
+            aria-label="İşlem geçmişinde ara"
+          />
+        </div>
+        <div className="audit-type-tabs">
+          {types.map(type => (
+            <button key={type} className={auditType === type ? 'active' : ''} onClick={() => setAuditType(type)}>
+              {type === 'Tümü' ? type : (auditEntityLabels[type] || type)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading && <div className="audit-state"><RotateCcw size={18} className="spin"/> İşlem geçmişi yükleniyor...</div>}
+      {error && !loading && <div className="audit-state audit-state-error"><strong>{error}</strong><button className="secondary-button" onClick={onRetry}><RotateCcw size={15}/> Tekrar Dene</button></div>}
+      {!loading && !error && <div className="table-wrap audit-table-wrap">
+        <table className="audit-table">
+          <thead><tr><th>ZAMAN</th><th>İŞLEM</th><th>UYGULAYAN</th><th>KAYIT TÜRÜ</th><th>DETAY</th></tr></thead>
+          <tbody>{filtered.map(log => (
+            <tr key={log.id}>
+              <td><div className="audit-time"><strong>{date(log.createdAt)}</strong><small>{new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }).format(new Date(log.createdAt))}</small></div></td>
+              <td><div className="audit-action"><span><ActivityIcon size={14}/></span><strong>{humanizeAuditAction(log.action)}</strong></div></td>
+              <td><strong>{log.userName}</strong></td>
+              <td><span className="audit-entity-chip">{auditEntityLabels[log.entityType] || log.entityType}{log.entityId ? ` #${log.entityId}` : ''}</span></td>
+              <td><span className="audit-detail">{auditDetailSummary(log.details) || '—'}</span></td>
+            </tr>
+          ))}</tbody>
+        </table>
+        {filtered.length === 0 && <div className="audit-empty"><ActivityIcon size={24}/><strong>{logs.length ? 'Bu filtrede kayıt bulunamadı' : 'Henüz işlem kaydı yok'}</strong><span>{logs.length ? 'Arama veya kayıt türü filtresini değiştirin.' : 'Sistemde denetlenebilir bir işlem gerçekleştiğinde burada görünecek.'}</span></div>}
+      </div>}
+    </section>
   </>;
 }
 
@@ -142,8 +286,8 @@ function PaymentCenter({
     <div className="page-heading payment-page-heading">
       <div>
         <div className="eyebrow">FİNANS OPERASYONU</div>
-        <h1>Hakediş Merkezi</h1>
-        <p>Onay bekleyen kayıtları kontrol edin, ödeme sırasını yönetin ve tamamlanan hakedişleri izleyin.</p>
+        <h1>Telif ve Ödeme Merkezi</h1>
+        <p>Onay bekleyen kayıtları kontrol edin, ödeme sırasını yönetin ve tamamlanan ödemeleri izleyin.</p>
       </div>
       <span className="heading-chip"><ShieldCheck size={16} /> {roleLabels[currentUser.role]} yetkisi</span>
     </div>
@@ -163,13 +307,13 @@ function PaymentCenter({
       </article>
       <article className="panel payment-kpi">
         <span className="payment-kpi-icon purple"><Sigma size={17}/></span>
-        <div><small>TOPLAM HACİM</small><strong>{moneyKurus(totalVolume)}</strong><span>{activePayments.length} aktif hakediş kaydı</span></div>
+        <div><small>TOPLAM HACİM</small><strong>{moneyKurus(totalVolume)}</strong><span>{activePayments.length} aktif telif/ödeme kaydı</span></div>
       </article>
     </div>
 
     <section className="panel payment-flow-panel">
       <div className="panel-head payment-flow-head">
-        <div><span className="panel-kicker">İŞLEM AKIŞI</span><h2>Hakediş durumu</h2></div>
+        <div><span className="panel-kicker">İŞLEM AKIŞI</span><h2>Telif ve ödeme durumu</h2></div>
         <span className="payment-flow-note">Bir sonraki işlemi bekleyen kayıtları öne çıkarır.</span>
       </div>
       <div className="payment-flow-grid">
@@ -191,7 +335,7 @@ function PaymentCenter({
       <div className="payment-workbench-head">
         <div>
           <span className="panel-kicker">İŞLEM KUYRUĞU</span>
-          <h2>Hakediş kayıtları</h2>
+          <h2>Telif ve ödeme kayıtları</h2>
           <p>{filteredPayments.length} kayıt gösteriliyor.</p>
         </div>
         <button className="secondary-button payment-refresh" onClick={onRetry}><RotateCcw size={15}/> Yenile</button>
@@ -204,10 +348,10 @@ function PaymentCenter({
             value={paymentSearch}
             onChange={event => setPaymentSearch(event.target.value)}
             placeholder="Yazar, proje, kod veya sözleşme ara..."
-            aria-label="Hakedişlerde ara"
+            aria-label="Telif ve ödemelerde ara"
           />
         </div>
-        <div className="payment-filter-tabs" aria-label="Hakediş durum filtresi">
+        <div className="payment-filter-tabs" aria-label="Telif ve ödeme durum filtresi">
           {(['Tümü', 'Bekliyor', 'Onaylandi', 'Odendi'] as const).map(status => (
             <button key={status} className={paymentView === status ? 'active' : ''} onClick={() => setPaymentView(status)}>
               {status === 'Onaylandi' ? 'Onaylandı' : status === 'Odendi' ? 'Ödendi' : status}
@@ -217,7 +361,7 @@ function PaymentCenter({
         </div>
       </div>
 
-      {loading && <div className="payment-state"><RotateCcw size={18} className="spin"/> Hakedişler yükleniyor...</div>}
+      {loading && <div className="payment-state"><RotateCcw size={18} className="spin"/> Telif ve ödeme kayıtları yükleniyor...</div>}
       {error && !loading && <div className="payment-state payment-state-error"><strong>{error}</strong><span>Yetkiniz ve oturumunuz doğrulandıktan sonra tekrar deneyin.</span><button className="secondary-button" onClick={onRetry}><RotateCcw size={15}/> Tekrar Dene</button></div>}
       {!loading && !error && <div className="table-wrap payment-table-wrap">
         <table className="payment-table">
@@ -226,7 +370,7 @@ function PaymentCenter({
             const statusLabel = payment.status === 'Onaylandi' ? 'Onaylandı' : payment.status === 'Odendi' ? 'Ödendi' : payment.status === 'Iptal' ? 'İptal' : 'Bekliyor';
             return <tr key={payment.id}>
               <td><div className="payment-date-cell"><strong>{date(payment.createdAt)}</strong><small>{payment.paymentDate ? `Ödeme: ${date(payment.paymentDate)}` : `#${payment.id}`}</small></div></td>
-              <td><div className="person-cell"><span className="small-avatar">{(payment.author?.fullName || '—').split(' ').filter(Boolean).map(part => part[0]).join('').slice(0,2).toLocaleUpperCase('tr-TR')}</span><div><strong>{payment.author?.fullName || 'Atanmamış'}</strong><small>Hakediş sahibi</small></div></div></td>
+              <td><div className="person-cell"><span className="small-avatar">{(payment.author?.fullName || '—').split(' ').filter(Boolean).map(part => part[0]).join('').slice(0,2).toLocaleUpperCase('tr-TR')}</span><div><strong>{payment.author?.fullName || 'Atanmamış'}</strong><small>Telif sahibi</small></div></div></td>
               <td><div className="payment-project-cell"><strong>{payment.project?.title || payment.contractNo || 'Bağlantısız kayıt'}</strong><small>{payment.project?.code || payment.contractNo || '—'}</small></div></td>
               <td><strong className="payment-amount">{moneyKurus(toKurus(payment.amount))}</strong></td>
               <td><Status value={statusLabel} /></td>
@@ -241,8 +385,8 @@ function PaymentCenter({
         </table>
         {filteredPayments.length === 0 && <div className="payment-empty">
           <Wallet size={24}/>
-          <strong>{payments.length === 0 ? 'Henüz hakediş kaydı yok' : 'Bu filtrede kayıt bulunamadı'}</strong>
-          <span>{payments.length === 0 ? 'Hakediş kayıtları oluşturulduğunda finans akışı burada başlayacak.' : 'Arama veya durum filtresini değiştirin.'}</span>
+          <strong>{payments.length === 0 ? 'Henüz telif/ödeme kaydı yok' : 'Bu filtrede kayıt bulunamadı'}</strong>
+          <span>{payments.length === 0 ? 'Telif ve ödeme kayıtları oluşturulduğunda finans akışı burada başlayacak.' : 'Arama veya durum filtresini değiştirin.'}</span>
         </div>}
       </div>}
     </section>
@@ -443,6 +587,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [apiPayments, setApiPayments] = useState<Payment[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentsError, setPaymentsError] = useState('');
+  const [auditLogs, setAuditLogs] = useState<ApiAuditLog[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState('');
   
   const fetchPayments = async () => {
     setPaymentsLoading(true);
@@ -450,7 +597,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     try {
       setApiPayments(await loadApiPayments());
     } catch (e: any) {
-      setPaymentsError(e.message || 'Hakedişler yüklenemedi.');
+      setPaymentsError(e.message || 'Telif ve ödeme kayıtları yüklenemedi.');
     } finally {
       setPaymentsLoading(false);
     }
@@ -461,6 +608,20 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       fetchPayments();
     }
   }, [currentUser.role]);
+
+  const loadAuditLogs = async () => {
+    setAuditLoading(true);
+    setAuditError('');
+    try {
+      setAuditLogs(await fetchAuditLogs(150));
+    } catch (error: any) {
+      setAuditError(error.message || 'İşlem geçmişi yüklenemedi.');
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+
 
 
   const loadApiQuestions = async () => {
@@ -524,6 +685,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     fetchMessages('inbox').then(result => setMessageUnreadCount(result.counts.unread)).catch(() => undefined);
   }, []);
     const [section, setSection] = useState<Section>('overview');
+    useEffect(() => {
+      if (section !== 'audit' || currentUser.role !== 'GENEL_KOORDINATOR') return;
+      loadAuditLogs();
+    }, [section, currentUser.role]);
     useEffect(() => {
       if (section !== 'authors') return;
       if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role)) return;
@@ -990,7 +1155,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       </div>
       <div className="sidebar-caption">ÇALIŞMA ALANI</div>
       <nav aria-label="Ana menü">{sections.filter(item => allowed.includes(item.id)).map(({ id, icon: Icon }) => <button key={id} className={`nav-link ${section === id ? 'active' : ''}`} onClick={() => navigate(id)}><Icon size={19} /><span>{sectionLabels[id]}</span>{id === 'questions' && pendingQuestions > 0 && <em>{pendingQuestions}</em>}{id === 'messages' && messageUnreadCount > 0 && <em>{messageUnreadCount}</em>}</button>)}</nav>
-      <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Hakedişler gerçek Pilot verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
+      <div className="sidebar-bottom"><div className="sidebar-help"><Sparkles size={18} /><div><strong>Pilot çalışma alanı</strong><p>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Telif ve ödeme kayıtları gerçek Pilot verileridir.</p></div></div><button className="reset-link" onClick={reset}><RotateCcw size={16} /> Örnek verileri sıfırla</button></div>
     </aside>
     {mobileMenu && <button className="mobile-shade" aria-label="Menüyü kapat" onClick={() => setMobileMenu(false)} />}
     <div className="demo-main">
@@ -1051,7 +1216,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       </header>
       <main className="content">
         <div className="demo-notice">
-  <div><Sparkles size={17} /><strong>Pro Lig test ortamı</strong><span>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Hakedişler gerçek Pilot verileridir.</span></div>
+  <div><Sparkles size={17} /><strong>Pro Lig test ortamı</strong><span>Oturum, Soru Havuzu, Projeler ve Yazar Ağı gerçek Pilot verisini kullanır. Telif ve ödeme kayıtları gerçek Pilot verileridir.</span></div>
   <button onClick={() => navigate('roles')}>Rolleri incele <ArrowRight size={15} /></button>
 </div>
         {section === 'overview' && currentUser.role === 'MUHASEBE' && <FinanceOverview apiPayments={apiPayments} data={data} onNavigate={navigate} currentUser={currentUser} />}
@@ -1228,10 +1393,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           onAdvance={updatePayment}
           currentUser={currentUser}
         />}
-        {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>Şu an Pilot oturumu ile {roleLabels[currentUser.role]} rolündesiniz.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Kanonik Rol</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Soru Havuzu, Projeler ve Yazar Ağı sunucu tarafında oturum rolünüze göre kapsamlanır. Hakedişler gerçek Pilot verileridir.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ve Genel Koordinatör Pilot hakedişleri onaylayıp ödendi olarak işaretleyebilir.</p><button className="text-button" onClick={() => navigate('payments')}>Hakediş listesine git <ArrowRight size={16} /></button></div></div></>}
+        {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>Şu an Pilot oturumu ile {roleLabels[currentUser.role]} rolündesiniz.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Kanonik Rol</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Soru Havuzu, Projeler ve Yazar Ağı sunucu tarafında oturum rolünüze göre kapsamlanır. Telif ve ödeme kayıtları gerçek Pilot verileridir.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ve Genel Koordinatör Pilot telif/ödeme kaydıleri onaylayıp ödendi olarak işaretleyebilir.</p><button className="text-button" onClick={() => navigate('payments')}>Telif ve ödemelere git <ArrowRight size={16} /></button></div></div></>}
         {section === 'members' && <><div className="page-heading"><div><div className="eyebrow">ÜYELİK VE KULLANICI YÖNETİMİ</div><h1>Üye Yönetimi</h1><p>Başvuruları coğrafi yetki kapsamınıza göre değerlendirin ve izin verilen rollerde kullanıcı hesapları oluşturun.</p></div><span className="heading-chip"><Users size={16} /> Hiyerarşik kapsam</span></div><MemberManagement currentUser={currentUser} /></>}
         {section === 'roles' && currentUser.role === 'GENEL_KOORDINATOR' && <PermissionDetails currentRole={currentUser.role} />}
-        {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <><div className="page-heading"><div><div className="eyebrow">DENETİM İZİ</div><h1>İşlem Geçmişi</h1><p>Bu tarayıcıdaki örnek soru ve hakediş adımlarını izleyin.</p></div><span className="heading-chip"><ActivityIcon size={16} /> {data.activities.length} kayıt</span></div><div className="panel table-panel"><div className="table-heading"><strong>Son işlemler</strong><span>Demo verisi · Yerel tarayıcı kaydı</span></div><div className="table-wrap"><table><thead><tr><th>İŞLEM</th><th>UYGULAYAN</th><th>TÜR</th><th>ZAMAN</th></tr></thead><tbody>{data.activities.map(item => <tr key={item.id}><td><strong>{item.text}</strong></td><td>{item.actor}</td><td>{item.type === 'payment' ? 'Hakediş' : item.type === 'project' ? 'Proje' : 'Soru'}</td><td>{item.at}</td></tr>)}</tbody></table></div></div></>}
+        {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <AuditLogCenter logs={auditLogs} loading={auditLoading} error={auditError} onRetry={loadAuditLogs} />}
       </main>
     </div>
     {selectedProject && <div className="modal-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)setSelectedProjectId(null)}}><div className="project-detail-modal">
