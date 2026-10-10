@@ -615,7 +615,37 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const hasAction = canEdit || canReview || canArchive || canDelete;
   return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}</small>{q.editorNote && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.editorNote}</small>}</td><td>{q.author?.fullName}</td><td>{q.author?.branchName || '-'}</td><td>{q.project?.title || 'Genel Soru Havuzu'}</td><td><Status value={statusDisplay(q.status)} /></td><td>{new Date(q.updatedAt).toLocaleDateString('tr-TR')}</td><td><div className="row-actions">{canEdit && <><button onClick={() => openYazarEdit(q)} title="Düzenle"><PencilLine size={15} /></button><button onClick={() => handleYazarSubmit(q)}>İncelemeye gönder <ArrowRight size={14} /></button></>}{canReview && <button onClick={() => openEditorReview(q)} title="Değerlendir"><CheckCircle2 size={15} /> İncele</button>}{canArchive && <button onClick={() => handleQuestionArchive(q)} title={q.isArchived?'Arşivden çıkar':'Arşivle'}>{q.isArchived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {q.isArchived?'Geri al':'Arşivle'}</button>}{canDelete && <button className="danger-action" onClick={() => handleQuestionDelete(q)} title="Kalıcı sil"><Trash2 size={15}/> Sil</button>}{!hasAction && <span className="no-action">—</span>}</div></td></tr>;
 })}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div>}</div></>}
-          {section === 'projects' && <><div className="page-heading"><div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Sunucu kapsamınızdaki gerçek Pilot projelerinin ilerlemesini takip edin.</p></div><span className="heading-chip"><BookOpen size={16} /> {apiProjects.length} proje</span></div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje, kod, branş veya sınıf ara..." value={query} onChange={e => setQuery(e.target.value)} /></div></div>{projectsLoading && <div className="panel empty-state">Projeler yükleniyor...</div>}{projectsError && !projectsLoading && <div className="panel empty-state"><div>{projectsError}</div><button className="secondary-button" onClick={loadApiProjects} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}{!projectsLoading && !projectsError && <div className="project-grid">{filteredProjects.map(project => <div className="panel project-card" key={project.id}><div className="project-card-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div><span className="project-code">{project.code}</span><h2>{project.title}</h2><p>{project.branch.name} · {project.targetGrade} · {project.projectType}</p><div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div></div>)}</div>}{!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}</>}
+          {section === 'projects' && <>
+            <div className="page-heading">
+              <div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Sunucu kapsamınızdaki projeleri; sınıf, yazar ve soru üretimiyle birlikte izleyin.</p></div>
+              <span className="heading-chip"><BookOpen size={16} /> {filteredProjects.length} proje</span>
+            </div>
+            <div className="toolbar">
+              <div className="search-box"><Search size={18} /><input aria-label="Projelerde ara" placeholder="Proje, kod, branş veya sınıf ara..." value={query} onChange={e => setQuery(e.target.value)} /></div>
+              {projectGradeFilter && <button className="context-filter-chip" onClick={()=>setProjectGradeFilter('')}>{projectGradeFilter} <X size={13}/></button>}
+            </div>
+            {projectsLoading && <div className="panel empty-state">Projeler yükleniyor...</div>}
+            {projectsError && !projectsLoading && <div className="panel empty-state"><div>{projectsError}</div><button className="secondary-button" onClick={loadApiProjects} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
+            {!projectsLoading && !projectsError && <div className="project-grid">{filteredProjects.map(project => {
+              const stats = projectQuestionStats(project.id, apiQuestions);
+              return <button type="button" className="panel project-card project-card-button" key={project.id} onClick={()=>setSelectedProjectId(project.id)}>
+                <div className="project-card-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div>
+                <span className="project-code">{project.code}</span>
+                <h2>{project.title}</h2>
+                <p>{project.branch.name} · {project.targetGrade} · {project.projectType}</p>
+                <div className="project-card-counts">
+                  <span><Users size={14}/><strong>{project.authors.length}</strong> Yazar</span>
+                  <span><FileQuestion size={14}/><strong>{stats.total}</strong> Soru</span>
+                  <span><CheckCircle2 size={14}/><strong>{stats.approved}</strong> Onaylı</span>
+                </div>
+                <div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div>
+                <div className="progress-line"><span style={{ width: project.progress + '%' }} /></div>
+                <div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div>
+                <span className="project-open-hint">Detayı aç <ArrowRight size={14}/></span>
+              </button>;
+            })}</div>}
+            {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}
+          </>}
         {section === 'grades' && <>
             <div className="page-heading">
               <div>
