@@ -116,3 +116,11 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Added `tests/question-studio-p1b.test.ts` (15 nominal test cases: fingerprint, field changes, 409 source/close guard, opt-in CSS) and `docs/QUESTION_STUDIO_P1B_SAFE_WORKSPACE.md` with acceptance matrix.
 - No DB schema changes, migrations, seed, `main` merge or Production release. No rich-text WYSIWYG or actual math typesetting yet. Draft remains in-memory: browser crash/reload cannot restore it automatically.
 - **NEXT REQUIRED GATE:** user checks out new branch, executes `node scripts/p1-check.mjs`. Expected non-DB total around 434 (419 P1-A + 15 P1-B); do not claim PASS before output. Then pilot-only human/browser save-reopen and 409 reproduction.
+
+## P1-B frontend gate PASS — operator verified 2026-10-11
+- On `feat/question-studio-p1b-safe-workspace-20261011`, operator ran `node scripts/p1-check.mjs` after pulling `1356f0b` test updates.
+- UI and API TypeScript/lint PASS; 47/47 test files PASS; **434/434 non-DB tests PASS**, including 15 P1-B tests; Vite v8.3.0 production bundle compilation PASS (1705 modules).
+- Vite emitted a non-blocking >500 kB chunk warning (main JS ~708.27 kB). Negative-path DB Error/Tx Error stderr from mocked question handlers is expected; question handler tests PASS.
+- **P1-B automated source gate ACCEPTED.** This is not P1-B browser/manual acceptance and does not validate P1-B runtime 409 conflict, save/reopen round-trip, multi-session behavior, accessibility/mobile, or live pilot DB integration. The in-memory guard does not persist drafts through crashes/reloads.
+- Next manual pilot-only checks: (1) flag-on fullscreen/mobile layout, (2) dirty-form close cancel/confirm, (3) save then reopen/compare question data, (4) genuine two-session 409 conflict and local draft preservation, (5) flag-off legacy view.
+- No main merge, Vercel Production deployment, seed, or schema change authorized or performed.
