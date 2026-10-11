@@ -46,6 +46,7 @@ import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
 import { useNavigationDrawer } from './navigation/useNavigationDrawer';
 import './demo.css';
+import './questions/studio-preview.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', icon: LayoutDashboard },
