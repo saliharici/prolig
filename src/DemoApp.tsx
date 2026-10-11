@@ -2143,7 +2143,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               openYazarEdit(serverQuestionConflict);
             }}>Yerel taslağı bırak ve güncel soruyu aç</button>}
           </section>}
-          {questionConflictLookupFailed && <p className="studio-save-error" role="alert">Güncel sunucu sürümü alınamadı. Ekrandaki taslak korundu; başka bir sekmede soru listesini kontrol edin.</p>
+          {questionConflictLookupFailed && <p className="studio-save-error" role="alert">Güncel sunucu sürümü alınamadı. Ekrandaki taslak korundu; başka bir sekmede soru listesini kontrol edin.</p>}
           {durableFeatureOn && <section className="studio-durable-control" aria-label="Şifreli taslak kurtarma">
             <div className="studio-durable-heading"><strong>Bu cihazda şifreli taslak kurtarma</strong><span>{durableDraftConflict ? 'Sürüm çakışması' : durableDraftEnabled ? 'Etkin' : durableCopyExists ? 'Kopya bulundu' : 'Kapalı'}</span></div>
             <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Unutursanız taslak açılamaz. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
