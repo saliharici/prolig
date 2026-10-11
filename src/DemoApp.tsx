@@ -2095,9 +2095,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           {questionSaveError && <div className="studio-save-error" role="alert">{questionSaveError}</div>}
           {durableFeatureOn && <section className="studio-durable-control" aria-label="Şifreli taslak kurtarma">
             <div className="studio-durable-heading"><strong>Bu cihazda şifreli taslak kurtarma</strong><span>{durableDraftConflict ? 'Sürüm çakışması' : durableDraftEnabled ? 'Etkin' : durableCopyExists ? 'Kopya bulundu' : 'Kapalı'}</span></div>
-            <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
+            <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Unutursanız taslak açılamaz. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
             {!durableDraftEnabled && !durableDraftConflict && <div className="studio-durable-actions">
-              <input type="password" ref={durableDraftInputRef} autoComplete="new-password" minLength={12} placeholder="En az 12 karakterlik ayrı kurtarma parolası" aria-label="Taslak kurtarma parolası" disabled={durableDraftBusy || questionSaving}/>
+              <input type="password" ref={durableDraftInputRef} autoComplete="new-password" onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} placeholder="En az 12 karakterlik ayrı kurtarma parolası" aria-label="Taslak kurtarma parolası" disabled={durableDraftBusy || questionSaving}/>
               {!durableCopyExists && <button type="button" className="secondary-button" onClick={enableDurableRecovery} disabled={durableDraftBusy || questionSaving}>Şifreli korumayı aç</button>}
               {durableCopyExists && <button type="button" className="secondary-button" onClick={() => void recoverDurableDraft()} disabled={durableDraftBusy || questionSaving}>Şifreli taslağı kurtar</button>}
             </div>}
