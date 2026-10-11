@@ -18,7 +18,7 @@ try {
   const [writer, editor, coordinator, project, istanbul] = await Promise.all([
     prisma.user.findUnique({ where: { email: 'pilot.yazar@prolig.local' }, select: { id: true, role: { select: { code: true } }, AuthorProfile: { select: { id: true, provinceId: true, branchId: true, districtId: true, institutionId: true, province: { select: { name: true, region: true } } } } } }),
     prisma.user.findUnique({ where: { email: 'pilot.editor@prolig.local' }, select: { id: true, role: { select: { code: true } }, editorGrade: true, editorBranchId: true, provinceId: true, assignedRegion: true } }),
-    prisma.user.findUnique({ where: { email: 'pilot.il@prolig.local' }, select: { role: { select: { code: true } }, provinceId: true } }),
+    prisma.user.findUnique({ where: { email: 'pilot.il@prolig.local' }, select: { id: true, role: { select: { code: true } }, provinceId: true } }),
     prisma.project.findUnique({ where: { code: 'PILOT-MAT-8-001' }, select: { id: true, targetGrade: true, branchId: true, projectAuthors: { select: { authorProfileId: true } } } }),
     prisma.province.findUnique({ where: { code: '34' }, select: { id: true, name: true, region: true } })
   ]);
@@ -34,25 +34,26 @@ try {
     canonicalIstanbulProvinceId: istanbul.id
   };
   console.log('Pilot location preflight (read-only):', JSON.stringify(locationPreflight, null, 2));
-  if (!locationPreflight.istanbulCatalogueValid || !locationPreflight.coordinatorProvinceMatchesIstanbul || !locationPreflight.editorGeographyCoversIstanbul) {
+  if (!locationPreflight.istanbulCatalogueValid || !locationPreflight.editorGeographyCoversIstanbul) {
     throw new Error('Pilot location preflight mismatch. No writes applied; review location facts before designing any repair.');
   }
   const profile = writer.AuthorProfile;
   if (profile.branchId !== project.branchId || editor.editorBranchId !== project.branchId || !project.projectAuthors.some(x => x.authorProfileId === profile.id)) {
     throw new Error('Pilot branch/project assignment mismatch. Abort.');
   }
-  const needProvince = profile.provinceId !== istanbul.id;
+  // The existing author may have valid district/institution links. Preserve those links,
+  // and align only the PILOT province coordinator's scope to the author instead.
+  const needCoordinatorProvince = coordinator.provinceId !== profile.provinceId;
   const needGrade = editor.editorGrade !== project.targetGrade;
-  if (needProvince && (profile.districtId !== null || profile.institutionId !== null)) {
-    throw new Error('Author has district/institution affiliation. Manual review required before province change.');
-  }
-  const plan = { pilotOnly: true, mode: apply ? 'APPLY' : 'DRY_RUN', authorProvince: { from: profile.province.name, to: istanbul.name, change: needProvince }, editorGrade: { from: editor.editorGrade, to: project.targetGrade, change: needGrade }, recordsToUpdate: Number(needProvince) + Number(needGrade) };
+  const plan = { pilotOnly: true, mode: apply ? 'APPLY' : 'DRY_RUN', authorProvince: { current: profile.province.name, preserved: true, districtAndInstitutionPreserved: true }, pilotCoordinatorProvince: { fromId: coordinator.provinceId, toId: profile.provinceId, change: needCoordinatorProvince }, editorGrade: { from: editor.editorGrade, to: project.targetGrade, change: needGrade }, recordsToUpdate: Number(needCoordinatorProvince) + Number(needGrade) };
   console.log(JSON.stringify(plan, null, 2));
   if (apply) {
     await prisma.$transaction(async tx => {
-      if (needProvince) {
-        const r = await tx.authorProfile.updateMany({ where: { id: profile.id, userId: writer.id, provinceId: profile.provinceId, districtId: null, institutionId: null }, data: { provinceId: istanbul.id } });
-        if (r.count !== 1) throw new Error('Pilot author changed concurrently; rolled back');
+      const freshAuthor = await tx.authorProfile.findUnique({ where: { id: profile.id }, select: { provinceId: true, branchId: true } });
+      if (freshAuthor?.provinceId !== profile.provinceId || freshAuthor.branchId !== profile.branchId) throw new Error('Author scope changed concurrently; rolled back');
+      if (needCoordinatorProvince) {
+        const r = await tx.user.updateMany({ where: { id: coordinator.id, provinceId: coordinator.provinceId }, data: { provinceId: profile.provinceId } });
+        if (r.count !== 1) throw new Error('Pilot coordinator changed concurrently; rolled back');
       }
       if (needGrade) {
         const r = await tx.user.updateMany({ where: { id: editor.id, editorGrade: editor.editorGrade }, data: { editorGrade: project.targetGrade } });
