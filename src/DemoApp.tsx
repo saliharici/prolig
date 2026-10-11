@@ -1006,23 +1006,44 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 
   const closeQuestionForm = () => {
     if (questionSavingRef.current) return;
+    if (durableDraftBusy) return;
+    const finishClose = () => {
+      if (hasUnsavedQuestionChanges) {
+        pausedQuestionDraftsRef.current.set(pausedQuestionKey, copyPausedQuestionDraft({
+          values: questionFormValues,
+          baseline: questionBaseline,
+          originalProjectId: originalQuestionProjectId,
+          originalQuestion: editingQuestion
+        }));
+        setToast('Taslağınız geçici olarak korundu. Aynı soruyu yeniden açarak devam edebilirsiniz.');
+      } else {
+        pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+      }
+      setPausedDraftsVersion(v => v + 1);
+      setShowQuestionForm(false);
+      setEditingQuestion(null);
+      setQuestionBaseline('');
+      setQuestionSaveError('');
+    };
     if (hasUnsavedQuestionChanges) {
-      if (!window.confirm('Düzenlemeye ara verilsin mi? Değişiklikleriniz sayfa açık kaldığı sürece geçici olarak korunacak. Devam etmek için İptal seçin.')) return;
-      pausedQuestionDraftsRef.current.set(pausedQuestionKey, copyPausedQuestionDraft({
-        values: questionFormValues,
-        baseline: questionBaseline,
-        originalProjectId: originalQuestionProjectId,
-        originalQuestion: editingQuestion
-      }));
-      setToast('Taslağınız geçici olarak korundu. Aynı soruyu yeniden açarak devam edebilirsiniz.');
-    } else {
-      pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+      if (!window.confirm('Düzenlemeye ara verilsin mi? Şifreli kurtarma açıksa bu cihazda, değilse yalnız sayfa açıkken korunur. İptal ile devam edin.')) return;
+      if (durableFeatureOn && durableDraftEnabled && !durableDraftConflict) {
+        setDurableDraftBusy(true);
+        const generation = ++durableDraftGenerationRef.current;
+        void saveEncryptedQuestionDraft(
+          window.localStorage, window.crypto, durableDraftOwner, durableQuestionId,
+          durableDraftPhraseRef.current, durableFormSnapshot(), Date.now(),
+          () => durableDraftGenerationRef.current === generation && !questionSavingRef.current
+        ).then(() => {
+          if (generation === durableDraftGenerationRef.current) finishClose();
+        }).catch(e => {
+          setQuestionSaveError('Şifreli kopya saklanamadı. Veri kaybını önlemek için form açık tutuldu. ' +
+            (e instanceof Error ? e.message : 'Depolama hatası.'));
+        }).finally(() => setDurableDraftBusy(false));
+        return;
+      }
     }
-    setPausedDraftsVersion(v => v + 1);
-    setShowQuestionForm(false);
-    setEditingQuestion(null);
-    setQuestionBaseline('');
-    setQuestionSaveError('');
+    finishClose();
   };
 
   useEffect(() => {
@@ -1034,6 +1055,30 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     window.addEventListener('beforeunload', warnBeforeUnload);
     return () => window.removeEventListener('beforeunload', warnBeforeUnload);
   }, [showQuestionForm, hasUnsavedQuestionChanges, pausedDraftsVersion]);
+  useEffect(() => {
+    const generation = ++durableDraftGenerationRef.current;
+    if (!durableFeatureOn || !showQuestionForm || !durableDraftEnabled ||
+        !hasUnsavedQuestionChanges || durableDraftConflict || questionSaving) return;
+    const snapshot = durableFormSnapshot();
+    const phrase = durableDraftPhraseRef.current;
+    const timer = window.setTimeout(() => {
+      void saveEncryptedQuestionDraft(
+        window.localStorage, window.crypto, durableDraftOwner, durableQuestionId,
+        phrase, snapshot, Date.now(),
+        () => generation === durableDraftGenerationRef.current && !questionSavingRef.current
+      ).then(() => {
+        if (generation === durableDraftGenerationRef.current)
+          setDurableDraftMessage('Şifreli kurtarma kopyası güncellendi.');
+      }).catch(e => {
+        if (generation === durableDraftGenerationRef.current)
+          setDurableDraftMessage('Şifreli kopya yazılamadı: ' + (e instanceof Error ? e.message : 'Depolama hatası'));
+      });
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [durableFeatureOn, showQuestionForm, durableDraftEnabled, hasUnsavedQuestionChanges,
+      durableDraftConflict, questionSaving, questionSnapshot, questionBaseline,
+      currentUser.id, currentUser.email, durableQuestionId, originalQuestionProjectId]);
+
   const questionAssignableProjects = apiProjects.filter(project =>
     !['Tamamlandi', 'Arsiv'].includes(project.status) || project.id === originalQuestionProjectId
   );
