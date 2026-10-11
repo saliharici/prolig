@@ -273,6 +273,20 @@ describe('Question API Frontend Client', () => {
       expect(demoAppCode).toContain('questionGradeFilter');
     });
 
+    it('renders question editor formatting controls in previews', () => {
+      const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
+      const demoCssCode = fs.readFileSync(path.join(__dirname, '../src/demo.css'), 'utf-8');
+
+      expect(demoAppCode).toContain('const renderFormattedQuestionText =');
+      expect(demoAppCode).toContain("applyQuestionMarkup('**')");
+      expect(demoAppCode).toContain("applyQuestionMarkup('_')");
+      expect(demoAppCode).toContain("applyQuestionMarkup('<u>', '</u>')");
+      expect(demoAppCode).toContain('renderFormattedQuestionText(questionTitle');
+      expect(demoAppCode).toContain('renderFormattedQuestionText(question.content)');
+      expect(demoCssCode).toContain('.formatted-question-text');
+      expect(demoCssCode).toContain('.question-formula');
+    });
+
     it('creates with the selection and delegates differential PATCH construction', () => {
       const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
       expect(demoAppCode).toContain('projectId: questionProjectId');

@@ -1,6 +1,6 @@
 import { toKurus } from './payments/money';
 import { AuthUser } from './auth/types';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   GraduationCap,
   Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BarChart3, BookOpen,
@@ -1099,6 +1099,87 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       </div>
     ))}</div>;
   };
+
+  const renderQuestionInlineFormatting = (text: string) => {
+    const nodes: ReactNode[] = [];
+    const pattern = /(\*\*[^*]+\*\*|_[^_\s][^_]*_|<u>.+?<\/u>|\$[^$]+\$|\[[^\]]+\]\([^)]+\))/g;
+    let lastIndex = 0;
+    let tokenIndex = 0;
+
+    for (const match of text.matchAll(pattern)) {
+      const index = match.index ?? 0;
+      const token = match[0];
+      if (index > lastIndex) nodes.push(text.slice(lastIndex, index));
+
+      if (token.startsWith('**')) {
+        nodes.push(<strong key={`strong-${tokenIndex}`}>{token.slice(2, -2)}</strong>);
+      } else if (token.startsWith('_')) {
+        nodes.push(<em key={`em-${tokenIndex}`}>{token.slice(1, -1)}</em>);
+      } else if (token.startsWith('<u>')) {
+        nodes.push(<u key={`underline-${tokenIndex}`}>{token.slice(3, -4)}</u>);
+      } else if (token.startsWith('$')) {
+        nodes.push(<code className="question-formula" key={`formula-${tokenIndex}`}>{token.slice(1, -1)}</code>);
+      } else {
+        const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        const href = linkMatch?.[2]?.trim();
+        const label = linkMatch?.[1] || token;
+        if (href && /^https?:\/\//i.test(href)) {
+          nodes.push(<a href={href} target="_blank" rel="noreferrer" key={`link-${tokenIndex}`}>{label}</a>);
+        } else {
+          nodes.push(label);
+        }
+      }
+
+      lastIndex = index + token.length;
+      tokenIndex += 1;
+    }
+
+    if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+    return nodes.length > 0 ? nodes : text;
+  };
+
+  const renderFormattedQuestionText = (value: string | null | undefined, fallback?: string) => {
+    const source = (value || '').trim() || fallback || '';
+    if (!source) return null;
+
+    const blocks: ReactNode[] = [];
+    let listType: 'ul' | 'ol' | null = null;
+    let listItems: string[] = [];
+
+    const flushList = (key: string) => {
+      if (!listType || listItems.length === 0) return;
+      const renderedItems = listItems.map((item, index) => <li key={`${key}-item-${index}`}>{renderQuestionInlineFormatting(item)}</li>);
+      blocks.push(listType === 'ul'
+        ? <ul key={`${key}-ul`}>{renderedItems}</ul>
+        : <ol key={`${key}-ol`}>{renderedItems}</ol>);
+      listType = null;
+      listItems = [];
+    };
+
+    source.split(/\r?\n/).forEach((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        flushList(`blank-${index}`);
+        return;
+      }
+
+      const bulletMatch = trimmed.match(/^(?:[•-])\s+(.+)$/);
+      const orderedMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+      if (bulletMatch || orderedMatch) {
+        const nextType: 'ul' | 'ol' = bulletMatch ? 'ul' : 'ol';
+        if (listType && listType !== nextType) flushList(`switch-${index}`);
+        listType = nextType;
+        listItems.push((bulletMatch?.[1] || orderedMatch?.[1] || '').trim());
+        return;
+      }
+
+      flushList(`text-${index}`);
+      blocks.push(<p key={`text-${index}`}>{renderQuestionInlineFormatting(trimmed)}</p>);
+    });
+
+    flushList('end');
+    return blocks;
+  };
   const renderQuestionReviewPreview = (question: ApiQuestion) => {
     const options = normalizeQuestionOptions(question.options);
     const hasOptions = hasFourValidQuestionOptions(options);
@@ -1106,7 +1187,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     return <article className="editor-question-preview">
       <div className="editor-question-stem">
         <strong>Soru kökü</strong>
-        <p>{question.content}</p>
+        <div className="formatted-question-text">{renderFormattedQuestionText(question.content)}</div>
         {renderQuestionAssets(question.assets, 'STEM')}
       </div>
       <div className="editor-question-options">
@@ -1124,7 +1205,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       </div>
       {(question.explanation || normalizeQuestionAssets(question.assets).some(asset => asset.placement === 'EXPLANATION')) && <div className="editor-question-solution">
         <strong>Çözüm</strong>
-        {question.explanation && <p>{question.explanation}</p>}
+        {question.explanation && <div className="formatted-question-text compact">{renderFormattedQuestionText(question.explanation)}</div>}
         {renderQuestionAssets(question.assets, 'EXPLANATION')}
       </div>}
     </article>;
@@ -1734,10 +1815,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             <aside className="question-preview-panel">
               <div className="question-preview-head"><span><Eye size={15} /> Canlı ön izleme</span><strong>{questionGrade}</strong></div>
               <article className="question-preview-card">
-                <p>{questionTitle.trim() || 'Soru kökü burada görünecek.'}</p>
+                <div className="formatted-question-text">{renderFormattedQuestionText(questionTitle, 'Soru kökü burada görünecek.')}</div>
                 {renderQuestionAssets(questionAssets, 'STEM')}
                 <ol type="A">{questionOptions.map((option, index) => <li key={index} className={questionCorrectAnswer === String.fromCharCode(65 + index) ? 'correct' : ''}>{option || `${String.fromCharCode(65 + index)} seçeneği`}{renderQuestionAssets(questionAssets, `OPTION_${String.fromCharCode(65 + index)}` as QuestionAssetPlacement)}</li>)}</ol>
-                {questionExplanation.trim() && <div className="question-preview-solution"><strong>Çözüm</strong><span>{questionExplanation}</span>{renderQuestionAssets(questionAssets, 'EXPLANATION')}</div>}
+                {questionExplanation.trim() && <div className="question-preview-solution"><strong>Çözüm</strong><div className="formatted-question-text compact">{renderFormattedQuestionText(questionExplanation)}</div>{renderQuestionAssets(questionAssets, 'EXPLANATION')}</div>}
               </article>
               <div className="question-quality-panel">
                 <strong>Kontrol listesi</strong>
