@@ -98,3 +98,12 @@ Expected PLAN PASS while table count remains zero. Do not paste `.env.p1d.local`
     node scripts/p1d-sandbox-question-gate.mjs --preflight
 
 - The question integration mode writes a temporary question, changes its status, verifies stale PATCH 409, and attempts cleanup. Since partial cleanup can occur on failure, it requires separate explicit authorization. DO NOT run `--run-integration` or set `PROLIG_P1D_QUESTION_TEST_APPROVAL` until authorization and read-only preflight PASS. Existing standalone `p1d-pilot-check` MUST NOT be invoked without the launcher because it may otherwise source default .env. Never share credential files, passwords, or connection URLs.
+
+## P1-D operator-approved question roundtrip completed — 20/20 PASS (2026-10-11)
+- With explicit and separate approval for temporary test Question/ActivityLog writes ONLY inside the verified isolated sandbox, operator invoked `node scripts/p1d-sandbox-question-gate.mjs --run-integration` and removed the write approval token in PowerShell finally.
+- `P1-D pilot identity and fixture preflight: PASS`. `tests/integration/question-db.test.ts`: **20/20 PASS**, 21.07 seconds, no failed tests, process exit 0.
+- Observed live create/GET/draft PATCH/persistent roundtrip; stale two-session PATCH 409 with first edit preserved; submit/revision/edit/resubmit/approval lifecycle; read-scope decisions (MUHASEBE forbidden, coordinators allowed); QUESTION_CREATED audit.
+- Temporary question and related ActivityLog are cleaned up by suite afterAll; its ID-specific counts are asserted zero on success.
+- Two advisory log messages: SSL `sslmode=require` future compatibility; concurrent `client.query()` deprecation warning likely warrants diagnosis before pg@9. Do not call the warnings failures or suppress without investigation.
+- **DB ACCEPTANCE PASS ≠ PRODUCTION RELEASE READY.** No browser UX test proving conflict reconciliation/encrypted draft recovery yet, and API PATCH expectedUpdatedAt revision has compatibility consequences for older clients. Original Neon, Vercel Production, GitHub main not touched.
+- Next safe operator check: `node scripts/p1d-sandbox-verify.mjs` (READ ONLY), then after appropriate sandbox-specific browser app configuration verify the visual flow and full non-DB build/test. Keep `.env.p1d.local` and `.local/p1d-sandbox-credentials.env` private.
