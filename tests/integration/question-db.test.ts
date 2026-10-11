@@ -19,8 +19,10 @@ describe('Question DB Integration', () => {
   let initialRevision: string;
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL || !process.env.AUTH_SECRET || process.env.PROLIG_PILOT_DB_CONFIRMED !== 'true') {
-      throw new Error('Safety gate failed. DATABASE_URL, AUTH_SECRET, PROLIG_PILOT_DB_CONFIRMED required.');
+    if (!process.env.DATABASE_URL || !process.env.AUTH_SECRET ||
+        process.env.PROLIG_PILOT_DB_CONFIRMED !== 'true' ||
+        process.env.PROLIG_P1D_DB_VERIFIED !== 'true') {
+      throw new Error('P1-D safety gate failed: run node scripts/p1d-pilot-check.mjs after verifying isolated pilot identity.');
     }
     yazar = await prisma.user.findUnique({ where: { email: 'pilot.yazar@prolig.local' }, include: { role: true, AuthorProfile: true } });
     editor = await prisma.user.findUnique({ where: { email: 'pilot.editor@prolig.local' }, include: { role: true } });
