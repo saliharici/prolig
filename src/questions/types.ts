@@ -64,7 +64,7 @@ export interface CreateQuestionInput {
 
 export interface PatchQuestionInput {
   /** Mandatory for PATCH: last server question revision observed by the author. */
-  expectedUpdatedAt?: string;
+  expectedUpdatedAt: string;
   content?: string;
   grade?: string | null;
   objectiveCode?: string | null;
