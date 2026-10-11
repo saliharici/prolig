@@ -883,6 +883,15 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionBaseline('');
     setQuestionSaveError('');
   };
+  useEffect(() => {
+    if (!showQuestionForm || !hasUnsavedQuestionChanges) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [showQuestionForm, hasUnsavedQuestionChanges]);
   const questionAssignableProjects = apiProjects.filter(project =>
     !['Tamamlandi', 'Arsiv'].includes(project.status) || project.id === originalQuestionProjectId
   );
