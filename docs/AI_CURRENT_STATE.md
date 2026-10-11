@@ -140,3 +140,10 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - This validates **non-DB frontend automated checks only**. In-memory paused-draft browser behavior (Ara ver -> confirm -> reopen, cancel stays), live pilot save/reopen and real 409 handling still require user manual confirmation.
 - Pause/resume does not survive refresh, closing the tab, crash, or React app remount; never imply durable persistence.
 - No Production deployment, merge to main, or database changes. Do not rerun all automated gates unless code changes again.
+
+## P1-B PAUSE/RESUME BROWSER ACCEPTANCE PASSED — 2026-10-11
+- User explicitly confirmed all four manual checks passed in the local P1-B UI: (1) enter stem/four options/explanation, (2) choose Cancel on "Ara ver" confirmation and retain open form, (3) confirm pause and close form, (4) reopen "Yeni soru" and recover stem/options/correct answer/explanation.
+- This **accepts in-memory pause/resume behavior**, in addition to the previous operator-run 437/437 frontend tests, TypeScript/lint PASS and build PASS. Narrow-screen layout was previously confirmed satisfactory.
+- Do **not** overstate as durable draft storage. Reload/tab close/crash persistence has NOT been implemented; save/reopen server round-trip, real multi-session 409 conflict and full accessibility/IME remain pending.
+- Proposed next controlled milestone: privacy-aware and user-isolated durable local draft recovery design, then professional rich-text editor and math rendering under separate gates. No additional feature implementation has been authorized in this message.
+- No main merge, Vercel Production, schema change or database write.
