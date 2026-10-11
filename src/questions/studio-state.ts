@@ -45,6 +45,8 @@ export interface QuestionStudioPausedDraft<TQuestion> {
   baseline: string;
   originalProjectId: number | null;
   originalQuestion: TQuestion | null;
+  /** A recovered draft from a stale server revision must never be submitted automatically. */
+  conflicted?: boolean;
 }
 
 export function pausedQuestionDraftKey(ownerId: number, questionId: number | null): string {
