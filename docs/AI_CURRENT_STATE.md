@@ -11,3 +11,8 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Read-only diagnostic added: `node scripts/diagnose-branch-assignment.mjs` (commit 3d52ef8f). Requires explicit pilot-DB confirmation and queries only table/migration metadata. It does not apply migrations.
 - Author DTO and scope source review shows own-profile filter is already present; exact failing integration response is still unknown. Do not loosen this access control without evidence.
 - Test failures remain unverified; no claim that P0 is complete. No main merge, Vercel deploy or database mutation performed.
+
+## P0 follow-up
+- Strict ID validation now applies to question detail PATCH/archive/delete and workflow routes (commits ca090d0b and earlier e6154fbd). Malformed PATCH regression tests added (98fd4117). CI/test execution still pending.
+- Development DB's UserBranchAssignment existence has NOT been verified; diagnostic is available but deliberately not executed against unknown DB.
+- The local audit's nine failures remain open pending isolated integration rerun. Do not infer that ID hardening resolves those failures.
