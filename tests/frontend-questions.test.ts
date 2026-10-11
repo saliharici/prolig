@@ -93,31 +93,31 @@ describe('Question API Frontend Client', () => {
     expect(questionVideoProviderLabel('https://youtu.be/abcDEF12345')).toBe('YouTube');
   });
 
-  it('patchQuestion uses PATCH and only sends editable fields', async () => {
+  it('patchQuestion uses PATCH and includes opened revision with editable fields', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: 3, content: 'Patched' })
     });
 
-    const result = await patchQuestion(3, { content: 'Patched', explanation: 'test' });
+    const result = await patchQuestion(3, { expectedUpdatedAt: '2026-10-11T10:10:10.000Z', content: 'Patched', explanation: 'test' });
     expect(result.id).toBe(3);
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({
       method: 'PATCH',
       credentials: 'include',
-      body: JSON.stringify({ content: 'Patched', explanation: 'test' })
+      body: JSON.stringify({ expectedUpdatedAt: '2026-10-11T10:10:10.000Z', content: 'Patched', explanation: 'test' })
     }));
   });
 
   it('patchQuestion can link a real project', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 3, projectId: 42 }) });
-    await patchQuestion(3, { projectId: 42 });
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ projectId: 42 }) }));
+    await patchQuestion(3, { expectedUpdatedAt: '2026-10-11T10:10:10.000Z', projectId: 42 });
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ expectedUpdatedAt: '2026-10-11T10:10:10.000Z', projectId: 42 }) }));
   });
 
   it('patchQuestion can remove a project with null', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 3, projectId: null }) });
-    await patchQuestion(3, { projectId: null });
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ projectId: null }) }));
+    await patchQuestion(3, { expectedUpdatedAt: '2026-10-11T10:10:10.000Z', projectId: null });
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ expectedUpdatedAt: '2026-10-11T10:10:10.000Z', projectId: null }) }));
   });
 
   it('runQuestionWorkflow submit sends exactly action: submit', async () => {
