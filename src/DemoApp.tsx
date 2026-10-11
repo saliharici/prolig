@@ -2086,12 +2086,36 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <form className={import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? 'question-modal pro-editor-modal question-studio-modal question-studio-workspace' : 'question-modal pro-editor-modal question-studio-modal'} onSubmit={handleCreateQuestion}>
           <div className="modal-head">
             <div><span className="panel-kicker">SORU ÜRETİM STÜDYOSU</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div>
-            <button type="button" aria-label="Kapat" disabled={questionSaving} onClick={closeQuestionForm}><X size={20} /></button>
+            <button type="button" aria-label="Kapat" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}><X size={20} /></button>
           </div>
           <p>Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.</p>
           {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <p className="studio-dirty-status" role="status">{questionSaving ? 'Kaydediliyor…' : hasUnsavedQuestionChanges ? 'Kaydedilmemiş değişiklikler var' : 'Henüz kaydedilmemiş değişiklik yok'}</p>}
           {questionSaveError && <div className="studio-save-error" role="alert">{questionSaveError}</div>}
-          <div className="question-studio-layout" inert={questionSaving} aria-busy={questionSaving}>
+          {durableFeatureOn && <section className="studio-durable-control" aria-label="Şifreli taslak kurtarma">
+            <div className="studio-durable-heading"><strong>Bu cihazda şifreli taslak kurtarma</strong><span>{durableDraftConflict ? 'Sürüm çakışması' : durableDraftEnabled ? 'Etkin' : durableCopyExists ? 'Kopya bulundu' : 'Kapalı'}</span></div>
+            <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
+            {!durableDraftEnabled && !durableDraftConflict && <div className="studio-durable-actions">
+              <input type="password" ref={durableDraftInputRef} autoComplete="new-password" minLength={12} placeholder="En az 12 karakterlik ayrı kurtarma parolası" aria-label="Taslak kurtarma parolası" disabled={durableDraftBusy || questionSaving}/>
+              {!durableCopyExists && <button type="button" className="secondary-button" onClick={enableDurableRecovery} disabled={durableDraftBusy || questionSaving}>Şifreli korumayı aç</button>}
+              {durableCopyExists && <button type="button" className="secondary-button" onClick={() => void recoverDurableDraft()} disabled={durableDraftBusy || questionSaving}>Şifreli taslağı kurtar</button>}
+            </div>}
+            {durableDraftEnabled && <button type="button" className="studio-durable-discard" onClick={() => {
+              durableDraftGenerationRef.current += 1;
+              durableDraftPhraseRef.current = '';
+              setDurableDraftEnabled(false);
+              setDurableDraftMessage('Otomatik kurtarma durduruldu. Daha önce oluşturulan şifreli kopya cihazda kalır.');
+            }}>Otomatik kurtarmayı durdur</button>}
+            {durableCopyExists && <button type="button" className="studio-durable-discard" onClick={discardDurableDraft} disabled={durableDraftBusy || questionSaving}>Bu cihazdaki şifreli kopyayı sil</button>}
+            {durableDraftConflict && editingQuestion && <button type="button" className="secondary-button" onClick={() => {
+              if (!window.confirm('Kurtarılan yerel düzenlemeler bırakılıp sunucudaki güncel soru açılsın mı? Önce gerekli metinleri kopyalayın.')) return;
+              pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+              durableDraftGenerationRef.current += 1;
+              try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId); } catch { /* browser restrictions */ }
+              openYazarEdit(editingQuestion);
+            }}>Yerel değişiklikleri bırak ve güncel soruya dön</button>}
+            {durableDraftMessage && <p className={durableDraftConflict ? 'studio-durable-message error' : 'studio-durable-message'} role="status">{durableDraftMessage}</p>}
+          </section>
+          <div className="question-studio-layout" inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}>
             <div className="question-studio-main">
               <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
               <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
@@ -2148,7 +2172,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </div>
             </aside>
           </div>
-          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button><button type="submit" className="primary-button" disabled={questionSaving}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button></div>
+          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button><button type="submit" className="primary-button" disabled={questionSaving || durableDraftBusy || durableDraftConflict}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button></div>
         </form>
       </div>}
       {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
