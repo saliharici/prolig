@@ -70,3 +70,10 @@ With an authorized local pilot YAZAR account:
 Limitations requiring separate design: server-side optimistic concurrency/ETags, cross-device synchronization, accessibility/keyboard focus, backend persistence, offline multi-record draft inventory, restoration of inaccessible status-changed server records, hard browser crash within debounce window, mathematical WYSIWYG.
 
 No production promotion without manual and backend pilot acceptance.
+
+## P1-C four-step browser acceptance — user approval 2026-10-11
+- The user responded "hepsini onaylıyorum" to the four proposed manual browser steps: prepare a complete question and activate encrypted recovery, pause, reload the same browser/origin, and recover with the separate passphrase.
+- Record as **user approval of the P1-C browser acceptance scenario**, not independent observation of the screen or runtime telemetry. If we need an explicit audit claim that all steps executed and passed, request detailed operator results.
+- Previously operator-verified automated frontend gate: 446/446 tests and Vite build PASS (48/48 files). The feature remains on the P1-C branch, gated by `VITE_QUESTION_STUDIO_P1` and `VITE_QUESTION_STUDIO_P1C`.
+- Outstanding gates: isolated pilot database POST/PATCH save and reopen roundtrip, real multi-session 409/stale-version and reconciliation, recovery on same origin after restart, browser storage/permission and accessibility checks, and any production operational privacy review. These remain **not independently validated**.
+- No authorization for merging to main, deploying Production, altering schema, migrating or seeding the database. Next staged milestone should verify pilot backend compatibility and concurrency before advancing to rich-text/math editing.
