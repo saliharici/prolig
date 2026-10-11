@@ -30,3 +30,10 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Driver emitted a future SSL-mode semantics warning; diagnostic query completed successfully.
 - This confirms the checked connection has the expected branch assignment table; it does not prove all migrations are applied, pilot DB isolation, or DB integration test success.
 - Next gate: run isolated pilot DB integration tests with safety confirmation, inspect failures, and then evaluate P1 editor rollout.
+
+## Pilot integration findings — 2026-10-11
+- User ran `npm run test:integration`: 30 passed, 4 failed, 5 skipped (39 total).
+- Author test expected Istanbul, but pilot author's recorded province is Bursa. Editor and province-coordinator project visibility and provincial question visibility failed; likely fixture geography divergence rather than access-rule error.
+- Existing `prisma/seed.ts` does not update an existing YAZAR AuthorProfile province/branch. Added fail-fast preflight guard (8590fbaf) to prevent future partial mutations in this case, and read-only `scripts/diagnose-pilot-scope.mjs` (79f785d9) to compare pilot geographic/project assignments.
+- No existing pilot data modified or reset. No assertion relaxed. A deliberate, independently approved pilot fixture reconciliation may be required after read-only verification.
+- Previous non-DB suite: 405/405 pass, lint/build pass. P0 DB integration remains BLOCKED.
