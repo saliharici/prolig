@@ -52,6 +52,11 @@ describe('P1-D revision protection and comparison', () => {
     const src = fs.readFileSync(path.join(process.cwd(), 'src/DemoApp.tsx'), 'utf8');
     const patch = fs.readFileSync(path.join(process.cwd(), 'api/v1/questions/[id].ts'), 'utf8');
     expect(src).toContain('input.expectedUpdatedAt = editingQuestion.updatedAt');
+    const types = fs.readFileSync(path.join(process.cwd(), 'src/questions/types.ts'), 'utf8');
+    const builder = fs.readFileSync(path.join(process.cwd(), 'src/questions/edit.ts'), 'utf8');
+    expect(types).toContain('expectedUpdatedAt: string;');
+    expect(types).not.toContain('expectedUpdatedAt?: string;');
+    expect(builder).toContain('const input: PatchQuestionInput = { expectedUpdatedAt: question.updatedAt };');
     expect(src).toContain("await fetchQuestions('all')");
     expect(src).toContain('setDurableDraftConflict(true)');
     expect(src).toContain('compareQuestionRevisions(questionFormValues, serverQuestionConflict)');
