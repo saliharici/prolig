@@ -86,11 +86,14 @@ describe('P1-B in-memory draft safety', () => {
     expect(app).not.toContain('sessionStorage.setItem(');
   });
 
-  it('preserves old API and protects form on HTTP 409 rather than reopening with server values', () => {
+  it('keeps author draft intact on HTTP 409/428 and never auto-reopens server values', () => {
     const app = fs.readFileSync(path.join(process.cwd(), 'src/DemoApp.tsx'), 'utf8');
     const saving = app.slice(app.indexOf('const handleCreateQuestion'), app.indexOf('const openQuestionForm'));
     expect(saving).toContain('questionSavingRef.current = true');
-    expect(saving).toContain('if (e instanceof ApiError && e.status === 409)');
+    expect(saving).toContain('if (e instanceof ApiError && (e.status === 409 || e.status === 428)) {');
+    expect(saving).toContain('setDurableDraftConflict(true)');
+    expect(saving).toContain('setServerQuestionConflict(latest)');
+    expect(saving).toContain('input.expectedUpdatedAt = editingQuestion.updatedAt');
     expect(saving).toContain('setQuestionSaveError(');
     expect(saving).not.toContain('openYazarEdit(latestQuestion)');
     expect(saving).not.toContain('const latestQuestions = await loadApiQuestions()');
