@@ -68,3 +68,13 @@ Exit: Ctrl+C; `Remove-Item Env:VITE_QUESTION_STUDIO_P1 -ErrorAction SilentlyCont
 - Accessibility audits: focus trap/return focus, keyboard navigation, screen readers, Turkish IME, undo/redo.
 - Proper editor component selection (Tiptap vs Lexical, license/security/locale and bundle review) before WYSIWYG integration.
 - Persistent draft recovery / explicit HTTP 409 reconciliation design, backend optimistic version and migrations only after approval.
+
+## User-reported visual acceptance and pause/resume fix (2026-10-11)
+
+- User screenshots and manual report: wide-screen workspace behaves as designed; narrow responsive widths also arrange correctly.
+- **Defect:** clicking the old "Vazgeç" / closing the modal and then opening "Yeni soru" reset all unsaved content. The earlier confirmation was a discard guard, **not** a restoration mechanism.
+- Fix on the P1-B feature branch: when a modified form is paused by close/X/backdrop, it is deep-copied into a user- and question-keyed **in-memory** map. The native confirmation's Cancel keeps the form open and unchanged. Confirming pause closes the workspace but retains the draft. Reopening the matching new question or editable existing question restores body, class/project, answers, correct key, solution, attached media and pending media form fields. Successful server save clears the matching paused slot. UI button now says "Ara ver" when edited.
+- Browser beforeunload warning is also active for paused drafts in memory.
+- **Privacy / limitations:** no localStorage/sessionStorage/IndexedDB, no server save, no DB write; therefore closing tab, refresh, crash or app remount will **lose** paused drafts, even if warning was shown. Do not advertise persistence across reload. Drafts are separated by `currentUser.id` and question ID to avoid mixing different authors and questions in the running app.
+- Tests updated to assert cache key isolation, clone behavior, pause/reopen routes and revised legacy modal-close expectations. The new code has NOT YET been validated by local lint/build/runtime; latest accepted baseline before patch was 434/434 tests, lint PASS, build PASS.
+- **Required next:** `git pull --ff-only`; `node scripts/p1-check.mjs`; then local browser flag-on test: type unsaved content, "Ara ver" -> Cancel stays, "Ara ver" -> Confirm exits, reopen new question -> content returns, confirm answer/video/project restored. Use pilot DB only for save/reopen backend tests.
