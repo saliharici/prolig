@@ -19,6 +19,7 @@ import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnsw
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
+import { questionStudioFingerprint } from './questions/studio-state';
 import type { ApiQuestion, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
@@ -47,6 +48,7 @@ import { buildGradeLevelSummary } from './demo/grade-summary';
 import { useNavigationDrawer } from './navigation/useNavigationDrawer';
 import './demo.css';
 import './questions/studio-preview.css';
+import './questions/studio-workspace.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', icon: LayoutDashboard },
@@ -822,6 +824,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [reviewingQuestion, setReviewingQuestion] = useState<ApiQuestion | null>(null);
   const [toast, setToast] = useState('');
   const questionEditorRef = useRef<HTMLTextAreaElement>(null);
+  const questionSavingRef = useRef(false);
+  const [questionSaving, setQuestionSaving] = useState(false);
+  const [questionBaseline, setQuestionBaseline] = useState('');
+  const [questionSaveError, setQuestionSaveError] = useState('');
   
   useEffect(() => { saveDemoData(data); }, [data]);
   useEffect(() => { if (toast) { const timer = window.setTimeout(() => setToast(''), 3800); return () => window.clearTimeout(timer); } }, [toast]);
@@ -853,6 +859,30 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
   const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role);
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
+  const questionSnapshot = questionStudioFingerprint({
+    content: questionTitle,
+    level: questionLevel,
+    grade: questionGrade,
+    projectId: questionProjectId,
+    options: questionOptions,
+    correctAnswer: questionCorrectAnswer,
+    explanation: questionExplanation,
+    assets: questionAssets,
+    assetPlacement: questionAssetPlacement,
+    assetType: questionAssetType,
+    assetUrl: questionAssetUrl,
+    assetTitle: questionAssetTitle,
+    assetAltText: questionAssetAltText
+  });
+  const hasUnsavedQuestionChanges = Boolean(questionBaseline) && questionSnapshot !== questionBaseline;
+  const closeQuestionForm = () => {
+    if (questionSavingRef.current) return;
+    if (hasUnsavedQuestionChanges && !window.confirm('Kaydedilmemiş soru değişiklikleri var. Kaydetmeden çıkılsın mı?')) return;
+    setShowQuestionForm(false);
+    setEditingQuestion(null);
+    setQuestionBaseline('');
+    setQuestionSaveError('');
+  };
   const questionAssignableProjects = apiProjects.filter(project =>
     !['Tamamlandi', 'Arsiv'].includes(project.status) || project.id === originalQuestionProjectId
   );
@@ -932,7 +962,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   
   const handleCreateQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
+    if (questionSavingRef.current || currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
+    questionSavingRef.current = true;
+    setQuestionSaving(true);
+    setQuestionSaveError('');
     try {
       if (editingQuestion) {
         const input = buildQuestionEditPatch(editingQuestion, {
@@ -961,23 +994,35 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       }
       setShowQuestionForm(false);
       setEditingQuestion(null);
-      setQuestionTitle(''); 
-      setQuestionOptions(['', '', '', '']); 
-      setQuestionExplanation(''); 
+      setQuestionBaseline('');
+      setQuestionTitle('');
+      setQuestionOptions(['', '', '', '']);
+      setQuestionExplanation('');
       setQuestionAssets([]);
       setQuestionProjectId(null);
       setOriginalQuestionProjectId(null);
-            loadApiQuestions();
+      void loadApiQuestions();
     } catch (e: any) {
-      setToast(e.message || 'Bir hata oluştu.');
-      if (e instanceof ApiError && e.status === 409 && editingQuestion) {
-        const latestQuestions = await loadApiQuestions();
-        const latestQuestion = latestQuestions.find(question => question.id === editingQuestion.id);
-        if (latestQuestion && ['TASLAK', 'REVIZYON'].includes(latestQuestion.status)) openYazarEdit(latestQuestion);
+      // Never overwrite local form values with a server refresh after an HTTP 409.
+      if (e instanceof ApiError && e.status === 409) {
+        setQuestionSaveError('Sunucudaki soru durumu değişmiş olabilir. Taslağınız kaydedilmedi; bu ekrandaki bütün değişiklikleriniz korunuyor. Gerekirse metni kopyalayın ve soru listesini ayrı bir sekmede kontrol edin.');
+      } else {
+        setQuestionSaveError(e instanceof Error ? e.message : 'Kaydetme başarısız. Taslak bu ekranda korunuyor.');
       }
+    } finally {
+      questionSavingRef.current = false;
+      setQuestionSaving(false);
     }
   };
   const openQuestionForm = () => {
+    setEditingQuestion(null);
+    setQuestionTitle('');
+    setQuestionSaveError('');
+    setQuestionBaseline(questionStudioFingerprint({
+      content: '', level: 'Ortaokul', grade: '8. Sınıf', projectId: null,
+      options: ['', '', '', ''], correctAnswer: 'A', explanation: '', assets: [],
+      assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
+    }));
     setQuestionLevel('Ortaokul');
     setQuestionGrade('8. Sınıf');
     setQuestionProjectId(null);
@@ -1282,6 +1327,19 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssets(normalizeQuestionAssets(question.assets));
     setQuestionProjectId(question.projectId);
     setOriginalQuestionProjectId(question.projectId);
+    setQuestionAssetPlacement('STEM');
+    setQuestionAssetType('IMAGE');
+    setQuestionAssetUrl('');
+    setQuestionAssetTitle('');
+    setQuestionAssetAltText('');
+    setQuestionSaveError('');
+    setQuestionBaseline(questionStudioFingerprint({
+      content: question.content, level, grade, projectId: question.projectId,
+      options: normalizeQuestionOptions(question.options),
+      correctAnswer: isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '',
+      explanation: question.explanation || '', assets: normalizeQuestionAssets(question.assets),
+      assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
+    }));
     setShowQuestionForm(true);
   };
     const updatePayment = async (id: number, currentStatus: string) => {
@@ -1792,13 +1850,15 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <button className="primary-button" onClick={()=>openQuestionsForProject(selectedProject.id)}>Proje sorularını aç <ArrowRight size={15}/></button>
       </div>
     </div></div>}
-    {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) { setShowQuestionForm(false); setEditingQuestion(null); } }}>
-        <form className="question-modal pro-editor-modal question-studio-modal" onSubmit={handleCreateQuestion}>
+    {showQuestionForm && <div className={import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? 'modal-backdrop question-workspace-overlay' : 'modal-backdrop'} onMouseDown={event => { if (event.target === event.currentTarget) closeQuestionForm(); }}>
+        <form className={import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? 'question-modal pro-editor-modal question-studio-modal question-studio-workspace' : 'question-modal pro-editor-modal question-studio-modal'} onSubmit={handleCreateQuestion}>
           <div className="modal-head">
             <div><span className="panel-kicker">SORU ÜRETİM STÜDYOSU</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div>
-            <button type="button" aria-label="Kapat" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}><X size={20} /></button>
+            <button type="button" aria-label="Kapat" disabled={questionSaving} onClick={closeQuestionForm}><X size={20} /></button>
           </div>
           <p>Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.</p>
+          {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <p className="studio-dirty-status" role="status">{questionSaving ? 'Kaydediliyor…' : hasUnsavedQuestionChanges ? 'Kaydedilmemiş değişiklikler var' : 'Henüz kaydedilmemiş değişiklik yok'}</p>}
+          {questionSaveError && <div className="studio-save-error" role="alert">{questionSaveError}</div>}
           <div className="question-studio-layout">
             <div className="question-studio-main">
               <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
@@ -1856,7 +1916,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </div>
             </aside>
           </div>
-          <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
+          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving} onClick={closeQuestionForm}>Vazgeç</button><button type="submit" className="primary-button" disabled={questionSaving}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button></div>
         </form>
       </div>}
       {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
