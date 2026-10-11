@@ -88,3 +88,19 @@ Release kararı istenmeden önce:
 4. Production veritabanı ve deployment için **ayrı, kapsamı açık kullanıcı onayı** alın. Bu rapor böyle bir onay değildir.
 
 **Gizlilik/saha durumu:** `.env.p1d.local` ve `.local/p1d-sandbox-credentials.env` içeriği rapora taşınmadı. Yerel izlenmeyen kullanıcı dosyaları olduğu gibi bırakıldı.
+
+
+## 6. 11 Ekim 2026 yayın hazırlığı güncellemesi
+
+Bu raporun ilk sürümü sonrası kullanıcı, kalan sürüm hazırlığı, birleştirme ve Production sürecini onayladı; ancak güvenlik kapılarının geçilmesi zorunluluğu devam ediyor.
+
+- GitHub `main` ile karşılaştırma: P1-D feature dalı yaklaşık **190 commit ileride**, main tarafından ek commit yok; başka ilgili feature dalları bu dalın geçmişinde bulunuyor. Bu yüzden release kapsamı tek P1-D düzeltmesinden daha geniş.
+- [Taslak Pull Request #14](https://github.com/saliharici/prolig/pull/14) açıldı, henüz merge edilmedi. GitHub başlangıçta PR'ın mergeable olduğunu bildirdi.
+- Vercel mevcut Production dağıtımı `main` commit `10b34f2` üzerindedir; Production değişmedi.
+- Vercel Production'da `DATABASE_URL` mevcut, fakat `DIRECT_URL` Production hedefli değişken olarak listelenmiyor. Bu eksiklik çözülmeden kör migrate/deploy çalıştırılmayacak. Henüz mevcut Production migration geçmişi salt okunur sorguyla doğrulanamadı.
+- Vercel preview/check durumu `build-rate-limit` nedeniyle failure gösteriyor. Bu, uygulama kaynak kodunun başarısız derlendiğini kanıtlamıyor; barındırma tarafı limit ayrı bir sürüm engeli.
+- PATCH sözleşmesindeki tutarsızlık için `src/questions/types.ts` içinde `expectedUpdatedAt` artık **zorunlu**; `buildQuestionEditPatch` açılan sorunun revizyonunu ekliyor. Böylece TypeScript kontratı ile sunucu 428/409 önkoşulu uyuşuyor. Eski harici istemciler için geçiş stratejisi yine gerekli.
+- Değişiklikten sonraki ilk GitHub CI çalıştırmasında `tests/frontend-questions.test.ts` içindeki **üç eski PATCH test isteğinin revizyonu göndermediği** saptandı (TS2741). Bu testler revizyon gönderecek biçimde düzeltildi ve otomatik CI yeniden kontrol edilecek.
+- P1-D 480/480 regresyon, lint ve Vite build operatör PASS kanıtı, bu son küçük sözleşme düzeltmelerinden **önceye** aittir; nihai SHA üzerinde GitHub CI ve gerekirse kullanıcı yerel doğrulaması tamamlanmadan Production kararı verilmez.
+
+**Güncel karar:** PR incelemede; son CI, Vercel build-rate-limit, canlı veritabanı şema/rollback doğrulaması çözülmeden `main` birleştirmesi veya Production dağıtımı yapılmaz.
