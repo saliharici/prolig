@@ -129,10 +129,14 @@ describe('Question API Handlers', () => {
     it('PATCH transaction failure -> controlled 500', async () => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1 } } as any);
-      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'TASLAK' } as any);
+      vi.mocked(prisma.question.findUnique).mockResolvedValue({
+        id: 1, authorUserId: 1, status: 'TASLAK',
+        updatedAt: new Date(TEST_QUESTION_REVISION)
+      } as any);
       vi.mocked(prisma.$transaction).mockRejectedValue(new Error('Tx Error'));
       const { req, res } = mockReqRes('PATCH', { content: 'Valid content update' }, { id: '1' });
       await handlerPatch(req, res);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(res.status).toHaveBeenCalledWith(500);
     });
 
