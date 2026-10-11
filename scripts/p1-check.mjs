@@ -22,6 +22,8 @@ for (const [label, args] of jobs) {
   if (job.error || job.status !== 0) {
     failed++;
     console.error(label + ' failed:', job.error?.message || String(job.status));
+    console.error('Stopping P1 verification immediately; later checks were not run.');
+    break;
   }
 }
 console.log('\nP1 frontend gate: ' + (failed === 0 ? 'PASS' : 'FAIL (' + failed + ' step(s))'));
