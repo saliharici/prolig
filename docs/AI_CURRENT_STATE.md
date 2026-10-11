@@ -195,3 +195,9 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Fixed JSX precisely: `</p>}` in commit `5426d960`. Added Windows CRLF-normalizing source regression test for the JSX boundary in `tests/question-studio-p1d.test.ts` (latest test correction `e9ca3c78`).
 - Static source review verified both the P1-D alert and P1-C panel close correctly. **Do not assert test PASS until user pulls and reruns `node scripts/p1-check.mjs`**.
 - No main merge, Production deployment, seed, migration, or DB writes; only P1-D feature branch files.
+
+## P1-D 457/458 OPERATOR GATE — P1-B ASSERTION FIX PENDING RERUN (2026-10-11)
+- User ran `git pull --ff-only` on P1-D and `node scripts/p1-check.mjs`. UI/API TypeScript/lint PASS; 49 test files, 457/458 non-DB tests PASS. **One failing test**: `tests/question-studio-p1b.test.ts` expected old source string `if (e instanceof ApiError && e.status === 409)` but P1-D correctly implements `409 || 428` and keeps the draft visible. Vite production build did NOT run due to test failure.
+- Negative-path `PATCH transaction failure` test emitted `TypeError: ... getTime` instead of intended `Tx Error`, because its mocked question omitted updatedAt. Test happened to pass by checking HTTP 500 only; this masked incorrect branch execution.
+- Patched ONLY regression test files: `tests/question-studio-p1b.test.ts` now checks 409/428 guard, revision token, conflict state and preservation; `tests/question-handlers.test.ts` supplies fixed fixture revision and explicitly requires `prisma.$transaction` to be called once. Static inspection of assertions against actual sources completed.
+- **DO NOT CLAIM VERIFIED PASS YET:** pull latest P1-D and rerun `node scripts/p1-check.mjs`; expected 458/458 tests plus successful Vite compilation if no other issues. No live DB runs or main/Production changes.
