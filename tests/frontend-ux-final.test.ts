@@ -20,7 +20,10 @@ describe('Final UX Stabilization', () => {
     expect(closeStart).toBeGreaterThan(-1);
     expect(closeEnd).toBeGreaterThan(closeStart);
     expect(handler).toContain('if (questionSavingRef.current) return;');
-    expect(handler).toContain('if (hasUnsavedQuestionChanges && !window.confirm(');
+    expect(handler).toContain('if (hasUnsavedQuestionChanges) {');
+    expect(handler).toContain("if (!window.confirm('Düzenlemeye ara verilsin mi?");
+    expect(handler).toContain('pausedQuestionDraftsRef.current.set(pausedQuestionKey, copyPausedQuestionDraft({');
+    expect(handler).toContain('setShowQuestionForm(false);');
     expect(handler).toContain('setShowQuestionForm(false);');
     expect(handler).toContain('setEditingQuestion(null);');
     expect(handler).not.toContain('setReviewingQuestion(null)');
