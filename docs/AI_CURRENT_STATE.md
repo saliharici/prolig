@@ -81,3 +81,11 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - IMPORTANT: new P1 code has NOT yet been locally compiled/tested by operator. Do NOT state that P1 tests passed. User to run `node scripts/p1-check.mjs`, inspect local preview and report output.
 - GitHub status for P1 commit indicated Vercel build rate-limit / quota block, not verified code build failure; Vercel MCP access to existing `salih22` scope returned 403, so deployment logs not available. No manual deployment authorized.
 - Next: fix any P1 gate failures, verify browser view; then evaluate editor and math-typesetting library, IME/undo/a11y/asset safety and HTTP 409 unsaved draft recovery in subsequent stage.
+
+## P1-A first local test and repair — 2026-10-11
+- User ran `node scripts/p1-check.mjs` on P1 branch. Test suite: **419 PASS** across 46 test files (including 14 P1 tests); however `npm run lint` and `npm run build` FAILED due to malformed JSX in `src/DemoApp.tsx` at math toolbar button. P1 acceptance therefore FAILED.
+- Root cause: prior ad-hoc JS string replacement contained `$'` sequence, interpreted by String.replace as a replacement token, injecting duplicate tail content and breaking math button syntax. This was an implementation error, unrelated to database.
+- Reconstructed `src/DemoApp.tsx` from intact P0 baseline, applied P1 imports/table helper/gated preview and exact toolbar changes with literal-safe replacements; repaired result has only 37 changed lines vs P0, math control restored, duplicate tail removed. Commit bc3e4f4.
+- Strengthened P1 regression assertions for toolbar integrity and duplicate injection (fe7dc3e), made P1 gate stop immediately on first failed stage to save resources (05fb602).
+- **Critical:** repaired P1 branch has not yet been retested locally; obtain `npm run lint`, 419+ tests, and build PASS before visual acceptance. Vercel preview may be build-rate-limited; local `npx vercel dev` occupied localhost:3001 in user's earlier run.
+- No schema migration, DB modification, main merge or Production deployment.
