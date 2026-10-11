@@ -65,3 +65,11 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Prior user-run 405/405 non-DB tests PASS; TypeScript/lint PASS. Fresh complete build and non-DB rerun after latest commits is still advisable for final release signoff.
 - P0 CORE authorization, project visibility, question revision and approval, and canonical payment integration ACCEPTANCE MET in isolated pilot tests; settlement DB integration explicitly NOT tested.
 - Scope remains feature branch; main and Production NOT merged/deployed. Separate explicit merge/Production permission required.
+
+## P0 CORE CLOSED — local verification 2026-10-11
+- User-run latest feature-branch build: `npm run build` PASS, Vite 1700 modules transformed; non-blocking >500 kB chunk advisory.
+- User-run latest non-DB suite: `npx vitest run --exclude "tests/integration/**"` — 45/45 files, 405/405 tests PASS, 0 FAIL.
+- Immediately preceding pilot DB suite: 34/34 executed tests PASS, 0 FAIL; 5 settlement DB tests SKIPPED. Earlier lint/tsc PASS.
+- P0 CORE scope (permissions, project visibility, author/editor question lifecycle, pilot payment) meets technical acceptance on feature branch. NOT a blanket claim for settlement DB or production deployment.
+- Deferred follow-up: explicit settlement DB fixture and skipped tests; Vite JS chunk optimization; PostgreSQL client SSL/deprecation warnings.
+- No merge to main, no Production deployment, no doctoral independent-copy changes. Await separate explicit acceptance before either promotion.
