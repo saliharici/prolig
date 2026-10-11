@@ -107,3 +107,30 @@ Expected PLAN PASS while table count remains zero. Do not paste `.env.p1d.local`
 - Two advisory log messages: SSL `sslmode=require` future compatibility; concurrent `client.query()` deprecation warning likely warrants diagnosis before pg@9. Do not call the warnings failures or suppress without investigation.
 - **DB ACCEPTANCE PASS ≠ PRODUCTION RELEASE READY.** No browser UX test proving conflict reconciliation/encrypted draft recovery yet, and API PATCH expectedUpdatedAt revision has compatibility consequences for older clients. Original Neon, Vercel Production, GitHub main not touched.
 - Next safe operator check: `node scripts/p1d-sandbox-verify.mjs` (READ ONLY), then after appropriate sandbox-specific browser app configuration verify the visual flow and full non-DB build/test. Keep `.env.p1d.local` and `.local/p1d-sandbox-credentials.env` private.
+
+## Independent browser preview implementation — initially read-only
+
+After 20/20 write integration PASS, user independently re-ran `node scripts/p1d-sandbox-verify.mjs`: PASS for 7 migrations, 6 pilot user roles, writer/editor/coordinator scope and project relationship. No write.
+
+Important: plain `npm run dev` serves Vite but not Vercel functions; running the connected `vercel dev` could load existing app environment configuration. To avoid accidentally targeting the original PRO-LIG database, **do not use generic Vercel dev** for P1-D sandbox browser acceptance.
+
+New branch-only files:
+- `scripts/p1d-sandbox-browser.mjs` — read-only preflight first; --serve opens a sandbox-only local browser (no question writes), --serve-write requires separate explicit operator browser-UAT approval.
+- `scripts/p1d-sandbox-browser-app.ts` — Express+Vite local-only 127.0.0.1:3137; sandbox runtime variables supplied by independent allowlisted child environment, local fake JWT secret. Only exposes auth login/me/logout, question GET and project GET by default, and denies all other application APIs. Mutating question requests explicitly blocked (403) until separately authorized mode. Vite does not read ordinary .env and denies local secret file paths.
+- `tests/p1d-sandbox-browser.test.ts` — five static safety invariants (not a complete dynamic HTTP/browser test).
+
+Next operator step, **read-only only**:
+
+    cd D:\Proje\pro-lig
+    git pull --ff-only
+    node --check scripts/p1d-sandbox-browser.mjs
+    npx vitest run tests/p1d-sandbox-browser.test.ts
+    node scripts/p1d-sandbox-browser.mjs --preflight
+
+When PASS, command to start local READ-ONLY UAT frontend (requires operator to confirm local readiness first):
+
+    node scripts/p1d-sandbox-browser.mjs --serve
+
+Then visit http://127.0.0.1:3137 ; log in with sandbox fake user only (password is stored privately in .local/p1d-sandbox-credentials.env, not to be shared). Login does not change DB. Some other PRO-LIG modules are intentionally unavailable here; focused acceptance is Question Studio. Stop with Ctrl+C. The local browser runtime is not yet operator tested; report symptoms instead of claiming it works.
+
+For real browser question create/PATCH and two-tab 409 visual UX, request another explicit authorization and launch in guarded --serve-write mode. Consider collecting browser screenshots with passwords, JWT cookies and private URLs concealed. DO NOT paste secret files or credential values.
