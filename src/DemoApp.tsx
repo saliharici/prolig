@@ -1179,6 +1179,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           correctAnswer: questionCorrectAnswer,
           assets: normalizeQuestionAssets(questionAssets)
         });
+        input.expectedUpdatedAt = editingQuestion.updatedAt;
         await patchQuestion(editingQuestion.id, input);
         setToast('Soru düzeltmeleri kaydedildi.');
       } else {
@@ -1218,8 +1219,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       void loadApiQuestions();
     } catch (e: any) {
       // Never overwrite local form values with a server refresh after an HTTP 409.
-      if (e instanceof ApiError && e.status === 409) {
-        setQuestionSaveError('Sunucudaki soru durumu değişmiş olabilir. Taslağınız kaydedilmedi; bu ekrandaki bütün değişiklikleriniz korunuyor. Gerekirse metni kopyalayın ve soru listesini ayrı bir sekmede kontrol edin.');
+      if (e instanceof ApiError && (e.status === 409 || e.status === 428)) {
+        setQuestionSaveError('Sürüm çakışması: Bu soru başka bir oturumda değiştirilmiş olabilir. Sunucudaki kayıt üzerine yazılmadı. Ekrandaki taslağınız korundu; metni kopyalayıp soru listesini başka bir sekmede açarak güncel sürümü karşılaştırın.');
       } else {
         setQuestionSaveError(e instanceof Error ? e.message : 'Kaydetme başarısız. Taslak bu ekranda korunuyor.');
       }
