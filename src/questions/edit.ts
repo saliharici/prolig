@@ -86,7 +86,7 @@ export function requireCompleteQuestionAnswers(options: string[], correctAnswer:
 }
 
 export function buildQuestionEditPatch(question: ApiQuestion, draft: QuestionEditDraft): PatchQuestionInput {
-  const input: PatchQuestionInput = {};
+  const input: PatchQuestionInput = { expectedUpdatedAt: question.updatedAt };
   const content = draft.content.trim();
   if (content !== question.content.trim()) input.content = content;
 
