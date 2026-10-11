@@ -50,6 +50,8 @@ describe('P1-B in-memory draft safety', () => {
     expect(saving).not.toContain('const latestQuestions = await loadApiQuestions()');
     expect(app).toContain('hasUnsavedQuestionChanges');
     expect(app).toContain('window.confirm(');
+    expect(app).toContain("window.addEventListener('beforeunload', warnBeforeUnload)");
+    expect(app).toContain("window.removeEventListener('beforeunload', warnBeforeUnload)");
     expect(app).toContain('onClick={closeQuestionForm}');
     expect(app).toContain('question-workspace-overlay');
     expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true'");
