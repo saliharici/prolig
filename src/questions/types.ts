@@ -24,7 +24,7 @@ export interface ApiQuestion {
   id: number;
   content: string;
   imageUrl: string | null;
-  assets: ApiQuestionAsset[];
+  assets?: ApiQuestionAsset[];
   objectiveCode: string | null;
   grade: string | null;
   difficulty: string | null;
