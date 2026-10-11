@@ -47,15 +47,19 @@ describe('Question DB Integration', () => {
   });
 
   afterAll(async () => {
-    if (tempQuestionId) {
+    try {
+      // If safety preflight failed or no fixture was created, never query or delete
+      // any question with an undefined ID.
+      if (!tempQuestionId) return;
       await prisma.activityLog.deleteMany({ where: { entityId: tempQuestionId, entityType: 'Question' } });
       await prisma.question.delete({ where: { id: tempQuestionId } });
+      const qCount = await prisma.question.count({ where: { id: tempQuestionId } });
+      const aCount = await prisma.activityLog.count({ where: { entityId: tempQuestionId, entityType: 'Question' } });
+      expect(qCount).toBe(0);
+      expect(aCount).toBe(0);
+    } finally {
+      await prisma.$disconnect();
     }
-    const qCount = await prisma.question.count({ where: { id: tempQuestionId } });
-    const aCount = await prisma.activityLog.count({ where: { entityId: tempQuestionId, entityType: 'Question' } });
-    expect(qCount).toBe(0);
-    expect(aCount).toBe(0);
-    await prisma.$disconnect();
   });
 
   const mockReq = (user: any, body?: any, method?: string): any => {
