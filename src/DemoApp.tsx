@@ -2116,7 +2116,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               openYazarEdit(editingQuestion);
             }}>Yerel değişiklikleri bırak ve güncel soruya dön</button>}
             {durableDraftMessage && <p className={durableDraftConflict ? 'studio-durable-message error' : 'studio-durable-message'} role="status">{durableDraftMessage}</p>}
-          </section>
+          </section>}
           <div className="question-studio-layout" inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}>
             <div className="question-studio-main">
               <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
