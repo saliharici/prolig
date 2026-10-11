@@ -75,3 +75,12 @@ node scripts/p1d-sandbox-bootstrap.mjs --plan
 ```
 
 Expected PLAN PASS while table count remains zero. Do not paste `.env.p1d.local`, any password or a full DB URL. The user may share only safe command results. Once plan passes, follow explicitly documented apply process with a second deliberate command; until then no DB writes.
+
+## Operator executed sandbox schema and fake pilot fixtures — PASS (2026-10-11)
+
+- Windows operator report: `node --check scripts/p1d-sandbox-bootstrap.mjs` PASS, `npx vitest run tests/p1d-sandbox-bootstrap.test.ts` 4/4 PASS; `--plan` PASS in read-only mode.
+- Explicit authorized `--apply` used a process-scoped confirmation and exited 0. Output confirmed **7/7 Prisma migrations**, **6 test-only role accounts**, **1 math pilot project**, local Prisma generation and dedicated secret file; command confirmed a clean empty schema before migration. No actual secret was shared in terminal report.
+- Pre-existing `.env` and `.env.development.local` remained unchanged per the bootstrap design; no existing PRO-LIG project/database or Vercel deployment was targeted.
+- **New read-only acceptance tool:** `scripts/p1d-sandbox-verify.mjs` checks 7 migration records, exact six fake roles/emails, role status and hash presence, author geography, editor branch/grade, editor-assignment, province coordinator, math pilot project and ProjectAuthor assignment. `tests/p1d-sandbox-verify.test.ts` guards its read-only code path.
+- **NEXT OPERATOR COMMAND (READ ONLY):** `git pull --ff-only`, `node --check scripts/p1d-sandbox-verify.mjs`, `npx vitest run tests/p1d-sandbox-verify.test.ts`, then `node scripts/p1d-sandbox-verify.mjs`. Share only PASS/FAIL lines, never connection URLs/private file contents.
+- **Do not rerun `--apply`**; its empty-schema check should reject the now-migrated sandbox. No write integration test has yet been authorized separately.
