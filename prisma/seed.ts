@@ -84,6 +84,29 @@ async function main() {
     }
   }
 
+  // Guard against silently keeping a stale pilot author geography/branch.
+  // An existing profile is intentionally NOT overwritten by the seed.
+  const existingPilotAuthor = await prisma.user.findUnique({
+    where: { email: 'pilot.yazar@prolig.local' },
+    select: {
+      AuthorProfile: {
+        select: {
+          branch: { select: { name: true } },
+          province: { select: { code: true, region: true } }
+        }
+      }
+    }
+  });
+  if (existingPilotAuthor?.AuthorProfile) {
+    const profile = existingPilotAuthor.AuthorProfile;
+    if (profile.branch.name !== 'Matematik' || profile.province.code !== '34' || profile.province.region !== 'Marmara') {
+      throw new Error(
+        'Pilot YAZAR profile has an incompatible branch or province. ' +
+        'The guarded seed preserves existing profiles; reconcile the isolated pilot fixture explicitly before rerunning.'
+      );
+    }
+  }
+
   // STAGE B: MUTATION
   console.log('Stage B: Mutation');
 
