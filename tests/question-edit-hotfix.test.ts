@@ -44,13 +44,13 @@ describe('Question edit hotfix', () => {
   it.each(['TASLAK', 'REVIZYON'] as const)('edits an existing %s question with four options', status => {
     const question = makeQuestion({ status });
     const patch = buildQuestionEditPatch(question, { ...editDraft(question), content: 'Güncellenmiş soru metni' });
-    expect(patch).toEqual({ content: 'Güncellenmiş soru metni' });
+    expect(patch).toEqual({ expectedUpdatedAt: question.updatedAt, content: 'Güncellenmiş soru metni' });
   });
 
   it.each(['TASLAK', 'REVIZYON'] as const)('allows a content-only edit for legacy %s with empty options', status => {
     const question = makeQuestion({ status, options: [], correctAnswer: null });
     const patch = buildQuestionEditPatch(question, { ...editDraft(question), content: 'Güncellenmiş eski soru metni' });
-    expect(patch).toEqual({ content: 'Güncellenmiş eski soru metni' });
+    expect(patch).toEqual({ expectedUpdatedAt: question.updatedAt, content: 'Güncellenmiş eski soru metni' });
     expect(patch).not.toHaveProperty('options');
     expect(patch).not.toHaveProperty('correctAnswer');
   });
@@ -62,6 +62,7 @@ describe('Question edit hotfix', () => {
       assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', altText: 'Şekil' }]
     });
     expect(patch).toEqual({
+      expectedUpdatedAt: question.updatedAt,
       assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', title: null, altText: 'Şekil', sortOrder: 0 }]
     });
   });
@@ -75,7 +76,7 @@ describe('Question edit hotfix', () => {
   it('does not silently convert a legacy null correctAnswer to A', () => {
     const question = makeQuestion({ options: [], correctAnswer: null });
     const patch = buildQuestionEditPatch(question, { ...editDraft(question), grade: '7. Sınıf' });
-    expect(patch).toEqual({ grade: '7. Sınıf' });
+    expect(patch).toEqual({ expectedUpdatedAt: question.updatedAt, grade: '7. Sınıf' });
     expect(patch.correctAnswer).toBeUndefined();
   });
 
@@ -86,7 +87,7 @@ describe('Question edit hotfix', () => {
       options: [' A ', 'B', 'C', 'D'],
       correctAnswer: 'C'
     });
-    expect(patch).toEqual({ options: ['A', 'B', 'C', 'D'], correctAnswer: 'C' });
+    expect(patch).toEqual({ expectedUpdatedAt: question.updatedAt, options: ['A', 'B', 'C', 'D'], correctAnswer: 'C' });
   });
 
   it('shows controlled validation for partially completed legacy options', () => {
