@@ -42,6 +42,22 @@ describe('Question API Handlers', () => {
     vi.mocked(prisma.activityLog.findFirst).mockResolvedValue(null);
   });
 
+  describe('Question detail ID validation', () => {
+    it.each(['12junk', '1.2', '0', '-2', '1e2', '9007199254740992'])(
+      'rejects malformed PATCH question ID %s without querying question',
+      async (id) => {
+        vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
+        vi.mocked(prisma.user.findUnique).mockResolvedValue({
+          id: 1, status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1 }
+        } as any);
+        const { req, res } = mockReqRes('PATCH', { content: 'A corrected question body' }, { id });
+        await handlerPatch(req, res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(prisma.question.findUnique).not.toHaveBeenCalled();
+      }
+    );
+  });
+
   describe('Workflow ID validation', () => {
     it.each(['12junk', '1.2', '0', '-2', '1e2', '9007199254740992'])(
       'rejects malformed question ID %s before reading the question',
