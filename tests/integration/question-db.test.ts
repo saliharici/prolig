@@ -27,6 +27,20 @@ describe('Question DB Integration', () => {
     genel = await prisma.user.findUnique({ where: { email: 'pilot.genel@prolig.local' }, include: { role: true } });
     bolge = await prisma.user.findUnique({ where: { email: 'pilot.bolge@prolig.local' }, include: { role: true } });
     il = await prisma.user.findUnique({ where: { email: 'pilot.il@prolig.local' }, include: { role: true } });
+    // This suite exercises a successful EDITOR approval cycle. The pilot fixture must
+    // explicitly fall within the editor's assigned branch, geography and grade.
+    if (!yazar?.AuthorProfile || !editor?.editorBranchId) {
+      throw new Error('Pilot setup missing YAZAR profile or EDITOR branch assignment');
+    }
+    if (yazar.AuthorProfile.branchId !== editor.editorBranchId) {
+      throw new Error('Pilot EDITOR branch does not match pilot YAZAR branch');
+    }
+    if (editor.provinceId && editor.provinceId !== yazar.AuthorProfile.provinceId) {
+      throw new Error('Pilot EDITOR province does not match pilot YAZAR province');
+    }
+    if (!editor.provinceId && !editor.assignedRegion) {
+      throw new Error('Pilot EDITOR has no configured geography');
+    }
   });
 
   afterAll(async () => {
@@ -72,7 +86,7 @@ describe('Question DB Integration', () => {
     const req = mockReq(yazar, {
       content: 'This is a test question for DB integration with enough length',
       projectId: null,
-      grade: '9',
+      grade: editor.editorGrade || '9',
       objectiveCode: 'M.9.1',
       difficulty: 'ORTA',
       options: ['A', 'B', 'C', 'D'],
