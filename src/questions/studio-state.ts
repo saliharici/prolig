@@ -35,3 +35,35 @@ export function questionStudioFingerprint(values: QuestionStudioFormValues): str
     assetAltText: values.assetAltText
   });
 }
+
+/**
+ * Ephemeral resume cache contract. No localStorage, sessionStorage or backend writes.
+ * A draft is available only while the current React application instance remains mounted.
+ */
+export interface QuestionStudioPausedDraft<TQuestion> {
+  values: QuestionStudioFormValues;
+  baseline: string;
+  originalProjectId: number | null;
+  originalQuestion: TQuestion | null;
+}
+
+export function pausedQuestionDraftKey(ownerId: number, questionId: number | null): string {
+  return `${ownerId}:${questionId === null ? 'new' : `question:${questionId}`}`;
+}
+
+export function copyQuestionStudioValues(values: QuestionStudioFormValues): QuestionStudioFormValues {
+  return {
+    ...values,
+    options: [...values.options],
+    assets: values.assets.map(asset => ({ ...asset }))
+  };
+}
+
+export function copyPausedQuestionDraft<TQuestion>(
+  draft: QuestionStudioPausedDraft<TQuestion>
+): QuestionStudioPausedDraft<TQuestion> {
+  return {
+    ...draft,
+    values: copyQuestionStudioValues(draft.values)
+  };
+}
