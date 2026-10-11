@@ -1406,3 +1406,18 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
   .question-studio-modal{padding:18px;max-height:calc(100vh - 20px)}
   .question-media-form{grid-template-columns:1fr}
 }
+
+
+/* Editor review full question preview */
+.editor-question-preview{background:#f8fafc;padding:15px;border-radius:11px;margin-bottom:18px;border:1px solid #e2e8f0;color:#2e4b53}
+.editor-question-preview strong{display:block;color:#314f57;font-size:9px;text-transform:uppercase;letter-spacing:.04em}
+.editor-question-stem p,.editor-question-solution p{margin:7px 0 0;white-space:pre-wrap;line-height:1.6;font-size:11px}
+.editor-question-options{margin-top:14px;padding-top:12px;border-top:1px solid #e5eceb}
+.editor-question-options-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.editor-question-options-head span{padding:5px 8px;border-radius:999px;background:#eaf8f4;color:#1b806d;font-size:8px;font-weight:900}
+.editor-question-options ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+.editor-question-options li{padding:8px 10px;border:1px solid #e2eae8;border-radius:9px;background:#fff;font-size:10px;line-height:1.5}
+.editor-question-options li.correct{border-color:#8ed8c8;background:#effbf8;color:#177a68;font-weight:800}
+.editor-question-options li>span{display:block}
+.editor-question-solution{margin-top:14px;padding:11px;border:1px dashed #cadfda;border-radius:10px;background:#fff}
+.editor-question-missing{margin:0;color:#a05b23;font-size:9px}

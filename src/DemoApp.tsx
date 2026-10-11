@@ -1099,6 +1099,36 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       </div>
     ))}</div>;
   };
+  const renderQuestionReviewPreview = (question: ApiQuestion) => {
+    const options = normalizeQuestionOptions(question.options);
+    const hasOptions = hasFourValidQuestionOptions(options);
+
+    return <article className="editor-question-preview">
+      <div className="editor-question-stem">
+        <strong>Soru kökü</strong>
+        <p>{question.content}</p>
+        {renderQuestionAssets(question.assets, 'STEM')}
+      </div>
+      <div className="editor-question-options">
+        <div className="editor-question-options-head">
+          <strong>Cevap seçenekleri</strong>
+          {question.correctAnswer && <span>Doğru cevap: {question.correctAnswer}</span>}
+        </div>
+        {hasOptions ? <ol type="A">{options.map((option, index) => {
+          const letter = String.fromCharCode(65 + index);
+          return <li key={letter} className={question.correctAnswer === letter ? 'correct' : ''}>
+            <span>{option}</span>
+            {renderQuestionAssets(question.assets, `OPTION_${letter}` as QuestionAssetPlacement)}
+          </li>;
+        })}</ol> : <p className="editor-question-missing">Bu sorunun cevap seçenekleri eksik veya eski formatta.</p>}
+      </div>
+      {(question.explanation || normalizeQuestionAssets(question.assets).some(asset => asset.placement === 'EXPLANATION')) && <div className="editor-question-solution">
+        <strong>Çözüm</strong>
+        {question.explanation && <p>{question.explanation}</p>}
+        {renderQuestionAssets(question.assets, 'EXPLANATION')}
+      </div>}
+    </article>;
+  };
   const openEditorReview = (question: ApiQuestion) => {
     if (['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && question.status === 'INCELEMEDE') {
       setReviewingQuestion(question);
@@ -1722,7 +1752,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <div className="modal-head"><div><span className="panel-kicker">EDİTÖR DEĞERLENDİRMESİ</span><h2>Soruyu İncele</h2></div><button type="button" aria-label="Kapat" onClick={() => setReviewingQuestion(null)}><X size={20} /></button></div>
         <p>Bu soru için değerlendirme kararınızı ve yazar için varsa notunuzu girin.</p>
         <div className="editor-review-context" style={{marginBottom: '1rem'}}><span>{reviewingQuestion.grade}</span><span>{reviewingQuestion.author?.fullName}</span></div>
-        <div style={{background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem', whiteSpace: 'pre-wrap'}}>{reviewingQuestion.content}{renderQuestionAssets(reviewingQuestion.assets)}</div>
+        {renderQuestionReviewPreview(reviewingQuestion)}
         <label>Aksiyon<select required value={reviewAction} onChange={e => { const val = e.target.value as QuestionWorkflowAction | ''; setReviewAction(val); if (val === 'approve') setEditorNote(''); }}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
         {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setReviewingQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>
