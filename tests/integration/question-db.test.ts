@@ -16,6 +16,7 @@ describe('Question DB Integration', () => {
   let il: any;
   
   let tempQuestionId: number;
+  let initialRevision: string;
 
   beforeAll(async () => {
     if (!process.env.DATABASE_URL || !process.env.AUTH_SECRET || process.env.PROLIG_PILOT_DB_CONFIRMED !== 'true') {
@@ -110,19 +111,62 @@ describe('Question DB Integration', () => {
     expect(res.statusCode).toBe(200);
     const found = res.data.find((q: any) => q.id === tempQuestionId);
     expect(found).toBeTruthy();
+    initialRevision = new Date(found.updatedAt).toISOString();
   });
 
   it('YAZAR PATCH TASLAK', async () => {
     const q = await prisma.question.findUnique({ where: { id: tempQuestionId } });
-    const req = mockReq(yazar, { content: 'Updated Temp Question content length' });
+    expect(q).toBeTruthy();
+    const req = mockReq(yazar, {
+      content: 'Updated Temp Question content length',
+      options: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+      correctAnswer: 'D',
+      explanation: 'Four choices, the fourth is correct',
+      expectedUpdatedAt: q!.updatedAt.toISOString()
+    });
     const res = mockRes();
     req.method = 'PATCH'; await questionId.default(req, res);
     
     expect(res.statusCode).toBe(200);
     expect(res.data.content).toBe('Updated Temp Question content length');
+    expect(res.data.options).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+    expect(res.data.correctAnswer).toBe('D');
+    expect(res.data.explanation).toBe('Four choices, the fourth is correct');
 
     const audit = await prisma.activityLog.findFirst({ where: { entityId: tempQuestionId, entityType: 'Question', action: 'QUESTION_UPDATED' } });
     expect(audit).toBeTruthy();
+  });
+
+  it('P1-D GET after PATCH returns persistent question fields and advanced revision', async () => {
+    const req = mockReq(yazar);
+    const res = mockRes();
+    await questionIndex.default(req, res);
+    expect(res.statusCode).toBe(200);
+    const actual = res.data.find((q: any) => q.id === tempQuestionId);
+    expect(actual).toBeTruthy();
+    expect(actual.content).toBe('Updated Temp Question content length');
+    expect(actual.options).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+    expect(actual.correctAnswer).toBe('D');
+    expect(actual.explanation).toBe('Four choices, the fourth is correct');
+    expect(Date.parse(actual.updatedAt)).toBeGreaterThan(Date.parse(initialRevision));
+  });
+
+  it('P1-D two-session stale PATCH returns 409 without overwriting the first edit', async () => {
+    const req = mockReq(yazar, {
+      content: 'Second browser session must not overwrite newer content',
+      expectedUpdatedAt: initialRevision
+    });
+    req.method = 'PATCH';
+    const res = mockRes();
+    await questionId.default(req, res);
+    expect(res.statusCode).toBe(409);
+    const current = await prisma.question.findUnique({ where: { id: tempQuestionId } });
+    expect(current?.content).toBe('Updated Temp Question content length');
+    expect(current?.options).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+    const audit = await prisma.activityLog.count({
+      where: { entityType: 'Question', entityId: tempQuestionId, action: 'QUESTION_UPDATED' }
+    });
+    expect(audit).toBe(1);
   });
 
   it('SUBMIT TASLAK -> INCELEMEDE', async () => {
@@ -177,7 +221,11 @@ describe('Question DB Integration', () => {
 
   it('YAZAR PATCH REVIZYON', async () => {
     const q = await prisma.question.findUnique({ where: { id: tempQuestionId } });
-    const req = mockReq(yazar, { content: 'Revised Question content length' });
+    expect(q).toBeTruthy();
+    const req = mockReq(yazar, {
+      content: 'Revised Question content length',
+      expectedUpdatedAt: q!.updatedAt.toISOString()
+    });
     const res = mockRes();
     req.method = 'PATCH'; await questionId.default(req, res);
     expect(res.statusCode).toBe(200);
