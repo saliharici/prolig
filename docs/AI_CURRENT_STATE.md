@@ -107,3 +107,12 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - **Evidence boundary:** screenshots DO NOT establish save/reload persistence, end-to-end new-question creation, correct mobile/responsive behavior, keyboard/IME, alt-text enforcement, or role/security behavior. Treat visual acceptance as desktop preview observations, NOT complete P1-A product signoff.
 - Before progressing to persisted rich-text edits, validate roundtrip save/reopen, no data loss on HTTP 409, feature-flag-off legacy display, and pilot-only access with existing backend checks.
 - Next milestone: P1-B editor proof-of-concept; prioritize unsaved draft recovery, Turkish keyboard/IME, font legibility and math renderer decision; database and production remain untouched.
+
+## P1-B safeguard workspace — IMPLEMENTED, not yet operator-tested (2026-10-11)
+- Branch `feat/question-studio-p1b-safe-workspace-20261011` was created from P1-A visual review commit `79d8895`. User approved proceeding to P1-B; that approval is **not** evidence of successful save/reopen or authorization to deploy.
+- Added `src/questions/studio-state.ts`: deterministic in-memory form fingerprint, including unsubmitted media input fields.
+- `src/DemoApp.tsx`: on HTTP 409 no destructive server-side re-open; preserves unsaved question draft and displays actionable error. Synchronous save lock + loading/disabled/inert authoring controls avoid duplicate sends/changes during pending save. Close and cancel require confirmation if dirty; beforeunload warning on browser reload; successful save clears form only after server acknowledgment.
+- `src/questions/studio-workspace.css`: opt-in full-viewport workspace via `VITE_QUESTION_STUDIO_P1=true`; larger text, responsive editing/preview, sticky actions. Legacy flag-off modal and backend endpoints remain unchanged.
+- Added `tests/question-studio-p1b.test.ts` (15 nominal test cases: fingerprint, field changes, 409 source/close guard, opt-in CSS) and `docs/QUESTION_STUDIO_P1B_SAFE_WORKSPACE.md` with acceptance matrix.
+- No DB schema changes, migrations, seed, `main` merge or Production release. No rich-text WYSIWYG or actual math typesetting yet. Draft remains in-memory: browser crash/reload cannot restore it automatically.
+- **NEXT REQUIRED GATE:** user checks out new branch, executes `node scripts/p1-check.mjs`. Expected non-DB total around 434 (419 P1-A + 15 P1-B); do not claim PASS before output. Then pilot-only human/browser save-reopen and 409 reproduction.
