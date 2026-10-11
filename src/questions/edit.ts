@@ -128,6 +128,11 @@ export function buildQuestionEditPatch(question: ApiQuestion, draft: QuestionEdi
     input.correctAnswer = draft.correctAnswer;
   }
 
+  const draftAssets = normalizeQuestionAssets(draft.assets);
+  if (!areQuestionAssetsEqual(question.assets, draftAssets)) {
+    input.assets = draftAssets;
+  }
+
   if (Object.keys(input).length === 0) {
     throw new QuestionFormValidationError('Kaydedilecek bir değişiklik bulunamadı.');
   }
