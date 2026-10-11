@@ -78,3 +78,10 @@ Exit: Ctrl+C; `Remove-Item Env:VITE_QUESTION_STUDIO_P1 -ErrorAction SilentlyCont
 - **Privacy / limitations:** no localStorage/sessionStorage/IndexedDB, no server save, no DB write; therefore closing tab, refresh, crash or app remount will **lose** paused drafts, even if warning was shown. Do not advertise persistence across reload. Drafts are separated by `currentUser.id` and question ID to avoid mixing different authors and questions in the running app.
 - Tests updated to assert cache key isolation, clone behavior, pause/reopen routes and revised legacy modal-close expectations. The new code has NOT YET been validated by local lint/build/runtime; latest accepted baseline before patch was 434/434 tests, lint PASS, build PASS.
 - **Required next:** `git pull --ff-only`; `node scripts/p1-check.mjs`; then local browser flag-on test: type unsaved content, "Ara ver" -> Cancel stays, "Ara ver" -> Confirm exits, reopen new question -> content returns, confirm answer/video/project restored. Use pilot DB only for save/reopen backend tests.
+
+## P1-B PAUSE/RESUME BROWSER ACCEPTANCE PASSED — 2026-10-11
+- User explicitly confirmed all four manual checks passed in the local P1-B UI: (1) enter stem/four options/explanation, (2) choose Cancel on "Ara ver" confirmation and retain open form, (3) confirm pause and close form, (4) reopen "Yeni soru" and recover stem/options/correct answer/explanation.
+- This **accepts in-memory pause/resume behavior**, in addition to the previous operator-run 437/437 frontend tests, TypeScript/lint PASS and build PASS. Narrow-screen layout was previously confirmed satisfactory.
+- Do **not** overstate as durable draft storage. Reload/tab close/crash persistence has NOT been implemented; save/reopen server round-trip, real multi-session 409 conflict and full accessibility/IME remain pending.
+- Proposed next controlled milestone: privacy-aware and user-isolated durable local draft recovery design, then professional rich-text editor and math rendering under separate gates. No additional feature implementation has been authorized in this message.
+- No main merge, Vercel Production, schema change or database write.
