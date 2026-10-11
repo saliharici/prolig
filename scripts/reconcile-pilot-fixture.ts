@@ -24,8 +24,17 @@ try {
   ]);
   if (!writer?.AuthorProfile || !editor || !coordinator || !project || !istanbul) throw new Error('Missing canonical pilot fixture');
   if (writer.role.code !== 'YAZAR' || editor.role.code !== 'EDITOR' || coordinator.role.code !== 'IL_KOORDINATORU') throw new Error('Unexpected pilot roles');
-  if (istanbul.name !== 'İstanbul' || istanbul.region !== 'Marmara' || coordinator.provinceId !== istanbul.id || editor.provinceId !== istanbul.id) {
-    throw new Error('Pilot editor, province coordinator or Istanbul catalogue is inconsistent. Abort.');
+  const locationPreflight = {
+    istanbulCatalogueValid: istanbul.name === 'İstanbul' && istanbul.region === 'Marmara',
+    coordinatorProvinceMatchesIstanbul: coordinator.provinceId === istanbul.id,
+    editorProvinceMatchesIstanbul: editor.provinceId === istanbul.id,
+    coordinatorProvinceId: coordinator.provinceId,
+    editorProvinceId: editor.provinceId,
+    canonicalIstanbulProvinceId: istanbul.id
+  };
+  console.log('Pilot location preflight (read-only):', JSON.stringify(locationPreflight, null, 2));
+  if (!locationPreflight.istanbulCatalogueValid || !locationPreflight.coordinatorProvinceMatchesIstanbul || !locationPreflight.editorProvinceMatchesIstanbul) {
+    throw new Error('Pilot location preflight mismatch. No writes applied; review location facts before designing any repair.');
   }
   const profile = writer.AuthorProfile;
   if (profile.branchId !== project.branchId || editor.editorBranchId !== project.branchId || !project.projectAuthors.some(x => x.authorProfileId === profile.id)) {
