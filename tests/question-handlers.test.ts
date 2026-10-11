@@ -450,7 +450,7 @@ describe('Question API Handlers', () => {
       await handlerPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(200);
 
-      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'REVIZYON' } as any);
+      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'REVIZYON', updatedAt: new Date(TEST_QUESTION_REVISION) } as any);
       ({ req, res } = mockReqRes('PATCH', { content: 'Valid content update' }, { id: '1' }));
       await handlerPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(200);
