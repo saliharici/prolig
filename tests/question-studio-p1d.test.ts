@@ -56,6 +56,10 @@ describe('P1-D revision protection and comparison', () => {
     expect(src).toContain('setDurableDraftConflict(true)');
     expect(src).toContain('compareQuestionRevisions(questionFormValues, serverQuestionConflict)');
     expect(src).toContain('Yerel taslağı bırak ve güncel soruyu aç');
+    // The conditional fallback alert must be closed before rendering the P1-C panel.
+    // A missing closing brace breaks the entire JSX parse, not just the conflict UI.
+    expect(src.replace(/\\r\\n/g, '\\n')).toContain('</p>}\\n          {durableFeatureOn && <section');
+
     expect(patch).toContain('res.status(428)');
     expect(patch).toContain('question.updatedAt.getTime() !== Date.parse(expectedUpdatedAt)');
     expect(patch).toContain('authorUserId: user.id,');
