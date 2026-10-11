@@ -42,14 +42,17 @@ export function isValidCorrectAnswer(value: unknown): value is string {
 export function normalizeQuestionAssets(assets: unknown): QuestionAssetInput[] {
   if (!Array.isArray(assets)) return [];
 
-  return assets
-    .map((asset, index) => {
+  const normalized = assets
+    .map<QuestionAssetInput | null>((asset, index) => {
       if (!asset || typeof asset !== 'object') return null;
       const candidate = asset as Partial<QuestionAssetInput>;
       if (!assetPlacements.has(candidate.placement as QuestionAssetPlacement)) return null;
       if (!assetTypes.has(candidate.assetType as QuestionAssetType)) return null;
       const url = typeof candidate.url === 'string' ? candidate.url.trim() : '';
       if (!url) return null;
+      const sortOrder = typeof candidate.sortOrder === 'number' && Number.isSafeInteger(candidate.sortOrder)
+        ? candidate.sortOrder
+        : index;
 
       return {
         ...(typeof candidate.id === 'number' ? { id: candidate.id } : {}),
@@ -58,9 +61,11 @@ export function normalizeQuestionAssets(assets: unknown): QuestionAssetInput[] {
         url,
         title: typeof candidate.title === 'string' && candidate.title.trim() ? candidate.title.trim() : null,
         altText: typeof candidate.altText === 'string' && candidate.altText.trim() ? candidate.altText.trim() : null,
-        sortOrder: Number.isSafeInteger(candidate.sortOrder) ? candidate.sortOrder : index
+        sortOrder
       };
-    })
+    });
+
+  return normalized
     .filter((asset): asset is QuestionAssetInput => asset !== null)
     .slice(0, 12);
 }

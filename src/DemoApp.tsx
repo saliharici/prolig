@@ -6,7 +6,7 @@ import {
   Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BarChart3, BookOpen,
   Bold, Check, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, ClipboardList, Clock3,
   FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText, Megaphone,
-  LockKeyhole, LogOut, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Globe2,
+  LockKeyhole, LogOut, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Globe2, Eye,
   PencilLine, Trash2, Underline, Users, Wallet, X,
 } from 'lucide-react';
 import {
