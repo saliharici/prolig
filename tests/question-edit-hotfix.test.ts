@@ -110,7 +110,19 @@ describe('Question edit hotfix', () => {
     const source = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf8');
     expect(source).toContain('const [editingQuestion, setEditingQuestion] = useState<ApiQuestion | null>(null)');
     expect(source).toContain('const [reviewingQuestion, setReviewingQuestion] = useState<ApiQuestion | null>(null)');
-    expect(source).toContain('if (event.target === event.currentTarget) { setShowQuestionForm(false); setEditingQuestion(null); }');
+    // P1-B: author close now checks dirty state and saving status before clearing.
+    const safeCloseStart = source.indexOf('const closeQuestionForm = () => {');
+    const safeCloseEnd = source.indexOf('const questionAssignableProjects =', safeCloseStart);
+    const safeClose = source.slice(safeCloseStart, safeCloseEnd);
+    expect(safeCloseStart).toBeGreaterThan(-1);
+    expect(safeCloseEnd).toBeGreaterThan(safeCloseStart);
+    expect(safeClose).toContain('if (questionSavingRef.current) return;');
+    expect(safeClose).toContain('hasUnsavedQuestionChanges && !window.confirm(');
+    expect(safeClose).toContain('setShowQuestionForm(false);');
+    expect(safeClose).toContain('setEditingQuestion(null);');
+    expect(source).toContain('if (event.target === event.currentTarget) closeQuestionForm();');
+    expect(source).toContain('aria-label="Kapat" disabled={questionSaving} onClick={closeQuestionForm}');
+    expect(source).toContain('disabled={questionSaving} onClick={closeQuestionForm}>Vazgeç');
 
     const editorModalStart = source.indexOf('<form className="question-modal editor-review-modal"');
     const editorModalEnd = source.indexOf('</form></div>}', editorModalStart);
