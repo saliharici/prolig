@@ -134,3 +134,17 @@ When PASS, command to start local READ-ONLY UAT frontend (requires operator to c
 Then visit http://127.0.0.1:3137 ; log in with sandbox fake user only (password is stored privately in .local/p1d-sandbox-credentials.env, not to be shared). Login does not change DB. Some other PRO-LIG modules are intentionally unavailable here; focused acceptance is Question Studio. Stop with Ctrl+C. The local browser runtime is not yet operator tested; report symptoms instead of claiming it works.
 
 For real browser question create/PATCH and two-tab 409 visual UX, request another explicit authorization and launch in guarded --serve-write mode. Consider collecting browser screenshots with passwords, JWT cookies and private URLs concealed. DO NOT paste secret files or credential values.
+
+## Operator approved isolated browser write/concurrency and encrypted-recovery UAT (2026-10-11)
+- First browser read-only preflight, five safety tests, local server, pilot writer login, dashboard and question/project views PASS. User confirmed pilot math project appears in Studio project selector.
+- User explicitly consented to temporary browser question create/edit/two-tab 409 conflict/encrypted recovery/deletion ONLY in prolig_p1d_sandbox. Not Production/main/original database.
+- Encrypted draft recovery needs VITE_QUESTION_STUDIO_P1 and VITE_QUESTION_STUDIO_P1C. Both now enabled via local sandbox browser Vite config define; no Vercel changes.
+- Operator: Ctrl+C existing read-only server, git pull --ff-only, node --check scripts/p1d-sandbox-browser.mjs, npx vitest run tests/p1d-sandbox-browser.test.ts, node scripts/p1d-sandbox-browser.mjs --preflight.
+- Then explicitly approved write UAT in PowerShell:
+    $env:PROLIG_P1D_BROWSER_UAT_APPROVAL = 'ALLOW_BROWSER_QUESTION_WRITES_IN_prolig_p1d_sandbox'
+    try {
+      node scripts/p1d-sandbox-browser.mjs --serve-write
+    } finally {
+      Remove-Item Env:\PROLIG_P1D_BROWSER_UAT_APPROVAL -ErrorAction SilentlyContinue
+    }
+- Local browser only: http://127.0.0.1:3137. Only use fake pilot writer password from private sandbox credentials file. First create/reopen temporary question; then local encrypted recovery; then two-tab stale PATCH must show 409 and comparison without overwriting local text. Cleanup temporary question via UI and re-run read-only health verification after stopping server. Never reveal any password/passphrase/URL. Browser write mode not yet operator-run.
