@@ -117,7 +117,10 @@ describe('Question edit hotfix', () => {
     expect(safeCloseStart).toBeGreaterThan(-1);
     expect(safeCloseEnd).toBeGreaterThan(safeCloseStart);
     expect(safeClose).toContain('if (questionSavingRef.current) return;');
-    expect(safeClose).toContain('hasUnsavedQuestionChanges && !window.confirm(');
+    expect(safeClose).toContain('if (hasUnsavedQuestionChanges) {');
+    expect(safeClose).toContain("if (!window.confirm('Düzenlemeye ara verilsin mi?");
+    expect(safeClose).toContain('pausedQuestionDraftsRef.current.set(pausedQuestionKey, copyPausedQuestionDraft({');
+    expect(safeClose).toContain('setShowQuestionForm(false);');
     expect(safeClose).toContain('setShowQuestionForm(false);');
     expect(safeClose).toContain('setEditingQuestion(null);');
     expect(source).toContain('if (event.target === event.currentTarget) closeQuestionForm();');
