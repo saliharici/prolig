@@ -9,7 +9,7 @@ import path from 'node:path';
 describe('P1 structured question preview spike', () => {
   it('round-trips Turkish text, CRLF, blank lines, math and exact A-D data', () => {
     const legacy = {
-      content: 'İstanbul, Ğüşöç  \\r\\n\\r\\n**Önemli** $\\\\frac{1}{2}$\\r\\n',
+      content: 'İstanbul, Ğüşöç  \r\n\r\n**Önemli** $\\frac{1}{2}$\r\n',
       options: ['A) çiçek', '  B değeri  ', '', 'D) son'],
       explanation: 'Çözüm: Δ = 2',
       correctAnswer: 'B'
@@ -34,13 +34,13 @@ describe('P1 structured question preview spike', () => {
   });
 
   it('parses ordered lists and table rows without dropping cells', () => {
-    const blocks = parseStudioBlocks('1. İlk\\n2. İkinci\\n\\n| Sınıf | Net |\\n| --- | --- |\\n| 8 | 12 |');
+    const blocks = parseStudioBlocks('1. İlk\n2. İkinci\n\n| Sınıf | Net |\n| --- | --- |\n| 8 | 12 |');
     expect(blocks[0]).toMatchObject({ kind: 'list', ordered: true });
     expect(blocks[1]).toEqual({ kind: 'table', columns: ['Sınıf', 'Net'], rows: [['8', '12']] });
   });
 
   it('keeps escaped pipes inside table cells', () => {
-    const blocks = parseStudioBlocks('| Ad | Sonuç |\\n| --- | --- |\\n| A\\\\|B | 10 |');
+    const blocks = parseStudioBlocks('| Ad | Sonuç |\n| --- | --- |\n| A\\|B | 10 |');
     expect(blocks[0]).toMatchObject({ kind: 'table', rows: [['A|B', '10']] });
   });
 
@@ -65,7 +65,7 @@ describe('P1 structured question preview spike', () => {
 
   it('renders accessible table, four answers and TeX source fallback', () => {
     const document = legacyQuestionToStudioDocument({
-      content: '| A | B |\\n| --- | --- |\\n| 1 | 2 |\\n$x^2 + 1$',
+      content: '| A | B |\n| --- | --- |\n| 1 | 2 |\n$x^2 + 1$',
       options: ['Bir', 'İki', 'Üç', 'Dört'],
       correctAnswer: 'C',
       explanation: 'İşlem'
