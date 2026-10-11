@@ -4,3 +4,10 @@ Antigravity audit reports 71 tests, 9 failures; lint/build PASS. Failures: YAZAR
 Source check: `getCurrentUser` selects `branchAssignments`; Prisma `User` defines relation to `UserBranchAssignment`. Audit reports relation unavailable in dev database. Investigate schema/migration deployment safely; do not remove relationship solely to hide failure. Scope builders already implement some geography and writer isolation; exact test failure stacks needed.
 No feature code change, main merge, Vercel production deploy, or DB migration performed in this sprint yet.
 Next: reproduce failures in isolated test DB; implement minimal authorization fixes; pass full test suite, lint and build, then obtain user acceptance before production.
+
+## P0 update — 2026-10-11
+- Question workflow ID parsing fixed and API regression tests added in the review branch (commits e6154fbd and 3e49217d).
+- Pilot workflow fixture updated to align question grade with assigned editor grade; this has NOT been rerun against a pilot DB.
+- Read-only diagnostic added: `node scripts/diagnose-branch-assignment.mjs` (commit 3d52ef8f). Requires explicit pilot-DB confirmation and queries only table/migration metadata. It does not apply migrations.
+- Author DTO and scope source review shows own-profile filter is already present; exact failing integration response is still unknown. Do not loosen this access control without evidence.
+- Test failures remain unverified; no claim that P0 is complete. No main merge, Vercel deploy or database mutation performed.
