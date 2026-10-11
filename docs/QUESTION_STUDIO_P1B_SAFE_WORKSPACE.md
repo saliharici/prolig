@@ -39,7 +39,7 @@ If the branch already exists locally, run `git switch feat/question-studio-p1b-s
 
 The gate must report:
 - UI and API TypeScript PASS,
-- all unit regressions including new P1-B tests PASS (expected **436** tests if the prior 419 plus new 17 P1-B cases are discovered; use actual totals in the log),
+- all unit regressions including new P1-B tests PASS (nominally **434** tests: prior 419 plus 15 new cases; rely on actual runner totals),
 - Vite build PASS,
 - `P1 frontend gate: PASS`.
 
