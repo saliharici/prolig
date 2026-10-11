@@ -170,3 +170,10 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - P1-C **frontend automated gate accepted**, but **NOT browser/manual acceptance**, live pilot DB save/reopen, two-session 409 check, nor merge/Production approval.
 - Next: in the same local origin/browser profile, run `VITE_QUESTION_STUDIO_P1=true`, `VITE_QUESTION_STUDIO_P1C=true`, `npx vercel dev`; exercise explicit opt-in, 12+ character independent passphrase, after-idle encrypted autosave, Ara ver, browser reload, password recovery and original form content. Do not use actual account password.
 - Distinguish cryptographic unit tests from actual browser storage capability. Never claim persisted recovery until manual confirmation. Preserve untracked user files; no main merge, Production, migrations, or DB writes.
+
+## P1-C four-step browser acceptance — user approval 2026-10-11
+- The user responded "hepsini onaylıyorum" to the four proposed manual browser steps: prepare a complete question and activate encrypted recovery, pause, reload the same browser/origin, and recover with the separate passphrase.
+- Record as **user approval of the P1-C browser acceptance scenario**, not independent observation of the screen or runtime telemetry. If we need an explicit audit claim that all steps executed and passed, request detailed operator results.
+- Previously operator-verified automated frontend gate: 446/446 tests and Vite build PASS (48/48 files). The feature remains on the P1-C branch, gated by `VITE_QUESTION_STUDIO_P1` and `VITE_QUESTION_STUDIO_P1C`.
+- Outstanding gates: isolated pilot database POST/PATCH save and reopen roundtrip, real multi-session 409/stale-version and reconciliation, recovery on same origin after restart, browser storage/permission and accessibility checks, and any production operational privacy review. These remain **not independently validated**.
+- No authorization for merging to main, deploying Production, altering schema, migrating or seeding the database. Next staged milestone should verify pilot backend compatibility and concurrency before advancing to rich-text/math editing.
