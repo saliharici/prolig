@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import './studio-preview.css';
 import type { QuestionAssetPlacement } from './types';
 import type { StudioBlock, StudioDocumentV1, StudioInline } from './studio-document';
 import { parseStudioInline } from './studio-document';
