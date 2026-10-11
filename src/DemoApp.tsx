@@ -1158,7 +1158,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   
   const handleCreateQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (questionSavingRef.current || currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
+    if (durableDraftConflict) {
+      setQuestionSaveError('Bu kurtarma kopyası eski sunucu sürümüne ait. Mevcut soru verileriyle karşılaştırmadan kaydedilemez.');
+      return;
+    }
+    if (questionSavingRef.current || durableDraftBusy || currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
     questionSavingRef.current = true;
     setQuestionSaving(true);
     setQuestionSaveError('');
@@ -1188,6 +1192,16 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         });
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
+      durableDraftGenerationRef.current += 1;
+      if (durableFeatureOn) {
+        try {
+          removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId);
+        } catch {
+          setToast('Sunucuya kaydedildi; bu cihazdaki şifreli kurtarma kopyası silinemedi. Gizlilik ayarlarını kontrol edin.');
+        }
+      }
+      durableDraftPhraseRef.current = '';
+      setDurableDraftEnabled(false);
       pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
       setPausedDraftsVersion(v => v + 1);
       setShowQuestionForm(false);
@@ -1220,6 +1234,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       return;
     }
     setEditingQuestion(null);
+    durableDraftPhraseRef.current = '';
+    setDurableDraftEnabled(false);
+    setDurableDraftConflict(false);
+    setDurableDraftMessage('');
     setQuestionTitle('');
     setQuestionSaveError('');
     setQuestionBaseline(questionStudioFingerprint({
@@ -1523,6 +1541,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       return;
     }
     setEditingQuestion(question);
+    durableDraftPhraseRef.current = '';
+    setDurableDraftEnabled(false);
+    setDurableDraftConflict(false);
+    setDurableDraftMessage('');
     setQuestionTitle(question.content);
     
     const linkedProject = question.projectId ? apiProjects.find(project => project.id === question.projectId) : null;
