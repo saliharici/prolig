@@ -132,3 +132,11 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Updated/extended P1-B tests; **these changes are NOT locally tested yet**. Last prior verified gate: 434/434, lint PASS, build PASS; **rerun** `node scripts/p1-check.mjs` before browser acceptance.
 - State is not durable across reload, browser close, crash, remount. Never interpret UI pause as DB save.
 - No main merge, Production deployment, schema migration or database write.
+
+## P1-B pause/resume frontend gate PASS — operator verification 2026-10-11
+- Operator pulled branch through 913c12f and ran `node scripts/p1-check.mjs`.
+- `npm run lint` UI/API TypeScript PASS; 47/47 test files, **437/437 tests PASS**, including 18 P1-B tests; Vite v8.3.0 build PASS (1705 modules).
+- Main JS bundle ~714.12 KB; non-blocking chunk-size advisory. Mocked `DB Error` and `Tx Error` negative-path diagnostics do not indicate failing tests.
+- This validates **non-DB frontend automated checks only**. In-memory paused-draft browser behavior (Ara ver -> confirm -> reopen, cancel stays), live pilot save/reopen and real 409 handling still require user manual confirmation.
+- Pause/resume does not survive refresh, closing the tab, crash, or React app remount; never imply durable persistence.
+- No Production deployment, merge to main, or database changes. Do not rerun all automated gates unless code changes again.
