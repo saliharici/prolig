@@ -20,7 +20,19 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const envPath = path.resolve('.local/prolig-pilot-credentials.env');
+  // The P1-D sandbox creates its own fake identities and must never reuse
+  // the original pilot user credentials file.
+  const envPath = process.env.PROLIG_PILOT_CREDENTIALS_PATH
+    ? path.resolve(process.env.PROLIG_PILOT_CREDENTIALS_PATH)
+    : path.resolve('.local/prolig-pilot-credentials.env');
+  if (process.env.PROLIG_P1D_SANDBOX_ONLY === 'true') {
+    if (process.env.PROLIG_P1D_DB_NAME !== 'prolig_p1d_sandbox' ||
+        envPath !== path.resolve('.local/p1d-sandbox-credentials.env') ||
+        !process.env.DATABASE_URL ||
+        new URL(process.env.DATABASE_URL).pathname !== '/prolig_p1d_sandbox') {
+      throw new Error('P1-D sandbox seed target or dedicated credentials path is invalid.');
+    }
+  }
   if (!fs.existsSync(envPath)) {
     throw new Error(`Credential file not found at ${envPath}`);
   }
