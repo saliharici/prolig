@@ -42,6 +42,22 @@ describe('Question API Handlers', () => {
     vi.mocked(prisma.activityLog.findFirst).mockResolvedValue(null);
   });
 
+  describe('Workflow ID validation', () => {
+    it.each(['12junk', '1.2', '0', '-2', '1e2', '9007199254740992'])(
+      'rejects malformed question ID %s before reading the question',
+      async (id) => {
+        vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
+        vi.mocked(prisma.user.findUnique).mockResolvedValue({
+          id: 1, status: 'Aktif', role: { code: 'GENEL_KOORDINATOR' }
+        } as any);
+        const { req, res } = mockReqRes('POST', { action: 'approve' }, { id });
+        await handlerWorkflow(req, res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(prisma.question.findUnique).not.toHaveBeenCalled();
+      }
+    );
+  });
+
   describe('AUTH', () => {
     it('unauthenticated GET/POST/PATCH/workflow -> 401', async () => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(null);
