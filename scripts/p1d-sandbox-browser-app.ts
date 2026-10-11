@@ -94,6 +94,12 @@ const vite = await createViteServer({
   root,
   configFile: false,
   envDir: false,
+  // Enable P1-D Studio and P1-C encrypted draft recovery ONLY in this isolated
+  // browser preview; this does not modify ordinary Vercel/Vite environments.
+  define: {
+    'import.meta.env.VITE_QUESTION_STUDIO_P1': JSON.stringify('true'),
+    'import.meta.env.VITE_QUESTION_STUDIO_P1C': JSON.stringify('true')
+  },
   plugins: [react()],
   resolve: { alias: { '@': root } },
   server: {
