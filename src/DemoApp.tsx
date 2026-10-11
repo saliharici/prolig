@@ -17,6 +17,8 @@ import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
 import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
+import { legacyQuestionToStudioDocument } from './questions/studio-document';
+import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
 import type { ApiQuestion, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
@@ -1814,12 +1816,22 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 
             <aside className="question-preview-panel">
               <div className="question-preview-head"><span><Eye size={15} /> Canlı ön izleme</span><strong>{questionGrade}</strong></div>
-              <article className="question-preview-card">
+              {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? (
+                <StudioDocumentPreview
+                  document={legacyQuestionToStudioDocument({
+                    content: questionTitle,
+                    options: questionOptions,
+                    explanation: questionExplanation,
+                    correctAnswer: questionCorrectAnswer
+                  })}
+                  renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
+                />
+              ) : <article className="question-preview-card">
                 <div className="formatted-question-text">{renderFormattedQuestionText(questionTitle, 'Soru kökü burada görünecek.')}</div>
                 {renderQuestionAssets(questionAssets, 'STEM')}
                 <ol type="A">{questionOptions.map((option, index) => <li key={index} className={questionCorrectAnswer === String.fromCharCode(65 + index) ? 'correct' : ''}>{option || `${String.fromCharCode(65 + index)} seçeneği`}{renderQuestionAssets(questionAssets, `OPTION_${String.fromCharCode(65 + index)}` as QuestionAssetPlacement)}</li>)}</ol>
                 {questionExplanation.trim() && <div className="question-preview-solution"><strong>Çözüm</strong><div className="formatted-question-text compact">{renderFormattedQuestionText(questionExplanation)}</div>{renderQuestionAssets(questionAssets, 'EXPLANATION')}</div>}
-              </article>
+              </article>}
               <div className="question-quality-panel">
                 <strong>Kontrol listesi</strong>
                 {questionQualityIssues.length === 0 ? <span className="quality-ok">Soru editöre gönderime hazır görünüyor.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
