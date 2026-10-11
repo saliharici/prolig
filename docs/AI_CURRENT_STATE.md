@@ -73,3 +73,11 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - P0 CORE scope (permissions, project visibility, author/editor question lifecycle, pilot payment) meets technical acceptance on feature branch. NOT a blanket claim for settlement DB or production deployment.
 - Deferred follow-up: explicit settlement DB fixture and skipped tests; Vite JS chunk optimization; PostgreSQL client SSL/deprecation warnings.
 - No merge to main, no Production deployment, no doctoral independent-copy changes. Await separate explicit acceptance before either promotion.
+
+## P1-A opt-in structured preview implementation — 2026-10-11
+- Isolated P1 branch: `feat/question-studio-p1-structured-preview-20261011`, based on P0 core closing commit `6fe4dc33`.
+- Implemented: lossless legacy-to-typed-document adapter; React-escaped structured preview (lists, table, formatting, safe HTTPS links, TeX source fallback); four options and existing media placements; gated 1200-char table insertion; scoped CSS; automated P1 security/compatibility test source; single-command `node scripts/p1-check.mjs` and implementation plan.
+- Feature flag `VITE_QUESTION_STUDIO_P1=true` enables experimental preview on local development; default legacy renderer and all existing API/database writes are unchanged. NO new Prisma schema or migration; NO autosave/version persistence yet.
+- IMPORTANT: new P1 code has NOT yet been locally compiled/tested by operator. Do NOT state that P1 tests passed. User to run `node scripts/p1-check.mjs`, inspect local preview and report output.
+- GitHub status for P1 commit indicated Vercel build rate-limit / quota block, not verified code build failure; Vercel MCP access to existing `salih22` scope returned 403, so deployment logs not available. No manual deployment authorized.
+- Next: fix any P1 gate failures, verify browser view; then evaluate editor and math-typesetting library, IME/undo/a11y/asset safety and HTTP 409 unsaved draft recovery in subsequent stage.
