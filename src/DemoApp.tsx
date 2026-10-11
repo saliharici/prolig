@@ -924,6 +924,13 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionBaseline(draft.baseline);
     setServerQuestionConflict(null);
     setQuestionConflictLookupFailed(false);
+    if (draft.conflicted && draft.originalQuestion?.id) {
+      void fetchQuestions('all').then(questions => {
+        const latest = questions.find(q => q.id === draft.originalQuestion?.id);
+        if (latest) setServerQuestionConflict(latest);
+        else setQuestionConflictLookupFailed(true);
+      }).catch(() => setQuestionConflictLookupFailed(true));
+    }
     setDurableDraftConflict(Boolean(draft.conflicted));
     setQuestionSaveError('');
     setShowQuestionForm(true);
@@ -2125,6 +2132,16 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                 </div>
               ))}
             </div>
+            {['TASLAK', 'REVIZYON'].includes(serverQuestionConflict.status) && <button type="button" className="secondary-button" onClick={() => {
+              if (!window.confirm('Kaydedilmemiş yerel değişiklikler bırakılsın ve sunucudaki güncel sürüm açılsın mı? Önce korunmasını istediğiniz metinleri kopyalayın.')) return;
+              pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+              durableDraftGenerationRef.current += 1;
+              if (durableFeatureOn) {
+                try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId); }
+                catch { setQuestionSaveError('Cihazdaki şifreli kopya silinemedi; gizlilik ayarlarını kontrol edin.'); }
+              }
+              openYazarEdit(serverQuestionConflict);
+            }}>Yerel taslağı bırak ve güncel soruyu aç</button>}
           </section>}
           {questionConflictLookupFailed && <p className="studio-save-error" role="alert">Güncel sunucu sürümü alınamadı. Ekrandaki taslak korundu; başka bir sekmede soru listesini kontrol edin.</p>
           {durableFeatureOn && <section className="studio-durable-control" aria-label="Şifreli taslak kurtarma">
