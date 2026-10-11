@@ -11,21 +11,35 @@ describe('Final UX Stabilization', () => {
     expect(demoAppCode).toContain('const [reviewingQuestion, setReviewingQuestion] = useState');
   });
 
-  it('keeps YAZAR edit state during modal interaction and clears it on every explicit close path', () => {
-    const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
-    const demoAppCode = fs.readFileSync(demoAppPath, 'utf8');
+  it('keeps YAZAR edit state and routes every modal close through the unsaved-draft guard', () => {
+    const code = fs.readFileSync(path.resolve(__dirname, '../src/DemoApp.tsx'), 'utf8');
+    const closeStart = code.indexOf('const closeQuestionForm = () => {');
+    const closeEnd = code.indexOf('const questionAssignableProjects =', closeStart);
+    const handler = code.slice(closeStart, closeEnd);
 
-    expect(demoAppCode).toContain("{reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className=\"modal-backdrop\"");
+    expect(closeStart).toBeGreaterThan(-1);
+    expect(closeEnd).toBeGreaterThan(closeStart);
+    expect(handler).toContain('if (questionSavingRef.current) return;');
+    expect(handler).toContain('if (hasUnsavedQuestionChanges && !window.confirm(');
+    expect(handler).toContain('setShowQuestionForm(false);');
+    expect(handler).toContain('setEditingQuestion(null);');
+    expect(handler).not.toContain('setReviewingQuestion(null)');
 
-    const modalStart = demoAppCode.indexOf('{showQuestionForm && <div className="modal-backdrop"');
-    const modalEnd = demoAppCode.indexOf('</form></div>}', modalStart) + '</form></div>}'.length;
-    const authorModalCode = demoAppCode.substring(modalStart, modalEnd);
-
+    const modalStart = code.indexOf('{showQuestionForm && <div className=');
+    const modalEnd = code.indexOf('{reviewingQuestion &&', modalStart);
+    const authorModal = code.slice(modalStart, modalEnd);
     expect(modalStart).toBeGreaterThan(-1);
-    expect(authorModalCode).toContain('onMouseDown={event => { if (event.target === event.currentTarget) { setShowQuestionForm(false); setEditingQuestion(null); } }}');
-    expect(authorModalCode).not.toContain('setShowQuestionForm(false); setEditingQuestion(null); }}><form');
-    expect(authorModalCode).toContain('aria-label="Kapat" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}');
-    expect(authorModalCode).toContain('className="secondary-button" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}>Vazgeç');
+    expect(modalEnd).toBeGreaterThan(modalStart);
+    expect(authorModal).toContain('if (event.target === event.currentTarget) closeQuestionForm();');
+    expect(authorModal).toContain('aria-label="Kapat" disabled={questionSaving} onClick={closeQuestionForm}');
+    expect(authorModal).toContain('disabled={questionSaving} onClick={closeQuestionForm}>Vazgeç');
+    expect(authorModal).not.toContain('setReviewingQuestion(null)');
+    expect(authorModal).not.toContain('setShowQuestionForm(false); setEditingQuestion(null);');
+
+    const editorModal = code.slice(modalEnd, code.indexOf('{showProjectManager &&', modalEnd));
+    expect(editorModal).toContain('setReviewingQuestion(null)');
+    expect(editorModal).not.toContain('closeQuestionForm()');
+    expect(editorModal).not.toContain('setEditingQuestion(null)');
   });
 
   it('keeps edit submission on PATCH and new-question submission on create', () => {
