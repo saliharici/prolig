@@ -188,3 +188,10 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - **Breaking API contract:** clients that directly PATCH without `expectedUpdatedAt` now receive HTTP 428; coordinate external clients before any deployment. GET/POST and editorial workflow remain unchanged.
 - Detailed plan: `docs/QUESTION_STUDIO_P1D_SAFE_ROUNDTRIP.md`.
 - **NEXT GATES NOT VERIFIED:** On P1-D branch `node scripts/p1-check.mjs` (nominal nonDB target 458/458, lint and Vite build PASS); then only after user confirms isolated pilot DB host/name and fixtures run `node scripts/p1d-pilot-check.mjs`, followed by browser tab A/B scenario. No merge to main, Production, migrations, seed or live DB writes.
+
+## P1-D FIRST FRONTEND GATE — JSX FAIL, PATCHED, NOT RETESTED (2026-10-11)
+- Operator switched to `feat/question-studio-p1d-safe-roundtrip-20261011` and ran `node scripts/p1-check.mjs`. UI `tsc --noEmit` stopped at `src/DemoApp.tsx:2147`: TS1005 missing `}`. No non-DB tests or Vite build ran on that attempt.
+- Cause: the P1-D conditional alert `{questionConflictLookupFailed && <p ...></p>` lacked the final `}` before the existing P1-C encrypted-recovery panel.
+- Fixed JSX precisely: `</p>}` in commit `5426d960`. Added Windows CRLF-normalizing source regression test for the JSX boundary in `tests/question-studio-p1d.test.ts` (latest test correction `e9ca3c78`).
+- Static source review verified both the P1-D alert and P1-C panel close correctly. **Do not assert test PASS until user pulls and reruns `node scripts/p1-check.mjs`**.
+- No main merge, Production deployment, seed, migration, or DB writes; only P1-D feature branch files.
