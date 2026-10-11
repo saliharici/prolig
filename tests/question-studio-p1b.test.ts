@@ -54,6 +54,7 @@ describe('P1-B in-memory draft safety', () => {
     expect(app).toContain("window.removeEventListener('beforeunload', warnBeforeUnload)");
     expect(app).toContain('onClick={closeQuestionForm}');
     expect(app).toContain('question-workspace-overlay');
+    expect(app).toContain('inert={questionSaving} aria-busy={questionSaving}');
     expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true'");
   });
 
