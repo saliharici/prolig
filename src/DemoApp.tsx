@@ -20,6 +20,7 @@ import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './question
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
 import { questionStudioFingerprint, pausedQuestionDraftKey, copyPausedQuestionDraft, type QuestionStudioFormValues, type QuestionStudioPausedDraft } from './questions/studio-state';
+import { hasDurableQuestionDraft, saveEncryptedQuestionDraft, recoverEncryptedQuestionDraft, removeEncryptedQuestionDraft, validateDraftPassphrase, type StudioDurableDraftData } from './questions/studio-durable';
 import type { ApiQuestion, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
@@ -49,6 +50,7 @@ import { useNavigationDrawer } from './navigation/useNavigationDrawer';
 import './demo.css';
 import './questions/studio-preview.css';
 import './questions/studio-workspace.css';
+import './questions/studio-durable.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', icon: LayoutDashboard },
@@ -830,6 +832,13 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [questionSaveError, setQuestionSaveError] = useState('');
   const pausedQuestionDraftsRef = useRef(new Map<string, QuestionStudioPausedDraft<ApiQuestion>>());
   const [pausedDraftsVersion, setPausedDraftsVersion] = useState(0);
+  const [durableDraftEnabled, setDurableDraftEnabled] = useState(false);
+  const [durableDraftBusy, setDurableDraftBusy] = useState(false);
+  const [durableDraftConflict, setDurableDraftConflict] = useState(false);
+  const [durableDraftMessage, setDurableDraftMessage] = useState('');
+  const durableDraftPhraseRef = useRef('');
+  const durableDraftInputRef = useRef<HTMLInputElement>(null);
+  const durableDraftGenerationRef = useRef(0);
   
   useEffect(() => { saveDemoData(data); }, [data]);
   useEffect(() => { if (toast) { const timer = window.setTimeout(() => setToast(''), 3800); return () => window.clearTimeout(timer); } }, [toast]);
@@ -879,6 +888,18 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const questionSnapshot = questionStudioFingerprint(questionFormValues);
   const hasUnsavedQuestionChanges = Boolean(questionBaseline) && questionSnapshot !== questionBaseline;
   const pausedQuestionKey = pausedQuestionDraftKey(currentUser.id, editingQuestion?.id ?? null);
+  const durableDraftOwner = { id: currentUser.id, email: currentUser.email };
+  const durableQuestionId = editingQuestion?.id ?? null;
+  const durableFeatureOn = import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' &&
+    import.meta.env.VITE_QUESTION_STUDIO_P1C === 'true' && currentUser.role === 'YAZAR';
+  let durableCopyExists = false;
+  if (durableFeatureOn && showQuestionForm) {
+    try {
+      durableCopyExists = hasDurableQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId);
+    } catch {
+      // Storage can be unavailable in restricted browser contexts.
+    }
+  }
 
   const restorePausedQuestion = (draft: QuestionStudioPausedDraft<ApiQuestion>) => {
     const values = draft.values;
@@ -901,6 +922,17 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionSaveError('');
     setShowQuestionForm(true);
   };
+
+  const durableFormSnapshot = (): StudioDurableDraftData => ({
+    values: {
+      ...questionFormValues,
+      options: [...questionOptions],
+      assets: questionAssets.map(asset => ({ ...asset }))
+    },
+    baseline: questionBaseline,
+    originalProjectId: originalQuestionProjectId,
+    serverUpdatedAt: editingQuestion?.updatedAt ?? null
+  });
 
   const closeQuestionForm = () => {
     if (questionSavingRef.current) return;
