@@ -42,3 +42,13 @@ For a truly empty database, expect zero public tables, no Prisma migrations tabl
 - No migration, seed, create, delete, reset, branch merge, deployment, or Production change is authorized by this inspection step.
 - If any write-stage command fails later, stop, preserve non-secret diagnostics, and request additional instructions. No migrate reset, database drop or destructive cleanup without separate scope confirmation.
 - Existing GitHub main, current PRO-LIG Neon database and Vercel Production remain untouched.
+
+## Operator read-only empty-schema acceptance — PASS, 2026-10-11
+
+The operator confirmed:
+- JS syntax check PASS; `tests/p1d-sandbox-inspect.test.ts`: **3 passed/3**.
+- `node scripts/p1d-sandbox-inspect.mjs`: **PASS**, independently checked two connection types and verified separate Neon host from the original local PRO-LIG configuration.
+- Public table count **0**, Prisma migration table **absent**, User table **absent**. No write statements were executed.
+- Node/pg emitted a non-blocking SSL mode advisory about future semantics; consider explicit `sslmode=verify-full` if consistent with Neon guidance. Do not print connection strings.
+
+**Operator approval to inspect is not approval to mutate.** Before bootstrap, receive explicit permission to create schema plus six fake pilot accounts, passwords and project in **only** this newly created sandbox. After permission, prepare a bootstrap runner that blocks inherited .env settings, positively identifies both Neon server and PostgreSQL database, verifies initial blank schema, and uses only separately created sandbox credentials. No schema write or seed has run yet.
