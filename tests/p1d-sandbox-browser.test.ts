@@ -50,6 +50,8 @@ describe('P1-D isolated browser UAT safety', () => {
   it('blocks secret file serving and restricts API to P1-D auth, question and project reads', () => {
     expect(server).toContain('configFile: false');
     expect(server).toContain('envDir: false');
+    expect(server).toContain("'import.meta.env.VITE_QUESTION_STUDIO_P1': JSON.stringify('true')");
+    expect(server).toContain("'import.meta.env.VITE_QUESTION_STUDIO_P1C': JSON.stringify('true')");
     expect(server).toContain("deny: [");
     expect(server).toContain("'**/.local/**'");
     expect(server).toContain("'**/.env*'");
