@@ -26,7 +26,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const question = await prisma.question.findUnique({
       where: { id },
       include: {
-        authorUser: { include: { AuthorProfile: { include: { province: true } } } }
+        authorUser: { include: { AuthorProfile: { include: { province: true } } } },
+        assets: { orderBy: { sortOrder: 'asc' } }
       }
     });
 
@@ -103,7 +104,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         where: { id },
         include: {
           authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
-          project: true
+          project: true,
+          assets: { orderBy: { sortOrder: 'asc' } }
         }
       });
 

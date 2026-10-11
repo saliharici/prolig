@@ -1,6 +1,8 @@
-import type { ApiQuestion, PatchQuestionInput } from './types';
+import type { ApiQuestion, PatchQuestionInput, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType } from './types';
 
 const answerKeys = new Set(['A', 'B', 'C', 'D']);
+const assetPlacements = new Set<QuestionAssetPlacement>(['STEM', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'EXPLANATION']);
+const assetTypes = new Set<QuestionAssetType>(['IMAGE', 'VIDEO_URL', 'LINK']);
 
 export class QuestionFormValidationError extends Error {
   constructor(message: string) {
@@ -16,6 +18,7 @@ export interface QuestionEditDraft {
   projectId: number | null;
   options: string[];
   correctAnswer: string;
+  assets?: QuestionAssetInput[];
 }
 
 export function normalizeQuestionOptions(options: unknown): string[] {
@@ -34,6 +37,36 @@ export function hasFourValidQuestionOptions(options: unknown): boolean {
 
 export function isValidCorrectAnswer(value: unknown): value is string {
   return typeof value === 'string' && answerKeys.has(value);
+}
+
+export function normalizeQuestionAssets(assets: unknown): QuestionAssetInput[] {
+  if (!Array.isArray(assets)) return [];
+
+  return assets
+    .map((asset, index) => {
+      if (!asset || typeof asset !== 'object') return null;
+      const candidate = asset as Partial<QuestionAssetInput>;
+      if (!assetPlacements.has(candidate.placement as QuestionAssetPlacement)) return null;
+      if (!assetTypes.has(candidate.assetType as QuestionAssetType)) return null;
+      const url = typeof candidate.url === 'string' ? candidate.url.trim() : '';
+      if (!url) return null;
+
+      return {
+        ...(typeof candidate.id === 'number' ? { id: candidate.id } : {}),
+        placement: candidate.placement as QuestionAssetPlacement,
+        assetType: candidate.assetType as QuestionAssetType,
+        url,
+        title: typeof candidate.title === 'string' && candidate.title.trim() ? candidate.title.trim() : null,
+        altText: typeof candidate.altText === 'string' && candidate.altText.trim() ? candidate.altText.trim() : null,
+        sortOrder: Number.isSafeInteger(candidate.sortOrder) ? candidate.sortOrder : index
+      };
+    })
+    .filter((asset): asset is QuestionAssetInput => asset !== null)
+    .slice(0, 12);
+}
+
+export function areQuestionAssetsEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(normalizeQuestionAssets(left)) === JSON.stringify(normalizeQuestionAssets(right));
 }
 
 export function requireCompleteQuestionAnswers(options: string[], correctAnswer: string) {

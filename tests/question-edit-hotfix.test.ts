@@ -13,6 +13,7 @@ const makeQuestion = (overrides: Partial<ApiQuestion> = {}): ApiQuestion => ({
   id: 1,
   content: 'Mevcut soru metni',
   imageUrl: null,
+  assets: [],
   objectiveCode: null,
   grade: '8. Sınıf',
   difficulty: null,
@@ -52,6 +53,17 @@ describe('Question edit hotfix', () => {
     expect(patch).toEqual({ content: 'Güncellenmiş eski soru metni' });
     expect(patch).not.toHaveProperty('options');
     expect(patch).not.toHaveProperty('correctAnswer');
+  });
+
+  it('sends structured media asset changes in a PATCH', () => {
+    const question = makeQuestion();
+    const patch = buildQuestionEditPatch(question, {
+      ...editDraft(question),
+      assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', altText: 'Şekil' }]
+    });
+    expect(patch).toEqual({
+      assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', title: null, altText: 'Şekil', sortOrder: 0 }]
+    });
   });
 
   it('never sends options: [] in a PATCH', () => {

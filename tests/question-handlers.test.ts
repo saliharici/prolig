@@ -232,6 +232,26 @@ describe('Question API Handlers', () => {
       expect(capturedTx.status).toBe('TASLAK');
     });
 
+    it('validates and creates structured media assets', async () => {
+      setupYazar();
+      let capturedTx: any;
+      vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
+        const tx = {
+          question: { create: vi.fn().mockImplementation((args: any) => { capturedTx = args.data; return { ...args.data, id: 100, assets: [] }; }) },
+          activityLog: { create: vi.fn() }
+        };
+        return cb(tx);
+      });
+
+      const { req, res } = mockReqRes('POST', {
+        ...validBody,
+        assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', altText: 'Şekil' }]
+      });
+      await handlerGetPost(req, res);
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(capturedTx.assets.create).toEqual([{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', title: null, altText: 'Şekil', sortOrder: 0 }]);
+    });
+
     it('successful CREATE writes ActivityLog in transaction', async () => {
       setupYazar();
       let activityLogCreated = false;
@@ -286,6 +306,10 @@ describe('Question API Handlers', () => {
       ({ req, res } = mockReqRes('POST', { ...validBody, projectId: 0 }));
       await handlerGetPost(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
+
+      ({ req, res } = mockReqRes('POST', { ...validBody, assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'javascript:alert(1)' }] }));
+      await handlerGetPost(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     it('unassigned project -> 403', async () => {
@@ -332,6 +356,7 @@ describe('Question API Handlers', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
         const tx = {
           question: { updateMany: vi.fn().mockResolvedValue({ count: 1 }), findUnique: vi.fn().mockResolvedValue({ id: 1 }) },
+          questionAsset: { deleteMany: vi.fn(), createMany: vi.fn() },
           activityLog: { create: vi.fn() }
         };
         return cb(tx);
@@ -431,6 +456,27 @@ describe('Question API Handlers', () => {
       const { req, res } = mockReqRes('PATCH', { options: ['A'] }, { id: '1' });
       await handlerPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('replaces assets during PATCH', async () => {
+      setupYazar();
+      let assetCreateMany: any;
+      vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
+        const tx = {
+          question: { updateMany: vi.fn().mockResolvedValue({ count: 1 }), findUnique: vi.fn().mockResolvedValue({ id: 1, assets: [] }) },
+          questionAsset: {
+            deleteMany: vi.fn(),
+            createMany: vi.fn().mockImplementation((args: any) => { assetCreateMany = args; })
+          },
+          activityLog: { create: vi.fn() }
+        };
+        return cb(tx);
+      });
+
+      const { req, res } = mockReqRes('PATCH', { assets: [{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://example.com/cozum' }] }, { id: '1' });
+      await handlerPatch(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(assetCreateMany.data).toEqual([{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://example.com/cozum', title: null, altText: null, sortOrder: 0, questionId: 1 }]);
     });
 
     it('invalid projectId -> 400', async () => {

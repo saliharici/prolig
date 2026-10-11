@@ -15,8 +15,8 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
-import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
-import type { ApiQuestion, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
+import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
+import type { ApiQuestion, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
 import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
@@ -77,6 +77,24 @@ const sumPayments = (payments: Payment[], status: string) => payments.filter(p =
 const money = (value: number) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 const date = (value: string) => new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value.includes('T') ? value : `${value}T12:00:00`));
 const todayHeading = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' }).format(new Date()).toLocaleUpperCase('tr-TR');
+
+const questionAssetPlacements: { value: QuestionAssetPlacement; label: string }[] = [
+  { value: 'STEM', label: 'Soru kökü' },
+  { value: 'OPTION_A', label: 'A seçeneği' },
+  { value: 'OPTION_B', label: 'B seçeneği' },
+  { value: 'OPTION_C', label: 'C seçeneği' },
+  { value: 'OPTION_D', label: 'D seçeneği' },
+  { value: 'EXPLANATION', label: 'Çözüm' }
+];
+
+const questionAssetTypes: { value: QuestionAssetType; label: string }[] = [
+  { value: 'IMAGE', label: 'Görsel / resim' },
+  { value: 'VIDEO_URL', label: 'Video bağlantısı' },
+  { value: 'LINK', label: 'Kaynak bağlantısı' }
+];
+
+const questionAssetPlacementLabel = (value: string) => questionAssetPlacements.find(item => item.value === value)?.label || value;
+const questionAssetTypeLabel = (value: string) => questionAssetTypes.find(item => item.value === value)?.label || value;
 
 function Status({ value }: { value: string }) {
   const slug = ({ 'İncelemede': 'review', 'Onaylandı': 'approved', 'Ödendi': 'paid', 'Revizyon': 'revision', 'Reddedildi': 'rejected', 'Taslak': 'draft', 'Bekliyor': 'pending', 'Aktif': 'approved', 'Davet edildi': 'pending', 'Üretimde': 'review', 'Editörde': 'revision', 'Planlama': 'draft', 'Tamamlandı': 'approved', 'İptal': 'rejected' } as Record<string, string>)[value] || 'draft';
@@ -788,6 +806,12 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
+  const [questionAssets, setQuestionAssets] = useState<QuestionAssetInput[]>([]);
+  const [questionAssetPlacement, setQuestionAssetPlacement] = useState<QuestionAssetPlacement>('STEM');
+  const [questionAssetType, setQuestionAssetType] = useState<QuestionAssetType>('IMAGE');
+  const [questionAssetUrl, setQuestionAssetUrl] = useState('');
+  const [questionAssetTitle, setQuestionAssetTitle] = useState('');
+  const [questionAssetAltText, setQuestionAssetAltText] = useState('');
       const [editorNote, setEditorNote] = useState('');
   const [reviewAction, setReviewAction] = useState<QuestionWorkflowAction | ''>('');
   const [editingQuestion, setEditingQuestion] = useState<ApiQuestion | null>(null);
@@ -913,7 +937,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           explanation: questionExplanation,
           projectId: questionProjectId,
           options: questionOptions,
-          correctAnswer: questionCorrectAnswer
+          correctAnswer: questionCorrectAnswer,
+          assets: normalizeQuestionAssets(questionAssets)
         });
         await patchQuestion(editingQuestion.id, input);
         setToast('Soru düzeltmeleri kaydedildi.');
@@ -925,7 +950,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           options: answers.options,
           correctAnswer: answers.correctAnswer,
           explanation: questionExplanation.trim() || null,
-          projectId: questionProjectId
+          projectId: questionProjectId,
+          assets: normalizeQuestionAssets(questionAssets)
         });
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
@@ -934,6 +960,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       setQuestionTitle(''); 
       setQuestionOptions(['', '', '', '']); 
       setQuestionExplanation(''); 
+      setQuestionAssets([]);
       setQuestionProjectId(null);
       setOriginalQuestionProjectId(null);
             loadApiQuestions();
@@ -954,6 +981,12 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionOptions(['', '', '', '']);
     setQuestionCorrectAnswer('A');
     setQuestionExplanation('');
+    setQuestionAssets([]);
+    setQuestionAssetPlacement('STEM');
+    setQuestionAssetType('IMAGE');
+    setQuestionAssetUrl('');
+    setQuestionAssetTitle('');
+    setQuestionAssetAltText('');
     setShowQuestionForm(true);
   };
   const changeQuestionLevel = (level: string) => {
@@ -999,6 +1032,63 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     window.requestAnimationFrame(() => editor.focus());
   };
   const updateQuestionOption = (index: number, value: string) => setQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
+  const addQuestionAsset = () => {
+    const url = questionAssetUrl.trim();
+    if (!url) {
+      setToast('Medya bağlantısı girin.');
+      return;
+    }
+
+    try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Invalid protocol');
+    } catch {
+      setToast('Medya bağlantısı http veya https ile başlamalı.');
+      return;
+    }
+
+    setQuestionAssets(current => normalizeQuestionAssets([
+      ...current,
+      {
+        placement: questionAssetPlacement,
+        assetType: questionAssetType,
+        url,
+        title: questionAssetTitle.trim() || null,
+        altText: questionAssetAltText.trim() || null,
+        sortOrder: current.length
+      }
+    ]));
+    setQuestionAssetUrl('');
+    setQuestionAssetTitle('');
+    setQuestionAssetAltText('');
+  };
+  const removeQuestionAsset = (index: number) => {
+    setQuestionAssets(current => normalizeQuestionAssets(current.filter((_, assetIndex) => assetIndex !== index)));
+  };
+  const questionQualityIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (questionTitle.trim().length < 10) issues.push('Soru kökü en az 10 karakter olmalı.');
+    if (!hasFourValidQuestionOptions(questionOptions)) issues.push('Dört cevap seçeneği de doldurulmalı.');
+    if (!isValidCorrectAnswer(questionCorrectAnswer)) issues.push('Doğru cevap işaretlenmeli.');
+    const trimmedOptions = normalizeQuestionOptions(questionOptions).map(option => option.trim()).filter(Boolean);
+    if (new Set(trimmedOptions).size !== trimmedOptions.length) issues.push('Tekrarlanan cevap seçeneklerini kontrol edin.');
+    if (!questionExplanation.trim()) issues.push('Çözüm alanı boş; editör revizyon isteyebilir.');
+    if (questionAssets.some(asset => asset.assetType === 'IMAGE' && !asset.altText?.trim())) issues.push('Görseller için kısa açıklama/alt metin ekleyin.');
+    return issues;
+  }, [questionTitle, questionOptions, questionCorrectAnswer, questionExplanation, questionAssets]);
+
+  const renderQuestionAssets = (assets: QuestionAssetInput[] | undefined, placement?: QuestionAssetPlacement) => {
+    const visibleAssets = normalizeQuestionAssets(assets).filter(asset => !placement || asset.placement === placement);
+    if (visibleAssets.length === 0) return null;
+
+    return <div className="question-asset-preview-list">{visibleAssets.map((asset, index) => (
+      <div className="question-asset-preview" key={`${asset.placement}-${asset.url}-${index}`}>
+        <span>{questionAssetPlacementLabel(asset.placement)} · {questionAssetTypeLabel(asset.assetType)}</span>
+        {asset.assetType === 'IMAGE' ? <img src={asset.url} alt={asset.altText || asset.title || questionAssetPlacementLabel(asset.placement)} /> : <a href={asset.url} target="_blank" rel="noreferrer">{asset.title || (asset.assetType === 'VIDEO_URL' ? 'Video bağlantısını aç' : 'Kaynak bağlantısını aç')}</a>}
+        {asset.altText && <small>{asset.altText}</small>}
+      </div>
+    ))}</div>;
+  };
   const openEditorReview = (question: ApiQuestion) => {
     if (['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && question.status === 'INCELEMEDE') {
       setReviewingQuestion(question);
@@ -1048,6 +1138,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionOptions(normalizeQuestionOptions(question.options));
     setQuestionCorrectAnswer(isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '');
     setQuestionExplanation(question.explanation || '');
+    setQuestionAssets(normalizeQuestionAssets(question.assets));
     setQuestionProjectId(question.projectId);
     setOriginalQuestionProjectId(question.projectId);
     setShowQuestionForm(true);
@@ -1560,31 +1651,68 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <button className="primary-button" onClick={()=>openQuestionsForProject(selectedProject.id)}>Proje sorularını aç <ArrowRight size={15}/></button>
       </div>
     </div></div>}
-    {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) { setShowQuestionForm(false); setEditingQuestion(null); } }}><form className="question-modal pro-editor-modal" onSubmit={handleCreateQuestion}>
-        <div className="modal-head"><div><span className="panel-kicker">PROFESYONEL SORU EDİTÖRÜ</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div><button type="button" aria-label="Kapat" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}><X size={20} /></button></div>
-        <p>Soru gövdesini hazırlayın, cevap seçeneklerini ve doğru yanıtı belirleyin.</p>
-        <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
-        <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
-        <label className="question-editor-label">Soru gövdesi</label>
-        <div className="question-editor-shell">
-          <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
-            <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
-            <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
-            <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button><button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+    {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) { setShowQuestionForm(false); setEditingQuestion(null); } }}>
+        <form className="question-modal pro-editor-modal question-studio-modal" onSubmit={handleCreateQuestion}>
+          <div className="modal-head">
+            <div><span className="panel-kicker">SORU ÜRETİM STÜDYOSU</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div>
+            <button type="button" aria-label="Kapat" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}><X size={20} /></button>
           </div>
-          <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
-          <div className="question-editor-footer"><span></span><strong>{questionTitle.length} / 1200</strong></div>
-        </div>
-        <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer}</span></div>
-        <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
-        <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini veya editör notunu yazın..." /></label>
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
-      </form></div>}
+          <p>Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.</p>
+          <div className="question-studio-layout">
+            <div className="question-studio-main">
+              <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
+              <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
+              <label className="question-editor-label">Soru gövdesi</label>
+              <div className="question-editor-shell">
+                <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
+                  <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
+                  <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
+                  <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button><button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+                </div>
+                <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
+                <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
+              </div>
+
+              <section className="question-media-builder" aria-label="Soru medyaları">
+                <div className="question-answer-head"><div><strong>Medya ve görsel alanı</strong><span>Soru kökü, seçenekler veya çözüm için görsel/video bağlantısı ekleyin.</span></div><span className="answer-key">{questionAssets.length} medya</span></div>
+                <div className="question-media-form">
+                  <select aria-label="Medya konumu" value={questionAssetPlacement} onChange={event => setQuestionAssetPlacement(event.target.value as QuestionAssetPlacement)}>{questionAssetPlacements.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+                  <select aria-label="Medya türü" value={questionAssetType} onChange={event => setQuestionAssetType(event.target.value as QuestionAssetType)}>{questionAssetTypes.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+                  <input type="url" value={questionAssetUrl} onChange={event => setQuestionAssetUrl(event.target.value)} placeholder="https://..." />
+                  <input type="text" maxLength={120} value={questionAssetTitle} onChange={event => setQuestionAssetTitle(event.target.value)} placeholder="Kısa başlık" />
+                  <input type="text" maxLength={240} value={questionAssetAltText} onChange={event => setQuestionAssetAltText(event.target.value)} placeholder="Görsel açıklaması / alt metin" />
+                  <button type="button" className="secondary-button" onClick={addQuestionAsset}><ImagePlus size={15} /> Ekle</button>
+                </div>
+                {questionAssets.length > 0 && <div className="question-asset-list">{questionAssets.map((asset, index) => <div key={`${asset.placement}-${asset.url}-${index}`}><span><strong>{questionAssetPlacementLabel(asset.placement)}</strong><small>{questionAssetTypeLabel(asset.assetType)} · {asset.title || asset.url}</small></span><button type="button" onClick={() => removeQuestionAsset(index)} aria-label="Medyayı kaldır"><X size={14} /></button></div>)}</div>}
+              </section>
+
+              <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer || 'Seçilmedi'}</span></div>
+              <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
+              <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini, çözüm adımlarını veya editör için notu yazın..." /></label>
+            </div>
+
+            <aside className="question-preview-panel">
+              <div className="question-preview-head"><span><Eye size={15} /> Canlı ön izleme</span><strong>{questionGrade}</strong></div>
+              <article className="question-preview-card">
+                <p>{questionTitle.trim() || 'Soru kökü burada görünecek.'}</p>
+                {renderQuestionAssets(questionAssets, 'STEM')}
+                <ol type="A">{questionOptions.map((option, index) => <li key={index} className={questionCorrectAnswer === String.fromCharCode(65 + index) ? 'correct' : ''}>{option || `${String.fromCharCode(65 + index)} seçeneği`}{renderQuestionAssets(questionAssets, `OPTION_${String.fromCharCode(65 + index)}` as QuestionAssetPlacement)}</li>)}</ol>
+                {questionExplanation.trim() && <div className="question-preview-solution"><strong>Çözüm</strong><span>{questionExplanation}</span>{renderQuestionAssets(questionAssets, 'EXPLANATION')}</div>}
+              </article>
+              <div className="question-quality-panel">
+                <strong>Kontrol listesi</strong>
+                {questionQualityIssues.length === 0 ? <span className="quality-ok">Soru editöre gönderime hazır görünüyor.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
+              </div>
+            </aside>
+          </div>
+          <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
+        </form>
+      </div>}
       {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
         <div className="modal-head"><div><span className="panel-kicker">EDİTÖR DEĞERLENDİRMESİ</span><h2>Soruyu İncele</h2></div><button type="button" aria-label="Kapat" onClick={() => setReviewingQuestion(null)}><X size={20} /></button></div>
         <p>Bu soru için değerlendirme kararınızı ve yazar için varsa notunuzu girin.</p>
         <div className="editor-review-context" style={{marginBottom: '1rem'}}><span>{reviewingQuestion.grade}</span><span>{reviewingQuestion.author?.fullName}</span></div>
-        <div style={{background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem', whiteSpace: 'pre-wrap'}}>{reviewingQuestion.content}</div>
+        <div style={{background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem', whiteSpace: 'pre-wrap'}}>{reviewingQuestion.content}{renderQuestionAssets(reviewingQuestion.assets)}</div>
         <label>Aksiyon<select required value={reviewAction} onChange={e => { const val = e.target.value as QuestionWorkflowAction | ''; setReviewAction(val); if (val === 'approve') setEditorNote(''); }}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
         {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setReviewingQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>

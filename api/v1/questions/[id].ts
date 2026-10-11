@@ -2,6 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { formatQuestionDto } from '../_lib/question-dto.js';
+import { parseQuestionAssets } from '../_lib/question-assets.js';
 import { isQuestionArchived } from '../_lib/question-archive.js';
 import {
   buildQuestionReadScope,
@@ -22,7 +23,8 @@ function questionInclude() {
         }
       }
     },
-    project: true
+    project: true,
+    assets: { orderBy: { sortOrder: 'asc' } }
   } as const;
 }
 
@@ -172,7 +174,7 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Cannot modify protected fields' });
   }
 
-  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId } = req.body || {};
+  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, assets } = req.body || {};
   const updateData: any = {};
 
   if (content !== undefined) {
@@ -228,6 +230,14 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     updateData.difficulty = difficulty ? difficulty.trim() : null;
   }
 
+  let parsedAssets: ReturnType<typeof parseQuestionAssets> | null = null;
+  if (assets !== undefined) {
+    parsedAssets = parseQuestionAssets(assets);
+    if (!parsedAssets.ok) {
+      return res.status(400).json({ error: parsedAssets.error });
+    }
+  }
+
   const nextProjectId = projectId !== undefined ? projectId : question.projectId;
   const nextGrade = grade !== undefined ? updateData.grade : question.grade;
 
@@ -260,8 +270,12 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  if (Object.keys(updateData).length === 0) {
+  if (Object.keys(updateData).length === 0 && assets === undefined) {
     return res.status(400).json({ error: 'No editable fields provided' });
+  }
+
+  if (parsedAssets?.ok) {
+    updateData.updatedAt = new Date();
   }
 
   const updated = await prisma.$transaction(async (tx: any) => {
@@ -276,11 +290,21 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
 
     if (count.count === 0) throw new Error('STALE');
 
+    if (parsedAssets?.ok) {
+      await tx.questionAsset.deleteMany({ where: { questionId: id } });
+      if (parsedAssets.assets.length > 0) {
+        await tx.questionAsset.createMany({
+          data: parsedAssets.assets.map(asset => ({ ...asset, questionId: id }))
+        });
+      }
+    }
+
     const q = await tx.question.findUnique({
       where: { id },
       include: {
         authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
-        project: true
+        project: true,
+        assets: { orderBy: { sortOrder: 'asc' } }
       }
     });
 
@@ -290,7 +314,7 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
         action: 'QUESTION_UPDATED',
         entityType: 'Question',
         entityId: q!.id,
-        details: JSON.stringify({ keys: Object.keys(updateData) })
+        details: JSON.stringify({ keys: [...Object.keys(updateData).filter(key => key !== 'updatedAt'), ...(parsedAssets?.ok ? ['assets'] : [])] })
       }
     });
 

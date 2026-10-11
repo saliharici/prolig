@@ -49,6 +49,22 @@ describe('Question API Frontend Client', () => {
     }));
   });
 
+  it('createQuestion can send structured question assets', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 8 }) });
+
+    await createQuestion({
+      content: 'Visual question',
+      projectId: null,
+      grade: '8. Sınıf',
+      options: ['A', 'B', 'C', 'D'],
+      correctAnswer: 'A',
+      assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/soru.png', altText: 'Üçgen görseli' }]
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.assets).toEqual([{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/soru.png', altText: 'Üçgen görseli' }]);
+  });
+
   it('createQuestion can send a real numeric projectId without protected fields', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 5, projectId: 42 }) });
 
@@ -229,6 +245,8 @@ describe('Question API Frontend Client', () => {
       expect(questionModalCode).toContain('questionAssignableProjects.map');
       expect(questionModalCode).not.toContain('data.projects');
       expect(questionModalCode).toContain('Genel Soru Havuzu');
+      expect(questionModalCode).toContain('Medya ve görsel alanı');
+      expect(questionModalCode).toContain('Canlı ön izleme');
       expect(questionModalCode).toContain('Projeler yükleniyor...');
       expect(questionModalCode).toContain('Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.');
       expect(questionModalCode).not.toMatch(/projectId:\s*1|setQuestionProjectId\(1\)/);

@@ -3,6 +3,7 @@ import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { buildQuestionReadScope } from '../_lib/question-access.js';
 import { formatQuestionDto } from '../_lib/question-dto.js';
+import { parseQuestionAssets } from '../_lib/question-assets.js';
 import { getQuestionArchiveStateMap } from '../_lib/question-archive.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -43,7 +44,8 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
           }
         }
       },
-      project: true
+      project: true,
+      assets: { orderBy: { sortOrder: 'asc' } }
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -77,7 +79,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'AuthorProfile required' });
   }
 
-  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId } = req.body || {};
+  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, assets } = req.body || {};
 
   if (!content || typeof content !== 'string' || content.trim().length < 10 || content.trim().length > 1200) {
     return res.status(400).json({ error: 'Invalid content' });
@@ -115,6 +117,11 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     if (typeof difficulty !== 'string' || difficulty.trim().length > 100) {
       return res.status(400).json({ error: 'Invalid difficulty' });
     }
+  }
+
+  const parsedAssets = parseQuestionAssets(assets);
+  if (!parsedAssets.ok) {
+    return res.status(400).json({ error: parsedAssets.error });
   }
 
   if (projectId !== undefined && projectId !== null) {
@@ -158,11 +165,15 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
         explanation: explanation ? explanation.trim() : null,
         projectId: projectId || null,
         authorUserId: user.id,
-        status: 'TASLAK'
+        status: 'TASLAK',
+        assets: parsedAssets.assets.length > 0 ? {
+          create: parsedAssets.assets
+        } : undefined
       },
       include: {
         authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
-        project: true
+        project: true,
+        assets: { orderBy: { sortOrder: 'asc' } }
       }
     });
 
