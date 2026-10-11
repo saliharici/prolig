@@ -135,13 +135,14 @@ export function legacyQuestionToStudioDocument(input: {
 }): StudioDocumentV1 {
   // Keep exact option strings; the legacy schema has exactly four single-answer choices.
   const options = Array.from({ length: 4 }, (_, index) => input.options[index] ?? '');
+  const originalOptions = [...input.options];
   const explanation = input.explanation ?? '';
   return {
     schemaVersion: 1,
     sourceFormat: 'legacy-markup-v1',
     legacy: {
       content: input.content,
-      options: [...options],
+      options: originalOptions,
       explanation,
       correctAnswer: input.correctAnswer ?? ''
     },
