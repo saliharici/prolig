@@ -84,3 +84,17 @@ Expected PLAN PASS while table count remains zero. Do not paste `.env.p1d.local`
 - **New read-only acceptance tool:** `scripts/p1d-sandbox-verify.mjs` checks 7 migration records, exact six fake roles/emails, role status and hash presence, author geography, editor branch/grade, editor-assignment, province coordinator, math pilot project and ProjectAuthor assignment. `tests/p1d-sandbox-verify.test.ts` guards its read-only code path.
 - **NEXT OPERATOR COMMAND (READ ONLY):** `git pull --ff-only`, `node --check scripts/p1d-sandbox-verify.mjs`, `npx vitest run tests/p1d-sandbox-verify.test.ts`, then `node scripts/p1d-sandbox-verify.mjs`. Share only PASS/FAIL lines, never connection URLs/private file contents.
 - **Do not rerun `--apply`**; its empty-schema check should reject the now-migrated sandbox. No write integration test has yet been authorized separately.
+
+## P1-D live relational acceptance completed; question preflight prepared
+
+- Operator confirmed `node --check scripts/p1d-sandbox-verify.mjs` PASS, five local source safeguards PASS, and live `node scripts/p1d-sandbox-verify.mjs` PASS. Verifications include separate sandbox pooled/direct DB identity, seven finished migration records, all six fake pilot user roles and password-hash presence, author/editor/coordination geography and math branch, editor grade, editor branch assignment and project-author relationship. The acceptance tool made no writes.
+- Newly added `scripts/p1d-sandbox-question-gate.mjs` + `tests/p1d-sandbox-question-gate.test.ts`. Default `--preflight` is read-only: checks dedicated pilot config, local separate auth secret and all six generated test credentials, compares against original Neon hosts, then calls `scripts/p1d-pilot-check.mjs` with sanitized sandbox-only process environment. Any absence/mismatch stops the check. Does not change persistent pilot flags.
+- Operator may run only the safe **read-only** next step until independently approving question writes:
+
+    cd D:\Proje\pro-lig
+    git pull --ff-only
+    node --check scripts/p1d-sandbox-question-gate.mjs
+    npx vitest run tests/p1d-sandbox-question-gate.test.ts
+    node scripts/p1d-sandbox-question-gate.mjs --preflight
+
+- The question integration mode writes a temporary question, changes its status, verifies stale PATCH 409, and attempts cleanup. Since partial cleanup can occur on failure, it requires separate explicit authorization. DO NOT run `--run-integration` or set `PROLIG_P1D_QUESTION_TEST_APPROVAL` until authorization and read-only preflight PASS. Existing standalone `p1d-pilot-check` MUST NOT be invoked without the launcher because it may otherwise source default .env. Never share credential files, passwords, or connection URLs.
