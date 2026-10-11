@@ -7,7 +7,7 @@ import {
   Bold, Check, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, ClipboardList, Clock3,
   FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText, Megaphone,
   LockKeyhole, LogOut, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Globe2, Eye,
-  PencilLine, Trash2, Underline, Users, Wallet, X,
+  PencilLine, Table2, Trash2, Underline, Users, Wallet, X,
 } from 'lucide-react';
 import {
   actionPermissions, dataScopes, loadDemoData, permissions, roleLabels, rolePeople, saveDemoData,
@@ -1034,6 +1034,23 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionTitle(`${questionTitle.slice(0, start)}${formatted}${questionTitle.slice(end)}`);
     window.requestAnimationFrame(() => editor.focus());
   };
+  const insertQuestionTable = () => {
+    const editor = questionEditorRef.current;
+    if (!editor) return;
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const template = '\n| Başlık 1 | Başlık 2 |\n| --- | --- |\n| Değer 1 | Değer 2 |\n';
+    const next = questionTitle.slice(0, start) + template + questionTitle.slice(end);
+    if (next.length > 1200) {
+      setToast('Tablo için soru gövdesinde yeterli alan yok (1200 karakter sınırı).');
+      return;
+    }
+    setQuestionTitle(next);
+    window.requestAnimationFrame(() => {
+      editor.focus();
+      editor.setSelectionRange(start + template.length, start + template.length);
+    });
+  };
   const updateQuestionOption = (index: number, value: string) => setQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
   const addQuestionAsset = () => {
     const url = questionAssetUrl.trim();
@@ -1790,7 +1807,139 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                 <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
                   <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
                   <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
-                  <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button><button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+                  <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup(' aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+                </div>
+                <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
+                <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
+              </div>
+
+              <section className="question-media-builder" aria-label="Soru medyaları">
+                <div className="question-answer-head"><div><strong>Medya ve görsel alanı</strong><span>Soru kökü, seçenekler veya çözüm için görsel ya da YouTube/Vimeo/Dailymotion gömme bağlantısı ekleyin.</span></div><span className="answer-key">{questionAssets.length} medya</span></div>
+                <div className="question-media-form">
+                  <select aria-label="Medya konumu" value={questionAssetPlacement} onChange={event => setQuestionAssetPlacement(event.target.value as QuestionAssetPlacement)}>{questionAssetPlacements.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+                  <select aria-label="Medya türü" value={questionAssetType} onChange={event => setQuestionAssetType(event.target.value as QuestionAssetType)}>{questionAssetTypes.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+                  <input type="url" value={questionAssetUrl} onChange={event => setQuestionAssetUrl(event.target.value)} placeholder="https://..." />
+                  <input type="text" maxLength={120} value={questionAssetTitle} onChange={event => setQuestionAssetTitle(event.target.value)} placeholder="Kısa başlık" />
+                  <input type="text" maxLength={240} value={questionAssetAltText} onChange={event => setQuestionAssetAltText(event.target.value)} placeholder="Görsel açıklaması / video notu" />
+                  <button type="button" className="secondary-button" onClick={addQuestionAsset}><ImagePlus size={15} /> Ekle</button>
+                </div>
+                {questionAssets.length > 0 && <div className="question-asset-list">{questionAssets.map((asset, index) => <div key={`${asset.placement}-${asset.url}-${index}`}><span><strong>{questionAssetPlacementLabel(asset.placement)}</strong><small>{questionAssetTypeLabel(asset.assetType)} · {asset.title || asset.url}</small></span><button type="button" onClick={() => removeQuestionAsset(index)} aria-label="Medyayı kaldır"><X size={14} /></button></div>)}</div>}
+              </section>
+
+              <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer || 'Seçilmedi'}</span></div>
+              <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
+              <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini, çözüm adımlarını veya editör için notu yazın..." /></label>
+            </div>
+
+            <aside className="question-preview-panel">
+              <div className="question-preview-head"><span><Eye size={15} /> Canlı ön izleme</span><strong>{questionGrade}</strong></div>
+              {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? (
+                <StudioDocumentPreview
+                  document={legacyQuestionToStudioDocument({
+                    content: questionTitle,
+                    options: questionOptions,
+                    explanation: questionExplanation,
+                    correctAnswer: questionCorrectAnswer
+                  })}
+                  renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
+                />
+              ) : <article className="question-preview-card">
+                <div className="formatted-question-text">{renderFormattedQuestionText(questionTitle, 'Soru kökü burada görünecek.')}</div>
+                {renderQuestionAssets(questionAssets, 'STEM')}
+                <ol type="A">{questionOptions.map((option, index) => <li key={index} className={questionCorrectAnswer === String.fromCharCode(65 + index) ? 'correct' : ''}>{option || `${String.fromCharCode(65 + index)} seçeneği`}{renderQuestionAssets(questionAssets, `OPTION_${String.fromCharCode(65 + index)}` as QuestionAssetPlacement)}</li>)}</ol>
+                {questionExplanation.trim() && <div className="question-preview-solution"><strong>Çözüm</strong><div className="formatted-question-text compact">{renderFormattedQuestionText(questionExplanation)}</div>{renderQuestionAssets(questionAssets, 'EXPLANATION')}</div>}
+              </article>}
+              <div className="question-quality-panel">
+                <strong>Kontrol listesi</strong>
+                {questionQualityIssues.length === 0 ? <span className="quality-ok">Soru editöre gönderime hazır görünüyor.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
+              </div>
+            </aside>
+          </div>
+          <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
+        </form>
+      </div>}
+      {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
+        <div className="modal-head"><div><span className="panel-kicker">EDİTÖR DEĞERLENDİRMESİ</span><h2>Soruyu İncele</h2></div><button type="button" aria-label="Kapat" onClick={() => setReviewingQuestion(null)}><X size={20} /></button></div>
+        <p>Bu soru için değerlendirme kararınızı ve yazar için varsa notunuzu girin.</p>
+        <div className="editor-review-context" style={{marginBottom: '1rem'}}><span>{reviewingQuestion.grade}</span><span>{reviewingQuestion.author?.fullName}</span></div>
+        {renderQuestionReviewPreview(reviewingQuestion)}
+        <label>Aksiyon<select required value={reviewAction} onChange={e => { const val = e.target.value as QuestionWorkflowAction | ''; setReviewAction(val); if (val === 'approve') setEditorNote(''); }}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
+        {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
+        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setReviewingQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>
+      </form></div>}
+      {showProjectManager && <ProjectManagementModal project={editingProject} authors={apiAuthors} onClose={()=>{setShowProjectManager(false);setEditingProject(null)}} onChanged={refreshProjectManagementData} />}
+      {showProfile && <ProfileModal user={currentUser} onClose={() => setShowProfile(false)} onSaved={async () => { await onProfileUpdated(); setToast('Profil bilgileriniz güncellendi.'); }} />}
+      {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
+  </div>;
+}
+
+, ' aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+                </div>
+                <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
+                <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
+              </div>
+
+              <section className="question-media-builder" aria-label="Soru medyaları">
+                <div className="question-answer-head"><div><strong>Medya ve görsel alanı</strong><span>Soru kökü, seçenekler veya çözüm için görsel ya da YouTube/Vimeo/Dailymotion gömme bağlantısı ekleyin.</span></div><span className="answer-key">{questionAssets.length} medya</span></div>
+                <div className="question-media-form">
+                  <select aria-label="Medya konumu" value={questionAssetPlacement} onChange={event => setQuestionAssetPlacement(event.target.value as QuestionAssetPlacement)}>{questionAssetPlacements.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+                  <select aria-label="Medya türü" value={questionAssetType} onChange={event => setQuestionAssetType(event.target.value as QuestionAssetType)}>{questionAssetTypes.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+                  <input type="url" value={questionAssetUrl} onChange={event => setQuestionAssetUrl(event.target.value)} placeholder="https://..." />
+                  <input type="text" maxLength={120} value={questionAssetTitle} onChange={event => setQuestionAssetTitle(event.target.value)} placeholder="Kısa başlık" />
+                  <input type="text" maxLength={240} value={questionAssetAltText} onChange={event => setQuestionAssetAltText(event.target.value)} placeholder="Görsel açıklaması / video notu" />
+                  <button type="button" className="secondary-button" onClick={addQuestionAsset}><ImagePlus size={15} /> Ekle</button>
+                </div>
+                {questionAssets.length > 0 && <div className="question-asset-list">{questionAssets.map((asset, index) => <div key={`${asset.placement}-${asset.url}-${index}`}><span><strong>{questionAssetPlacementLabel(asset.placement)}</strong><small>{questionAssetTypeLabel(asset.assetType)} · {asset.title || asset.url}</small></span><button type="button" onClick={() => removeQuestionAsset(index)} aria-label="Medyayı kaldır"><X size={14} /></button></div>)}</div>}
+              </section>
+
+              <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer || 'Seçilmedi'}</span></div>
+              <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
+              <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini, çözüm adımlarını veya editör için notu yazın..." /></label>
+            </div>
+
+            <aside className="question-preview-panel">
+              <div className="question-preview-head"><span><Eye size={15} /> Canlı ön izleme</span><strong>{questionGrade}</strong></div>
+              {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? (
+                <StudioDocumentPreview
+                  document={legacyQuestionToStudioDocument({
+                    content: questionTitle,
+                    options: questionOptions,
+                    explanation: questionExplanation,
+                    correctAnswer: questionCorrectAnswer
+                  })}
+                  renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
+                />
+              ) : <article className="question-preview-card">
+                <div className="formatted-question-text">{renderFormattedQuestionText(questionTitle, 'Soru kökü burada görünecek.')}</div>
+                {renderQuestionAssets(questionAssets, 'STEM')}
+                <ol type="A">{questionOptions.map((option, index) => <li key={index} className={questionCorrectAnswer === String.fromCharCode(65 + index) ? 'correct' : ''}>{option || `${String.fromCharCode(65 + index)} seçeneği`}{renderQuestionAssets(questionAssets, `OPTION_${String.fromCharCode(65 + index)}` as QuestionAssetPlacement)}</li>)}</ol>
+                {questionExplanation.trim() && <div className="question-preview-solution"><strong>Çözüm</strong><div className="formatted-question-text compact">{renderFormattedQuestionText(questionExplanation)}</div>{renderQuestionAssets(questionAssets, 'EXPLANATION')}</div>}
+              </article>}
+              <div className="question-quality-panel">
+                <strong>Kontrol listesi</strong>
+                {questionQualityIssues.length === 0 ? <span className="quality-ok">Soru editöre gönderime hazır görünüyor.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
+              </div>
+            </aside>
+          </div>
+          <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
+        </form>
+      </div>}
+      {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
+        <div className="modal-head"><div><span className="panel-kicker">EDİTÖR DEĞERLENDİRMESİ</span><h2>Soruyu İncele</h2></div><button type="button" aria-label="Kapat" onClick={() => setReviewingQuestion(null)}><X size={20} /></button></div>
+        <p>Bu soru için değerlendirme kararınızı ve yazar için varsa notunuzu girin.</p>
+        <div className="editor-review-context" style={{marginBottom: '1rem'}}><span>{reviewingQuestion.grade}</span><span>{reviewingQuestion.author?.fullName}</span></div>
+        {renderQuestionReviewPreview(reviewingQuestion)}
+        <label>Aksiyon<select required value={reviewAction} onChange={e => { const val = e.target.value as QuestionWorkflowAction | ''; setReviewAction(val); if (val === 'approve') setEditorNote(''); }}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
+        {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
+        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setReviewingQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>
+      </form></div>}
+      {showProjectManager && <ProjectManagementModal project={editingProject} authors={apiAuthors} onClose={()=>{setShowProjectManager(false);setEditingProject(null)}} onChanged={refreshProjectManagementData} />}
+      {showProfile && <ProfileModal user={currentUser} onClose={() => setShowProfile(false)} onSaved={async () => { await onProfileUpdated(); setToast('Profil bilgileriniz güncellendi.'); }} />}
+      {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
+  </div>;
+}
+
+, 'formül')}><Sigma size={16} /></button>{import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <button type="button" title="Tablo ekle (deneysel)" aria-label="Tablo ekle" onClick={insertQuestionTable}><Table2 size={16} /></button>}<button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
                 </div>
                 <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
                 <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
