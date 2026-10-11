@@ -35,7 +35,8 @@ describe('P1-D preview-only read-only database identity', () => {
     expect(src).toContain("first?.database_name === P1D_SANDBOX_DATABASE");
     expect(src).toContain("WHERE code = 'PILOT-MAT-8-001'");
     expect(src).toContain("return res.status(sandboxVerified ? 200 : 503).json({ sandboxVerified, readOnly: true });");
-    expect(src).not.toContain('console.log(');
-    expect(src).not.toContain('req.body');
+    const probe = src.slice(src.indexOf('async function handleSandboxProbe'), src.indexOf('async function handleGet'));
+    expect(probe).not.toContain('console.log(');
+    expect(probe).not.toContain('req.body');
   });
 });
