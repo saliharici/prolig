@@ -51,3 +51,10 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Author DB integration now verifies reported author location against persisted profile instead of assuming Istanbul. Commit 14ec8b67.
 - Seed uses existing author province for pilot provincial coordinator and sets editor region/grade for pilot scope going forward. Commit f01f0401.
 - These code changes have NOT yet been locally linted/tested and NO pilot DB mutation was executed. Must run dry-run review, explicit guarded apply if correct, full 405+ non-DB suite and DB integration suite. Production and main remain unchanged.
+
+## P0 isolated-pilot DB gate verified — 2026-10-11
+- Operator applied guarded pilot-only two-record repair; transaction COMMITTED: provincial coordinator scope Istanbul(34) -> Bursa(16); editorGrade 9 -> 8. Sınıf. Author province, district, institution were preserved.
+- Read-only pilot scope diagnosis returned all seven boolean authorization/project checks true.
+- `npm run test:integration`: 34 passed, 0 failed, 5 skipped across 6 files (5 passed, 1 skipped). Skipped tests are settlement-db and MUST NOT be described as validated.
+- Previous no-DB suite: 405 passed, 0 failed across 45 files; TypeScript/lint PASS. Build previously PASS before latest pilot-fixture-only code edits, therefore fresh build verification advisable.
+- P0 core permission/project/question integration gate PASSED. Remain: evaluate explicitly skipped settlement DB tests and latest build/non-DB rerun; no merge to main or Vercel Production without separate user acceptance.
