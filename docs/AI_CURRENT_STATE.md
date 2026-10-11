@@ -89,3 +89,13 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Strengthened P1 regression assertions for toolbar integrity and duplicate injection (fe7dc3e), made P1 gate stop immediately on first failed stage to save resources (05fb602).
 - **Critical:** repaired P1 branch has not yet been retested locally; obtain `npm run lint`, 419+ tests, and build PASS before visual acceptance. Vercel preview may be build-rate-limited; local `npx vercel dev` occupied localhost:3001 in user's earlier run.
 - No schema migration, DB modification, main merge or Production deployment.
+
+## P1-A LOCAL FRONTEND ACCEPTANCE PASSED — 2026-10-11
+- Operator pulled P1 code at GitHub head f40331d and ran `node scripts/p1-check.mjs`.
+- `npm run lint`: PASS (Prisma generate, UI TypeScript, API TypeScript).
+- Non-DB regression suite: **419 passed / 419 executed, 46 test files passed** (includes 14 P1 tests).
+- `npm run build`: PASS (Vite v8.3.0, 1703 modules); JS chunk >500 kB is **non-blocking** performance advisory.
+- Controlled DB Error / Tx Error messages during `question-handlers` negative-path unit tests are expected: those 69 tests passed.
+- **P1-A source/build/test gate PASSED; visual/browser acceptance is still outstanding.** Latest P1 branch has NOT undergone renewed live pilot-DB integration, which remains a separate gate. Previously P0 pilot suite passed 34 with 5 settlement tests skipped.
+- Next: run local preview with `VITE_QUESTION_STUDIO_P1=true`, compare four-choice/editor preview, structured table, TeX-source fallback, links, browser keyboard/responsive behavior and default flag-off fallback. New persisted rich text, WYSIWYG editor, formula typesetting, autosave conflict resolution, history and DB migration remain out of P1-A scope.
+- No main merge, Production deployment, or database changes were authorized or performed.
