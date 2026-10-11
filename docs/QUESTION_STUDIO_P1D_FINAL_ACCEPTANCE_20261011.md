@@ -104,3 +104,18 @@ Bu raporun ilk sürümü sonrası kullanıcı, kalan sürüm hazırlığı, birl
 - P1-D 480/480 regresyon, lint ve Vite build operatör PASS kanıtı, bu son küçük sözleşme düzeltmelerinden **önceye** aittir; nihai SHA üzerinde GitHub CI ve gerekirse kullanıcı yerel doğrulaması tamamlanmadan Production kararı verilmez.
 
 **Güncel karar:** PR incelemede; son CI, Vercel build-rate-limit, canlı veritabanı şema/rollback doğrulaması çözülmeden `main` birleştirmesi veya Production dağıtımı yapılmaz.
+
+
+## 7. Neon prolig-pilot main — şema ve migration geçmişi ekran doğrulaması (2026-10-11)
+
+Operatörün Neon SQL Editor ekran görüntülerinde seçilen proje/dal/veritabanı **prolig-pilot / main / neondb** olarak görünüyor. Veritabanına yalnızca SELECT yapıldı:
+
+- `current_database() = neondb`, `current_schema() = public`
+- `public."_prisma_migrations"` mevcut; `public."Question"` mevcut; `public."QuestionAsset"` mevcut.
+- `public."_prisma_migrations"` satır sayısı **7** ve **7/7 APPLIED**, INCOMPLETE/ROLLED_BACK yok.
+- Başarıyla uygulanmış migration'lar: `20261005225520_init_pilot`, `20261006224751_question_api_foundation`, `20261007204000_editor_branch_index`, `20261009013000_member_scope_management`, `20261010190000_compensation_engine_foundation`, `20261010210000_payment_period_settlement`, `20261011115000_question_media_assets`.
+- Bu **Neon veritabanı için** yedi migration'ın yeniden uygulanması gerekli görünmüyor. **Do not rerun Prisma migrate on this database** unless new migration and target independently validated.
+- **Critical unresolved identity gate:** Screenshots do NOT independently prove Vercel Production `DATABASE_URL` points to exactly `prolig-pilot/main/neondb`. Environment variable presence is not the same as matching project, branch, database. Compare non-secret host/project identity securely, never paste the full URL or credentials into tickets/chats.
+- Read-only checks do not verify backup/restore ability, Prisma schema drift, data counts and isolation, nor automatically authorize promotion. GitHub CI succeeded for head `76cc8e6`; Vercel preview build-rate-limit remains open.
+
+**Release status unchanged:** Draft PR #14 remains open; no merge/Production rollout/data writes were performed.
