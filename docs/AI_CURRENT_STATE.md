@@ -157,3 +157,8 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Risks/limits: origin/browser-profile-specific, localStorage can be evicted, no cross-device sync, shared-machine metadata visible and active XSS not prevented by encryption, browser forced close in debounce window could lose latest keystrokes, actual live backend CAS missing.
 - Details: `docs/QUESTION_STUDIO_P1C_ENCRYPTED_RECOVERY.md`.
 - **MUST VERIFY NEXT**: On local P1-C branch, `node scripts/p1-check.mjs`; nominal target 446/446 non-DB tests, lint and Vite build PASS; **not yet executed**. Then user-assisted browser reload/close recovery + passphrase/no-overwrite tests. No production promotion authorized.
+
+## P1-C LOCAL GATE FIRST RUN FAIL — JSX syntax, patch pending verification (2026-10-11)
+- Operator checked out P1-C branch and ran `node scripts/p1-check.mjs`. UI TypeScript check failed with TS2657 at `src/DemoApp.tsx:2096` and TS1005 at approximately line 2178. Cause: missing closing `}` for `{durableFeatureOn && <section ...>` before the question-studio editor layout.
+- Patched `</section>` to `</section>}` in the unique P1-C recovery panel boundary (commit `2f3dccb`). Added a regression assertion to existing `tests/question-studio-p1c.test.ts` normalizing CRLF and guarding `</section>}\n<div className="question-studio-layout"` (commit `c107642`). No feature behavior, backend, DB, main, or production change.
+- **NOT YET VERIFIED:** operator must run `git pull --ff-only` then `node scripts/p1-check.mjs` on P1-C branch. Previous run stopped at first TypeScript failure; tests and build did not execute. Nominal target 446/446 tests, lint and Vite build PASS; do not claim until log supplied.
