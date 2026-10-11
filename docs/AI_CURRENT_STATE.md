@@ -99,3 +99,11 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - **P1-A source/build/test gate PASSED; visual/browser acceptance is still outstanding.** Latest P1 branch has NOT undergone renewed live pilot-DB integration, which remains a separate gate. Previously P0 pilot suite passed 34 with 5 settlement tests skipped.
 - Next: run local preview with `VITE_QUESTION_STUDIO_P1=true`, compare four-choice/editor preview, structured table, TeX-source fallback, links, browser keyboard/responsive behavior and default flag-off fallback. New persisted rich text, WYSIWYG editor, formula typesetting, autosave conflict resolution, history and DB migration remain out of P1-A scope.
 - No main merge, Production deployment, or database changes were authorized or performed.
+
+## P1-A screenshot visual review — 2026-10-11
+- User supplied two screenshots of the local opt-in question studio preview, desktop width.
+- Observed in screenshots: side-by-side authoring/preview, inline text styles and lists, rendered two-column table, source fallback for inline math, embedded video thumbnail, media list, four A-D answer options with D highlighted, explanation and positive preflight panel.
+- Visual issues to address during P1-B: text/preview readability (small font and faint helper labels); invalid link placeholder appears as literal source because its URL is incomplete (safe, but needs actionable validation).
+- **Evidence boundary:** screenshots DO NOT establish save/reload persistence, end-to-end new-question creation, correct mobile/responsive behavior, keyboard/IME, alt-text enforcement, or role/security behavior. Treat visual acceptance as desktop preview observations, NOT complete P1-A product signoff.
+- Before progressing to persisted rich-text edits, validate roundtrip save/reopen, no data loss on HTTP 409, feature-flag-off legacy display, and pilot-only access with existing backend checks.
+- Next milestone: P1-B editor proof-of-concept; prioritize unsaved draft recovery, Turkish keyboard/IME, font legibility and math renderer decision; database and production remain untouched.
