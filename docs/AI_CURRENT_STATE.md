@@ -23,3 +23,10 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Mocked DB Error/Tx Error stderr in question-handlers are expected injected error scenarios, not failing tests.
 - Earlier two editor-grade authorization failures disappeared after user safely stashed a pre-existing local modification of `api/v1/_lib/question-access.ts`. Keep stash preserved; do not reapply without review.
 - The test DB integration suite, actual `UserBranchAssignment` table, migration parity and live feature acceptance remain UNVERIFIED. No production approval given.
+
+## Pilot DB read-only diagnostic — 2026-10-11
+- User ran `node scripts/diagnose-branch-assignment.mjs` with the pilot confirmation environment variable.
+- Results: `UserBranchAssignment: present`; `_prisma_migrations: present`; `20261007204000_editor_branch_index` finished=true, rolled_back=false.
+- Driver emitted a future SSL-mode semantics warning; diagnostic query completed successfully.
+- This confirms the checked connection has the expected branch assignment table; it does not prove all migrations are applied, pilot DB isolation, or DB integration test success.
+- Next gate: run isolated pilot DB integration tests with safety confirmation, inspect failures, and then evaluate P1 editor rollout.
