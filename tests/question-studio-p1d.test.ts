@@ -74,6 +74,10 @@ describe('P1-D revision protection and comparison', () => {
     expect(script).toContain("PROLIG_P1D_DB_NAME");
     expect(script).toContain("PROLIG_P1D_DB_HOST");
     expect(script).toContain("PROLIG_P1D_DB_VERIFIED: 'true'");
+    expect(script).toContain("args[0] === '--run-integration'");
+    expect(script).toContain("runIntegration && PROLIG_P1D_ALLOW_WRITES !== 'true'");
+    expect(script).toContain("if (!runIntegration) {");
+    expect(script).toContain('P1-D READ-ONLY PREFLIGHT: PASS');
     expect(test).toContain("process.env.PROLIG_P1D_DB_VERIFIED !== 'true'");
   });
 });
