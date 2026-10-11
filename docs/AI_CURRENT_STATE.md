@@ -58,3 +58,10 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - `npm run test:integration`: 34 passed, 0 failed, 5 skipped across 6 files (5 passed, 1 skipped). Skipped tests are settlement-db and MUST NOT be described as validated.
 - Previous no-DB suite: 405 passed, 0 failed across 45 files; TypeScript/lint PASS. Build previously PASS before latest pilot-fixture-only code edits, therefore fresh build verification advisable.
 - P0 core permission/project/question integration gate PASSED. Remain: evaluate explicitly skipped settlement DB tests and latest build/non-DB rerun; no merge to main or Vercel Production without separate user acceptance.
+
+## P0 core acceptance gate — verified 2026-10-11
+- Latest user-run `npm run test:integration`: 34/34 executed tests PASS, 0 FAIL, 5 SKIPPED (`tests/integration/settlement-db.test.ts`), across 5 passed files and 1 skipped.
+- Pilot payment test also PASS (1.85s) following 15s test-only timeout accommodation; a prior 5s timeout was intermittent. No payment business logic altered.
+- Prior user-run 405/405 non-DB tests PASS; TypeScript/lint PASS. Fresh complete build and non-DB rerun after latest commits is still advisable for final release signoff.
+- P0 CORE authorization, project visibility, question revision and approval, and canonical payment integration ACCEPTANCE MET in isolated pilot tests; settlement DB integration explicitly NOT tested.
+- Scope remains feature branch; main and Production NOT merged/deployed. Separate explicit merge/Production permission required.
