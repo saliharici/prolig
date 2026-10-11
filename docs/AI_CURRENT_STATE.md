@@ -37,3 +37,10 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Existing `prisma/seed.ts` does not update an existing YAZAR AuthorProfile province/branch. Added fail-fast preflight guard (8590fbaf) to prevent future partial mutations in this case, and read-only `scripts/diagnose-pilot-scope.mjs` (79f785d9) to compare pilot geographic/project assignments.
 - No existing pilot data modified or reset. No assertion relaxed. A deliberate, independently approved pilot fixture reconciliation may be required after read-only verification.
 - Previous non-DB suite: 405/405 pass, lint/build pass. P0 DB integration remains BLOCKED.
+
+## Pilot fixture scope diagnostic result — 2026-10-11
+- Confirmed pilot author province Bursa, region Marmara.
+- Mismatch: provincial coordinator scope vs author province; editor grade vs canonical project grade.
+- In scope: author/editor geography; project and editor branch; writer-project assignment.
+- Added `scripts/reconcile-pilot-fixture.ts` as dry-run default with optional guarded two-record transaction. Commit ebd389d6. Do not apply without explicit approval, isolated pilot DB verification, and dry-run review. The repair aborts if author has district/institution affiliation.
+- DB integration still 30 passed / 4 failed / 5 skipped pending pilot reconciliation and rerun.
