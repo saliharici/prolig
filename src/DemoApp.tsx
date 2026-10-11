@@ -934,6 +934,76 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     serverUpdatedAt: editingQuestion?.updatedAt ?? null
   });
 
+  const enableDurableRecovery = () => {
+    if (!durableFeatureOn || !showQuestionForm) return;
+    try {
+      const phrase = durableDraftInputRef.current?.value || '';
+      validateDraftPassphrase(phrase);
+      if (!window.crypto?.subtle) throw new Error('Bu tarayıcı şifreli kurtarmayı desteklemiyor.');
+      if (durableCopyExists) {
+        setDurableDraftMessage('Bu soruya ait şifreli kopya zaten var. Önce Kurtar seçeneğiyle açın.');
+        return;
+      }
+      durableDraftPhraseRef.current = phrase;
+      if (durableDraftInputRef.current) durableDraftInputRef.current.value = '';
+      setDurableDraftConflict(false);
+      setDurableDraftEnabled(true);
+      setDurableDraftMessage('Şifreli kurtarma etkin. Yeni değişiklikler bu cihazda şifreli saklanacak.');
+    } catch (e) {
+      setDurableDraftMessage(e instanceof Error ? e.message : 'Kurtarma başlatılamadı.');
+    }
+  };
+
+  const recoverDurableDraft = async () => {
+    if (!durableFeatureOn || durableDraftBusy || questionSavingRef.current) return;
+    const phrase = durableDraftInputRef.current?.value || '';
+    setDurableDraftBusy(true);
+    try {
+      const restored = await recoverEncryptedQuestionDraft(
+        window.localStorage, window.crypto, durableDraftOwner, durableQuestionId, phrase
+      );
+      if (!restored) {
+        setDurableDraftMessage('Bu soru için geçerli şifreli kopya bulunamadı.');
+        return;
+      }
+      if (hasUnsavedQuestionChanges &&
+          !window.confirm('Ekrandaki değişiklikler şifreli kopyayla değiştirilsin mi?')) return;
+      const stale = Boolean(editingQuestion && restored.serverUpdatedAt !== editingQuestion.updatedAt);
+      restorePausedQuestion({
+        values: restored.values,
+        baseline: restored.baseline,
+        originalProjectId: restored.originalProjectId,
+        originalQuestion: editingQuestion
+      });
+      durableDraftPhraseRef.current = phrase;
+      if (durableDraftInputRef.current) durableDraftInputRef.current.value = '';
+      setDurableDraftConflict(stale);
+      setDurableDraftEnabled(!stale);
+      setDurableDraftMessage(stale
+        ? 'Sunucudaki soru değişmiş. Kurtarılan metin korundu ancak Kaydet kilitlendi; kopyayı güncel soruyla elle karşılaştırın.'
+        : 'Şifreli taslak kurtarıldı. Kaldığınız yerden devam edebilirsiniz.');
+    } catch (e) {
+      setDurableDraftMessage(e instanceof Error ? e.message : 'Şifreli taslak kurtarılamadı.');
+    } finally {
+      setDurableDraftBusy(false);
+    }
+  };
+
+  const discardDurableDraft = () => {
+    if (!durableFeatureOn || durableDraftBusy || questionSavingRef.current) return;
+    if (!window.confirm('Bu cihazdaki şifreli kurtarma kopyası silinsin mi? Ekrandaki yazılar korunur.')) return;
+    try {
+      durableDraftGenerationRef.current += 1;
+      removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId);
+      durableDraftPhraseRef.current = '';
+      setDurableDraftEnabled(false);
+      setDurableDraftConflict(false);
+      setDurableDraftMessage('Şifreli kopya silindi. Ekrandaki yazılar korunuyor.');
+    } catch {
+      setDurableDraftMessage('Tarayıcı depolamasından silinemedi.');
+    }
+  };
+
   const closeQuestionForm = () => {
     if (questionSavingRef.current) return;
     if (hasUnsavedQuestionChanges) {
