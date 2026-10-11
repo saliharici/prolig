@@ -16,6 +16,7 @@ import {
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
 import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
+import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import type { ApiQuestion, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
@@ -89,7 +90,7 @@ const questionAssetPlacements: { value: QuestionAssetPlacement; label: string }[
 
 const questionAssetTypes: { value: QuestionAssetType; label: string }[] = [
   { value: 'IMAGE', label: 'Görsel / resim' },
-  { value: 'VIDEO_URL', label: 'Video bağlantısı' },
+  { value: 'VIDEO_URL', label: 'Video gömme' },
   { value: 'LINK', label: 'Kaynak bağlantısı' }
 ];
 
@@ -1047,6 +1048,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       return;
     }
 
+    if (questionAssetType === 'VIDEO_URL' && !getQuestionVideoEmbedUrl(url)) {
+      setToast('Video için YouTube, Vimeo veya Dailymotion gömme bağlantısı kullanın.');
+      return;
+    }
+
     setQuestionAssets(current => normalizeQuestionAssets([
       ...current,
       {
@@ -1084,7 +1090,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     return <div className="question-asset-preview-list">{visibleAssets.map((asset, index) => (
       <div className="question-asset-preview" key={`${asset.placement}-${asset.url}-${index}`}>
         <span>{questionAssetPlacementLabel(asset.placement)} · {questionAssetTypeLabel(asset.assetType)}</span>
-        {asset.assetType === 'IMAGE' ? <img src={asset.url} alt={asset.altText || asset.title || questionAssetPlacementLabel(asset.placement)} /> : <a href={asset.url} target="_blank" rel="noreferrer">{asset.title || (asset.assetType === 'VIDEO_URL' ? 'Video bağlantısını aç' : 'Kaynak bağlantısını aç')}</a>}
+        {asset.assetType === 'IMAGE'
+          ? <img src={asset.url} alt={asset.altText || asset.title || questionAssetPlacementLabel(asset.placement)} />
+          : asset.assetType === 'VIDEO_URL' && getQuestionVideoEmbedUrl(asset.url)
+            ? <iframe title={asset.title || questionVideoProviderLabel(asset.url)} src={getQuestionVideoEmbedUrl(asset.url) || ''} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />
+            : <a href={asset.url} target="_blank" rel="noreferrer">{asset.title || (asset.assetType === 'VIDEO_URL' ? 'Video bağlantısını aç' : 'Kaynak bağlantısını aç')}</a>}
         {asset.altText && <small>{asset.altText}</small>}
       </div>
     ))}</div>;
@@ -1674,13 +1684,13 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </div>
 
               <section className="question-media-builder" aria-label="Soru medyaları">
-                <div className="question-answer-head"><div><strong>Medya ve görsel alanı</strong><span>Soru kökü, seçenekler veya çözüm için görsel/video bağlantısı ekleyin.</span></div><span className="answer-key">{questionAssets.length} medya</span></div>
+                <div className="question-answer-head"><div><strong>Medya ve görsel alanı</strong><span>Soru kökü, seçenekler veya çözüm için görsel ya da YouTube/Vimeo/Dailymotion gömme bağlantısı ekleyin.</span></div><span className="answer-key">{questionAssets.length} medya</span></div>
                 <div className="question-media-form">
                   <select aria-label="Medya konumu" value={questionAssetPlacement} onChange={event => setQuestionAssetPlacement(event.target.value as QuestionAssetPlacement)}>{questionAssetPlacements.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
                   <select aria-label="Medya türü" value={questionAssetType} onChange={event => setQuestionAssetType(event.target.value as QuestionAssetType)}>{questionAssetTypes.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
                   <input type="url" value={questionAssetUrl} onChange={event => setQuestionAssetUrl(event.target.value)} placeholder="https://..." />
                   <input type="text" maxLength={120} value={questionAssetTitle} onChange={event => setQuestionAssetTitle(event.target.value)} placeholder="Kısa başlık" />
-                  <input type="text" maxLength={240} value={questionAssetAltText} onChange={event => setQuestionAssetAltText(event.target.value)} placeholder="Görsel açıklaması / alt metin" />
+                  <input type="text" maxLength={240} value={questionAssetAltText} onChange={event => setQuestionAssetAltText(event.target.value)} placeholder="Görsel açıklaması / video notu" />
                   <button type="button" className="secondary-button" onClick={addQuestionAsset}><ImagePlus size={15} /> Ekle</button>
                 </div>
                 {questionAssets.length > 0 && <div className="question-asset-list">{questionAssets.map((asset, index) => <div key={`${asset.placement}-${asset.url}-${index}`}><span><strong>{questionAssetPlacementLabel(asset.placement)}</strong><small>{questionAssetTypeLabel(asset.assetType)} · {asset.title || asset.url}</small></span><button type="button" onClick={() => removeQuestionAsset(index)} aria-label="Medyayı kaldır"><X size={14} /></button></div>)}</div>}

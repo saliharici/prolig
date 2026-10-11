@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from '../src/questions/api';
+import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from '../src/questions/media';
 import fs from 'fs';
 import path from 'path';
 
@@ -81,6 +82,15 @@ describe('Question API Frontend Client', () => {
     expect(body).not.toHaveProperty('authorUserId');
     expect(body).not.toHaveProperty('status');
     expect(body).not.toHaveProperty('editorNote');
+  });
+
+  it('builds safe embed URLs for supported video providers', () => {
+    expect(getQuestionVideoEmbedUrl('https://www.youtube.com/watch?v=abcDEF12345')).toBe('https://www.youtube-nocookie.com/embed/abcDEF12345');
+    expect(getQuestionVideoEmbedUrl('https://youtu.be/abcDEF12345')).toBe('https://www.youtube-nocookie.com/embed/abcDEF12345');
+    expect(getQuestionVideoEmbedUrl('https://vimeo.com/123456789')).toBe('https://player.vimeo.com/video/123456789');
+    expect(getQuestionVideoEmbedUrl('https://www.dailymotion.com/video/x8abcd1')).toBe('https://www.dailymotion.com/embed/video/x8abcd1');
+    expect(getQuestionVideoEmbedUrl('https://example.com/video')).toBeNull();
+    expect(questionVideoProviderLabel('https://youtu.be/abcDEF12345')).toBe('YouTube');
   });
 
   it('patchQuestion uses PATCH and only sends editable fields', async () => {
@@ -247,6 +257,7 @@ describe('Question API Frontend Client', () => {
       expect(questionModalCode).toContain('Genel Soru Havuzu');
       expect(questionModalCode).toContain('Medya ve görsel alanı');
       expect(questionModalCode).toContain('Canlı ön izleme');
+      expect(questionModalCode).toContain('YouTube/Vimeo/Dailymotion gömme bağlantısı');
       expect(questionModalCode).toContain('Projeler yükleniyor...');
       expect(questionModalCode).toContain('Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.');
       expect(questionModalCode).not.toMatch(/projectId:\s*1|setQuestionProjectId\(1\)/);

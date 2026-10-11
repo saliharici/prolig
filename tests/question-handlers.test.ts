@@ -310,6 +310,10 @@ describe('Question API Handlers', () => {
       ({ req, res } = mockReqRes('POST', { ...validBody, assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'javascript:alert(1)' }] }));
       await handlerGetPost(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
+
+      ({ req, res } = mockReqRes('POST', { ...validBody, assets: [{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://example.com/video' }] }));
+      await handlerGetPost(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     it('unassigned project -> 403', async () => {
@@ -473,10 +477,10 @@ describe('Question API Handlers', () => {
         return cb(tx);
       });
 
-      const { req, res } = mockReqRes('PATCH', { assets: [{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://example.com/cozum' }] }, { id: '1' });
+      const { req, res } = mockReqRes('PATCH', { assets: [{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://www.youtube.com/watch?v=abcDEF12345' }] }, { id: '1' });
       await handlerPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(assetCreateMany.data).toEqual([{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://example.com/cozum', title: null, altText: null, sortOrder: 0, questionId: 1 }]);
+      expect(assetCreateMany.data).toEqual([{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://www.youtube.com/watch?v=abcDEF12345', title: null, altText: null, sortOrder: 0, questionId: 1 }]);
     });
 
     it('invalid projectId -> 400', async () => {

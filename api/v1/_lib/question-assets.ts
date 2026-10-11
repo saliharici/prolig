@@ -1,6 +1,48 @@
 const allowedPlacements = new Set(['STEM', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'EXPLANATION']);
 const allowedTypes = new Set(['IMAGE', 'VIDEO_URL', 'LINK']);
 
+function getEmbeddableVideoUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      const videoId = parsed.searchParams.get('v')
+        || parsed.pathname.match(/^\/(?:embed|shorts)\/([A-Za-z0-9_-]{6,})/)?.[1];
+      return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : null;
+    }
+
+    if (host === 'youtu.be') {
+      const videoId = parsed.pathname.split('/').filter(Boolean)[0];
+      return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : null;
+    }
+
+    if (host === 'vimeo.com') {
+      const videoId = parsed.pathname.match(/^\/(\d+)/)?.[1];
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
+    }
+
+    if (host === 'player.vimeo.com') {
+      const videoId = parsed.pathname.match(/^\/video\/(\d+)/)?.[1];
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
+    }
+
+    if (host === 'dailymotion.com') {
+      const videoId = parsed.pathname.match(/^\/video\/([A-Za-z0-9]+)/)?.[1];
+      return videoId ? `https://www.dailymotion.com/embed/video/${videoId}` : null;
+    }
+
+    if (host === 'dai.ly') {
+      const videoId = parsed.pathname.split('/').filter(Boolean)[0];
+      return videoId ? `https://www.dailymotion.com/embed/video/${videoId}` : null;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export interface NormalizedQuestionAsset {
   placement: string;
   assetType: string;
@@ -42,6 +84,10 @@ export function parseQuestionAssets(raw: unknown): { ok: true; assets: Normalize
       }
     } catch {
       return { ok: false, error: 'Invalid asset url' };
+    }
+
+    if (asset.assetType === 'VIDEO_URL' && !getEmbeddableVideoUrl(asset.url.trim())) {
+      return { ok: false, error: 'Video provider must support embedding' };
     }
 
     const title = asset.title === undefined || asset.title === null ? null : String(asset.title).trim();
