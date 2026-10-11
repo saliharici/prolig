@@ -17,7 +17,7 @@ const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 try {
   const [writer, editor, coordinator, project, istanbul] = await Promise.all([
     prisma.user.findUnique({ where: { email: 'pilot.yazar@prolig.local' }, select: { id: true, role: { select: { code: true } }, AuthorProfile: { select: { id: true, provinceId: true, branchId: true, districtId: true, institutionId: true, province: { select: { name: true, region: true } } } } } }),
-    prisma.user.findUnique({ where: { email: 'pilot.editor@prolig.local' }, select: { id: true, role: { select: { code: true } }, editorGrade: true, editorBranchId: true, provinceId: true } }),
+    prisma.user.findUnique({ where: { email: 'pilot.editor@prolig.local' }, select: { id: true, role: { select: { code: true } }, editorGrade: true, editorBranchId: true, provinceId: true, assignedRegion: true } }),
     prisma.user.findUnique({ where: { email: 'pilot.il@prolig.local' }, select: { role: { select: { code: true } }, provinceId: true } }),
     prisma.project.findUnique({ where: { code: 'PILOT-MAT-8-001' }, select: { id: true, targetGrade: true, branchId: true, projectAuthors: { select: { authorProfileId: true } } } }),
     prisma.province.findUnique({ where: { code: '34' }, select: { id: true, name: true, region: true } })
@@ -27,13 +27,14 @@ try {
   const locationPreflight = {
     istanbulCatalogueValid: istanbul.name === 'İstanbul' && istanbul.region === 'Marmara',
     coordinatorProvinceMatchesIstanbul: coordinator.provinceId === istanbul.id,
-    editorProvinceMatchesIstanbul: editor.provinceId === istanbul.id,
+    editorGeographyCoversIstanbul: editor.provinceId !== null ? editor.provinceId === istanbul.id : editor.assignedRegion === istanbul.region,
     coordinatorProvinceId: coordinator.provinceId,
     editorProvinceId: editor.provinceId,
+    editorAssignedRegion: editor.assignedRegion,
     canonicalIstanbulProvinceId: istanbul.id
   };
   console.log('Pilot location preflight (read-only):', JSON.stringify(locationPreflight, null, 2));
-  if (!locationPreflight.istanbulCatalogueValid || !locationPreflight.coordinatorProvinceMatchesIstanbul || !locationPreflight.editorProvinceMatchesIstanbul) {
+  if (!locationPreflight.istanbulCatalogueValid || !locationPreflight.coordinatorProvinceMatchesIstanbul || !locationPreflight.editorGeographyCoversIstanbul) {
     throw new Error('Pilot location preflight mismatch. No writes applied; review location facts before designing any repair.');
   }
   const profile = writer.AuthorProfile;
