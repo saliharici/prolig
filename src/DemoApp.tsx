@@ -21,6 +21,7 @@ import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
 import { questionStudioFingerprint, pausedQuestionDraftKey, copyPausedQuestionDraft, type QuestionStudioFormValues, type QuestionStudioPausedDraft } from './questions/studio-state';
 import { hasDurableQuestionDraft, saveEncryptedQuestionDraft, recoverEncryptedQuestionDraft, removeEncryptedQuestionDraft, validateDraftPassphrase, type StudioDurableDraftData } from './questions/studio-durable';
+import { compareQuestionRevisions } from './questions/revision-compare';
 import type { ApiQuestion, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
@@ -830,6 +831,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [questionSaving, setQuestionSaving] = useState(false);
   const [questionBaseline, setQuestionBaseline] = useState('');
   const [questionSaveError, setQuestionSaveError] = useState('');
+  const [serverQuestionConflict, setServerQuestionConflict] = useState<ApiQuestion | null>(null);
+  const [questionConflictLookupFailed, setQuestionConflictLookupFailed] = useState(false);
   const pausedQuestionDraftsRef = useRef(new Map<string, QuestionStudioPausedDraft<ApiQuestion>>());
   const [pausedDraftsVersion, setPausedDraftsVersion] = useState(0);
   const [durableDraftEnabled, setDurableDraftEnabled] = useState(false);
@@ -919,6 +922,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssetTitle(values.assetTitle);
     setQuestionAssetAltText(values.assetAltText);
     setQuestionBaseline(draft.baseline);
+    setServerQuestionConflict(null);
+    setQuestionConflictLookupFailed(false);
     setDurableDraftConflict(Boolean(draft.conflicted));
     setQuestionSaveError('');
     setShowQuestionForm(true);
@@ -1220,7 +1225,18 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     } catch (e: any) {
       // Never overwrite local form values with a server refresh after an HTTP 409.
       if (e instanceof ApiError && (e.status === 409 || e.status === 428)) {
-        setQuestionSaveError('Sürüm çakışması: Bu soru başka bir oturumda değiştirilmiş olabilir. Sunucudaki kayıt üzerine yazılmadı. Ekrandaki taslağınız korundu; metni kopyalayıp soru listesini başka bir sekmede açarak güncel sürümü karşılaştırın.');
+        setDurableDraftConflict(true);
+        setQuestionSaveError('Sürüm çakışması: Bu soru başka bir oturumda değiştirilmiş olabilir. Sunucu üzerine yazılmadı. Ekrandaki taslağınız korundu.');
+        if (editingQuestion) {
+          // Read-only refresh for side-by-side review; never overwrite input fields.
+          try {
+            const latest = (await fetchQuestions('all')).find(q => q.id === editingQuestion.id);
+            if (latest) setServerQuestionConflict(latest);
+            else setQuestionConflictLookupFailed(true);
+          } catch {
+            setQuestionConflictLookupFailed(true);
+          }
+        }
       } else {
         setQuestionSaveError(e instanceof Error ? e.message : 'Kaydetme başarısız. Taslak bu ekranda korunuyor.');
       }
@@ -1241,6 +1257,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setDurableDraftEnabled(false);
     setDurableDraftConflict(false);
     setDurableDraftMessage('');
+    setServerQuestionConflict(null);
+    setQuestionConflictLookupFailed(false);
     setQuestionTitle('');
     setQuestionSaveError('');
     setQuestionBaseline(questionStudioFingerprint({
@@ -1548,6 +1566,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setDurableDraftEnabled(false);
     setDurableDraftConflict(false);
     setDurableDraftMessage('');
+    setServerQuestionConflict(null);
+    setQuestionConflictLookupFailed(false);
     setQuestionTitle(question.content);
     
     const linkedProject = question.projectId ? apiProjects.find(project => project.id === question.projectId) : null;
@@ -2094,6 +2114,19 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           <p>Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.</p>
           {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <p className="studio-dirty-status" role="status">{questionSaving ? 'Kaydediliyor…' : hasUnsavedQuestionChanges ? 'Kaydedilmemiş değişiklikler var' : 'Henüz kaydedilmemiş değişiklik yok'}</p>}
           {questionSaveError && <div className="studio-save-error" role="alert">{questionSaveError}</div>}
+          {serverQuestionConflict && <section className="studio-revision-review" aria-label="Soru sürüm karşılaştırması">
+            <div className="studio-revision-heading"><strong>Sunucudaki sürüm değişmiş</strong><span>Kaydetme engellendi</span></div>
+            <p>Metniniz bu ekranda korunuyor. Taslağınızı ve güncel sunucu verilerini karşılaştırın. Otomatik birleştirme veya üzerine yazma yapılmaz.</p>
+            <div className="studio-revision-table" role="table" aria-label="İki soru sürümünü karşılaştır">
+              <div className="studio-revision-row studio-revision-labels" role="row"><strong role="columnheader">Alan</strong><strong role="columnheader">Sizdeki taslak</strong><strong role="columnheader">Güncel sunucu sürümü</strong></div>
+              {compareQuestionRevisions(questionFormValues, serverQuestionConflict).map(row => (
+                <div className={row.changed ? 'studio-revision-row changed' : 'studio-revision-row'} role="row" key={row.field}>
+                  <strong role="rowheader">{row.field}</strong><span role="cell">{row.local}</span><span role="cell">{row.server}</span>
+                </div>
+              ))}
+            </div>
+          </section>}
+          {questionConflictLookupFailed && <p className="studio-save-error" role="alert">Güncel sunucu sürümü alınamadı. Ekrandaki taslak korundu; başka bir sekmede soru listesini kontrol edin.</p>
           {durableFeatureOn && <section className="studio-durable-control" aria-label="Şifreli taslak kurtarma">
             <div className="studio-durable-heading"><strong>Bu cihazda şifreli taslak kurtarma</strong><span>{durableDraftConflict ? 'Sürüm çakışması' : durableDraftEnabled ? 'Etkin' : durableCopyExists ? 'Kopya bulundu' : 'Kapalı'}</span></div>
             <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Unutursanız taslak açılamaz. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
