@@ -169,6 +169,23 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     return res.status(409).json({ error: 'Question is locked' });
   }
 
+  // P1-D: Every write must use the revision the author actually opened, not the
+  // latest revision read by this handler. Without this, sequential browser tabs
+  // can silently overwrite each other.
+  const expectedUpdatedAt = req.body?.expectedUpdatedAt;
+  if (expectedUpdatedAt === undefined) {
+    return res.status(428).json({ error: 'Question revision required. Reload the question before editing.' });
+  }
+  if (typeof expectedUpdatedAt !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(expectedUpdatedAt) ||
+      !Number.isFinite(Date.parse(expectedUpdatedAt)) ||
+      new Date(expectedUpdatedAt).toISOString() !== expectedUpdatedAt) {
+    return res.status(400).json({ error: 'Invalid expectedUpdatedAt revision' });
+  }
+  if (question.updatedAt.getTime() !== Date.parse(expectedUpdatedAt)) {
+    return res.status(409).json({ error: 'Question was updated in another session. No changes were saved.' });
+  }
+
   const payloadKeys = Object.keys(req.body || {});
   const protectedFields = ['id', 'authorUserId', 'status', 'editorNote', 'createdAt', 'updatedAt', 'isArchived'];
   if (payloadKeys.some(k => protectedFields.includes(k))) {
@@ -283,8 +300,9 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     const count = await tx.question.updateMany({
       where: {
         id,
+        authorUserId: user.id,
         status: question.status,
-        updatedAt: question.updatedAt
+        updatedAt: new Date(expectedUpdatedAt)
       },
       data: updateData
     });
