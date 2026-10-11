@@ -29,9 +29,10 @@ function questionInclude() {
 }
 
 function parseId(req: VercelRequest) {
-  const idParam = req.query.id as string;
-  const id = parseInt(idParam, 10);
-  return Number.isSafeInteger(id) && id > 0 ? id : null;
+  const raw = req.query.id;
+  if (typeof raw !== 'string' || !/^[1-9][0-9]*$/.test(raw)) return null;
+  const id = Number(raw);
+  return Number.isSafeInteger(id) ? id : null;
 }
 
 async function findQuestionInScope(id: number, user: any) {
