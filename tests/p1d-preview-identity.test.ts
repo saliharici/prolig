@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
-import { isP1DPreviewSandboxTarget, P1D_PREVIEW_BRANCH } from '../api/v1/_lib/p1d-preview-identity';
+import { isP1DPreviewSandboxTarget, p1dPreviewRefusalCode, P1D_PREVIEW_BRANCH } from '../api/v1/_lib/p1d-preview-identity';
 
 const valid = {
   vercelEnv: 'preview',
@@ -22,6 +22,18 @@ describe('P1-D preview-only read-only database identity', () => {
     expect(isP1DPreviewSandboxTarget({ ...valid, databaseUrl: 'not-a-url' })).toBe(false);
     expect(isP1DPreviewSandboxTarget({ ...valid, databaseUrl: valid.databaseUrl!.replace('privatepass', '') })).toBe(false);
     expect(isP1DPreviewSandboxTarget({ ...valid, databaseUrl: valid.databaseUrl!.replace('postgresql:', 'https:') })).toBe(false);
+  });
+
+  it('returns only a safe reason code for refused Preview routes and no secrets', () => {
+    expect(p1dPreviewRefusalCode({ ...valid, vercelEnv: 'production' })).toBe('NOT_PREVIEW');
+    expect(p1dPreviewRefusalCode({ ...valid, gitCommitRef: undefined })).toBe('BRANCH_METADATA_MISSING');
+    expect(p1dPreviewRefusalCode({ ...valid, gitCommitRef: 'different-branch' })).toBe('BRANCH_MISMATCH');
+    expect(p1dPreviewRefusalCode({ ...valid, databaseUrl: undefined })).toBe('DATABASE_URL_MISSING');
+    expect(p1dPreviewRefusalCode({ ...valid, databaseUrl: valid.databaseUrl!.replace('/prolig_p1d_sandbox', '/neondb') })).toBe('DATABASE_TARGET_MISMATCH');
+    const refusal = p1dPreviewRefusalCode({ ...valid, databaseUrl: 'postgresql://user:secret@untrusted.invalid/db' });
+    expect(refusal).toBe('DATABASE_TARGET_MISMATCH');
+    expect(refusal).not.toContain('secret');
+    expect(refusal).not.toContain('untrusted');
   });
 
   it('must not touch the DB unless gate passes and only run a READ ONLY transaction', () => {

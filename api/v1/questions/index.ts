@@ -6,7 +6,7 @@ import { formatQuestionDto } from '../_lib/question-dto.js';
 import { parseQuestionAssets } from '../_lib/question-assets.js';
 import { getQuestionArchiveStateMap } from '../_lib/question-archive.js';
 import { Client } from 'pg';
-import { isP1DPreviewSandboxTarget, P1D_SANDBOX_DATABASE } from '../_lib/p1d-preview-identity.js';
+import { isP1DPreviewSandboxTarget, p1dPreviewRefusalCode, P1D_SANDBOX_DATABASE } from '../_lib/p1d-preview-identity.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -42,7 +42,16 @@ async function handleSandboxProbe(res: VercelResponse) {
     gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
     databaseUrl: connectionString
   })) {
-    return res.status(404).json({ sandboxVerified: false });
+    const reason = p1dPreviewRefusalCode({
+      vercelEnv: process.env.VERCEL_ENV,
+      gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
+      databaseUrl: connectionString
+    });
+    // Production and other environments remain indistinguishable to callers.
+    return res.status(404).json({
+      sandboxVerified: false,
+      ...(process.env.VERCEL_ENV === 'preview' ? { reason } : {})
+    });
   }
 
   const client = new Client({ connectionString, connectionTimeoutMillis: 6000 });

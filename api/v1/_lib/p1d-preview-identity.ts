@@ -28,3 +28,18 @@ export function isP1DPreviewSandboxTarget(input: P1DPreviewIdentity): boolean {
     return false;
   }
 }
+
+/**
+ * Safe diagnostic code for an unsuccessful Preview-only probe.
+ * Never returns any connection-string characters, host, branch name or secret.
+ * Do not use this instead of the fail-closed isP1DPreviewSandboxTarget guard.
+ */
+export function p1dPreviewRefusalCode(input: P1DPreviewIdentity):
+  'NOT_PREVIEW' | 'BRANCH_METADATA_MISSING' | 'BRANCH_MISMATCH' |
+  'DATABASE_URL_MISSING' | 'DATABASE_TARGET_MISMATCH' {
+  if (input.vercelEnv !== 'preview') return 'NOT_PREVIEW';
+  if (!input.gitCommitRef) return 'BRANCH_METADATA_MISSING';
+  if (input.gitCommitRef !== P1D_PREVIEW_BRANCH) return 'BRANCH_MISMATCH';
+  if (!input.databaseUrl) return 'DATABASE_URL_MISSING';
+  return 'DATABASE_TARGET_MISMATCH';
+}
