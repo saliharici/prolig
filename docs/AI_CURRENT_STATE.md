@@ -124,3 +124,11 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - **P1-B automated source gate ACCEPTED.** This is not P1-B browser/manual acceptance and does not validate P1-B runtime 409 conflict, save/reopen round-trip, multi-session behavior, accessibility/mobile, or live pilot DB integration. The in-memory guard does not persist drafts through crashes/reloads.
 - Next manual pilot-only checks: (1) flag-on fullscreen/mobile layout, (2) dirty-form close cancel/confirm, (3) save then reopen/compare question data, (4) genuine two-session 409 conflict and local draft preservation, (5) flag-off legacy view.
 - No main merge, Vercel Production deployment, seed, or schema change authorized or performed.
+
+## P1-B user testing: pause/resume issue repaired in feature branch (2026-10-11)
+- User screenshotted and confirmed narrow-screen responsive layout is satisfactory, but exiting/canceling question authoring caused previously written text to vanish on reopening.
+- Root cause: old safe close handler only warned then unmounted form, while `openQuestionForm()` always cleared all input; no paused-draft recovery existed.
+- Repaired in feature branch: owner+question-scoped in-memory paused drafts, confirmation Cancel keeps form in place, Confirm pauses with copy, reopening matching question restores all form content including options/correct answer/media. Successful API save invalidates the paused copy. New dirty-state action label: "Ara ver".
+- Updated/extended P1-B tests; **these changes are NOT locally tested yet**. Last prior verified gate: 434/434, lint PASS, build PASS; **rerun** `node scripts/p1-check.mjs` before browser acceptance.
+- State is not durable across reload, browser close, crash, remount. Never interpret UI pause as DB save.
+- No main merge, Production deployment, schema migration or database write.
