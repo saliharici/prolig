@@ -122,7 +122,7 @@ describe('Question edit hotfix', () => {
     expect(safeClose).toContain('setEditingQuestion(null);');
     expect(source).toContain('if (event.target === event.currentTarget) closeQuestionForm();');
     expect(source).toContain('aria-label="Kapat" disabled={questionSaving} onClick={closeQuestionForm}');
-    expect(source).toContain('disabled={questionSaving} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}');
+    expect(source).toContain("disabled={questionSaving} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}");
 
     const editorModalStart = source.indexOf('<form className="question-modal editor-review-modal"');
     const editorModalEnd = source.indexOf('</form></div>}', editorModalStart);
