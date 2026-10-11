@@ -84,6 +84,25 @@ describe('P1 structured question preview spike', () => {
     expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true'");
     expect(app).toContain('StudioDocumentPreview');
     expect(app).toContain('insertQuestionTable');
+    expect(app).toContain("applyQuestionMarkup('
+    expect(app).toContain('Tablo için soru gövdesinde yeterli alan yok');
+    expect(api).toContain("fetch('/api/v1/questions'");
+    expect(api).toContain("fetch(`/api/v1/questions/${id}`");
+    expect(api).not.toContain('studioDocument');
+  });
+});
+, '
+    expect(app).toContain('Tablo için soru gövdesinde yeterli alan yok');
+    expect(api).toContain("fetch('/api/v1/questions'");
+    expect(api).toContain("fetch(`/api/v1/questions/${id}`");
+    expect(api).not.toContain('studioDocument');
+  });
+});
+, 'formül')");
+    expect((app.match(/const insertQuestionTable/g) || [])).toHaveLength(1);
+    expect((app.match(/aria-label="Formül ekle"/g) || [])).toHaveLength(1);
+    expect((app.match(/aria-label="Tablo ekle"/g) || [])).toHaveLength(1);
+    expect(app).not.toContain("applyQuestionMarkup(' aria-label");
     expect(app).toContain('Tablo için soru gövdesinde yeterli alan yok');
     expect(api).toContain("fetch('/api/v1/questions'");
     expect(api).toContain("fetch(`/api/v1/questions/${id}`");
