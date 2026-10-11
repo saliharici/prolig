@@ -62,16 +62,16 @@ function hex(bytes: Uint8Array): string {
   return Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
 }
 
-function bytesFromHex(value: string, expectedBytes?: number): Uint8Array {
+function bytesFromHex(value: string, expectedBytes?: number): Uint8Array<ArrayBuffer> {
   if (!/^(?:[0-9a-f]{2})+$/i.test(value) || (expectedBytes !== undefined && value.length !== expectedBytes * 2)) {
     throw new Error('Şifreli taslak biçimi geçersiz.');
   }
-  const bytes = new Uint8Array(value.length / 2);
+  const bytes = new Uint8Array(new ArrayBuffer(value.length / 2));
   for (let i = 0; i < bytes.length; i++) bytes[i] = Number.parseInt(value.slice(i * 2, i * 2 + 2), 16);
   return bytes;
 }
 
-async function deriveKey(passphrase: string, salt: Uint8Array, cryptoApi: Crypto): Promise<CryptoKey> {
+async function deriveKey(passphrase: string, salt: Uint8Array<ArrayBuffer>, cryptoApi: Crypto): Promise<CryptoKey> {
   const source = await cryptoApi.subtle.importKey(
     'raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']
   );
