@@ -19,7 +19,7 @@ import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnsw
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
-import { questionStudioFingerprint } from './questions/studio-state';
+import { questionStudioFingerprint, pausedQuestionDraftKey, copyPausedQuestionDraft, type QuestionStudioFormValues, type QuestionStudioPausedDraft } from './questions/studio-state';
 import type { ApiQuestion, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
@@ -828,6 +828,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [questionSaving, setQuestionSaving] = useState(false);
   const [questionBaseline, setQuestionBaseline] = useState('');
   const [questionSaveError, setQuestionSaveError] = useState('');
+  const pausedQuestionDraftsRef = useRef(new Map<string, QuestionStudioPausedDraft<ApiQuestion>>());
+  const [pausedDraftsVersion, setPausedDraftsVersion] = useState(0);
   
   useEffect(() => { saveDemoData(data); }, [data]);
   useEffect(() => { if (toast) { const timer = window.setTimeout(() => setToast(''), 3800); return () => window.clearTimeout(timer); } }, [toast]);
@@ -859,7 +861,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
   const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role);
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
-  const questionSnapshot = questionStudioFingerprint({
+  const questionFormValues: QuestionStudioFormValues = {
     content: questionTitle,
     level: questionLevel,
     grade: questionGrade,
@@ -873,25 +875,63 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     assetUrl: questionAssetUrl,
     assetTitle: questionAssetTitle,
     assetAltText: questionAssetAltText
-  });
+  };
+  const questionSnapshot = questionStudioFingerprint(questionFormValues);
   const hasUnsavedQuestionChanges = Boolean(questionBaseline) && questionSnapshot !== questionBaseline;
+  const pausedQuestionKey = pausedQuestionDraftKey(currentUser.id, editingQuestion?.id ?? null);
+
+  const restorePausedQuestion = (draft: QuestionStudioPausedDraft<ApiQuestion>) => {
+    const values = draft.values;
+    setEditingQuestion(draft.originalQuestion);
+    setOriginalQuestionProjectId(draft.originalProjectId);
+    setQuestionTitle(values.content);
+    setQuestionLevel(values.level);
+    setQuestionGrade(values.grade);
+    setQuestionProjectId(values.projectId);
+    setQuestionOptions([...values.options]);
+    setQuestionCorrectAnswer(values.correctAnswer);
+    setQuestionExplanation(values.explanation);
+    setQuestionAssets(values.assets.map(asset => ({ ...asset })));
+    setQuestionAssetPlacement(values.assetPlacement);
+    setQuestionAssetType(values.assetType);
+    setQuestionAssetUrl(values.assetUrl);
+    setQuestionAssetTitle(values.assetTitle);
+    setQuestionAssetAltText(values.assetAltText);
+    setQuestionBaseline(draft.baseline);
+    setQuestionSaveError('');
+    setShowQuestionForm(true);
+  };
+
   const closeQuestionForm = () => {
     if (questionSavingRef.current) return;
-    if (hasUnsavedQuestionChanges && !window.confirm('Kaydedilmemiş soru değişiklikleri var. Kaydetmeden çıkılsın mı?')) return;
+    if (hasUnsavedQuestionChanges) {
+      if (!window.confirm('Düzenlemeye ara verilsin mi? Değişiklikleriniz sayfa açık kaldığı sürece geçici olarak korunacak. Devam etmek için İptal seçin.')) return;
+      pausedQuestionDraftsRef.current.set(pausedQuestionKey, copyPausedQuestionDraft({
+        values: questionFormValues,
+        baseline: questionBaseline,
+        originalProjectId: originalQuestionProjectId,
+        originalQuestion: editingQuestion
+      }));
+      setToast('Taslağınız geçici olarak korundu. Aynı soruyu yeniden açarak devam edebilirsiniz.');
+    } else {
+      pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+    }
+    setPausedDraftsVersion(v => v + 1);
     setShowQuestionForm(false);
     setEditingQuestion(null);
     setQuestionBaseline('');
     setQuestionSaveError('');
   };
+
   useEffect(() => {
-    if (!showQuestionForm || !hasUnsavedQuestionChanges) return;
+    if ((!showQuestionForm || !hasUnsavedQuestionChanges) && pausedQuestionDraftsRef.current.size === 0) return;
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = '';
     };
     window.addEventListener('beforeunload', warnBeforeUnload);
     return () => window.removeEventListener('beforeunload', warnBeforeUnload);
-  }, [showQuestionForm, hasUnsavedQuestionChanges]);
+  }, [showQuestionForm, hasUnsavedQuestionChanges, pausedDraftsVersion]);
   const questionAssignableProjects = apiProjects.filter(project =>
     !['Tamamlandi', 'Arsiv'].includes(project.status) || project.id === originalQuestionProjectId
   );
@@ -1001,6 +1041,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         });
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
+      pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+      setPausedDraftsVersion(v => v + 1);
       setShowQuestionForm(false);
       setEditingQuestion(null);
       setQuestionBaseline('');
@@ -1024,6 +1066,12 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     }
   };
   const openQuestionForm = () => {
+    const paused = pausedQuestionDraftsRef.current.get(pausedQuestionDraftKey(currentUser.id, null));
+    if (paused) {
+      restorePausedQuestion(copyPausedQuestionDraft(paused));
+      setToast('Geçici soru taslağınız geri yüklendi.');
+      return;
+    }
     setEditingQuestion(null);
     setQuestionTitle('');
     setQuestionSaveError('');
@@ -1321,6 +1369,12 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   
   const openYazarEdit = (question: ApiQuestion) => {
     if (question.status !== 'TASLAK' && question.status !== 'REVIZYON') return;
+    const paused = pausedQuestionDraftsRef.current.get(pausedQuestionDraftKey(currentUser.id, question.id));
+    if (paused && paused.originalQuestion?.id === question.id) {
+      restorePausedQuestion(copyPausedQuestionDraft(paused));
+      setToast('Bu soruya ait kaydedilmemiş değişiklikler geri yüklendi. Sunucudaki güncel durumu kaydetmeden önce kontrol edin.');
+      return;
+    }
     setEditingQuestion(question);
     setQuestionTitle(question.content);
     
@@ -1925,7 +1979,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </div>
             </aside>
           </div>
-          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving} onClick={closeQuestionForm}>Vazgeç</button><button type="submit" className="primary-button" disabled={questionSaving}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button></div>
+          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button><button type="submit" className="primary-button" disabled={questionSaving}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button></div>
         </form>
       </div>}
       {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
