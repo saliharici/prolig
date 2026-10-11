@@ -919,6 +919,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssetTitle(values.assetTitle);
     setQuestionAssetAltText(values.assetAltText);
     setQuestionBaseline(draft.baseline);
+    setDurableDraftConflict(Boolean(draft.conflicted));
     setQuestionSaveError('');
     setShowQuestionForm(true);
   };
@@ -997,8 +998,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId);
       durableDraftPhraseRef.current = '';
       setDurableDraftEnabled(false);
-      setDurableDraftConflict(false);
-      setDurableDraftMessage('Şifreli kopya silindi. Ekrandaki yazılar korunuyor.');
+      // Keep a stale-version lock even when its encrypted recovery copy is deleted.
+      setDurableDraftMessage(durableDraftConflict ? 'Şifreli kopya silindi. Bu metin eski sunucu sürümüne ait olduğu için Kaydet hâlâ kilitli.' : 'Şifreli kopya silindi. Ekrandaki yazılar korunuyor.');
     } catch {
       setDurableDraftMessage('Tarayıcı depolamasından silinemedi.');
     }
@@ -1013,7 +1014,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           values: questionFormValues,
           baseline: questionBaseline,
           originalProjectId: originalQuestionProjectId,
-          originalQuestion: editingQuestion
+          originalQuestion: editingQuestion,
+          conflicted: durableDraftConflict
         }));
         setToast('Taslağınız geçici olarak korundu. Aynı soruyu yeniden açarak devam edebilirsiniz.');
       } else {
