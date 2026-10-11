@@ -60,3 +60,11 @@ The runner performs **read-only preflight first**; only after PASS does it start
 - No pilot DB has been queried or modified by the assistant during this implementation. No schema migration or seed was introduced.
 - Browser accessibility, multiple browsers, offline queue, real latency/credential expiry and Production policy review remain pending.
 - **No merge to main, Production deployment or database migration authorization** is implied by P1-D development approval.
+
+## 2026-10-11 operator gate accepted — preflight-only default
+- Verified operator log: UI and API `tsc --noEmit` PASS; all 458/458 non-database tests across 49 files PASS; Vite production *compilation only* PASS (no deployment).
+- Subsequently hardened `scripts/p1d-pilot-check.mjs` to perform **only read-only identity checks when run with no arguments**. This change supersedes any earlier implication that invoking the script by itself runs integration writes. The safety change and corresponding assertion were committed after the 458-test log and are not yet locally rechecked.
+- Prerequisite: human-verifiable isolated pilot Postgres DB. Do not set `PROLIG_PILOT_DB_CONFIRMED=true` without verifying it is NOT any real editorial/Production DB. The preflight checks host, explicit DB name and two pilot account signatures, but these technical checks alone cannot prove organizational isolation.
+- First run (READ-ONLY): `node scripts/p1d-pilot-check.mjs`; do not share DATABASE_URL/password/secret. A missing-configuration failure is expected when isolated pilot is not configured; do not bypass it.
+- Separate later run **only after explicit confirmation and permission for pilot test writes**: set `PROLIG_P1D_ALLOW_WRITES=true` in the user-verified pilot environment and invoke `node scripts/p1d-pilot-check.mjs --run-integration`. The runner still validates DB identity before starting an integration suite that creates and deletes a disposable test question.
+- No main merge, Production deployment, schema migration, seed or real data mutation.
