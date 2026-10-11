@@ -162,3 +162,11 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Operator checked out P1-C branch and ran `node scripts/p1-check.mjs`. UI TypeScript check failed with TS2657 at `src/DemoApp.tsx:2096` and TS1005 at approximately line 2178. Cause: missing closing `}` for `{durableFeatureOn && <section ...>` before the question-studio editor layout.
 - Patched `</section>` to `</section>}` in the unique P1-C recovery panel boundary (commit `2f3dccb`). Added a regression assertion to existing `tests/question-studio-p1c.test.ts` normalizing CRLF and guarding `</section>}\n<div className="question-studio-layout"` (commit `c107642`). No feature behavior, backend, DB, main, or production change.
 - **NOT YET VERIFIED:** operator must run `git pull --ff-only` then `node scripts/p1-check.mjs` on P1-C branch. Previous run stopped at first TypeScript failure; tests and build did not execute. Nominal target 446/446 tests, lint and Vite build PASS; do not claim until log supplied.
+
+## P1-C ENCRYPTED RECOVERY FRONTEND GATE PASS — 446/446 — 2026-10-11
+- Operator checked out P1-C branch and ran `node scripts/p1-check.mjs` after JSX panel closure fix.
+- UI and API TypeScript/lint PASS; **48/48 test files PASS, 446/446 non-database tests PASS** including 9 P1-C encrypted-draft tests; Vite v8.3.0 production bundle build PASS, 1707 modules.
+- Main JS ~714.69 kB (gzip 232.33 kB) emitted only a nonblocking code-splitting warning; mocked DB Error/Tx Error stderr occurred in expected negative-path tests and `question-handlers.test.ts` PASS.
+- P1-C **frontend automated gate accepted**, but **NOT browser/manual acceptance**, live pilot DB save/reopen, two-session 409 check, nor merge/Production approval.
+- Next: in the same local origin/browser profile, run `VITE_QUESTION_STUDIO_P1=true`, `VITE_QUESTION_STUDIO_P1C=true`, `npx vercel dev`; exercise explicit opt-in, 12+ character independent passphrase, after-idle encrypted autosave, Ara ver, browser reload, password recovery and original form content. Do not use actual account password.
+- Distinguish cryptographic unit tests from actual browser storage capability. Never claim persisted recovery until manual confirmation. Preserve untracked user files; no main merge, Production, migrations, or DB writes.
