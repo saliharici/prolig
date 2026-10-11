@@ -292,9 +292,9 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'No editable fields provided' });
   }
 
-  if (parsedAssets?.ok) {
-    updateData.updatedAt = new Date();
-  }
+  // Ensure even two writes within the same millisecond generate distinct revisions.
+  // Explicitly advance updatedAt for every successful PATCH, not just media changes.
+  updateData.updatedAt = new Date(Math.max(Date.now(), question.updatedAt.getTime() + 1));
 
   const updated = await prisma.$transaction(async (tx: any) => {
     const count = await tx.question.updateMany({
