@@ -34,8 +34,8 @@ describe('Final UX Stabilization', () => {
     expect(modalStart).toBeGreaterThan(-1);
     expect(modalEnd).toBeGreaterThan(modalStart);
     expect(authorModal).toContain('if (event.target === event.currentTarget) closeQuestionForm();');
-    expect(authorModal).toContain('aria-label="Kapat" disabled={questionSaving} onClick={closeQuestionForm}');
-    expect(authorModal).toContain("disabled={questionSaving} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}");
+    expect(authorModal).toContain('aria-label="Kapat" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}');
+    expect(authorModal).toContain("disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}");
     expect(authorModal).not.toContain('setReviewingQuestion(null)');
     expect(authorModal).not.toContain('setShowQuestionForm(false); setEditingQuestion(null);');
 
