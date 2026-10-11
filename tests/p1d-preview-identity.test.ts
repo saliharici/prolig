@@ -25,9 +25,11 @@ describe('P1-D preview-only read-only database identity', () => {
   });
 
   it('must not touch the DB unless gate passes and only run a READ ONLY transaction', () => {
-    const src = fs.readFileSync('api/v1/p1d-sandbox-health.ts', 'utf8');
+    const src = fs.readFileSync('api/v1/questions/index.ts', 'utf8');
     expect(src).toContain('if (!isP1DPreviewSandboxTarget(');
+    expect(src).toContain("if (req.query.__p1d_sandbox_probe === '1')");
     expect(src.indexOf('if (!isP1DPreviewSandboxTarget(')).toBeLessThan(src.indexOf('await client.connect()'));
+    expect(src).toContain('return await handleSandboxProbe(res);');
     expect(src).toContain("await client.query('BEGIN READ ONLY')");
     expect(src).toContain("await client.query('ROLLBACK')");
     expect(src).toContain("first?.database_name === P1D_SANDBOX_DATABASE");
