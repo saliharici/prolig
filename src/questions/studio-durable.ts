@@ -150,7 +150,8 @@ export async function saveEncryptedQuestionDraft(
   questionId: number | null,
   passphrase: string,
   draft: StudioDurableDraftData,
-  now = Date.now()
+  now = Date.now(),
+  shouldCommit: () => boolean = () => true
 ): Promise<void> {
   validateDraftPassphrase(passphrase);
   if (!isStudioDraftData(draft)) throw new Error('Taslak alanları geçersiz.');
@@ -169,7 +170,8 @@ export async function saveEncryptedQuestionDraft(
     savedAt: now, expiresAt: now + STUDIO_DRAFT_TTL_MS,
     salt: hex(salt), iv: hex(iv), ciphertext: hex(new Uint8Array(ciphertext))
   };
-  storage.setItem(key, JSON.stringify(envelope));
+  // Prevent a pending encryption operation from recreating a draft after server save.
+  if (shouldCommit()) storage.setItem(key, JSON.stringify(envelope));
 }
 
 export async function recoverEncryptedQuestionDraft(
