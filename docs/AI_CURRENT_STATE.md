@@ -16,3 +16,10 @@ Next: reproduce failures in isolated test DB; implement minimal authorization fi
 - Strict ID validation now applies to question detail PATCH/archive/delete and workflow routes (commits ca090d0b and earlier e6154fbd). Malformed PATCH regression tests added (98fd4117). CI/test execution still pending.
 - Development DB's UserBranchAssignment existence has NOT been verified; diagnostic is available but deliberately not executed against unknown DB.
 - The local audit's nine failures remain open pending isolated integration rerun. Do not infer that ID hardening resolves those failures.
+
+## P0 verification from local Windows run — 2026-10-11
+- User ran `node scripts/p0-check.mjs`: lint/types PASS, 75/75 focused tests PASS, Vite build PASS.
+- User ran `npx vitest run --exclude "tests/integration/**"`: 45 test files PASS, 405/405 tests PASS, 0 failed.
+- Mocked DB Error/Tx Error stderr in question-handlers are expected injected error scenarios, not failing tests.
+- Earlier two editor-grade authorization failures disappeared after user safely stashed a pre-existing local modification of `api/v1/_lib/question-access.ts`. Keep stash preserved; do not reapply without review.
+- The test DB integration suite, actual `UserBranchAssignment` table, migration parity and live feature acceptance remain UNVERIFIED. No production approval given.
