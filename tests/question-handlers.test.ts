@@ -25,8 +25,14 @@ vi.mock('../api/v1/_lib/prisma.js', () => ({
   }
 }));
 
+const TEST_QUESTION_REVISION = '2026-10-11T12:00:00.000Z';
 function mockReqRes(method: string, body: any = {}, query: any = {}): { req: VercelRequest, res: VercelResponse } {
-  const req = { method, body, query, headers: {} } as any;
+  // Old tests assume an editable question's currently viewed revision.
+  // Individual P1-D tests explicitly omit/replace this precondition to cover failures.
+  const payload = method === 'PATCH' && body && typeof body === 'object'
+    ? { expectedUpdatedAt: TEST_QUESTION_REVISION, ...body }
+    : body;
+  const req = { method, body: payload, query, headers: {} } as any;
   const res = {
     status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
@@ -387,7 +393,7 @@ describe('Question API Handlers', () => {
     const setupYazar = () => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Yazar', status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1, branchId: 1 } } as any);
-      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'TASLAK', updatedAt: new Date() } as any);
+      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'TASLAK', updatedAt: new Date(TEST_QUESTION_REVISION) } as any);
       
       vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
         const tx = {
@@ -528,7 +534,7 @@ describe('Question API Handlers', () => {
         id: 1,
         authorUserId: 1,
         status: 'TASLAK',
-        updatedAt: new Date(),
+        updatedAt: new Date(TEST_QUESTION_REVISION),
         projectId: 10,
         grade: '8. Sınıf'
       } as any);
@@ -551,6 +557,62 @@ describe('Question API Handlers', () => {
       const { req, res } = mockReqRes('PATCH', { projectId: 10 }, { id: '1' });
       await handlerPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('requires a question revision before any PATCH and never enters a transaction without it', async () => {
+      setupYazar();
+      const { req, res } = mockReqRes('PATCH', { content: 'Safe revision update' }, { id: '1' });
+      delete (req.body as any).expectedUpdatedAt;
+      await handlerPatch(req, res);
+      expect(res.status).toHaveBeenCalledWith(428);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it.each([null, '', '2026-10-11', '2026-10-11T12:00:00.000+00:00', 'not-a-date'])(
+      'rejects malformed client revision %s before transactional write', async revision => {
+        setupYazar();
+        const { req, res } = mockReqRes('PATCH', {
+          content: 'Safe revision update', expectedUpdatedAt: revision
+        }, { id: '1' });
+        await handlerPatch(req, res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      }
+    );
+
+    it('rejects a stale tab from the opening revision and leaves activity untouched', async () => {
+      setupYazar();
+      const { req, res } = mockReqRes('PATCH', {
+        content: 'Overwrite attempt from an old tab',
+        expectedUpdatedAt: '2026-10-11T11:59:00.000Z'
+      }, { id: '1' });
+      await handlerPatch(req, res);
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('atomically checks the client revision and author id and advances the timestamp', async () => {
+      setupYazar();
+      let predicate: any;
+      let update: any;
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => callback({
+        question: {
+          updateMany: vi.fn().mockImplementation((args: any) => {
+            predicate = args.where; update = args.data;
+            return { count: 1 };
+          }),
+          findUnique: vi.fn().mockResolvedValue({ id: 1 })
+        },
+        activityLog: { create: vi.fn() }
+      }));
+      const { req, res } = mockReqRes('PATCH', { content: 'Safe client revision content' }, { id: '1' });
+      await handlerPatch(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(predicate).toMatchObject({
+        id: 1, authorUserId: 1, status: 'TASLAK',
+        updatedAt: new Date(TEST_QUESTION_REVISION)
+      });
+      expect(update.updatedAt.getTime()).toBeGreaterThan(Date.parse(TEST_QUESTION_REVISION));
     });
 
     it('stale conditional update count=0 -> 409 and no audit log', async () => {
