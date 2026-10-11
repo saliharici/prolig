@@ -83,6 +83,9 @@ describe('P1 structured question preview spike', () => {
     const api = fs.readFileSync(path.join(process.cwd(), 'src/questions/api.ts'), 'utf8');
     expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true'");
     expect(app).toContain('StudioDocumentPreview');
+    const previewSource = fs.readFileSync(path.join(process.cwd(), 'src/questions/StudioDocumentPreview.tsx'), 'utf8');
+    expect(app).toContain("import './questions/studio-preview.css'");
+    expect(previewSource).not.toContain("import './studio-preview.css'");
     expect(app).toContain('insertQuestionTable');
     expect(app).toContain("applyQuestionMarkup('$', '$', 'formül')");
     expect((app.match(/const insertQuestionTable/g) || [])).toHaveLength(1);
