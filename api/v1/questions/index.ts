@@ -3,11 +3,18 @@ import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { buildQuestionReadScope } from '../_lib/question-access.js';
 import { formatQuestionDto } from '../_lib/question-dto.js';
+import { parseQuestionAssets } from '../_lib/question-assets.js';
 import { getQuestionArchiveStateMap } from '../_lib/question-archive.js';
+import { Client } from 'pg';
+import { isP1DPreviewSandboxTarget, p1dPreviewRefusalCode, P1D_SANDBOX_DATABASE } from '../_lib/p1d-preview-identity.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === 'GET') {
+      // Preview-only read-only identity check, guarded before authentication.
+      if (req.query.__p1d_sandbox_probe === '1') {
+        return await handleSandboxProbe(res);
+      }
       return await handleGet(req, res);
     } else if (req.method === 'POST') {
       return await handlePost(req, res);
@@ -18,6 +25,72 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+
+/**
+ * P1-D Preview-only sandbox check. Reuses the existing Question API function
+ * so Hobby's 12-serverless-function cap is not exceeded.
+ * Fails closed before opening a connection for any other branch or database.
+ */
+async function handleSandboxProbe(res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store');
+  const connectionString = process.env.DATABASE_URL;
+  if (!isP1DPreviewSandboxTarget({
+    vercelEnv: process.env.VERCEL_ENV,
+    gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
+    databaseUrl: connectionString
+  })) {
+    const reason = p1dPreviewRefusalCode({
+      vercelEnv: process.env.VERCEL_ENV,
+      gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
+      databaseUrl: connectionString
+    });
+    // Production and other environments remain indistinguishable to callers.
+    return res.status(404).json({
+      sandboxVerified: false,
+      ...(process.env.VERCEL_ENV === 'preview' ? { reason } : {})
+    });
+  }
+
+  const client = new Client({ connectionString, connectionTimeoutMillis: 6000 });
+  let connected = false;
+  try {
+    await client.connect();
+    connected = true;
+    await client.query('BEGIN READ ONLY');
+    const result = await client.query<{
+      database_name: string;
+      migration_applied: boolean;
+      sandbox_project_found: boolean;
+    }>(`
+      SELECT
+        current_database() AS database_name,
+        EXISTS (
+          SELECT 1 FROM public."_prisma_migrations"
+          WHERE migration_name = '20261011115000_question_media_assets'
+            AND finished_at IS NOT NULL AND rolled_back_at IS NULL
+        ) AS migration_applied,
+        EXISTS (
+          SELECT 1 FROM public."Project"
+          WHERE code = 'PILOT-MAT-8-001'
+        ) AS sandbox_project_found
+    `);
+    const first = result.rows[0];
+    const sandboxVerified = (
+      first?.database_name === P1D_SANDBOX_DATABASE &&
+      first.migration_applied === true &&
+      first.sandbox_project_found === true
+    );
+    return res.status(sandboxVerified ? 200 : 503).json({ sandboxVerified, readOnly: true });
+  } catch {
+    return res.status(503).json({ sandboxVerified: false });
+  } finally {
+    if (connected) {
+      await client.query('ROLLBACK').catch(() => undefined);
+    }
+    await client.end().catch(() => undefined);
   }
 }
 
@@ -43,7 +116,8 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
           }
         }
       },
-      project: true
+      project: true,
+      assets: { orderBy: { sortOrder: 'asc' } }
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -77,7 +151,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'AuthorProfile required' });
   }
 
-  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId } = req.body || {};
+  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, assets } = req.body || {};
 
   if (!content || typeof content !== 'string' || content.trim().length < 10 || content.trim().length > 1200) {
     return res.status(400).json({ error: 'Invalid content' });
@@ -115,6 +189,11 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     if (typeof difficulty !== 'string' || difficulty.trim().length > 100) {
       return res.status(400).json({ error: 'Invalid difficulty' });
     }
+  }
+
+  const parsedAssets = parseQuestionAssets(assets);
+  if (!parsedAssets.ok) {
+    return res.status(400).json({ error: parsedAssets.error });
   }
 
   if (projectId !== undefined && projectId !== null) {
@@ -158,11 +237,15 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
         explanation: explanation ? explanation.trim() : null,
         projectId: projectId || null,
         authorUserId: user.id,
-        status: 'TASLAK'
+        status: 'TASLAK',
+        assets: parsedAssets.assets.length > 0 ? {
+          create: parsedAssets.assets
+        } : undefined
       },
       include: {
         authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
-        project: true
+        project: true,
+        assets: { orderBy: { sortOrder: 'asc' } }
       }
     });
 

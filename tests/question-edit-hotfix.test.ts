@@ -13,6 +13,7 @@ const makeQuestion = (overrides: Partial<ApiQuestion> = {}): ApiQuestion => ({
   id: 1,
   content: 'Mevcut soru metni',
   imageUrl: null,
+  assets: [],
   objectiveCode: null,
   grade: '8. Sınıf',
   difficulty: null,
@@ -43,15 +44,27 @@ describe('Question edit hotfix', () => {
   it.each(['TASLAK', 'REVIZYON'] as const)('edits an existing %s question with four options', status => {
     const question = makeQuestion({ status });
     const patch = buildQuestionEditPatch(question, { ...editDraft(question), content: 'Güncellenmiş soru metni' });
-    expect(patch).toEqual({ content: 'Güncellenmiş soru metni' });
+    expect(patch).toEqual({ expectedUpdatedAt: question.updatedAt, content: 'Güncellenmiş soru metni' });
   });
 
   it.each(['TASLAK', 'REVIZYON'] as const)('allows a content-only edit for legacy %s with empty options', status => {
     const question = makeQuestion({ status, options: [], correctAnswer: null });
     const patch = buildQuestionEditPatch(question, { ...editDraft(question), content: 'Güncellenmiş eski soru metni' });
-    expect(patch).toEqual({ content: 'Güncellenmiş eski soru metni' });
+    expect(patch).toEqual({ expectedUpdatedAt: question.updatedAt, content: 'Güncellenmiş eski soru metni' });
     expect(patch).not.toHaveProperty('options');
     expect(patch).not.toHaveProperty('correctAnswer');
+  });
+
+  it('sends structured media asset changes in a PATCH', () => {
+    const question = makeQuestion();
+    const patch = buildQuestionEditPatch(question, {
+      ...editDraft(question),
+      assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', altText: 'Şekil' }]
+    });
+    expect(patch).toEqual({
+      expectedUpdatedAt: question.updatedAt,
+      assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', title: null, altText: 'Şekil', sortOrder: 0 }]
+    });
   });
 
   it('never sends options: [] in a PATCH', () => {
@@ -63,7 +76,7 @@ describe('Question edit hotfix', () => {
   it('does not silently convert a legacy null correctAnswer to A', () => {
     const question = makeQuestion({ options: [], correctAnswer: null });
     const patch = buildQuestionEditPatch(question, { ...editDraft(question), grade: '7. Sınıf' });
-    expect(patch).toEqual({ grade: '7. Sınıf' });
+    expect(patch).toEqual({ expectedUpdatedAt: question.updatedAt, grade: '7. Sınıf' });
     expect(patch.correctAnswer).toBeUndefined();
   });
 
@@ -74,7 +87,7 @@ describe('Question edit hotfix', () => {
       options: [' A ', 'B', 'C', 'D'],
       correctAnswer: 'C'
     });
-    expect(patch).toEqual({ options: ['A', 'B', 'C', 'D'], correctAnswer: 'C' });
+    expect(patch).toEqual({ expectedUpdatedAt: question.updatedAt, options: ['A', 'B', 'C', 'D'], correctAnswer: 'C' });
   });
 
   it('shows controlled validation for partially completed legacy options', () => {
@@ -98,7 +111,22 @@ describe('Question edit hotfix', () => {
     const source = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf8');
     expect(source).toContain('const [editingQuestion, setEditingQuestion] = useState<ApiQuestion | null>(null)');
     expect(source).toContain('const [reviewingQuestion, setReviewingQuestion] = useState<ApiQuestion | null>(null)');
-    expect(source).toContain('if (event.target === event.currentTarget) { setShowQuestionForm(false); setEditingQuestion(null); }');
+    // P1-B: author close now checks dirty state and saving status before clearing.
+    const safeCloseStart = source.indexOf('const closeQuestionForm = () => {');
+    const safeCloseEnd = source.indexOf('const questionAssignableProjects =', safeCloseStart);
+    const safeClose = source.slice(safeCloseStart, safeCloseEnd);
+    expect(safeCloseStart).toBeGreaterThan(-1);
+    expect(safeCloseEnd).toBeGreaterThan(safeCloseStart);
+    expect(safeClose).toContain('if (questionSavingRef.current) return;');
+    expect(safeClose).toContain('if (hasUnsavedQuestionChanges) {');
+    expect(safeClose).toContain("if (!window.confirm('Düzenlemeye ara verilsin mi?");
+    expect(safeClose).toContain('pausedQuestionDraftsRef.current.set(pausedQuestionKey, copyPausedQuestionDraft({');
+    expect(safeClose).toContain('setShowQuestionForm(false);');
+    expect(safeClose).toContain('setShowQuestionForm(false);');
+    expect(safeClose).toContain('setEditingQuestion(null);');
+    expect(source).toContain('if (event.target === event.currentTarget) closeQuestionForm();');
+    expect(source).toContain('aria-label="Kapat" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}');
+    expect(source).toContain("disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}");
 
     const editorModalStart = source.indexOf('<form className="question-modal editor-review-modal"');
     const editorModalEnd = source.indexOf('</form></div>}', editorModalStart);

@@ -85,7 +85,13 @@ if (!connectionString) {
       expect(statusCode).toBe(200);
       expect(jsonData.id).toBe(myId);
       expect(jsonData.branch.name).toBe('Matematik');
-      expect(jsonData.province.name).toBe('İstanbul');
+      const storedProfile = await prisma.authorProfile.findUnique({
+        where: { id: myId },
+        select: { province: { select: { name: true, region: true } } }
+      });
+      expect(storedProfile).toBeTruthy();
+      expect(jsonData.province.name).toBe(storedProfile!.province.name);
+      expect(jsonData.province.region).toBe(storedProfile!.province.region);
       expect(jsonData.province.region).toBe('Marmara');
       expect(jsonData.activeProjectCount).toBeGreaterThanOrEqual(1);
       expect(jsonData.projectGrades).toContain('8. Sınıf');

@@ -1,0 +1,136 @@
+/* P1-B authoring workspace. All layout overrides require explicit P1 feature flag. */
+.question-workspace-overlay {
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+.question-studio-workspace {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  overflow-y: auto;
+  padding: 20px clamp(20px, 3vw, 60px) 24px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+.question-studio-workspace > .modal-head {
+  position: sticky;
+  top: -20px;
+  z-index: 12;
+  padding: 12px 0 16px;
+  background: #fff;
+  border-bottom: 1px solid #e4efed;
+}
+.question-studio-workspace > .modal-head h2 {
+  font-size: clamp(23px, 2vw, 30px);
+}
+.question-studio-workspace > p {
+  font-size: 14px;
+  line-height: 1.55;
+}
+.question-studio-workspace > .question-studio-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(355px, .9fr);
+  align-items: start;
+  gap: clamp(18px, 2.8vw, 44px);
+  margin: 22px auto 28px;
+  width: 100%;
+  max-width: 1700px;
+}
+.question-studio-workspace .question-studio-main,
+.question-studio-workspace .question-preview-panel { min-width: 0; }
+.question-studio-workspace .question-editor-shell textarea {
+  min-height: 225px;
+  font-size: 15px;
+  line-height: 1.72;
+}
+.question-studio-workspace .question-option input[type="text"],
+.question-studio-workspace .question-explanation {
+  font-size: 14px;
+}
+.question-studio-workspace .question-preview-panel {
+  position: sticky;
+  top: 92px;
+  max-height: calc(100dvh - 126px);
+  overflow-y: auto;
+}
+.question-studio-workspace .question-preview-card {
+  font-size: 14px;
+  line-height: 1.65;
+}
+.question-studio-workspace .question-preview-card p,
+.question-studio-workspace .question-preview-card li {
+  font-size: 14px;
+  line-height: 1.65;
+}
+.question-studio-workspace .studio-preview-note {
+  font-size: 12px;
+}
+.question-studio-workspace .question-quality-panel {
+  font-size: 13px;
+  line-height: 1.55;
+}
+.question-studio-workspace > .modal-actions {
+  position: sticky;
+  bottom: -24px;
+  z-index: 12;
+  padding: 16px 0 18px;
+  margin-top: auto;
+  background: #fff;
+  border-top: 1px solid #e4efed;
+}
+.question-studio-workspace .studio-dirty-status {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: #f0f6f5;
+  border: 1px solid #d4e3df;
+  color: #365950;
+  font-size: 12px;
+  font-weight: 700;
+}
+.question-studio-workspace .studio-save-error,
+.question-studio-modal .studio-save-error {
+  padding: 13px 15px;
+  margin: 9px 0;
+  border-radius: 9px;
+  border: 1px solid #edc9a4;
+  background: #fff7ed;
+  color: #854a20;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media(max-width:1080px) {
+  .question-studio-workspace > .question-studio-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .question-studio-workspace .question-preview-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+@media(max-width:640px) {
+  .question-studio-workspace {
+    padding: 14px 14px 20px;
+  }
+  .question-studio-workspace > .modal-head { top: -14px; }
+  .question-studio-workspace > .modal-actions {
+    bottom: -20px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .question-studio-workspace > .modal-actions button {
+    flex: 1 1 130px;
+    min-height: 44px;
+  }
+  .question-studio-workspace .question-editor-toolbar {
+    overflow-x: auto;
+  }
+}

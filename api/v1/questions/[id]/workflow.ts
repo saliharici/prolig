@@ -16,9 +16,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const idParam = req.query.id as string;
-    const id = parseInt(idParam, 10);
-    if (isNaN(id) || id <= 0) return res.status(400).json({ error: 'Invalid ID' });
+    const idParam = req.query.id;
+    if (typeof idParam !== 'string' || !/^[1-9][0-9]*$/.test(idParam)) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+    const id = Number(idParam);
+    if (!Number.isSafeInteger(id)) return res.status(400).json({ error: 'Invalid ID' });
 
     const { action, note } = req.body || {};
     if (!action || typeof action !== 'string') return res.status(400).json({ error: 'Invalid action' });
@@ -26,7 +29,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const question = await prisma.question.findUnique({
       where: { id },
       include: {
-        authorUser: { include: { AuthorProfile: { include: { province: true } } } }
+        authorUser: { include: { AuthorProfile: { include: { province: true } } } },
+        assets: { orderBy: { sortOrder: 'asc' } }
       }
     });
 
@@ -103,7 +107,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         where: { id },
         include: {
           authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
-          project: true
+          project: true,
+          assets: { orderBy: { sortOrder: 'asc' } }
         }
       });
 

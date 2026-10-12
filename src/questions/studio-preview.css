@@ -1,0 +1,64 @@
+/* P1 spike: limited to the opt-in structured preview. No legacy editor overrides. */
+.studio-p1-preview .studio-preview-note {
+  font-size: 10px;
+  font-weight: 700;
+  color: #527468;
+  background: #e9f6f0;
+  border: 1px solid #d1e9db;
+  padding: 8px 10px;
+  border-radius: 7px;
+  margin-bottom: 14px;
+}
+.studio-p1-preview .studio-math-source {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 2px 5px;
+  margin: 0 2px;
+  border: 1px solid #d5e5ed;
+  border-radius: 5px;
+  background: #f1f7fb;
+  color: #27576a;
+  white-space: pre-wrap;
+  font-size: .98em;
+}
+.studio-p1-preview .studio-table-scroll {
+  overflow-x: auto;
+  margin: 12px 0;
+  max-width: 100%;
+}
+.studio-p1-preview .studio-content-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+.studio-p1-preview .studio-content-table th,
+.studio-p1-preview .studio-content-table td {
+  border: 1px solid #dbe7e4;
+  padding: 7px 9px;
+  font-size: 11px;
+  background: #fff;
+  color: #29434a;
+  letter-spacing: normal;
+  white-space: normal;
+}
+.studio-p1-preview .studio-content-table th {
+  background: #f3f9f6;
+  font-weight: 750;
+}
+.studio-p1-preview .studio-choices > li > p,
+.studio-p1-preview .studio-choices > li > ol,
+.studio-p1-preview .studio-choices > li > ul {
+  margin: 0;
+}
+.studio-p1-preview a {
+  color: #156a80;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.studio-p1-preview a:focus-visible,
+.studio-p1-preview .studio-table-scroll:focus-visible {
+  outline: 2px solid #167e6a;
+  outline-offset: 3px;
+}

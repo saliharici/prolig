@@ -1,9 +1,30 @@
 export type QuestionStatus = 'TASLAK' | 'INCELEMEDE' | 'REVIZYON' | 'ONAYLANDI' | 'REDDEDILDI';
 
+export type QuestionAssetPlacement = 'STEM' | 'OPTION_A' | 'OPTION_B' | 'OPTION_C' | 'OPTION_D' | 'EXPLANATION';
+export type QuestionAssetType = 'IMAGE' | 'VIDEO_URL' | 'LINK';
+
+export interface QuestionAssetInput {
+  id?: number;
+  placement: QuestionAssetPlacement;
+  assetType: QuestionAssetType;
+  url: string;
+  title?: string | null;
+  altText?: string | null;
+  sortOrder?: number;
+}
+
+export interface ApiQuestionAsset extends QuestionAssetInput {
+  id: number;
+  questionId?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface ApiQuestion {
   id: number;
   content: string;
   imageUrl: string | null;
+  assets?: ApiQuestionAsset[];
   objectiveCode: string | null;
   grade: string | null;
   difficulty: string | null;
@@ -19,7 +40,8 @@ export interface ApiQuestion {
   author: {
     id: number;
     fullName: string;
-    branchName: string | null;
+    roleCode?: string;
+    branchName?: string | null;
   } | null;
   project: {
     id: number;
@@ -37,9 +59,12 @@ export interface CreateQuestionInput {
   objectiveCode?: string | null;
   difficulty?: string | null;
   explanation?: string | null;
+  assets?: QuestionAssetInput[];
 }
 
 export interface PatchQuestionInput {
+  /** Mandatory for PATCH: last server question revision observed by the author. */
+  expectedUpdatedAt: string;
   content?: string;
   grade?: string | null;
   objectiveCode?: string | null;
@@ -48,6 +73,7 @@ export interface PatchQuestionInput {
   correctAnswer?: string | null;
   explanation?: string | null;
   projectId?: number | null;
+  assets?: QuestionAssetInput[];
 }
 
 export type QuestionWorkflowAction = 'submit' | 'approve' | 'request_revision' | 'reject';

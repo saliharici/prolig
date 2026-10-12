@@ -2,6 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { formatQuestionDto } from '../_lib/question-dto.js';
+import { parseQuestionAssets } from '../_lib/question-assets.js';
 import { isQuestionArchived } from '../_lib/question-archive.js';
 import {
   buildQuestionReadScope,
@@ -22,14 +23,16 @@ function questionInclude() {
         }
       }
     },
-    project: true
+    project: true,
+    assets: { orderBy: { sortOrder: 'asc' } }
   } as const;
 }
 
 function parseId(req: VercelRequest) {
-  const idParam = req.query.id as string;
-  const id = parseInt(idParam, 10);
-  return Number.isSafeInteger(id) && id > 0 ? id : null;
+  const raw = req.query.id;
+  if (typeof raw !== 'string' || !/^[1-9][0-9]*$/.test(raw)) return null;
+  const id = Number(raw);
+  return Number.isSafeInteger(id) ? id : null;
 }
 
 async function findQuestionInScope(id: number, user: any) {
@@ -166,13 +169,30 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     return res.status(409).json({ error: 'Question is locked' });
   }
 
+  // P1-D: Every write must use the revision the author actually opened, not the
+  // latest revision read by this handler. Without this, sequential browser tabs
+  // can silently overwrite each other.
+  const expectedUpdatedAt = req.body?.expectedUpdatedAt;
+  if (expectedUpdatedAt === undefined) {
+    return res.status(428).json({ error: 'Question revision required. Reload the question before editing.' });
+  }
+  if (typeof expectedUpdatedAt !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(expectedUpdatedAt) ||
+      !Number.isFinite(Date.parse(expectedUpdatedAt)) ||
+      new Date(expectedUpdatedAt).toISOString() !== expectedUpdatedAt) {
+    return res.status(400).json({ error: 'Invalid expectedUpdatedAt revision' });
+  }
+  if (question.updatedAt.getTime() !== Date.parse(expectedUpdatedAt)) {
+    return res.status(409).json({ error: 'Question was updated in another session. No changes were saved.' });
+  }
+
   const payloadKeys = Object.keys(req.body || {});
   const protectedFields = ['id', 'authorUserId', 'status', 'editorNote', 'createdAt', 'updatedAt', 'isArchived'];
   if (payloadKeys.some(k => protectedFields.includes(k))) {
     return res.status(400).json({ error: 'Cannot modify protected fields' });
   }
 
-  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId } = req.body || {};
+  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, assets } = req.body || {};
   const updateData: any = {};
 
   if (content !== undefined) {
@@ -228,6 +248,14 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     updateData.difficulty = difficulty ? difficulty.trim() : null;
   }
 
+  let parsedAssets: ReturnType<typeof parseQuestionAssets> | null = null;
+  if (assets !== undefined) {
+    parsedAssets = parseQuestionAssets(assets);
+    if (!parsedAssets.ok) {
+      return res.status(400).json({ error: parsedAssets.error });
+    }
+  }
+
   const nextProjectId = projectId !== undefined ? projectId : question.projectId;
   const nextGrade = grade !== undefined ? updateData.grade : question.grade;
 
@@ -260,27 +288,42 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  if (Object.keys(updateData).length === 0) {
+  if (Object.keys(updateData).length === 0 && assets === undefined) {
     return res.status(400).json({ error: 'No editable fields provided' });
   }
+
+  // Ensure even two writes within the same millisecond generate distinct revisions.
+  // Explicitly advance updatedAt for every successful PATCH, not just media changes.
+  updateData.updatedAt = new Date(Math.max(Date.now(), question.updatedAt.getTime() + 1));
 
   const updated = await prisma.$transaction(async (tx: any) => {
     const count = await tx.question.updateMany({
       where: {
         id,
+        authorUserId: user.id,
         status: question.status,
-        updatedAt: question.updatedAt
+        updatedAt: new Date(expectedUpdatedAt)
       },
       data: updateData
     });
 
     if (count.count === 0) throw new Error('STALE');
 
+    if (parsedAssets?.ok) {
+      await tx.questionAsset.deleteMany({ where: { questionId: id } });
+      if (parsedAssets.assets.length > 0) {
+        await tx.questionAsset.createMany({
+          data: parsedAssets.assets.map(asset => ({ ...asset, questionId: id }))
+        });
+      }
+    }
+
     const q = await tx.question.findUnique({
       where: { id },
       include: {
         authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
-        project: true
+        project: true,
+        assets: { orderBy: { sortOrder: 'asc' } }
       }
     });
 
@@ -290,7 +333,7 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
         action: 'QUESTION_UPDATED',
         entityType: 'Question',
         entityId: q!.id,
-        details: JSON.stringify({ keys: Object.keys(updateData) })
+        details: JSON.stringify({ keys: [...Object.keys(updateData).filter(key => key !== 'updatedAt'), ...(parsedAssets?.ok ? ['assets'] : [])] })
       }
     });
 

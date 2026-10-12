@@ -16,10 +16,13 @@ describe('Question DB Integration', () => {
   let il: any;
   
   let tempQuestionId: number;
+  let initialRevision: string;
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL || !process.env.AUTH_SECRET || process.env.PROLIG_PILOT_DB_CONFIRMED !== 'true') {
-      throw new Error('Safety gate failed. DATABASE_URL, AUTH_SECRET, PROLIG_PILOT_DB_CONFIRMED required.');
+    if (!process.env.DATABASE_URL || !process.env.AUTH_SECRET ||
+        process.env.PROLIG_PILOT_DB_CONFIRMED !== 'true' ||
+        process.env.PROLIG_P1D_DB_VERIFIED !== 'true') {
+      throw new Error('P1-D safety gate failed: run node scripts/p1d-pilot-check.mjs after verifying isolated pilot identity.');
     }
     yazar = await prisma.user.findUnique({ where: { email: 'pilot.yazar@prolig.local' }, include: { role: true, AuthorProfile: true } });
     editor = await prisma.user.findUnique({ where: { email: 'pilot.editor@prolig.local' }, include: { role: true } });
@@ -27,18 +30,36 @@ describe('Question DB Integration', () => {
     genel = await prisma.user.findUnique({ where: { email: 'pilot.genel@prolig.local' }, include: { role: true } });
     bolge = await prisma.user.findUnique({ where: { email: 'pilot.bolge@prolig.local' }, include: { role: true } });
     il = await prisma.user.findUnique({ where: { email: 'pilot.il@prolig.local' }, include: { role: true } });
+    // This suite exercises a successful EDITOR approval cycle. The pilot fixture must
+    // explicitly fall within the editor's assigned branch, geography and grade.
+    if (!yazar?.AuthorProfile || !editor?.editorBranchId) {
+      throw new Error('Pilot setup missing YAZAR profile or EDITOR branch assignment');
+    }
+    if (yazar.AuthorProfile.branchId !== editor.editorBranchId) {
+      throw new Error('Pilot EDITOR branch does not match pilot YAZAR branch');
+    }
+    if (editor.provinceId && editor.provinceId !== yazar.AuthorProfile.provinceId) {
+      throw new Error('Pilot EDITOR province does not match pilot YAZAR province');
+    }
+    if (!editor.provinceId && !editor.assignedRegion) {
+      throw new Error('Pilot EDITOR has no configured geography');
+    }
   });
 
   afterAll(async () => {
-    if (tempQuestionId) {
+    try {
+      // If safety preflight failed or no fixture was created, never query or delete
+      // any question with an undefined ID.
+      if (!tempQuestionId) return;
       await prisma.activityLog.deleteMany({ where: { entityId: tempQuestionId, entityType: 'Question' } });
       await prisma.question.delete({ where: { id: tempQuestionId } });
+      const qCount = await prisma.question.count({ where: { id: tempQuestionId } });
+      const aCount = await prisma.activityLog.count({ where: { entityId: tempQuestionId, entityType: 'Question' } });
+      expect(qCount).toBe(0);
+      expect(aCount).toBe(0);
+    } finally {
+      await prisma.$disconnect();
     }
-    const qCount = await prisma.question.count({ where: { id: tempQuestionId } });
-    const aCount = await prisma.activityLog.count({ where: { entityId: tempQuestionId, entityType: 'Question' } });
-    expect(qCount).toBe(0);
-    expect(aCount).toBe(0);
-    await prisma.$disconnect();
   });
 
   const mockReq = (user: any, body?: any, method?: string): any => {
@@ -72,7 +93,7 @@ describe('Question DB Integration', () => {
     const req = mockReq(yazar, {
       content: 'This is a test question for DB integration with enough length',
       projectId: null,
-      grade: '9',
+      grade: editor.editorGrade || '9',
       objectiveCode: 'M.9.1',
       difficulty: 'ORTA',
       options: ['A', 'B', 'C', 'D'],
@@ -96,19 +117,62 @@ describe('Question DB Integration', () => {
     expect(res.statusCode).toBe(200);
     const found = res.data.find((q: any) => q.id === tempQuestionId);
     expect(found).toBeTruthy();
+    initialRevision = new Date(found.updatedAt).toISOString();
   });
 
   it('YAZAR PATCH TASLAK', async () => {
     const q = await prisma.question.findUnique({ where: { id: tempQuestionId } });
-    const req = mockReq(yazar, { content: 'Updated Temp Question content length' });
+    expect(q).toBeTruthy();
+    const req = mockReq(yazar, {
+      content: 'Updated Temp Question content length',
+      options: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+      correctAnswer: 'D',
+      explanation: 'Four choices, the fourth is correct',
+      expectedUpdatedAt: q!.updatedAt.toISOString()
+    });
     const res = mockRes();
     req.method = 'PATCH'; await questionId.default(req, res);
     
     expect(res.statusCode).toBe(200);
     expect(res.data.content).toBe('Updated Temp Question content length');
+    expect(res.data.options).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+    expect(res.data.correctAnswer).toBe('D');
+    expect(res.data.explanation).toBe('Four choices, the fourth is correct');
 
     const audit = await prisma.activityLog.findFirst({ where: { entityId: tempQuestionId, entityType: 'Question', action: 'QUESTION_UPDATED' } });
     expect(audit).toBeTruthy();
+  });
+
+  it('P1-D GET after PATCH returns persistent question fields and advanced revision', async () => {
+    const req = mockReq(yazar);
+    const res = mockRes();
+    await questionIndex.default(req, res);
+    expect(res.statusCode).toBe(200);
+    const actual = res.data.find((q: any) => q.id === tempQuestionId);
+    expect(actual).toBeTruthy();
+    expect(actual.content).toBe('Updated Temp Question content length');
+    expect(actual.options).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+    expect(actual.correctAnswer).toBe('D');
+    expect(actual.explanation).toBe('Four choices, the fourth is correct');
+    expect(Date.parse(actual.updatedAt)).toBeGreaterThan(Date.parse(initialRevision));
+  });
+
+  it('P1-D two-session stale PATCH returns 409 without overwriting the first edit', async () => {
+    const req = mockReq(yazar, {
+      content: 'Second browser session must not overwrite newer content',
+      expectedUpdatedAt: initialRevision
+    });
+    req.method = 'PATCH';
+    const res = mockRes();
+    await questionId.default(req, res);
+    expect(res.statusCode).toBe(409);
+    const current = await prisma.question.findUnique({ where: { id: tempQuestionId } });
+    expect(current?.content).toBe('Updated Temp Question content length');
+    expect(current?.options).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+    const audit = await prisma.activityLog.count({
+      where: { entityType: 'Question', entityId: tempQuestionId, action: 'QUESTION_UPDATED' }
+    });
+    expect(audit).toBe(1);
   });
 
   it('SUBMIT TASLAK -> INCELEMEDE', async () => {
@@ -163,7 +227,11 @@ describe('Question DB Integration', () => {
 
   it('YAZAR PATCH REVIZYON', async () => {
     const q = await prisma.question.findUnique({ where: { id: tempQuestionId } });
-    const req = mockReq(yazar, { content: 'Revised Question content length' });
+    expect(q).toBeTruthy();
+    const req = mockReq(yazar, {
+      content: 'Revised Question content length',
+      expectedUpdatedAt: q!.updatedAt.toISOString()
+    });
     const res = mockRes();
     req.method = 'PATCH'; await questionId.default(req, res);
     expect(res.statusCode).toBe(200);

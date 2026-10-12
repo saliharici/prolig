@@ -1,0 +1,3 @@
+# PRO-LIG new chat handoff
+Read `docs/AI_PROJECT_CONTEXT.md` and `docs/AI_CURRENT_STATE.md` from GitHub saliharici/prolig. Verify GitHub branch heads, PR and Vercel statuses fresh. Current work branch: `feat/permission-workflow-stabilization-20261011`.
+Main objective: resolve nine audit-reported integration failures with correct, fail-closed authorization and safe Prisma migration handling. Do not simply relax grade/geography security guards to pass tests. User fetches GitHub branch locally, tests and explicitly accepts before ChatGPT merges to main and manages Vercel production release. Doctoral platform separate.

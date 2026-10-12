@@ -3,6 +3,21 @@ export function formatQuestionDto(question: any, isArchived = false) {
     id: question.id,
     content: question.content,
     imageUrl: question.imageUrl,
+    assets: Array.isArray(question.assets) ? question.assets
+      .slice()
+      .sort((left: any, right: any) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
+      .map((asset: any) => ({
+        id: asset.id,
+        questionId: asset.questionId,
+        placement: asset.placement,
+        assetType: asset.assetType,
+        url: asset.url,
+        title: asset.title,
+        altText: asset.altText,
+        sortOrder: asset.sortOrder,
+        createdAt: asset.createdAt,
+        updatedAt: asset.updatedAt
+      })) : [],
     objectiveCode: question.objectiveCode,
     grade: question.grade,
     difficulty: question.difficulty,

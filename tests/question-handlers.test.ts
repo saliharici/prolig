@@ -25,8 +25,14 @@ vi.mock('../api/v1/_lib/prisma.js', () => ({
   }
 }));
 
+const TEST_QUESTION_REVISION = '2026-10-11T12:00:00.000Z';
 function mockReqRes(method: string, body: any = {}, query: any = {}): { req: VercelRequest, res: VercelResponse } {
-  const req = { method, body, query, headers: {} } as any;
+  // Old tests assume an editable question's currently viewed revision.
+  // Individual P1-D tests explicitly omit/replace this precondition to cover failures.
+  const payload = method === 'PATCH' && body && typeof body === 'object'
+    ? { expectedUpdatedAt: TEST_QUESTION_REVISION, ...body }
+    : body;
+  const req = { method, body: payload, query, headers: {} } as any;
   const res = {
     status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
@@ -40,6 +46,38 @@ describe('Question API Handlers', () => {
     vi.clearAllMocks();
     vi.mocked(prisma.activityLog.findMany).mockResolvedValue([]);
     vi.mocked(prisma.activityLog.findFirst).mockResolvedValue(null);
+  });
+
+  describe('Question detail ID validation', () => {
+    it.each(['12junk', '1.2', '0', '-2', '1e2', '9007199254740992'])(
+      'rejects malformed PATCH question ID %s without querying question',
+      async (id) => {
+        vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
+        vi.mocked(prisma.user.findUnique).mockResolvedValue({
+          id: 1, status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1 }
+        } as any);
+        const { req, res } = mockReqRes('PATCH', { content: 'A corrected question body' }, { id });
+        await handlerPatch(req, res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(prisma.question.findUnique).not.toHaveBeenCalled();
+      }
+    );
+  });
+
+  describe('Workflow ID validation', () => {
+    it.each(['12junk', '1.2', '0', '-2', '1e2', '9007199254740992'])(
+      'rejects malformed question ID %s before reading the question',
+      async (id) => {
+        vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
+        vi.mocked(prisma.user.findUnique).mockResolvedValue({
+          id: 1, status: 'Aktif', role: { code: 'GENEL_KOORDINATOR' }
+        } as any);
+        const { req, res } = mockReqRes('POST', { action: 'approve' }, { id });
+        await handlerWorkflow(req, res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(prisma.question.findUnique).not.toHaveBeenCalled();
+      }
+    );
   });
 
   describe('AUTH', () => {
@@ -91,10 +129,14 @@ describe('Question API Handlers', () => {
     it('PATCH transaction failure -> controlled 500', async () => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1 } } as any);
-      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'TASLAK' } as any);
+      vi.mocked(prisma.question.findUnique).mockResolvedValue({
+        id: 1, authorUserId: 1, status: 'TASLAK',
+        updatedAt: new Date(TEST_QUESTION_REVISION)
+      } as any);
       vi.mocked(prisma.$transaction).mockRejectedValue(new Error('Tx Error'));
       const { req, res } = mockReqRes('PATCH', { content: 'Valid content update' }, { id: '1' });
       await handlerPatch(req, res);
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(res.status).toHaveBeenCalledWith(500);
     });
 
@@ -232,6 +274,26 @@ describe('Question API Handlers', () => {
       expect(capturedTx.status).toBe('TASLAK');
     });
 
+    it('validates and creates structured media assets', async () => {
+      setupYazar();
+      let capturedTx: any;
+      vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
+        const tx = {
+          question: { create: vi.fn().mockImplementation((args: any) => { capturedTx = args.data; return { ...args.data, id: 100, assets: [] }; }) },
+          activityLog: { create: vi.fn() }
+        };
+        return cb(tx);
+      });
+
+      const { req, res } = mockReqRes('POST', {
+        ...validBody,
+        assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', altText: 'Şekil' }]
+      });
+      await handlerGetPost(req, res);
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(capturedTx.assets.create).toEqual([{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/figure.png', title: null, altText: 'Şekil', sortOrder: 0 }]);
+    });
+
     it('successful CREATE writes ActivityLog in transaction', async () => {
       setupYazar();
       let activityLogCreated = false;
@@ -286,6 +348,14 @@ describe('Question API Handlers', () => {
       ({ req, res } = mockReqRes('POST', { ...validBody, projectId: 0 }));
       await handlerGetPost(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
+
+      ({ req, res } = mockReqRes('POST', { ...validBody, assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'javascript:alert(1)' }] }));
+      await handlerGetPost(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+
+      ({ req, res } = mockReqRes('POST', { ...validBody, assets: [{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://example.com/video' }] }));
+      await handlerGetPost(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     it('unassigned project -> 403', async () => {
@@ -327,11 +397,12 @@ describe('Question API Handlers', () => {
     const setupYazar = () => {
       vi.mocked(authLib.getSessionUserId).mockReturnValue(1);
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 1, fullName: 'Yazar', status: 'Aktif', role: { code: 'YAZAR' }, AuthorProfile: { id: 1, branchId: 1 } } as any);
-      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'TASLAK', updatedAt: new Date() } as any);
+      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'TASLAK', updatedAt: new Date(TEST_QUESTION_REVISION) } as any);
       
       vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
         const tx = {
           question: { updateMany: vi.fn().mockResolvedValue({ count: 1 }), findUnique: vi.fn().mockResolvedValue({ id: 1 }) },
+          questionAsset: { deleteMany: vi.fn(), createMany: vi.fn() },
           activityLog: { create: vi.fn() }
         };
         return cb(tx);
@@ -383,7 +454,7 @@ describe('Question API Handlers', () => {
       await handlerPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(200);
 
-      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'REVIZYON' } as any);
+      vi.mocked(prisma.question.findUnique).mockResolvedValue({ id: 1, authorUserId: 1, status: 'REVIZYON', updatedAt: new Date(TEST_QUESTION_REVISION) } as any);
       ({ req, res } = mockReqRes('PATCH', { content: 'Valid content update' }, { id: '1' }));
       await handlerPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(200);
@@ -433,6 +504,27 @@ describe('Question API Handlers', () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
+    it('replaces assets during PATCH', async () => {
+      setupYazar();
+      let assetCreateMany: any;
+      vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => {
+        const tx = {
+          question: { updateMany: vi.fn().mockResolvedValue({ count: 1 }), findUnique: vi.fn().mockResolvedValue({ id: 1, assets: [] }) },
+          questionAsset: {
+            deleteMany: vi.fn(),
+            createMany: vi.fn().mockImplementation((args: any) => { assetCreateMany = args; })
+          },
+          activityLog: { create: vi.fn() }
+        };
+        return cb(tx);
+      });
+
+      const { req, res } = mockReqRes('PATCH', { assets: [{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://www.youtube.com/watch?v=abcDEF12345' }] }, { id: '1' });
+      await handlerPatch(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(assetCreateMany.data).toEqual([{ placement: 'EXPLANATION', assetType: 'VIDEO_URL', url: 'https://www.youtube.com/watch?v=abcDEF12345', title: null, altText: null, sortOrder: 0, questionId: 1 }]);
+    });
+
     it('invalid projectId -> 400', async () => {
       setupYazar();
       const { req, res } = mockReqRes('PATCH', { projectId: 0 }, { id: '1' });
@@ -446,7 +538,7 @@ describe('Question API Handlers', () => {
         id: 1,
         authorUserId: 1,
         status: 'TASLAK',
-        updatedAt: new Date(),
+        updatedAt: new Date(TEST_QUESTION_REVISION),
         projectId: 10,
         grade: '8. Sınıf'
       } as any);
@@ -469,6 +561,62 @@ describe('Question API Handlers', () => {
       const { req, res } = mockReqRes('PATCH', { projectId: 10 }, { id: '1' });
       await handlerPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('requires a question revision before any PATCH and never enters a transaction without it', async () => {
+      setupYazar();
+      const { req, res } = mockReqRes('PATCH', { content: 'Safe revision update' }, { id: '1' });
+      delete (req.body as any).expectedUpdatedAt;
+      await handlerPatch(req, res);
+      expect(res.status).toHaveBeenCalledWith(428);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it.each([null, '', '2026-10-11', '2026-10-11T12:00:00.000+00:00', 'not-a-date'])(
+      'rejects malformed client revision %s before transactional write', async revision => {
+        setupYazar();
+        const { req, res } = mockReqRes('PATCH', {
+          content: 'Safe revision update', expectedUpdatedAt: revision
+        }, { id: '1' });
+        await handlerPatch(req, res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      }
+    );
+
+    it('rejects a stale tab from the opening revision and leaves activity untouched', async () => {
+      setupYazar();
+      const { req, res } = mockReqRes('PATCH', {
+        content: 'Overwrite attempt from an old tab',
+        expectedUpdatedAt: '2026-10-11T11:59:00.000Z'
+      }, { id: '1' });
+      await handlerPatch(req, res);
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('atomically checks the client revision and author id and advances the timestamp', async () => {
+      setupYazar();
+      let predicate: any;
+      let update: any;
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => callback({
+        question: {
+          updateMany: vi.fn().mockImplementation((args: any) => {
+            predicate = args.where; update = args.data;
+            return { count: 1 };
+          }),
+          findUnique: vi.fn().mockResolvedValue({ id: 1 })
+        },
+        activityLog: { create: vi.fn() }
+      }));
+      const { req, res } = mockReqRes('PATCH', { content: 'Safe client revision content' }, { id: '1' });
+      await handlerPatch(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(predicate).toMatchObject({
+        id: 1, authorUserId: 1, status: 'TASLAK',
+        updatedAt: new Date(TEST_QUESTION_REVISION)
+      });
+      expect(update.updatedAt.getTime()).toBeGreaterThan(Date.parse(TEST_QUESTION_REVISION));
     });
 
     it('stale conditional update count=0 -> 409 and no audit log', async () => {

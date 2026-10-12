@@ -20,7 +20,19 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const envPath = path.resolve('.local/prolig-pilot-credentials.env');
+  // The P1-D sandbox creates its own fake identities and must never reuse
+  // the original pilot user credentials file.
+  const envPath = process.env.PROLIG_PILOT_CREDENTIALS_PATH
+    ? path.resolve(process.env.PROLIG_PILOT_CREDENTIALS_PATH)
+    : path.resolve('.local/prolig-pilot-credentials.env');
+  if (process.env.PROLIG_P1D_SANDBOX_ONLY === 'true') {
+    if (process.env.PROLIG_P1D_DB_NAME !== 'prolig_p1d_sandbox' ||
+        envPath !== path.resolve('.local/p1d-sandbox-credentials.env') ||
+        !process.env.DATABASE_URL ||
+        new URL(process.env.DATABASE_URL).pathname !== '/prolig_p1d_sandbox') {
+      throw new Error('P1-D sandbox seed target or dedicated credentials path is invalid.');
+    }
+  }
   if (!fs.existsSync(envPath)) {
     throw new Error(`Credential file not found at ${envPath}`);
   }
@@ -84,6 +96,37 @@ async function main() {
     }
   }
 
+  // Guard against silently keeping a stale pilot author geography/branch.
+  // An existing profile is intentionally NOT overwritten by the seed.
+  const existingPilotAuthor = await prisma.user.findUnique({
+    where: { email: 'pilot.yazar@prolig.local' },
+    select: {
+      AuthorProfile: {
+        select: {
+          branch: { select: { name: true } },
+          province: { select: { code: true, region: true } }
+        }
+      }
+    }
+  });
+  if (existingPilotAuthor?.AuthorProfile) {
+    const profile = existingPilotAuthor.AuthorProfile;
+    if (profile.branch.name !== 'Matematik' || profile.province.region !== 'Marmara') {
+      throw new Error(
+        'Pilot YAZAR profile has an incompatible branch or region. ' +
+        'The guarded seed preserves existing profiles; reconcile the isolated pilot fixture explicitly before rerunning.'
+      );
+    }
+  }
+
+  // Existing author profile and its district/institution associations are authoritative
+  // for the isolated pilot. Never relocate an author merely to satisfy a fixture.
+  const pilotProvinceId = existingPilotAuthor?.AuthorProfile
+    ? (await prisma.user.findUnique({
+        where: { email: 'pilot.yazar@prolig.local' },
+        select: { AuthorProfile: { select: { provinceId: true } } }
+      }))?.AuthorProfile?.provinceId
+    : undefined;
   // STAGE B: MUTATION
   console.log('Stage B: Mutation');
 
@@ -122,21 +165,24 @@ async function main() {
       };
       if (u.role === 'EDITOR') {
         userCreate.editorBranch = { connect: { id: branch.id } };
+        userCreate.editorGrade = '8. Sınıf';
+        userCreate.assignedRegion = 'Marmara';
         userCreate.province = { connect: { id: marmara.id } };
       }
       if (u.role === 'BOLGE_KOORDINATORU') {
         userCreate.assignedRegion = 'Marmara';
       } else if (u.role === 'IL_KOORDINATORU') {
-        userCreate.province = { connect: { id: marmara.id } };
+        userCreate.province = { connect: { id: pilotProvinceId ?? marmara.id } };
       }
       user = await prisma.user.create({ data: userCreate });
     } else {
       let userUpdate: Prisma.UserUpdateInput = {
         status: 'Aktif',
         role: { connect: { id: getRoleId(u.role) } },
-        assignedRegion: u.role === 'BOLGE_KOORDINATORU' ? 'Marmara' : null,
+        assignedRegion: ['BOLGE_KOORDINATORU', 'EDITOR'].includes(u.role) ? 'Marmara' : null,
         editorBranch: u.role === 'EDITOR' ? { connect: { id: branch.id } } : { disconnect: true },
-        province: ['IL_KOORDINATORU', 'EDITOR'].includes(u.role) ? { connect: { id: marmara.id } } : { disconnect: true }
+        province: u.role === 'EDITOR' ? { disconnect: true } : u.role === 'IL_KOORDINATORU' ? { connect: { id: pilotProvinceId ?? marmara.id } } : { disconnect: true },
+        editorGrade: u.role === 'EDITOR' ? '8. Sınıf' : null
       };
       if (action.type === 'update') {
         userUpdate.passwordHash = action.hash;

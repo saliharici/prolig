@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from '../src/questions/api';
+import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from '../src/questions/media';
 import fs from 'fs';
 import path from 'path';
 
@@ -49,6 +50,22 @@ describe('Question API Frontend Client', () => {
     }));
   });
 
+  it('createQuestion can send structured question assets', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 8 }) });
+
+    await createQuestion({
+      content: 'Visual question',
+      projectId: null,
+      grade: '8. Sınıf',
+      options: ['A', 'B', 'C', 'D'],
+      correctAnswer: 'A',
+      assets: [{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/soru.png', altText: 'Üçgen görseli' }]
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.assets).toEqual([{ placement: 'STEM', assetType: 'IMAGE', url: 'https://example.com/soru.png', altText: 'Üçgen görseli' }]);
+  });
+
   it('createQuestion can send a real numeric projectId without protected fields', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 5, projectId: 42 }) });
 
@@ -67,31 +84,40 @@ describe('Question API Frontend Client', () => {
     expect(body).not.toHaveProperty('editorNote');
   });
 
-  it('patchQuestion uses PATCH and only sends editable fields', async () => {
+  it('builds safe embed URLs for supported video providers', () => {
+    expect(getQuestionVideoEmbedUrl('https://www.youtube.com/watch?v=abcDEF12345')).toBe('https://www.youtube-nocookie.com/embed/abcDEF12345');
+    expect(getQuestionVideoEmbedUrl('https://youtu.be/abcDEF12345')).toBe('https://www.youtube-nocookie.com/embed/abcDEF12345');
+    expect(getQuestionVideoEmbedUrl('https://vimeo.com/123456789')).toBe('https://player.vimeo.com/video/123456789');
+    expect(getQuestionVideoEmbedUrl('https://www.dailymotion.com/video/x8abcd1')).toBe('https://www.dailymotion.com/embed/video/x8abcd1');
+    expect(getQuestionVideoEmbedUrl('https://example.com/video')).toBeNull();
+    expect(questionVideoProviderLabel('https://youtu.be/abcDEF12345')).toBe('YouTube');
+  });
+
+  it('patchQuestion uses PATCH and includes opened revision with editable fields', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: 3, content: 'Patched' })
     });
 
-    const result = await patchQuestion(3, { content: 'Patched', explanation: 'test' });
+    const result = await patchQuestion(3, { expectedUpdatedAt: '2026-10-11T10:10:10.000Z', content: 'Patched', explanation: 'test' });
     expect(result.id).toBe(3);
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({
       method: 'PATCH',
       credentials: 'include',
-      body: JSON.stringify({ content: 'Patched', explanation: 'test' })
+      body: JSON.stringify({ expectedUpdatedAt: '2026-10-11T10:10:10.000Z', content: 'Patched', explanation: 'test' })
     }));
   });
 
   it('patchQuestion can link a real project', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 3, projectId: 42 }) });
-    await patchQuestion(3, { projectId: 42 });
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ projectId: 42 }) }));
+    await patchQuestion(3, { expectedUpdatedAt: '2026-10-11T10:10:10.000Z', projectId: 42 });
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ expectedUpdatedAt: '2026-10-11T10:10:10.000Z', projectId: 42 }) }));
   });
 
   it('patchQuestion can remove a project with null', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 3, projectId: null }) });
-    await patchQuestion(3, { projectId: null });
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ projectId: null }) }));
+    await patchQuestion(3, { expectedUpdatedAt: '2026-10-11T10:10:10.000Z', projectId: null });
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/questions/3', expect.objectContaining({ body: JSON.stringify({ expectedUpdatedAt: '2026-10-11T10:10:10.000Z', projectId: null }) }));
   });
 
   it('runQuestionWorkflow submit sends exactly action: submit', async () => {
@@ -229,6 +255,9 @@ describe('Question API Frontend Client', () => {
       expect(questionModalCode).toContain('questionAssignableProjects.map');
       expect(questionModalCode).not.toContain('data.projects');
       expect(questionModalCode).toContain('Genel Soru Havuzu');
+      expect(questionModalCode).toContain('Medya ve görsel alanı');
+      expect(questionModalCode).toContain('Canlı ön izleme');
+      expect(questionModalCode).toContain('YouTube/Vimeo/Dailymotion gömme bağlantısı');
       expect(questionModalCode).toContain('Projeler yükleniyor...');
       expect(questionModalCode).toContain('Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.');
       expect(questionModalCode).not.toMatch(/projectId:\s*1|setQuestionProjectId\(1\)/);
@@ -242,6 +271,20 @@ describe('Question API Frontend Client', () => {
       expect(demoAppCode).toContain('Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.');
       expect(demoAppCode).toContain('questionProjectFilter');
       expect(demoAppCode).toContain('questionGradeFilter');
+    });
+
+    it('renders question editor formatting controls in previews', () => {
+      const demoAppCode = fs.readFileSync(path.join(__dirname, '../src/DemoApp.tsx'), 'utf-8');
+      const demoCssCode = fs.readFileSync(path.join(__dirname, '../src/demo.css'), 'utf-8');
+
+      expect(demoAppCode).toContain('const renderFormattedQuestionText =');
+      expect(demoAppCode).toContain("applyQuestionMarkup('**')");
+      expect(demoAppCode).toContain("applyQuestionMarkup('_')");
+      expect(demoAppCode).toContain("applyQuestionMarkup('<u>', '</u>')");
+      expect(demoAppCode).toContain('renderFormattedQuestionText(questionTitle');
+      expect(demoAppCode).toContain('renderFormattedQuestionText(question.content)');
+      expect(demoCssCode).toContain('.formatted-question-text');
+      expect(demoCssCode).toContain('.question-formula');
     });
 
     it('creates with the selection and delegates differential PATCH construction', () => {

@@ -1,13 +1,13 @@
 import { toKurus } from './payments/money';
 import { AuthUser } from './auth/types';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   GraduationCap,
   Activity as ActivityIcon, Archive, ArchiveRestore, ArrowRight, ArrowUpRight, BarChart3, BookOpen,
   Bold, Check, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, ClipboardList, Clock3,
   FileQuestion, Filter, ImagePlus, Italic, LayoutDashboard, Link, List, ListOrdered, MessageSquareText, Megaphone,
-  LockKeyhole, LogOut, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Globe2,
-  PencilLine, Trash2, Underline, Users, Wallet, X,
+  LockKeyhole, LogOut, MapPinned, Menu, Plus, RotateCcw, Search, ShieldCheck, Sigma, Globe2, Eye,
+  PencilLine, Table2, Trash2, Underline, Users, Wallet, X,
 } from 'lucide-react';
 import {
   actionPermissions, dataScopes, loadDemoData, permissions, roleLabels, rolePeople, saveDemoData,
@@ -15,8 +15,14 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
-import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
-import type { ApiQuestion, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
+import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
+import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
+import { legacyQuestionToStudioDocument } from './questions/studio-document';
+import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
+import { questionStudioFingerprint, pausedQuestionDraftKey, copyPausedQuestionDraft, type QuestionStudioFormValues, type QuestionStudioPausedDraft } from './questions/studio-state';
+import { hasDurableQuestionDraft, saveEncryptedQuestionDraft, recoverEncryptedQuestionDraft, removeEncryptedQuestionDraft, validateDraftPassphrase, type StudioDurableDraftData } from './questions/studio-durable';
+import { compareQuestionRevisions } from './questions/revision-compare';
+import type { ApiQuestion, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType, QuestionStatus as ApiQuestionStatus, QuestionWorkflowAction } from './questions/types';
 import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
 import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
@@ -43,6 +49,9 @@ import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
 import { useNavigationDrawer } from './navigation/useNavigationDrawer';
 import './demo.css';
+import './questions/studio-preview.css';
+import './questions/studio-workspace.css';
+import './questions/studio-durable.css';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', icon: LayoutDashboard },
@@ -77,6 +86,24 @@ const sumPayments = (payments: Payment[], status: string) => payments.filter(p =
 const money = (value: number) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 const date = (value: string) => new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value.includes('T') ? value : `${value}T12:00:00`));
 const todayHeading = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' }).format(new Date()).toLocaleUpperCase('tr-TR');
+
+const questionAssetPlacements: { value: QuestionAssetPlacement; label: string }[] = [
+  { value: 'STEM', label: 'Soru kökü' },
+  { value: 'OPTION_A', label: 'A seçeneği' },
+  { value: 'OPTION_B', label: 'B seçeneği' },
+  { value: 'OPTION_C', label: 'C seçeneği' },
+  { value: 'OPTION_D', label: 'D seçeneği' },
+  { value: 'EXPLANATION', label: 'Çözüm' }
+];
+
+const questionAssetTypes: { value: QuestionAssetType; label: string }[] = [
+  { value: 'IMAGE', label: 'Görsel / resim' },
+  { value: 'VIDEO_URL', label: 'Video gömme' },
+  { value: 'LINK', label: 'Kaynak bağlantısı' }
+];
+
+const questionAssetPlacementLabel = (value: string) => questionAssetPlacements.find(item => item.value === value)?.label || value;
+const questionAssetTypeLabel = (value: string) => questionAssetTypes.find(item => item.value === value)?.label || value;
 
 function Status({ value }: { value: string }) {
   const slug = ({ 'İncelemede': 'review', 'Onaylandı': 'approved', 'Ödendi': 'paid', 'Revizyon': 'revision', 'Reddedildi': 'rejected', 'Taslak': 'draft', 'Bekliyor': 'pending', 'Aktif': 'approved', 'Davet edildi': 'pending', 'Üretimde': 'review', 'Editörde': 'revision', 'Planlama': 'draft', 'Tamamlandı': 'approved', 'İptal': 'rejected' } as Record<string, string>)[value] || 'draft';
@@ -788,12 +815,33 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
+  const [questionAssets, setQuestionAssets] = useState<QuestionAssetInput[]>([]);
+  const [questionAssetPlacement, setQuestionAssetPlacement] = useState<QuestionAssetPlacement>('STEM');
+  const [questionAssetType, setQuestionAssetType] = useState<QuestionAssetType>('IMAGE');
+  const [questionAssetUrl, setQuestionAssetUrl] = useState('');
+  const [questionAssetTitle, setQuestionAssetTitle] = useState('');
+  const [questionAssetAltText, setQuestionAssetAltText] = useState('');
       const [editorNote, setEditorNote] = useState('');
   const [reviewAction, setReviewAction] = useState<QuestionWorkflowAction | ''>('');
   const [editingQuestion, setEditingQuestion] = useState<ApiQuestion | null>(null);
   const [reviewingQuestion, setReviewingQuestion] = useState<ApiQuestion | null>(null);
   const [toast, setToast] = useState('');
   const questionEditorRef = useRef<HTMLTextAreaElement>(null);
+  const questionSavingRef = useRef(false);
+  const [questionSaving, setQuestionSaving] = useState(false);
+  const [questionBaseline, setQuestionBaseline] = useState('');
+  const [questionSaveError, setQuestionSaveError] = useState('');
+  const [serverQuestionConflict, setServerQuestionConflict] = useState<ApiQuestion | null>(null);
+  const [questionConflictLookupFailed, setQuestionConflictLookupFailed] = useState(false);
+  const pausedQuestionDraftsRef = useRef(new Map<string, QuestionStudioPausedDraft<ApiQuestion>>());
+  const [pausedDraftsVersion, setPausedDraftsVersion] = useState(0);
+  const [durableDraftEnabled, setDurableDraftEnabled] = useState(false);
+  const [durableDraftBusy, setDurableDraftBusy] = useState(false);
+  const [durableDraftConflict, setDurableDraftConflict] = useState(false);
+  const [durableDraftMessage, setDurableDraftMessage] = useState('');
+  const durableDraftPhraseRef = useRef('');
+  const durableDraftInputRef = useRef<HTMLInputElement>(null);
+  const durableDraftGenerationRef = useRef(0);
   
   useEffect(() => { saveDemoData(data); }, [data]);
   useEffect(() => { if (toast) { const timer = window.setTimeout(() => setToast(''), 3800); return () => window.clearTimeout(timer); } }, [toast]);
@@ -825,6 +873,226 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
   const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role);
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
+  const questionFormValues: QuestionStudioFormValues = {
+    content: questionTitle,
+    level: questionLevel,
+    grade: questionGrade,
+    projectId: questionProjectId,
+    options: questionOptions,
+    correctAnswer: questionCorrectAnswer,
+    explanation: questionExplanation,
+    assets: questionAssets,
+    assetPlacement: questionAssetPlacement,
+    assetType: questionAssetType,
+    assetUrl: questionAssetUrl,
+    assetTitle: questionAssetTitle,
+    assetAltText: questionAssetAltText
+  };
+  const questionSnapshot = questionStudioFingerprint(questionFormValues);
+  const hasUnsavedQuestionChanges = Boolean(questionBaseline) && questionSnapshot !== questionBaseline;
+  const pausedQuestionKey = pausedQuestionDraftKey(currentUser.id, editingQuestion?.id ?? null);
+  const durableDraftOwner = { id: currentUser.id, email: currentUser.email };
+  const durableQuestionId = editingQuestion?.id ?? null;
+  const durableFeatureOn = import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' &&
+    import.meta.env.VITE_QUESTION_STUDIO_P1C === 'true' && currentUser.role === 'YAZAR';
+  let durableCopyExists = false;
+  if (durableFeatureOn && showQuestionForm) {
+    try {
+      durableCopyExists = hasDurableQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId);
+    } catch {
+      // Storage can be unavailable in restricted browser contexts.
+    }
+  }
+
+  const restorePausedQuestion = (draft: QuestionStudioPausedDraft<ApiQuestion>) => {
+    const values = draft.values;
+    setEditingQuestion(draft.originalQuestion);
+    setOriginalQuestionProjectId(draft.originalProjectId);
+    setQuestionTitle(values.content);
+    setQuestionLevel(values.level);
+    setQuestionGrade(values.grade);
+    setQuestionProjectId(values.projectId);
+    setQuestionOptions([...values.options]);
+    setQuestionCorrectAnswer(values.correctAnswer);
+    setQuestionExplanation(values.explanation);
+    setQuestionAssets(values.assets.map(asset => ({ ...asset })));
+    setQuestionAssetPlacement(values.assetPlacement);
+    setQuestionAssetType(values.assetType);
+    setQuestionAssetUrl(values.assetUrl);
+    setQuestionAssetTitle(values.assetTitle);
+    setQuestionAssetAltText(values.assetAltText);
+    setQuestionBaseline(draft.baseline);
+    setServerQuestionConflict(null);
+    setQuestionConflictLookupFailed(false);
+    if (draft.conflicted && draft.originalQuestion?.id) {
+      void fetchQuestions('all').then(questions => {
+        const latest = questions.find(q => q.id === draft.originalQuestion?.id);
+        if (latest) setServerQuestionConflict(latest);
+        else setQuestionConflictLookupFailed(true);
+      }).catch(() => setQuestionConflictLookupFailed(true));
+    }
+    setDurableDraftConflict(Boolean(draft.conflicted));
+    setQuestionSaveError('');
+    setShowQuestionForm(true);
+  };
+
+  const durableFormSnapshot = (): StudioDurableDraftData => ({
+    values: {
+      ...questionFormValues,
+      options: [...questionOptions],
+      assets: questionAssets.map(asset => ({ ...asset }))
+    },
+    baseline: questionBaseline,
+    originalProjectId: originalQuestionProjectId,
+    serverUpdatedAt: editingQuestion?.updatedAt ?? null
+  });
+
+  const enableDurableRecovery = () => {
+    if (!durableFeatureOn || !showQuestionForm) return;
+    try {
+      const phrase = durableDraftInputRef.current?.value || '';
+      validateDraftPassphrase(phrase);
+      if (!window.crypto?.subtle) throw new Error('Bu tarayıcı şifreli kurtarmayı desteklemiyor.');
+      if (durableCopyExists) {
+        setDurableDraftMessage('Bu soruya ait şifreli kopya zaten var. Önce Kurtar seçeneğiyle açın.');
+        return;
+      }
+      durableDraftPhraseRef.current = phrase;
+      if (durableDraftInputRef.current) durableDraftInputRef.current.value = '';
+      setDurableDraftConflict(false);
+      setDurableDraftEnabled(true);
+      setDurableDraftMessage('Şifreli kurtarma etkin. Yeni değişiklikler bu cihazda şifreli saklanacak.');
+    } catch (e) {
+      setDurableDraftMessage(e instanceof Error ? e.message : 'Kurtarma başlatılamadı.');
+    }
+  };
+
+  const recoverDurableDraft = async () => {
+    if (!durableFeatureOn || durableDraftBusy || questionSavingRef.current) return;
+    const phrase = durableDraftInputRef.current?.value || '';
+    setDurableDraftBusy(true);
+    try {
+      const restored = await recoverEncryptedQuestionDraft(
+        window.localStorage, window.crypto, durableDraftOwner, durableQuestionId, phrase
+      );
+      if (!restored) {
+        setDurableDraftMessage('Bu soru için geçerli şifreli kopya bulunamadı.');
+        return;
+      }
+      if (hasUnsavedQuestionChanges &&
+          !window.confirm('Ekrandaki değişiklikler şifreli kopyayla değiştirilsin mi?')) return;
+      const stale = Boolean(editingQuestion && restored.serverUpdatedAt !== editingQuestion.updatedAt);
+      restorePausedQuestion({
+        values: restored.values,
+        baseline: restored.baseline,
+        originalProjectId: restored.originalProjectId,
+        originalQuestion: editingQuestion
+      });
+      durableDraftPhraseRef.current = phrase;
+      if (durableDraftInputRef.current) durableDraftInputRef.current.value = '';
+      setDurableDraftConflict(stale);
+      setDurableDraftEnabled(!stale);
+      setDurableDraftMessage(stale
+        ? 'Sunucudaki soru değişmiş. Kurtarılan metin korundu ancak Kaydet kilitlendi; kopyayı güncel soruyla elle karşılaştırın.'
+        : 'Şifreli taslak kurtarıldı. Kaldığınız yerden devam edebilirsiniz.');
+    } catch (e) {
+      setDurableDraftMessage(e instanceof Error ? e.message : 'Şifreli taslak kurtarılamadı.');
+    } finally {
+      setDurableDraftBusy(false);
+    }
+  };
+
+  const discardDurableDraft = () => {
+    if (!durableFeatureOn || durableDraftBusy || questionSavingRef.current) return;
+    if (!window.confirm('Bu cihazdaki şifreli kurtarma kopyası silinsin mi? Ekrandaki yazılar korunur.')) return;
+    try {
+      durableDraftGenerationRef.current += 1;
+      removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId);
+      durableDraftPhraseRef.current = '';
+      setDurableDraftEnabled(false);
+      // Keep a stale-version lock even when its encrypted recovery copy is deleted.
+      setDurableDraftMessage(durableDraftConflict ? 'Şifreli kopya silindi. Bu metin eski sunucu sürümüne ait olduğu için Kaydet hâlâ kilitli.' : 'Şifreli kopya silindi. Ekrandaki yazılar korunuyor.');
+    } catch {
+      setDurableDraftMessage('Tarayıcı depolamasından silinemedi.');
+    }
+  };
+
+  const closeQuestionForm = () => {
+    if (questionSavingRef.current) return;
+    if (durableDraftBusy) return;
+    const finishClose = () => {
+      if (hasUnsavedQuestionChanges) {
+        pausedQuestionDraftsRef.current.set(pausedQuestionKey, copyPausedQuestionDraft({
+          values: questionFormValues,
+          baseline: questionBaseline,
+          originalProjectId: originalQuestionProjectId,
+          originalQuestion: editingQuestion,
+          conflicted: durableDraftConflict
+        }));
+        setToast('Taslağınız geçici olarak korundu. Aynı soruyu yeniden açarak devam edebilirsiniz.');
+      } else {
+        pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+      }
+      setPausedDraftsVersion(v => v + 1);
+      setShowQuestionForm(false);
+      setEditingQuestion(null);
+      setQuestionBaseline('');
+      setQuestionSaveError('');
+    };
+    if (hasUnsavedQuestionChanges) {
+      if (!window.confirm('Düzenlemeye ara verilsin mi? Şifreli kurtarma açıksa bu cihazda, değilse yalnız sayfa açıkken korunur. İptal ile devam edin.')) return;
+      if (durableFeatureOn && durableDraftEnabled && !durableDraftConflict) {
+        setDurableDraftBusy(true);
+        const generation = ++durableDraftGenerationRef.current;
+        void saveEncryptedQuestionDraft(
+          window.localStorage, window.crypto, durableDraftOwner, durableQuestionId,
+          durableDraftPhraseRef.current, durableFormSnapshot(), Date.now(),
+          () => durableDraftGenerationRef.current === generation && !questionSavingRef.current
+        ).then(() => {
+          if (generation === durableDraftGenerationRef.current) finishClose();
+        }).catch(e => {
+          setQuestionSaveError('Şifreli kopya saklanamadı. Veri kaybını önlemek için form açık tutuldu. ' +
+            (e instanceof Error ? e.message : 'Depolama hatası.'));
+        }).finally(() => setDurableDraftBusy(false));
+        return;
+      }
+    }
+    finishClose();
+  };
+
+  useEffect(() => {
+    if ((!showQuestionForm || !hasUnsavedQuestionChanges) && pausedQuestionDraftsRef.current.size === 0) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [showQuestionForm, hasUnsavedQuestionChanges, pausedDraftsVersion]);
+  useEffect(() => {
+    const generation = ++durableDraftGenerationRef.current;
+    if (!durableFeatureOn || !showQuestionForm || !durableDraftEnabled ||
+        !hasUnsavedQuestionChanges || durableDraftConflict || questionSaving) return;
+    const snapshot = durableFormSnapshot();
+    const phrase = durableDraftPhraseRef.current;
+    const timer = window.setTimeout(() => {
+      void saveEncryptedQuestionDraft(
+        window.localStorage, window.crypto, durableDraftOwner, durableQuestionId,
+        phrase, snapshot, Date.now(),
+        () => generation === durableDraftGenerationRef.current && !questionSavingRef.current
+      ).then(() => {
+        if (generation === durableDraftGenerationRef.current)
+          setDurableDraftMessage('Şifreli kurtarma kopyası güncellendi.');
+      }).catch(e => {
+        if (generation === durableDraftGenerationRef.current)
+          setDurableDraftMessage('Şifreli kopya yazılamadı: ' + (e instanceof Error ? e.message : 'Depolama hatası'));
+      });
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [durableFeatureOn, showQuestionForm, durableDraftEnabled, hasUnsavedQuestionChanges,
+      durableDraftConflict, questionSaving, questionSnapshot, questionBaseline,
+      currentUser.id, currentUser.email, durableQuestionId, originalQuestionProjectId]);
+
   const questionAssignableProjects = apiProjects.filter(project =>
     !['Tamamlandi', 'Arsiv'].includes(project.status) || project.id === originalQuestionProjectId
   );
@@ -904,7 +1172,14 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   
   const handleCreateQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
+    if (durableDraftConflict) {
+      setQuestionSaveError('Bu kurtarma kopyası eski sunucu sürümüne ait. Mevcut soru verileriyle karşılaştırmadan kaydedilemez.');
+      return;
+    }
+    if (questionSavingRef.current || durableDraftBusy || currentUser.role !== 'YAZAR' || !questionTitle.trim() || questionTitle.trim().length < 10) return;
+    questionSavingRef.current = true;
+    setQuestionSaving(true);
+    setQuestionSaveError('');
     try {
       if (editingQuestion) {
         const input = buildQuestionEditPatch(editingQuestion, {
@@ -913,8 +1188,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           explanation: questionExplanation,
           projectId: questionProjectId,
           options: questionOptions,
-          correctAnswer: questionCorrectAnswer
+          correctAnswer: questionCorrectAnswer,
+          assets: normalizeQuestionAssets(questionAssets)
         });
+        input.expectedUpdatedAt = editingQuestion.updatedAt;
         await patchQuestion(editingQuestion.id, input);
         setToast('Soru düzeltmeleri kaydedildi.');
       } else {
@@ -925,28 +1202,77 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           options: answers.options,
           correctAnswer: answers.correctAnswer,
           explanation: questionExplanation.trim() || null,
-          projectId: questionProjectId
+          projectId: questionProjectId,
+          assets: normalizeQuestionAssets(questionAssets)
         });
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
+      durableDraftGenerationRef.current += 1;
+      if (durableFeatureOn) {
+        try {
+          removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId);
+        } catch {
+          setToast('Sunucuya kaydedildi; bu cihazdaki şifreli kurtarma kopyası silinemedi. Gizlilik ayarlarını kontrol edin.');
+        }
+      }
+      durableDraftPhraseRef.current = '';
+      setDurableDraftEnabled(false);
+      pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+      setPausedDraftsVersion(v => v + 1);
       setShowQuestionForm(false);
       setEditingQuestion(null);
-      setQuestionTitle(''); 
-      setQuestionOptions(['', '', '', '']); 
-      setQuestionExplanation(''); 
+      setQuestionBaseline('');
+      setQuestionTitle('');
+      setQuestionOptions(['', '', '', '']);
+      setQuestionExplanation('');
+      setQuestionAssets([]);
       setQuestionProjectId(null);
       setOriginalQuestionProjectId(null);
-            loadApiQuestions();
+      void loadApiQuestions();
     } catch (e: any) {
-      setToast(e.message || 'Bir hata oluştu.');
-      if (e instanceof ApiError && e.status === 409 && editingQuestion) {
-        const latestQuestions = await loadApiQuestions();
-        const latestQuestion = latestQuestions.find(question => question.id === editingQuestion.id);
-        if (latestQuestion && ['TASLAK', 'REVIZYON'].includes(latestQuestion.status)) openYazarEdit(latestQuestion);
+      // Never overwrite local form values with a server refresh after an HTTP 409.
+      if (e instanceof ApiError && (e.status === 409 || e.status === 428)) {
+        setDurableDraftConflict(true);
+        setQuestionSaveError('Sürüm çakışması: Bu soru başka bir oturumda değiştirilmiş olabilir. Sunucu üzerine yazılmadı. Ekrandaki taslağınız korundu.');
+        if (editingQuestion) {
+          // Read-only refresh for side-by-side review; never overwrite input fields.
+          try {
+            const latest = (await fetchQuestions('all')).find(q => q.id === editingQuestion.id);
+            if (latest) setServerQuestionConflict(latest);
+            else setQuestionConflictLookupFailed(true);
+          } catch {
+            setQuestionConflictLookupFailed(true);
+          }
+        }
+      } else {
+        setQuestionSaveError(e instanceof Error ? e.message : 'Kaydetme başarısız. Taslak bu ekranda korunuyor.');
       }
+    } finally {
+      questionSavingRef.current = false;
+      setQuestionSaving(false);
     }
   };
   const openQuestionForm = () => {
+    const paused = pausedQuestionDraftsRef.current.get(pausedQuestionDraftKey(currentUser.id, null));
+    if (paused) {
+      restorePausedQuestion(copyPausedQuestionDraft(paused));
+      setToast('Geçici soru taslağınız geri yüklendi.');
+      return;
+    }
+    setEditingQuestion(null);
+    durableDraftPhraseRef.current = '';
+    setDurableDraftEnabled(false);
+    setDurableDraftConflict(false);
+    setDurableDraftMessage('');
+    setServerQuestionConflict(null);
+    setQuestionConflictLookupFailed(false);
+    setQuestionTitle('');
+    setQuestionSaveError('');
+    setQuestionBaseline(questionStudioFingerprint({
+      content: '', level: 'Ortaokul', grade: '8. Sınıf', projectId: null,
+      options: ['', '', '', ''], correctAnswer: 'A', explanation: '', assets: [],
+      assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
+    }));
     setQuestionLevel('Ortaokul');
     setQuestionGrade('8. Sınıf');
     setQuestionProjectId(null);
@@ -954,6 +1280,12 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionOptions(['', '', '', '']);
     setQuestionCorrectAnswer('A');
     setQuestionExplanation('');
+    setQuestionAssets([]);
+    setQuestionAssetPlacement('STEM');
+    setQuestionAssetType('IMAGE');
+    setQuestionAssetUrl('');
+    setQuestionAssetTitle('');
+    setQuestionAssetAltText('');
     setShowQuestionForm(true);
   };
   const changeQuestionLevel = (level: string) => {
@@ -998,7 +1330,201 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionTitle(`${questionTitle.slice(0, start)}${formatted}${questionTitle.slice(end)}`);
     window.requestAnimationFrame(() => editor.focus());
   };
+  const insertQuestionTable = () => {
+    const editor = questionEditorRef.current;
+    if (!editor) return;
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const template = '\n| Başlık 1 | Başlık 2 |\n| --- | --- |\n| Değer 1 | Değer 2 |\n';
+    const next = questionTitle.slice(0, start) + template + questionTitle.slice(end);
+    if (next.length > 1200) {
+      setToast('Tablo için soru gövdesinde yeterli alan yok (1200 karakter sınırı).');
+      return;
+    }
+    setQuestionTitle(next);
+    window.requestAnimationFrame(() => {
+      editor.focus();
+      editor.setSelectionRange(start + template.length, start + template.length);
+    });
+  };
   const updateQuestionOption = (index: number, value: string) => setQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
+  const addQuestionAsset = () => {
+    const url = questionAssetUrl.trim();
+    if (!url) {
+      setToast('Medya bağlantısı girin.');
+      return;
+    }
+
+    try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Invalid protocol');
+    } catch {
+      setToast('Medya bağlantısı http veya https ile başlamalı.');
+      return;
+    }
+
+    if (questionAssetType === 'VIDEO_URL' && !getQuestionVideoEmbedUrl(url)) {
+      setToast('Video için YouTube, Vimeo veya Dailymotion gömme bağlantısı kullanın.');
+      return;
+    }
+
+    setQuestionAssets(current => normalizeQuestionAssets([
+      ...current,
+      {
+        placement: questionAssetPlacement,
+        assetType: questionAssetType,
+        url,
+        title: questionAssetTitle.trim() || null,
+        altText: questionAssetAltText.trim() || null,
+        sortOrder: current.length
+      }
+    ]));
+    setQuestionAssetUrl('');
+    setQuestionAssetTitle('');
+    setQuestionAssetAltText('');
+  };
+  const removeQuestionAsset = (index: number) => {
+    setQuestionAssets(current => normalizeQuestionAssets(current.filter((_, assetIndex) => assetIndex !== index)));
+  };
+  const questionQualityIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (questionTitle.trim().length < 10) issues.push('Soru kökü en az 10 karakter olmalı.');
+    if (!hasFourValidQuestionOptions(questionOptions)) issues.push('Dört cevap seçeneği de doldurulmalı.');
+    if (!isValidCorrectAnswer(questionCorrectAnswer)) issues.push('Doğru cevap işaretlenmeli.');
+    const trimmedOptions = normalizeQuestionOptions(questionOptions).map(option => option.trim()).filter(Boolean);
+    if (new Set(trimmedOptions).size !== trimmedOptions.length) issues.push('Tekrarlanan cevap seçeneklerini kontrol edin.');
+    if (!questionExplanation.trim()) issues.push('Çözüm alanı boş; editör revizyon isteyebilir.');
+    if (questionAssets.some(asset => asset.assetType === 'IMAGE' && !asset.altText?.trim())) issues.push('Görseller için kısa açıklama/alt metin ekleyin.');
+    return issues;
+  }, [questionTitle, questionOptions, questionCorrectAnswer, questionExplanation, questionAssets]);
+
+  const renderQuestionAssets = (assets: QuestionAssetInput[] | undefined, placement?: QuestionAssetPlacement) => {
+    const visibleAssets = normalizeQuestionAssets(assets).filter(asset => !placement || asset.placement === placement);
+    if (visibleAssets.length === 0) return null;
+
+    return <div className="question-asset-preview-list">{visibleAssets.map((asset, index) => (
+      <div className="question-asset-preview" key={`${asset.placement}-${asset.url}-${index}`}>
+        <span>{questionAssetPlacementLabel(asset.placement)} · {questionAssetTypeLabel(asset.assetType)}</span>
+        {asset.assetType === 'IMAGE'
+          ? <img src={asset.url} alt={asset.altText || asset.title || questionAssetPlacementLabel(asset.placement)} />
+          : asset.assetType === 'VIDEO_URL' && getQuestionVideoEmbedUrl(asset.url)
+            ? <iframe title={asset.title || questionVideoProviderLabel(asset.url)} src={getQuestionVideoEmbedUrl(asset.url) || ''} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />
+            : <a href={asset.url} target="_blank" rel="noreferrer">{asset.title || (asset.assetType === 'VIDEO_URL' ? 'Video bağlantısını aç' : 'Kaynak bağlantısını aç')}</a>}
+        {asset.altText && <small>{asset.altText}</small>}
+      </div>
+    ))}</div>;
+  };
+
+  const renderQuestionInlineFormatting = (text: string) => {
+    const nodes: ReactNode[] = [];
+    const pattern = /(\*\*[^*]+\*\*|_[^_\s][^_]*_|<u>.+?<\/u>|\$[^$]+\$|\[[^\]]+\]\([^)]+\))/g;
+    let lastIndex = 0;
+    let tokenIndex = 0;
+
+    for (const match of text.matchAll(pattern)) {
+      const index = match.index ?? 0;
+      const token = match[0];
+      if (index > lastIndex) nodes.push(text.slice(lastIndex, index));
+
+      if (token.startsWith('**')) {
+        nodes.push(<strong key={`strong-${tokenIndex}`}>{token.slice(2, -2)}</strong>);
+      } else if (token.startsWith('_')) {
+        nodes.push(<em key={`em-${tokenIndex}`}>{token.slice(1, -1)}</em>);
+      } else if (token.startsWith('<u>')) {
+        nodes.push(<u key={`underline-${tokenIndex}`}>{token.slice(3, -4)}</u>);
+      } else if (token.startsWith('$')) {
+        nodes.push(<code className="question-formula" key={`formula-${tokenIndex}`}>{token.slice(1, -1)}</code>);
+      } else {
+        const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        const href = linkMatch?.[2]?.trim();
+        const label = linkMatch?.[1] || token;
+        if (href && /^https?:\/\//i.test(href)) {
+          nodes.push(<a href={href} target="_blank" rel="noreferrer" key={`link-${tokenIndex}`}>{label}</a>);
+        } else {
+          nodes.push(label);
+        }
+      }
+
+      lastIndex = index + token.length;
+      tokenIndex += 1;
+    }
+
+    if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+    return nodes.length > 0 ? nodes : text;
+  };
+
+  const renderFormattedQuestionText = (value: string | null | undefined, fallback?: string) => {
+    const source = (value || '').trim() || fallback || '';
+    if (!source) return null;
+
+    const blocks: ReactNode[] = [];
+    let listType: 'ul' | 'ol' | null = null;
+    let listItems: string[] = [];
+
+    const flushList = (key: string) => {
+      if (!listType || listItems.length === 0) return;
+      const renderedItems = listItems.map((item, index) => <li key={`${key}-item-${index}`}>{renderQuestionInlineFormatting(item)}</li>);
+      blocks.push(listType === 'ul'
+        ? <ul key={`${key}-ul`}>{renderedItems}</ul>
+        : <ol key={`${key}-ol`}>{renderedItems}</ol>);
+      listType = null;
+      listItems = [];
+    };
+
+    source.split(/\r?\n/).forEach((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        flushList(`blank-${index}`);
+        return;
+      }
+
+      const bulletMatch = trimmed.match(/^(?:[•-])\s+(.+)$/);
+      const orderedMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+      if (bulletMatch || orderedMatch) {
+        const nextType: 'ul' | 'ol' = bulletMatch ? 'ul' : 'ol';
+        if (listType && listType !== nextType) flushList(`switch-${index}`);
+        listType = nextType;
+        listItems.push((bulletMatch?.[1] || orderedMatch?.[1] || '').trim());
+        return;
+      }
+
+      flushList(`text-${index}`);
+      blocks.push(<p key={`text-${index}`}>{renderQuestionInlineFormatting(trimmed)}</p>);
+    });
+
+    flushList('end');
+    return blocks;
+  };
+  const renderQuestionReviewPreview = (question: ApiQuestion) => {
+    const options = normalizeQuestionOptions(question.options);
+    const hasOptions = hasFourValidQuestionOptions(options);
+
+    return <article className="editor-question-preview">
+      <div className="editor-question-stem">
+        <strong>Soru kökü</strong>
+        <div className="formatted-question-text">{renderFormattedQuestionText(question.content)}</div>
+        {renderQuestionAssets(question.assets, 'STEM')}
+      </div>
+      <div className="editor-question-options">
+        <div className="editor-question-options-head">
+          <strong>Cevap seçenekleri</strong>
+          {question.correctAnswer && <span>Doğru cevap: {question.correctAnswer}</span>}
+        </div>
+        {hasOptions ? <ol type="A">{options.map((option, index) => {
+          const letter = String.fromCharCode(65 + index);
+          return <li key={letter} className={question.correctAnswer === letter ? 'correct' : ''}>
+            <span>{option}</span>
+            {renderQuestionAssets(question.assets, `OPTION_${letter}` as QuestionAssetPlacement)}
+          </li>;
+        })}</ol> : <p className="editor-question-missing">Bu sorunun cevap seçenekleri eksik veya eski formatta.</p>}
+      </div>
+      {(question.explanation || normalizeQuestionAssets(question.assets).some(asset => asset.placement === 'EXPLANATION')) && <div className="editor-question-solution">
+        <strong>Çözüm</strong>
+        {question.explanation && <div className="formatted-question-text compact">{renderFormattedQuestionText(question.explanation)}</div>}
+        {renderQuestionAssets(question.assets, 'EXPLANATION')}
+      </div>}
+    </article>;
+  };
   const openEditorReview = (question: ApiQuestion) => {
     if (['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && question.status === 'INCELEMEDE') {
       setReviewingQuestion(question);
@@ -1036,7 +1562,19 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   
   const openYazarEdit = (question: ApiQuestion) => {
     if (question.status !== 'TASLAK' && question.status !== 'REVIZYON') return;
+    const paused = pausedQuestionDraftsRef.current.get(pausedQuestionDraftKey(currentUser.id, question.id));
+    if (paused && paused.originalQuestion?.id === question.id) {
+      restorePausedQuestion(copyPausedQuestionDraft(paused));
+      setToast('Bu soruya ait kaydedilmemiş değişiklikler geri yüklendi. Sunucudaki güncel durumu kaydetmeden önce kontrol edin.');
+      return;
+    }
     setEditingQuestion(question);
+    durableDraftPhraseRef.current = '';
+    setDurableDraftEnabled(false);
+    setDurableDraftConflict(false);
+    setDurableDraftMessage('');
+    setServerQuestionConflict(null);
+    setQuestionConflictLookupFailed(false);
     setQuestionTitle(question.content);
     
     const linkedProject = question.projectId ? apiProjects.find(project => project.id === question.projectId) : null;
@@ -1048,8 +1586,22 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionOptions(normalizeQuestionOptions(question.options));
     setQuestionCorrectAnswer(isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '');
     setQuestionExplanation(question.explanation || '');
+    setQuestionAssets(normalizeQuestionAssets(question.assets));
     setQuestionProjectId(question.projectId);
     setOriginalQuestionProjectId(question.projectId);
+    setQuestionAssetPlacement('STEM');
+    setQuestionAssetType('IMAGE');
+    setQuestionAssetUrl('');
+    setQuestionAssetTitle('');
+    setQuestionAssetAltText('');
+    setQuestionSaveError('');
+    setQuestionBaseline(questionStudioFingerprint({
+      content: question.content, level, grade, projectId: question.projectId,
+      options: normalizeQuestionOptions(question.options),
+      correctAnswer: isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '',
+      explanation: question.explanation || '', assets: normalizeQuestionAssets(question.assets),
+      assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
+    }));
     setShowQuestionForm(true);
   };
     const updatePayment = async (id: number, currentStatus: string) => {
@@ -1560,31 +2112,127 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <button className="primary-button" onClick={()=>openQuestionsForProject(selectedProject.id)}>Proje sorularını aç <ArrowRight size={15}/></button>
       </div>
     </div></div>}
-    {showQuestionForm && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) { setShowQuestionForm(false); setEditingQuestion(null); } }}><form className="question-modal pro-editor-modal" onSubmit={handleCreateQuestion}>
-        <div className="modal-head"><div><span className="panel-kicker">PROFESYONEL SORU EDİTÖRÜ</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div><button type="button" aria-label="Kapat" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}><X size={20} /></button></div>
-        <p>Soru gövdesini hazırlayın, cevap seçeneklerini ve doğru yanıtı belirleyin.</p>
-        <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
-        <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
-        <label className="question-editor-label">Soru gövdesi</label>
-        <div className="question-editor-shell">
-          <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
-            <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
-            <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
-            <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button><button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+    {showQuestionForm && <div className={import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? 'modal-backdrop question-workspace-overlay' : 'modal-backdrop'} onMouseDown={event => { if (event.target === event.currentTarget) closeQuestionForm(); }}>
+        <form className={import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? 'question-modal pro-editor-modal question-studio-modal question-studio-workspace' : 'question-modal pro-editor-modal question-studio-modal'} onSubmit={handleCreateQuestion}>
+          <div className="modal-head">
+            <div><span className="panel-kicker">SORU ÜRETİM STÜDYOSU</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div>
+            <button type="button" aria-label="Kapat" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}><X size={20} /></button>
           </div>
-          <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
-          <div className="question-editor-footer"><span></span><strong>{questionTitle.length} / 1200</strong></div>
-        </div>
-        <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer}</span></div>
-        <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
-        <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini veya editör notunu yazın..." /></label>
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowQuestionForm(false); setEditingQuestion(null); }}>Vazgeç</button><button type="submit" className="primary-button"><Plus size={17} /> Taslağı kaydet</button></div>
-      </form></div>}
+          <p>Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.</p>
+          {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <p className="studio-dirty-status" role="status">{questionSaving ? 'Kaydediliyor…' : hasUnsavedQuestionChanges ? 'Kaydedilmemiş değişiklikler var' : 'Henüz kaydedilmemiş değişiklik yok'}</p>}
+          {questionSaveError && <div className="studio-save-error" role="alert">{questionSaveError}</div>}
+          {serverQuestionConflict && <section className="studio-revision-review" aria-label="Soru sürüm karşılaştırması">
+            <div className="studio-revision-heading"><strong>Sunucudaki sürüm değişmiş</strong><span>Kaydetme engellendi</span></div>
+            <p>Metniniz bu ekranda korunuyor. Taslağınızı ve güncel sunucu verilerini karşılaştırın. Otomatik birleştirme veya üzerine yazma yapılmaz.</p>
+            <div className="studio-revision-table" role="table" aria-label="İki soru sürümünü karşılaştır">
+              <div className="studio-revision-row studio-revision-labels" role="row"><strong role="columnheader">Alan</strong><strong role="columnheader">Sizdeki taslak</strong><strong role="columnheader">Güncel sunucu sürümü</strong></div>
+              {compareQuestionRevisions(questionFormValues, serverQuestionConflict).map(row => (
+                <div className={row.changed ? 'studio-revision-row changed' : 'studio-revision-row'} role="row" key={row.field}>
+                  <strong role="rowheader">{row.field}</strong><span role="cell">{row.local}</span><span role="cell">{row.server}</span>
+                </div>
+              ))}
+            </div>
+            {['TASLAK', 'REVIZYON'].includes(serverQuestionConflict.status) && <button type="button" className="secondary-button" onClick={() => {
+              if (!window.confirm('Kaydedilmemiş yerel değişiklikler bırakılsın ve sunucudaki güncel sürüm açılsın mı? Önce korunmasını istediğiniz metinleri kopyalayın.')) return;
+              pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+              durableDraftGenerationRef.current += 1;
+              if (durableFeatureOn) {
+                try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId); }
+                catch { setQuestionSaveError('Cihazdaki şifreli kopya silinemedi; gizlilik ayarlarını kontrol edin.'); }
+              }
+              openYazarEdit(serverQuestionConflict);
+            }}>Yerel taslağı bırak ve güncel soruyu aç</button>}
+          </section>}
+          {questionConflictLookupFailed && <p className="studio-save-error" role="alert">Güncel sunucu sürümü alınamadı. Ekrandaki taslak korundu; başka bir sekmede soru listesini kontrol edin.</p>}
+          {durableFeatureOn && <section className="studio-durable-control" aria-label="Şifreli taslak kurtarma">
+            <div className="studio-durable-heading"><strong>Bu cihazda şifreli taslak kurtarma</strong><span>{durableDraftConflict ? 'Sürüm çakışması' : durableDraftEnabled ? 'Etkin' : durableCopyExists ? 'Kopya bulundu' : 'Kapalı'}</span></div>
+            <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Unutursanız taslak açılamaz. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
+            {!durableDraftEnabled && !durableDraftConflict && <div className="studio-durable-actions">
+              <input type="password" ref={durableDraftInputRef} autoComplete="new-password" onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} placeholder="En az 12 karakterlik ayrı kurtarma parolası" aria-label="Taslak kurtarma parolası" disabled={durableDraftBusy || questionSaving}/>
+              {!durableCopyExists && <button type="button" className="secondary-button" onClick={enableDurableRecovery} disabled={durableDraftBusy || questionSaving}>Şifreli korumayı aç</button>}
+              {durableCopyExists && <button type="button" className="secondary-button" onClick={() => void recoverDurableDraft()} disabled={durableDraftBusy || questionSaving}>Şifreli taslağı kurtar</button>}
+            </div>}
+            {durableDraftEnabled && <button type="button" className="studio-durable-discard" onClick={() => {
+              durableDraftGenerationRef.current += 1;
+              durableDraftPhraseRef.current = '';
+              setDurableDraftEnabled(false);
+              setDurableDraftMessage('Otomatik kurtarma durduruldu. Daha önce oluşturulan şifreli kopya cihazda kalır.');
+            }}>Otomatik kurtarmayı durdur</button>}
+            {durableCopyExists && <button type="button" className="studio-durable-discard" onClick={discardDurableDraft} disabled={durableDraftBusy || questionSaving}>Bu cihazdaki şifreli kopyayı sil</button>}
+            {durableDraftConflict && editingQuestion && <button type="button" className="secondary-button" onClick={() => {
+              if (!window.confirm('Kurtarılan yerel düzenlemeler bırakılıp sunucudaki güncel soru açılsın mı? Önce gerekli metinleri kopyalayın.')) return;
+              pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+              durableDraftGenerationRef.current += 1;
+              try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId); } catch { /* browser restrictions */ }
+              openYazarEdit(editingQuestion);
+            }}>Yerel değişiklikleri bırak ve güncel soruya dön</button>}
+            {durableDraftMessage && <p className={durableDraftConflict ? 'studio-durable-message error' : 'studio-durable-message'} role="status">{durableDraftMessage}</p>}
+          </section>}
+          <div className="question-studio-layout" inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}>
+            <div className="question-studio-main">
+              <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
+              <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
+              <label className="question-editor-label">Soru gövdesi</label>
+              <div className="question-editor-shell">
+                <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
+                  <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
+                  <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
+                  <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button>{import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <button type="button" title="Tablo ekle (deneysel)" aria-label="Tablo ekle" onClick={insertQuestionTable}><Table2 size={16} /></button>}<button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+                </div>
+                <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
+                <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
+              </div>
+
+              <section className="question-media-builder" aria-label="Soru medyaları">
+                <div className="question-answer-head"><div><strong>Medya ve görsel alanı</strong><span>Soru kökü, seçenekler veya çözüm için görsel ya da YouTube/Vimeo/Dailymotion gömme bağlantısı ekleyin.</span></div><span className="answer-key">{questionAssets.length} medya</span></div>
+                <div className="question-media-form">
+                  <select aria-label="Medya konumu" value={questionAssetPlacement} onChange={event => setQuestionAssetPlacement(event.target.value as QuestionAssetPlacement)}>{questionAssetPlacements.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+                  <select aria-label="Medya türü" value={questionAssetType} onChange={event => setQuestionAssetType(event.target.value as QuestionAssetType)}>{questionAssetTypes.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+                  <input type="url" value={questionAssetUrl} onChange={event => setQuestionAssetUrl(event.target.value)} placeholder="https://..." />
+                  <input type="text" maxLength={120} value={questionAssetTitle} onChange={event => setQuestionAssetTitle(event.target.value)} placeholder="Kısa başlık" />
+                  <input type="text" maxLength={240} value={questionAssetAltText} onChange={event => setQuestionAssetAltText(event.target.value)} placeholder="Görsel açıklaması / video notu" />
+                  <button type="button" className="secondary-button" onClick={addQuestionAsset}><ImagePlus size={15} /> Ekle</button>
+                </div>
+                {questionAssets.length > 0 && <div className="question-asset-list">{questionAssets.map((asset, index) => <div key={`${asset.placement}-${asset.url}-${index}`}><span><strong>{questionAssetPlacementLabel(asset.placement)}</strong><small>{questionAssetTypeLabel(asset.assetType)} · {asset.title || asset.url}</small></span><button type="button" onClick={() => removeQuestionAsset(index)} aria-label="Medyayı kaldır"><X size={14} /></button></div>)}</div>}
+              </section>
+
+              <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer || 'Seçilmedi'}</span></div>
+              <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
+              <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini, çözüm adımlarını veya editör için notu yazın..." /></label>
+            </div>
+
+            <aside className="question-preview-panel">
+              <div className="question-preview-head"><span><Eye size={15} /> Canlı ön izleme</span><strong>{questionGrade}</strong></div>
+              {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? (
+                <StudioDocumentPreview
+                  document={legacyQuestionToStudioDocument({
+                    content: questionTitle,
+                    options: questionOptions,
+                    explanation: questionExplanation,
+                    correctAnswer: questionCorrectAnswer
+                  })}
+                  renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
+                />
+              ) : <article className="question-preview-card">
+                <div className="formatted-question-text">{renderFormattedQuestionText(questionTitle, 'Soru kökü burada görünecek.')}</div>
+                {renderQuestionAssets(questionAssets, 'STEM')}
+                <ol type="A">{questionOptions.map((option, index) => <li key={index} className={questionCorrectAnswer === String.fromCharCode(65 + index) ? 'correct' : ''}>{option || `${String.fromCharCode(65 + index)} seçeneği`}{renderQuestionAssets(questionAssets, `OPTION_${String.fromCharCode(65 + index)}` as QuestionAssetPlacement)}</li>)}</ol>
+                {questionExplanation.trim() && <div className="question-preview-solution"><strong>Çözüm</strong><div className="formatted-question-text compact">{renderFormattedQuestionText(questionExplanation)}</div>{renderQuestionAssets(questionAssets, 'EXPLANATION')}</div>}
+              </article>}
+              <div className="question-quality-panel">
+                <strong>Kontrol listesi</strong>
+                {questionQualityIssues.length === 0 ? <span className="quality-ok">Soru editöre gönderime hazır görünüyor.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
+              </div>
+            </aside>
+          </div>
+          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button><button type="submit" className="primary-button" disabled={questionSaving || durableDraftBusy || durableDraftConflict}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button></div>
+        </form>
+      </div>}
       {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
         <div className="modal-head"><div><span className="panel-kicker">EDİTÖR DEĞERLENDİRMESİ</span><h2>Soruyu İncele</h2></div><button type="button" aria-label="Kapat" onClick={() => setReviewingQuestion(null)}><X size={20} /></button></div>
         <p>Bu soru için değerlendirme kararınızı ve yazar için varsa notunuzu girin.</p>
         <div className="editor-review-context" style={{marginBottom: '1rem'}}><span>{reviewingQuestion.grade}</span><span>{reviewingQuestion.author?.fullName}</span></div>
-        <div style={{background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem', whiteSpace: 'pre-wrap'}}>{reviewingQuestion.content}</div>
+        {renderQuestionReviewPreview(reviewingQuestion)}
         <label>Aksiyon<select required value={reviewAction} onChange={e => { const val = e.target.value as QuestionWorkflowAction | ''; setReviewAction(val); if (val === 'approve') setEditorNote(''); }}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
         {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setReviewingQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>

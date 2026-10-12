@@ -36,6 +36,6 @@ if (!connectionString) {
       expect(payment.project?.code).toBe('PILOT-MAT-8-001');
       expect(payment.amount.toFixed(2)).toBe('1000.00');
       expect(['Bekliyor', 'Onaylandi', 'Odendi', 'Iptal']).toContain(payment.status);
-    });
+    }, 15_000); // Remote pilot DB may exceed Vitest's 5s default under parallel load.
   });
 }
