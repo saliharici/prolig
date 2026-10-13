@@ -14,6 +14,8 @@ const PILOT = '.env.p1d.local';
 const PRIVATE = '.local/p1d-sandbox-credentials.env';
 const TARGET = 'prolig_p1d_sandbox';
 const APPROVAL = 'ALLOW_BROWSER_QUESTION_WRITES_IN_prolig_p1d_sandbox';
+const P2_WRITE_APPROVAL = 'ALLOW_P2_BROWSER_QUESTION_WRITES_IN_prolig_p1d_sandbox';
+const EXPECTED_SANDBOX_HOST_ROOT = 'ep-lingering-leaf-b9q3ohxd';
 class SafetyError extends Error {}
 const stop = text => { throw new SafetyError(text); };
 const fileEnv = file => existsSync(file) ? dotenv.parse(readFileSync(file)) : null;
@@ -45,6 +47,9 @@ function prepare() {
   const direct = parsePilotUrl(pilot.DIRECT_URL, false);
   if (endpoint(pooled) !== endpoint(direct) || pooled.username !== direct.username) {
     stop('Pooling ve direct adresleri birbiriyle eşleşmiyor.');
+  }
+  if (!endpoint(direct).startsWith(EXPECTED_SANDBOX_HOST_ROOT + '.')) {
+    stop('Sandbox Neon sunucu kimliği beklenen bağımsız projeyle (' + EXPECTED_SANDBOX_HOST_ROOT + ') eşleşmiyor.');
   }
   const existing = [];
   for (const path of ['.env','.env.development.local']) {
@@ -94,7 +99,7 @@ async function preflight(connectionString) {
   }
 }
 
-function isolatedEnvironment(config, allowWrites) {
+function isolatedEnvironment(config, allowWrites, p2Editor = false, isP2Write = false) {
   const result = {};
   for (const key of [
     'PATH','Path','PATHEXT','SystemRoot','WINDIR','ComSpec',
@@ -110,6 +115,8 @@ function isolatedEnvironment(config, allowWrites) {
     NODE_ENV: 'test',
     PROLIG_P1D_DB_NAME: TARGET,
     PROLIG_P1D_BROWSER_WRITES: allowWrites ? 'true' : 'false',
+    PROLIG_P2_GUARDED_WRITES: isP2Write ? 'true' : 'false',
+    VITE_QUESTION_STUDIO_P2_EDITOR: p2Editor ? 'true' : 'false',
     DOTENV_CONFIG_PATH: PILOT
   };
 }
@@ -117,12 +124,20 @@ function isolatedEnvironment(config, allowWrites) {
 const args = process.argv.slice(2);
 const mode = args.length === 0 ? '--preflight' : args.length === 1 ? args[0] : 'invalid';
 try {
-  if (!['--preflight','--serve','--serve-write'].includes(mode)) {
-    stop('Yalnızca --preflight, --serve veya --serve-write kullanılabilir.');
+  if (!['--preflight','--serve','--serve-write','--serve-p2','--serve-p2-write'].includes(mode)) {
+    stop('Yalnızca --preflight, --serve, --serve-write, --serve-p2 veya --serve-p2-write kullanılabilir.');
   }
-  const allowWrites = mode === '--serve-write';
-  if (allowWrites && process.env.PROLIG_P1D_BROWSER_UAT_APPROVAL !== APPROVAL) {
+  const isP1DWrite = mode === '--serve-write';
+  const isP2Write = mode === '--serve-p2-write';
+  const isP2ReadOnly = mode === '--serve-p2';
+  const allowWrites = isP1DWrite || isP2Write;
+  const p2Editor = isP2ReadOnly || isP2Write;
+
+  if (isP1DWrite && process.env.PROLIG_P1D_BROWSER_UAT_APPROVAL !== APPROVAL) {
     stop('Tarayıcı yazma testi için ayrıca açık sandbox onayı gerekli.');
+  }
+  if (isP2Write && process.env.PROLIG_P2_BROWSER_UAT_APPROVAL !== P2_WRITE_APPROVAL) {
+    stop('P2 soru kaydı yazma onayı (PROLIG_P2_BROWSER_UAT_APPROVAL=' + P2_WRITE_APPROVAL + ') eksik veya geçersiz.');
   }
   const config = prepare();
   await preflight(config.pilot.DIRECT_URL);
@@ -131,7 +146,11 @@ try {
   if (mode === '--preflight') {
     console.log('P1-D SANDBOX BROWSER PREFLIGHT: PASS — veri değiştirilmedi.');
   } else {
-    const env = isolatedEnvironment(config, allowWrites);
+    if (allowWrites) {
+      await preflight(config.pilot.DIRECT_URL);
+      console.log('PASS: Yazma modu öncesi salt-okunur veritabanı kimliği yeniden doğrulandı.');
+    }
+    const env = isolatedEnvironment(config, allowWrites, p2Editor, isP2Write);
     const child = spawn(process.execPath,
       ['--import','tsx','scripts/p1d-sandbox-browser-app.ts'], {
         cwd: process.cwd(), env, stdio: 'inherit', windowsHide: true
@@ -143,9 +162,13 @@ try {
     });
     child.on('exit', (code) => { process.exitCode = code || 0; });
     process.on('SIGINT', () => { if (!child.killed) child.kill('SIGINT'); });
-    console.log(allowWrites
-      ? 'P1-D SANDBOX BROWSER: soru yazma testi etkin; yalnızca yapay pilot veri kullanın.'
-      : 'P1-D SANDBOX BROWSER: salt okunur ekran önizlemesi; soru değişiklikleri engellendi.');
+    console.log(isP2Write
+      ? 'P1-D SANDBOX BROWSER (P2 WRITE): korumalı P2 soru kaydı etkin; yalnızca yapay pilot yazar ve P2-UAT onaylı soru kullanılabilir.'
+      : isP1DWrite
+        ? 'P1-D SANDBOX BROWSER: soru yazma testi etkin; yalnızca yapay pilot veri kullanın.'
+        : isP2ReadOnly
+          ? 'P1-D SANDBOX BROWSER (P2): profesyonel soru editörü (Tiptap) salt okunur modda etkin; kayıtlar engellendi.'
+          : 'P1-D SANDBOX BROWSER: salt okunur ekran önizlemesi; soru değişiklikleri engellendi.');
   }
 } catch (error) {
   console.error('P1-D SANDBOX BROWSER: FAIL — ' +

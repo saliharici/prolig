@@ -1,4 +1,4 @@
-import type { ApiQuestion, PatchQuestionInput, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType } from './types';
+import type { ApiQuestion, CreateQuestionInput, PatchQuestionInput, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType } from './types';
 
 const answerKeys = new Set(['A', 'B', 'C', 'D']);
 const assetPlacements = new Set<QuestionAssetPlacement>(['STEM', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'EXPLANATION']);
@@ -83,6 +83,20 @@ export function requireCompleteQuestionAnswers(options: string[], correctAnswer:
     throw new QuestionFormValidationError('Doğru cevap seçimini yapın.');
   }
   return { options: normalized, correctAnswer };
+}
+
+export function buildQuestionCreateInput(draft: QuestionEditDraft, p2GuardedWrites = false): CreateQuestionInput {
+  const answers = requireCompleteQuestionAnswers(draft.options, draft.correctAnswer);
+  return {
+    content: draft.content.trim(),
+    grade: draft.grade,
+    options: answers.options,
+    correctAnswer: answers.correctAnswer,
+    explanation: draft.explanation.trim() || null,
+    projectId: draft.projectId,
+    assets: normalizeQuestionAssets(draft.assets),
+    ...(p2GuardedWrites ? { objectiveCode: 'P2-UAT' } : {})
+  };
 }
 
 export function buildQuestionEditPatch(question: ApiQuestion, draft: QuestionEditDraft): PatchQuestionInput {

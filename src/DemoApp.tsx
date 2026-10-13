@@ -15,7 +15,7 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
-import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
+import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions } from './questions/edit';
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
@@ -52,6 +52,7 @@ import './demo.css';
 import './questions/studio-preview.css';
 import './questions/studio-workspace.css';
 import './questions/studio-durable.css';
+import { QuestionStemWysiwygEditor } from './questions/QuestionStemWysiwygEditor';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', icon: LayoutDashboard },
@@ -836,6 +837,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const pausedQuestionDraftsRef = useRef(new Map<string, QuestionStudioPausedDraft<ApiQuestion>>());
   const [pausedDraftsVersion, setPausedDraftsVersion] = useState(0);
   const [durableDraftEnabled, setDurableDraftEnabled] = useState(false);
+  const [durableDraftExpanded, setDurableDraftExpanded] = useState(false);
   const [durableDraftBusy, setDurableDraftBusy] = useState(false);
   const [durableDraftConflict, setDurableDraftConflict] = useState(false);
   const [durableDraftMessage, setDurableDraftMessage] = useState('');
@@ -1195,16 +1197,15 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         await patchQuestion(editingQuestion.id, input);
         setToast('Soru düzeltmeleri kaydedildi.');
       } else {
-        const answers = requireCompleteQuestionAnswers(questionOptions, questionCorrectAnswer);
-        await createQuestion({
-          content: questionTitle.trim(),
+        await createQuestion(buildQuestionCreateInput({
+          content: questionTitle,
           grade: questionGrade,
-          options: answers.options,
-          correctAnswer: answers.correctAnswer,
-          explanation: questionExplanation.trim() || null,
+          options: questionOptions,
+          correctAnswer: questionCorrectAnswer,
+          explanation: questionExplanation,
           projectId: questionProjectId,
           assets: normalizeQuestionAssets(questionAssets)
-        });
+        }, import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true'));
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
       durableDraftGenerationRef.current += 1;
@@ -1415,9 +1416,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     ))}</div>;
   };
 
-  const renderQuestionInlineFormatting = (text: string) => {
+  const renderQuestionInlineFormatting = (text: string): ReactNode => {
     const nodes: ReactNode[] = [];
-    const pattern = /(\*\*[^*]+\*\*|_[^_\s][^_]*_|<u>.+?<\/u>|\$[^$]+\$|\[[^\]]+\]\([^)]+\))/g;
+    const pattern = /(\*\*[^*]+\*\*|_[^_\s][^_]*_|<u>[\s\S]*?<\/u>|\$[^$]+\$|\[[^\]]+\]\([^)]+\))/g;
     let lastIndex = 0;
     let tokenIndex = 0;
 
@@ -1427,11 +1428,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       if (index > lastIndex) nodes.push(text.slice(lastIndex, index));
 
       if (token.startsWith('**')) {
-        nodes.push(<strong key={`strong-${tokenIndex}`}>{token.slice(2, -2)}</strong>);
+        nodes.push(<strong key={`strong-${tokenIndex}`}>{renderQuestionInlineFormatting(token.slice(2, -2))}</strong>);
       } else if (token.startsWith('_')) {
-        nodes.push(<em key={`em-${tokenIndex}`}>{token.slice(1, -1)}</em>);
+        nodes.push(<em key={`em-${tokenIndex}`}>{renderQuestionInlineFormatting(token.slice(1, -1))}</em>);
       } else if (token.startsWith('<u>')) {
-        nodes.push(<u key={`underline-${tokenIndex}`}>{token.slice(3, -4)}</u>);
+        nodes.push(<u key={`underline-${tokenIndex}`}>{renderQuestionInlineFormatting(token.slice(3, -4))}</u>);
       } else if (token.startsWith('$')) {
         nodes.push(<code className="question-formula" key={`formula-${tokenIndex}`}>{token.slice(1, -1)}</code>);
       } else {
@@ -1439,7 +1440,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         const href = linkMatch?.[2]?.trim();
         const label = linkMatch?.[1] || token;
         if (href && /^https?:\/\//i.test(href)) {
-          nodes.push(<a href={href} target="_blank" rel="noreferrer" key={`link-${tokenIndex}`}>{label}</a>);
+          nodes.push(<a href={href} target="_blank" rel="noreferrer" key={`link-${tokenIndex}`}>{renderQuestionInlineFormatting(label)}</a>);
         } else {
           nodes.push(label);
         }
@@ -2145,43 +2146,71 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           </section>}
           {questionConflictLookupFailed && <p className="studio-save-error" role="alert">Güncel sunucu sürümü alınamadı. Ekrandaki taslak korundu; başka bir sekmede soru listesini kontrol edin.</p>}
           {durableFeatureOn && <section className="studio-durable-control" aria-label="Şifreli taslak kurtarma">
-            <div className="studio-durable-heading"><strong>Bu cihazda şifreli taslak kurtarma</strong><span>{durableDraftConflict ? 'Sürüm çakışması' : durableDraftEnabled ? 'Etkin' : durableCopyExists ? 'Kopya bulundu' : 'Kapalı'}</span></div>
-            <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Unutursanız taslak açılamaz. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
-            {!durableDraftEnabled && !durableDraftConflict && <div className="studio-durable-actions">
-              <input type="password" ref={durableDraftInputRef} autoComplete="new-password" onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} placeholder="En az 12 karakterlik ayrı kurtarma parolası" aria-label="Taslak kurtarma parolası" disabled={durableDraftBusy || questionSaving}/>
-              {!durableCopyExists && <button type="button" className="secondary-button" onClick={enableDurableRecovery} disabled={durableDraftBusy || questionSaving}>Şifreli korumayı aç</button>}
-              {durableCopyExists && <button type="button" className="secondary-button" onClick={() => void recoverDurableDraft()} disabled={durableDraftBusy || questionSaving}>Şifreli taslağı kurtar</button>}
-            </div>}
-            {durableDraftEnabled && <button type="button" className="studio-durable-discard" onClick={() => {
-              durableDraftGenerationRef.current += 1;
-              durableDraftPhraseRef.current = '';
-              setDurableDraftEnabled(false);
-              setDurableDraftMessage('Otomatik kurtarma durduruldu. Daha önce oluşturulan şifreli kopya cihazda kalır.');
-            }}>Otomatik kurtarmayı durdur</button>}
-            {durableCopyExists && <button type="button" className="studio-durable-discard" onClick={discardDurableDraft} disabled={durableDraftBusy || questionSaving}>Bu cihazdaki şifreli kopyayı sil</button>}
-            {durableDraftConflict && editingQuestion && <button type="button" className="secondary-button" onClick={() => {
-              if (!window.confirm('Kurtarılan yerel düzenlemeler bırakılıp sunucudaki güncel soru açılsın mı? Önce gerekli metinleri kopyalayın.')) return;
-              pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
-              durableDraftGenerationRef.current += 1;
-              try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId); } catch { /* browser restrictions */ }
-              openYazarEdit(editingQuestion);
-            }}>Yerel değişiklikleri bırak ve güncel soruya dön</button>}
-            {durableDraftMessage && <p className={durableDraftConflict ? 'studio-durable-message error' : 'studio-durable-message'} role="status">{durableDraftMessage}</p>}
+            <div className="studio-durable-heading">
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <strong>Bu cihazda şifreli taslak kurtarma</strong>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  style={{fontSize: '11px', padding: '2px 8px', minHeight: 'auto'}}
+                  onClick={() => setDurableDraftExpanded(exp => !exp)}
+                >
+                  {durableDraftExpanded || durableCopyExists || durableDraftConflict ? 'Detayları gizle' : 'Ayarları göster'}
+                </button>
+              </div>
+              <span>{durableDraftConflict ? 'Sürüm çakışması' : durableDraftEnabled ? 'Etkin' : durableCopyExists ? 'Kopya bulundu' : 'Kapalı'}</span>
+            </div>
+            {(durableDraftExpanded || durableCopyExists || durableDraftConflict || durableDraftEnabled) && (
+              <>
+                <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Unutursanız taslak açılamaz. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
+                {!durableDraftEnabled && !durableDraftConflict && <div className="studio-durable-actions">
+                  <input type="password" ref={durableDraftInputRef} autoComplete="new-password" onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} placeholder="En az 12 karakterlik ayrı kurtarma parolası" aria-label="Taslak kurtarma parolası" disabled={durableDraftBusy || questionSaving}/>
+                  {!durableCopyExists && <button type="button" className="secondary-button" onClick={enableDurableRecovery} disabled={durableDraftBusy || questionSaving}>Şifreli korumayı aç</button>}
+                  {durableCopyExists && <button type="button" className="secondary-button" onClick={() => void recoverDurableDraft()} disabled={durableDraftBusy || questionSaving}>Şifreli taslağı kurtar</button>}
+                </div>}
+                {durableDraftEnabled && <button type="button" className="studio-durable-discard" onClick={() => {
+                  durableDraftGenerationRef.current += 1;
+                  durableDraftPhraseRef.current = '';
+                  setDurableDraftEnabled(false);
+                  setDurableDraftMessage('Otomatik kurtarma durduruldu. Daha önce oluşturulan şifreli kopya cihazda kalır.');
+                }}>Otomatik kurtarmayı durdur</button>}
+                {durableCopyExists && <button type="button" className="studio-durable-discard" onClick={discardDurableDraft} disabled={durableDraftBusy || questionSaving}>Bu cihazdaki şifreli kopyayı sil</button>}
+                {durableDraftConflict && editingQuestion && <button type="button" className="secondary-button" onClick={() => {
+                  if (!window.confirm('Kurtarılan yerel düzenlemeler bırakılıp sunucudaki güncel soru açılsın mı? Önce gerekli metinleri kopyalayın.')) return;
+                  pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+                  durableDraftGenerationRef.current += 1;
+                  try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId); } catch { /* browser restrictions */ }
+                  openYazarEdit(editingQuestion);
+                }}>Yerel değişiklikleri bırak ve güncel soruya dön</button>}
+                {durableDraftMessage && <p className={durableDraftConflict ? 'studio-durable-message error' : 'studio-durable-message'} role="status">{durableDraftMessage}</p>}
+              </>
+            )}
           </section>}
           <div className="question-studio-layout" inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}>
             <div className="question-studio-main">
               <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
+              {import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true' && <p className="field-help" role="note">P2 yerel test kaydı: yalnızca PILOT-MAT-8-001 projesi kabul edilir. Yeni taslağa P2-UAT sahiplik işareti otomatik eklenir ve düzenleme sırasında korunur.</p>}
               <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
               <label className="question-editor-label">Soru gövdesi</label>
-              <div className="question-editor-shell">
-                <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
-                  <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
-                  <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
-                  <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button>{import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <button type="button" title="Tablo ekle (deneysel)" aria-label="Tablo ekle" onClick={insertQuestionTable}><Table2 size={16} /></button>}<button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+              {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
+                <QuestionStemWysiwygEditor
+                  value={questionTitle}
+                  onChange={setQuestionTitle}
+                  maxLength={1200}
+                  placeholder="Sorunun yönergesini ve içeriğini yazın..."
+                  disabled={questionSaving || durableDraftBusy}
+                />
+              ) : (
+                <div className="question-editor-shell">
+                  <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
+                    <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
+                    <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
+                    <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button>{import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <button type="button" title="Tablo ekle (deneysel)" aria-label="Tablo ekle" onClick={insertQuestionTable}><Table2 size={16} /></button>}<button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+                  </div>
+                  <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
+                  <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
                 </div>
-                <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
-                <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
-              </div>
+              )}
 
               <section className="question-media-builder" aria-label="Soru medyaları">
                 <div className="question-answer-head"><div><strong>Medya ve görsel alanı</strong><span>Soru kökü, seçenekler veya çözüm için görsel ya da YouTube/Vimeo/Dailymotion gömme bağlantısı ekleyin.</span></div><span className="answer-key">{questionAssets.length} medya</span></div>
@@ -2197,8 +2226,42 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </section>
 
               <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer || 'Seçilmedi'}</span></div>
-              <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
-              <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini, çözüm adımlarını veya editör için notu yazın..." /></label>
+              {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
+                <div className="question-options-grid">{questionOptions.map((option, index) => {
+                  const letter = String.fromCharCode(65 + index);
+                  return <div className={`question-option question-option-p2 ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}>
+                    <input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} />
+                    <span>{letter}</span>
+                    <QuestionStemWysiwygEditor
+                      variant="option"
+                      ariaLabel={`${letter} seçeneği zengin metin editörü`}
+                      value={option}
+                      onChange={value => updateQuestionOption(index, value)}
+                      maxLength={500}
+                      placeholder={`${letter} seçeneğini yazın`}
+                      disabled={questionSaving || durableDraftBusy}
+                    />
+                  </div>;
+                })}</div>
+              ) : (
+                <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
+              )}
+              {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
+                <div className="question-p2-explanation-field">
+                  <label className="question-editor-label">Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span></label>
+                  <QuestionStemWysiwygEditor
+                    variant="explanation"
+                    ariaLabel="Çözüm ve açıklama zengin metin editörü"
+                    value={questionExplanation}
+                    onChange={setQuestionExplanation}
+                    maxLength={600}
+                    placeholder="Çözüm adımlarını yazın..."
+                    disabled={questionSaving || durableDraftBusy}
+                  />
+                </div>
+              ) : (
+                <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini, çözüm adımlarını veya editör için notu yazın..." /></label>
+              )}
             </div>
 
             <aside className="question-preview-panel">
@@ -2212,6 +2275,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                     correctAnswer: questionCorrectAnswer
                   })}
                   renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
+                  previewNote={import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? 'Canlı Soru Önizlemesi · standart kayıt biçimi korunur' : undefined}
                 />
               ) : <article className="question-preview-card">
                 <div className="formatted-question-text">{renderFormattedQuestionText(questionTitle, 'Soru kökü burada görünecek.')}</div>
@@ -2221,7 +2285,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </article>}
               <div className="question-quality-panel">
                 <strong>Kontrol listesi</strong>
-                {questionQualityIssues.length === 0 ? <span className="quality-ok">Soru editöre gönderime hazır görünüyor.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
+                {questionQualityIssues.length === 0 ? <span className="quality-ok">Zorunlu alanlar ve teknik biçim kriterleri tamamlandı.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
               </div>
             </aside>
           </div>

@@ -40,7 +40,7 @@ export function safeStudioHref(value: string): string | null {
   }
 }
 
-const inlineToken = /\*\*([^*\n]+)\*\*|_([^_\n]+)_|<u>([^\n]*?)<\/u>|\$([^$\n]+)\$|\[([^\]\n]+)\]\(([^\s)]+)\)/g;
+const inlineToken = /\*\*([^*\n]+)\*\*|_([^_\n]+)_|<u>([\s\S]*?)<\/u>|\$([^$\n]+)\$|\[([^\]\n]+)\]\(([^\s)]+)\)/g;
 
 export function parseStudioInline(source: string): StudioInline[] {
   const nodes: StudioInline[] = [];

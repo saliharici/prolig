@@ -19,7 +19,10 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
     if (res.status === 400) throw new ApiError(400, `Doğrulama hatası: ${message}`);
     if (res.status === 401) throw new ApiError(401, 'Oturum süresi dolmuş veya yetkisiz.');
-    if (res.status === 403) throw new ApiError(403, 'Bu işlem için yetkiniz yok.');
+    if (res.status === 403) throw new ApiError(403,
+      message.includes('P2-UAT test ownership marker')
+        ? 'Bu yerel P2 test sorusunda P2-UAT sahiplik işareti gerekli. Taslağı test yazma modunda yeniden açıp kaydedin.'
+        : message === 'Forbidden' || message === 'Bir hata oluştu' ? 'Bu işlem için yetkiniz yok.' : message);
     if (res.status === 404) throw new ApiError(404, 'Kayıt bulunamadı.');
     if (res.status === 409) throw new ApiError(409, 'Soru başka bir işlemle güncellendi. Güncel kayıt yeniden yüklendi.');
     if (res.status >= 500) throw new ApiError(res.status, 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.');
