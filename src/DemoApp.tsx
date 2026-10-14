@@ -19,6 +19,9 @@ import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionO
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
+import { GuidedQuestionStudio } from './questions/GuidedQuestionStudio';
+import { QuestionTypePreview } from './questions/QuestionTypePreview';
+import { questionTypeDraft } from './questions/question-type-state';
 import { questionStudioFingerprint, pausedQuestionDraftKey, copyPausedQuestionDraft, type QuestionStudioFormValues, type QuestionStudioPausedDraft } from './questions/studio-state';
 import { hasDurableQuestionDraft, saveEncryptedQuestionDraft, recoverEncryptedQuestionDraft, removeEncryptedQuestionDraft, validateDraftPassphrase, type StudioDurableDraftData } from './questions/studio-durable';
 import { compareQuestionRevisions } from './questions/revision-compare';
@@ -816,6 +819,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
+  const [questionTypeExtras, setQuestionTypeExtras] = useState(questionTypeDraft());
+  const [questionStep, setQuestionStep] = useState(1);
   const [questionAssets, setQuestionAssets] = useState<QuestionAssetInput[]>([]);
   const [questionAssetPlacement, setQuestionAssetPlacement] = useState<QuestionAssetPlacement>('STEM');
   const [questionAssetType, setQuestionAssetType] = useState<QuestionAssetType>('IMAGE');
@@ -875,7 +880,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
   const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role);
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
+  // Keep P1/P1-D payloads unchanged unless the separate multi-type UI flag is enabled.
+  const guidedStudioOn = import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' &&
+    import.meta.env.VITE_QUESTION_STUDIO_P2_TYPES === 'true';
   const questionFormValues: QuestionStudioFormValues = {
+    ...(guidedStudioOn ? questionTypeExtras : {}),
     content: questionTitle,
     level: questionLevel,
     grade: questionGrade,
@@ -889,6 +898,22 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     assetUrl: questionAssetUrl,
     assetTitle: questionAssetTitle,
     assetAltText: questionAssetAltText
+  };
+  const updateGuidedQuestionValues = (next: QuestionStudioFormValues) => {
+    setQuestionTitle(next.content);
+    setQuestionLevel(next.level);
+    setQuestionGrade(next.grade);
+    setQuestionProjectId(next.projectId);
+    setQuestionOptions([...next.options]);
+    setQuestionCorrectAnswer(next.correctAnswer);
+    setQuestionExplanation(next.explanation);
+    setQuestionAssets(next.assets.map(asset => ({ ...asset })));
+    setQuestionAssetPlacement(next.assetPlacement);
+    setQuestionAssetType(next.assetType);
+    setQuestionAssetUrl(next.assetUrl);
+    setQuestionAssetTitle(next.assetTitle);
+    setQuestionAssetAltText(next.assetAltText);
+    setQuestionTypeExtras(questionTypeDraft(next));
   };
   const questionSnapshot = questionStudioFingerprint(questionFormValues);
   const hasUnsavedQuestionChanges = Boolean(questionBaseline) && questionSnapshot !== questionBaseline;
@@ -917,6 +942,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionOptions([...values.options]);
     setQuestionCorrectAnswer(values.correctAnswer);
     setQuestionExplanation(values.explanation);
+    if (guidedStudioOn) setQuestionTypeExtras(questionTypeDraft(values));
+    setQuestionStep(1);
     setQuestionAssets(values.assets.map(asset => ({ ...asset })));
     setQuestionAssetPlacement(values.assetPlacement);
     setQuestionAssetType(values.assetType);
@@ -1191,7 +1218,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           projectId: questionProjectId,
           options: questionOptions,
           correctAnswer: questionCorrectAnswer,
-          assets: normalizeQuestionAssets(questionAssets)
+          assets: normalizeQuestionAssets(questionAssets),
+          ...(guidedStudioOn ? questionTypeExtras : {})
         });
         input.expectedUpdatedAt = editingQuestion.updatedAt;
         await patchQuestion(editingQuestion.id, input);
@@ -1204,7 +1232,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           correctAnswer: questionCorrectAnswer,
           explanation: questionExplanation,
           projectId: questionProjectId,
-          assets: normalizeQuestionAssets(questionAssets)
+          assets: normalizeQuestionAssets(questionAssets),
+          ...(guidedStudioOn ? questionTypeExtras : {})
         }, import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true'));
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
@@ -1225,6 +1254,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       setQuestionBaseline('');
       setQuestionTitle('');
       setQuestionOptions(['', '', '', '']);
+      setQuestionTypeExtras(questionTypeDraft());
+      setQuestionStep(1);
       setQuestionExplanation('');
       setQuestionAssets([]);
       setQuestionProjectId(null);
@@ -1270,6 +1301,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionTitle('');
     setQuestionSaveError('');
     setQuestionBaseline(questionStudioFingerprint({
+      ...(guidedStudioOn ? questionTypeDraft() : {}),
       content: '', level: 'Ortaokul', grade: '8. Sınıf', projectId: null,
       options: ['', '', '', ''], correctAnswer: 'A', explanation: '', assets: [],
       assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
@@ -1280,6 +1312,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setOriginalQuestionProjectId(null);
     setQuestionOptions(['', '', '', '']);
     setQuestionCorrectAnswer('A');
+    setQuestionTypeExtras(questionTypeDraft());
+    setQuestionStep(1);
     setQuestionExplanation('');
     setQuestionAssets([]);
     setQuestionAssetPlacement('STEM');
@@ -1349,7 +1383,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     });
   };
   const updateQuestionOption = (index: number, value: string) => setQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
-  const addQuestionAsset = () => {
+  const addQuestionAssetAt = (placement: QuestionAssetPlacement = questionAssetPlacement) => {
     const url = questionAssetUrl.trim();
     if (!url) {
       setToast('Medya bağlantısı girin.');
@@ -1372,7 +1406,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssets(current => normalizeQuestionAssets([
       ...current,
       {
-        placement: questionAssetPlacement,
+        placement,
         assetType: questionAssetType,
         url,
         title: questionAssetTitle.trim() || null,
@@ -1384,6 +1418,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssetTitle('');
     setQuestionAssetAltText('');
   };
+  const addQuestionAsset = () => addQuestionAssetAt();
   const removeQuestionAsset = (index: number) => {
     setQuestionAssets(current => normalizeQuestionAssets(current.filter((_, assetIndex) => assetIndex !== index)));
   };
@@ -1497,8 +1532,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     return blocks;
   };
   const renderQuestionReviewPreview = (question: ApiQuestion) => {
+    if (question.questionType && question.questionType !== 'MULTIPLE_CHOICE') {
+      return <QuestionTypePreview question={question} renderAssets={placement => renderQuestionAssets(question.assets, placement)} />;
+    }
     const options = normalizeQuestionOptions(question.options);
-    const hasOptions = hasFourValidQuestionOptions(options);
+    const hasOptions = (question.optionCount ?? 4) === options.length && options.every(option => option.trim());
 
     return <article className="editor-question-preview">
       <div className="editor-question-stem">
@@ -1587,6 +1625,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionOptions(normalizeQuestionOptions(question.options));
     setQuestionCorrectAnswer(isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '');
     setQuestionExplanation(question.explanation || '');
+    if (guidedStudioOn) setQuestionTypeExtras(questionTypeDraft(question));
+    setQuestionStep(1);
     setQuestionAssets(normalizeQuestionAssets(question.assets));
     setQuestionProjectId(question.projectId);
     setOriginalQuestionProjectId(question.projectId);
@@ -1597,6 +1637,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssetAltText('');
     setQuestionSaveError('');
     setQuestionBaseline(questionStudioFingerprint({
+      ...(guidedStudioOn ? questionTypeDraft(question) : {}),
       content: question.content, level, grade, projectId: question.projectId,
       options: normalizeQuestionOptions(question.options),
       correctAnswer: isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '',
@@ -2119,7 +2160,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             <div><span className="panel-kicker">SORU ÜRETİM STÜDYOSU</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div>
             <button type="button" aria-label="Kapat" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}><X size={20} /></button>
           </div>
-          <p>Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.</p>
+          <p>{guidedStudioOn ? 'Soru türünü belirleyin ve beş aşamada hazırlayın.' : 'Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.'}</p>
           {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <p className="studio-dirty-status" role="status">{questionSaving ? 'Kaydediliyor…' : hasUnsavedQuestionChanges ? 'Kaydedilmemiş değişiklikler var' : 'Henüz kaydedilmemiş değişiklik yok'}</p>}
           {questionSaveError && <div className="studio-save-error" role="alert">{questionSaveError}</div>}
           {serverQuestionConflict && <section className="studio-revision-review" aria-label="Soru sürüm karşılaştırması">
@@ -2186,7 +2227,19 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </>
             )}
           </section>}
-          <div className="question-studio-layout" inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}>
+          {guidedStudioOn ? <GuidedQuestionStudio
+            values={questionFormValues} onChange={updateGuidedQuestionValues}
+            step={questionStep} onStepChange={setQuestionStep}
+            projects={questionAssignableProjects} projectsLoading={projectsLoading} projectsError={projectsError}
+            originalProjectId={originalQuestionProjectId} levels={questionLevels} grades={questionGrades}
+            onProject={changeQuestionProject} onLevel={changeQuestionLevel} onGrade={changeQuestionGrade}
+            branchName={currentUser.role === 'YAZAR' ? (currentUser as any).branchName || '' : ''}
+            editing={Boolean(editingQuestion)} disabled={questionSaving || durableDraftBusy}
+            sandbox={import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true'}
+            onAddAsset={placement => { setQuestionAssetPlacement(placement); addQuestionAssetAt(placement); }}
+            onRemoveAsset={removeQuestionAsset}
+            renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
+          /> : <div className="question-studio-layout" inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}>
             <div className="question-studio-main">
               <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
               {import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true' && <p className="field-help" role="note">P2 yerel test kaydı: yalnızca PILOT-MAT-8-001 projesi kabul edilir. Yeni taslağa P2-UAT sahiplik işareti otomatik eklenir ve düzenleme sırasında korunur.</p>}
@@ -2288,8 +2341,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                 {questionQualityIssues.length === 0 ? <span className="quality-ok">Zorunlu alanlar ve teknik biçim kriterleri tamamlandı.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
               </div>
             </aside>
-          </div>
-          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button><button type="submit" className="primary-button" disabled={questionSaving || durableDraftBusy || durableDraftConflict}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button></div>
+          </div>}
+          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button>{(!guidedStudioOn || questionStep === 5) && <button type="submit" className="primary-button" disabled={questionSaving || durableDraftBusy || durableDraftConflict}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button>}</div>
         </form>
       </div>}
       {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>

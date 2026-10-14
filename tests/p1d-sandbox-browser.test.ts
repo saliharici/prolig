@@ -83,6 +83,10 @@ describe('P1-D isolated browser UAT safety', () => {
     expect(launcher).toContain("const allowWrites = isP1DWrite || isP2Write");
     expect(server).toContain("const P2_EDITOR = process.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true'");
     expect(server).toContain("'import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR': JSON.stringify(P2_EDITOR ? 'true' : 'false')");
+    expect(launcher).toContain("PROLIG_QUESTION_TYPES_P2: 'false'");
+    expect(launcher).toContain("VITE_QUESTION_STUDIO_P2_TYPES: p2Editor && !allowWrites ? 'true' : 'false'");
+    expect(server).toContain("const P2_TYPES_UI_PREVIEW = P2_EDITOR && !WRITES && process.env.VITE_QUESTION_STUDIO_P2_TYPES === 'true'");
+    expect(server).toContain("'import.meta.env.VITE_QUESTION_STUDIO_P2_TYPES': JSON.stringify(P2_TYPES_UI_PREVIEW ? 'true' : 'false')");
   });
 
   it('strictly gates --serve-p2-write with dedicated approval, host check and runtime guards', () => {

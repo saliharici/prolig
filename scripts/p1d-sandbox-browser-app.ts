@@ -25,6 +25,8 @@ const ORIGIN = 'http://127.0.0.1:' + PORT;
 const WRITES = process.env.PROLIG_P1D_BROWSER_WRITES === 'true';
 const P2_EDITOR = process.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true';
 const P2_GUARDED_WRITES = process.env.PROLIG_P2_GUARDED_WRITES === 'true';
+// Fail closed: typed UI may appear only in read-only --serve-p2; writes stay off.
+const P2_TYPES_UI_PREVIEW = P2_EDITOR && !WRITES && process.env.VITE_QUESTION_STUDIO_P2_TYPES === 'true';
 const PILOT_AUTHOR_EMAIL = 'pilot.yazar@prolig.local';
 const PILOT_PROJECT_CODE = 'PILOT-MAT-8-001';
 const P2_UAT_MARKER = 'P2-UAT';
@@ -258,6 +260,7 @@ if (!process.env.VITEST) {
       'import.meta.env.VITE_QUESTION_STUDIO_P1': JSON.stringify('true'),
       'import.meta.env.VITE_QUESTION_STUDIO_P1C': JSON.stringify('true'),
       'import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR': JSON.stringify(P2_EDITOR ? 'true' : 'false'),
+      'import.meta.env.VITE_QUESTION_STUDIO_P2_TYPES': JSON.stringify(P2_TYPES_UI_PREVIEW ? 'true' : 'false'),
       'import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES': JSON.stringify(P2_GUARDED_WRITES ? 'true' : 'false')
     },
     plugins: [react()],
@@ -304,6 +307,7 @@ if (!process.env.VITEST) {
     console.log('P1-D sandbox browser running: ' + ORIGIN);
     console.log(WRITES ? 'Browser question writes: APPROVED SANDBOX ONLY' :
       'Browser question writes: BLOCKED (read-only preview)');
+    if (P2_TYPES_UI_PREVIEW) console.log('P2 guided UI: VISUAL-ONLY; question writes blocked; typed API disabled.');
     if (P2_GUARDED_WRITES) {
       console.log('P2 Guarded Persistence: ACTIVE (pilot.yazar@prolig.local only, PILOT-MAT-8-001 only, P2-UAT marker required, TASLAK only)');
     } else if (P2_EDITOR) {

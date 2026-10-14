@@ -1,6 +1,8 @@
+import type { QuestionTypeFields } from '../../shared/question-contract';
+export type { QuestionType } from '../../shared/question-contract';
 export type QuestionStatus = 'TASLAK' | 'INCELEMEDE' | 'REVIZYON' | 'ONAYLANDI' | 'REDDEDILDI';
 
-export type QuestionAssetPlacement = 'STEM' | 'OPTION_A' | 'OPTION_B' | 'OPTION_C' | 'OPTION_D' | 'EXPLANATION';
+export type QuestionAssetPlacement = 'STEM' | 'OPTION_A' | 'OPTION_B' | 'OPTION_C' | 'OPTION_D' | 'OPTION_E' | 'EXPLANATION';
 export type QuestionAssetType = 'IMAGE' | 'VIDEO_URL' | 'LINK';
 
 export interface QuestionAssetInput {
@@ -20,7 +22,7 @@ export interface ApiQuestionAsset extends QuestionAssetInput {
   updatedAt?: string;
 }
 
-export interface ApiQuestion {
+export interface ApiQuestion extends QuestionTypeFields {
   id: number;
   content: string;
   imageUrl: string | null;
@@ -50,11 +52,11 @@ export interface ApiQuestion {
   } | null;
 }
 
-export interface CreateQuestionInput {
+export interface CreateQuestionInput extends QuestionTypeFields {
   content: string;
   grade: string;
   options: string[];
-  correctAnswer: string;
+  correctAnswer: string | null;
   projectId: number | null;
   objectiveCode?: string | null;
   difficulty?: string | null;
@@ -62,7 +64,7 @@ export interface CreateQuestionInput {
   assets?: QuestionAssetInput[];
 }
 
-export interface PatchQuestionInput {
+export interface PatchQuestionInput extends QuestionTypeFields {
   /** Mandatory for PATCH: last server question revision observed by the author. */
   expectedUpdatedAt: string;
   content?: string;

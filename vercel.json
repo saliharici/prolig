@@ -128,5 +128,10 @@
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "feat/p2-professional-question-editor-20261012": false
+    }
+  }
 }

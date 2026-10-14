@@ -5,6 +5,7 @@ import { formatQuestionDto } from '../../_lib/question-dto.js';
 import { canWorkflowReview } from '../../_lib/question-access.js';
 import { isQuestionArchived } from '../../_lib/question-archive.js';
 import { accrueQuestionApproval } from '../../_lib/compensation-engine.js';
+import { validateQuestionAnswerStructure } from '../../../../shared/question-contract.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -86,6 +87,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       actionLog = 'QUESTION_REJECTED';
     } else {
       return res.status(400).json({ error: 'Unknown action' });
+    }
+
+    // Legacy rows keep their established workflow. Typed drafts may be incomplete,
+    // but submission and approval require a complete type-specific answer structure.
+    if (question.questionType && (action === 'submit' || action === 'approve')) {
+      if (process.env.PROLIG_QUESTION_TYPES_P2 !== 'true') return res.status(403).json({ error: 'P2 soru türleri bu ortamda etkin değil.' });
+      const error = validateQuestionAnswerStructure(question as any, true);
+      if (error) return res.status(400).json({ error });
     }
 
     const updated = await prisma.$transaction(async (tx: any) => {

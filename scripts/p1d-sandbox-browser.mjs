@@ -117,6 +117,9 @@ function isolatedEnvironment(config, allowWrites, p2Editor = false, isP2Write = 
     PROLIG_P1D_BROWSER_WRITES: allowWrites ? 'true' : 'false',
     PROLIG_P2_GUARDED_WRITES: isP2Write ? 'true' : 'false',
     VITE_QUESTION_STUDIO_P2_EDITOR: p2Editor ? 'true' : 'false',
+    // Only --serve-p2 may show multi-type UI. Migration and typed writes remain disabled.
+    PROLIG_QUESTION_TYPES_P2: 'false',
+    VITE_QUESTION_STUDIO_P2_TYPES: p2Editor && !allowWrites ? 'true' : 'false',
     DOTENV_CONFIG_PATH: PILOT
   };
 }
@@ -167,7 +170,7 @@ try {
       : isP1DWrite
         ? 'P1-D SANDBOX BROWSER: soru yazma testi etkin; yalnızca yapay pilot veri kullanın.'
         : isP2ReadOnly
-          ? 'P1-D SANDBOX BROWSER (P2): profesyonel soru editörü (Tiptap) salt okunur modda etkin; kayıtlar engellendi.'
+          ? 'P1-D SANDBOX BROWSER (P2): beş aşamalı soru editörü SADECE ÖNİZLEME; yazma ve migration kapalı.'
           : 'P1-D SANDBOX BROWSER: salt okunur ekran önizlemesi; soru değişiklikleri engellendi.');
   }
 } catch (error) {

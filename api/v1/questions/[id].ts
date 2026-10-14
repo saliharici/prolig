@@ -3,6 +3,7 @@ import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { formatQuestionDto } from '../_lib/question-dto.js';
 import { parseQuestionAssets } from '../_lib/question-assets.js';
+import { parseTypedQuestion, usesTypedQuestion } from '../_lib/question-type-validation.js';
 import { isQuestionArchived } from '../_lib/question-archive.js';
 import {
   buildQuestionReadScope,
@@ -193,6 +194,7 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
   }
 
   const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, assets } = req.body || {};
+  const typed = usesTypedQuestion(req.body, question);
   const updateData: any = {};
 
   if (content !== undefined) {
@@ -209,7 +211,7 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     updateData.grade = grade.trim();
   }
 
-  if (options !== undefined) {
+  if (!typed && options !== undefined) {
     if (!Array.isArray(options) || options.length !== 4) {
       return res.status(400).json({ error: 'Options must be exactly 4 strings' });
     }
@@ -220,7 +222,7 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
     updateData.options = cleanOptions;
   }
 
-  if (correctAnswer !== undefined) {
+  if (!typed && correctAnswer !== undefined) {
     if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) {
       return res.status(400).json({ error: 'Invalid correctAnswer' });
     }
@@ -286,6 +288,12 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
         expectedGrade: pa.project.targetGrade
       });
     }
+  }
+
+  if (typed) {
+    const result = parseTypedQuestion(req.body, question);
+    if (result.error) return res.status(result.status!).json({ error: result.error });
+    Object.assign(updateData, result.data);
   }
 
   if (Object.keys(updateData).length === 0 && assets === undefined) {

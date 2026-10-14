@@ -1,4 +1,4 @@
-const allowedPlacements = new Set(['STEM', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'EXPLANATION']);
+const allowedPlacements = new Set(['STEM', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'OPTION_E', 'EXPLANATION']);
 const allowedTypes = new Set(['IMAGE', 'VIDEO_URL', 'LINK']);
 
 function getEmbeddableVideoUrl(url: string): string | null {

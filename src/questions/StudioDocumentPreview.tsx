@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { QuestionAssetPlacement } from './types';
 import type { StudioBlock, StudioDocumentV1, StudioInline } from './studio-document';
-import { parseStudioInline } from './studio-document';
+import { parseStudioInline, parseStudioBlocks } from './studio-document';
 
 /**
  * Non-editable, React-escaped proof of concept. Never uses dangerouslySetInnerHTML.
@@ -37,6 +37,10 @@ function renderBlocks(blocks: StudioBlock[], prefix: string): ReactNode {
       </table>
     </div>;
   });
+}
+
+export function StudioMarkup({ value }: { value: string }) {
+  return <div className="formatted-question-text">{renderBlocks(parseStudioBlocks(value), 'markup')}</div>;
 }
 
 export function StudioDocumentPreview({

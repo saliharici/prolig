@@ -1,8 +1,9 @@
 import type { QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType } from './types';
 import { normalizeQuestionAssets } from './edit';
+import type { QuestionTypeDraft } from './question-type-state';
 
 /** Only compares local form values; does not persist user-authored content. */
-export interface QuestionStudioFormValues {
+export interface QuestionStudioFormValues extends Partial<QuestionTypeDraft> {
   content: string;
   level: string;
   grade: string;
@@ -27,6 +28,11 @@ export function questionStudioFingerprint(values: QuestionStudioFormValues): str
     options: [...values.options],
     correctAnswer: values.correctAnswer,
     explanation: values.explanation,
+    ...(values.questionType ? {
+      questionType: values.questionType, optionCount: values.optionCount, booleanAnswer: values.booleanAnswer,
+      modelAnswer: values.modelAnswer, scoringRubric: values.scoringRubric, evaluationCriteria: values.evaluationCriteria,
+      objectiveCode: values.objectiveCode, difficulty: values.difficulty
+    } : {}),
     assets: normalizeQuestionAssets(values.assets),
     assetPlacement: values.assetPlacement,
     assetType: values.assetType,

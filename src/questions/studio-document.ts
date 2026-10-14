@@ -132,9 +132,11 @@ export function legacyQuestionToStudioDocument(input: {
   options: string[];
   explanation?: string | null;
   correctAnswer?: string | null;
+  optionCount?: number | null;
 }): StudioDocumentV1 {
-  // Keep exact option strings; the legacy schema has exactly four single-answer choices.
-  const options = Array.from({ length: 4 }, (_, index) => input.options[index] ?? '');
+  // Legacy P1 preview has four choices by default, even if unexpected extra raw data exists.
+  // Explicit typed P2 five-choice questions must opt in, without losing legacy source values.
+  const options = Array.from({ length: input.optionCount === 5 ? 5 : 4 }, (_, index) => input.options[index] ?? '');
   const originalOptions = [...input.options];
   const explanation = input.explanation ?? '';
   return {

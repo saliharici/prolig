@@ -1,7 +1,9 @@
 import type { ApiQuestion, CreateQuestionInput, PatchQuestionInput, QuestionAssetInput, QuestionAssetPlacement, QuestionAssetType } from './types';
+import { validateQuestionAnswerStructure, type QuestionTypeFields } from '../../shared/question-contract';
+import { serializeTypedAnswers } from './question-type-state';
 
 const answerKeys = new Set(['A', 'B', 'C', 'D']);
-const assetPlacements = new Set<QuestionAssetPlacement>(['STEM', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'EXPLANATION']);
+const assetPlacements = new Set<QuestionAssetPlacement>(['STEM', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'OPTION_E', 'EXPLANATION']);
 const assetTypes = new Set<QuestionAssetType>(['IMAGE', 'VIDEO_URL', 'LINK']);
 
 export class QuestionFormValidationError extends Error {
@@ -11,7 +13,9 @@ export class QuestionFormValidationError extends Error {
   }
 }
 
-export interface QuestionEditDraft {
+export interface QuestionEditDraft extends QuestionTypeFields {
+  objectiveCode?: string | null;
+  difficulty?: string | null;
   content: string;
   grade: string;
   explanation: string;
@@ -23,12 +27,7 @@ export interface QuestionEditDraft {
 
 export function normalizeQuestionOptions(options: unknown): string[] {
   const existing = Array.isArray(options) ? options : [];
-  return [
-    typeof existing[0] === 'string' ? existing[0] : '',
-    typeof existing[1] === 'string' ? existing[1] : '',
-    typeof existing[2] === 'string' ? existing[2] : '',
-    typeof existing[3] === 'string' ? existing[3] : ''
-  ];
+  return Array.from({ length: existing.length === 5 ? 5 : 4 }, (_, i) => typeof existing[i] === 'string' ? existing[i] : '');
 }
 
 export function hasFourValidQuestionOptions(options: unknown): boolean {
@@ -86,20 +85,33 @@ export function requireCompleteQuestionAnswers(options: string[], correctAnswer:
 }
 
 export function buildQuestionCreateInput(draft: QuestionEditDraft, p2GuardedWrites = false): CreateQuestionInput {
-  const answers = requireCompleteQuestionAnswers(draft.options, draft.correctAnswer);
+  const answers = draft.questionType ? serializeTypedAnswers(draft) : requireCompleteQuestionAnswers(draft.options, draft.correctAnswer);
+  if (draft.questionType) {
+    const error = validateQuestionAnswerStructure({ ...draft, ...answers });
+    if (error) throw new QuestionFormValidationError(error);
+  }
+  const objectiveCode = draft.objectiveCode?.trim() || '';
   return {
     content: draft.content.trim(),
     grade: draft.grade,
-    options: answers.options,
-    correctAnswer: answers.correctAnswer,
+    ...answers,
     explanation: draft.explanation.trim() || null,
     projectId: draft.projectId,
     assets: normalizeQuestionAssets(draft.assets),
-    ...(p2GuardedWrites ? { objectiveCode: 'P2-UAT' } : {})
+    ...(draft.questionType ? { objectiveCode: objectiveCode || null, difficulty: draft.difficulty?.trim() || null } : {}),
+    ...(p2GuardedWrites ? { objectiveCode: objectiveCode.includes('P2-UAT') ? objectiveCode : ['P2-UAT', objectiveCode].filter(Boolean).join(' ') } : {})
   };
 }
 
 export function buildQuestionEditPatch(question: ApiQuestion, draft: QuestionEditDraft): PatchQuestionInput {
+  if (draft.questionType) {
+    const next = buildQuestionCreateInput(draft);
+    if (next.questionType !== (question.questionType ?? 'MULTIPLE_CHOICE') ||
+        next.optionCount !== ((question.questionType ?? 'MULTIPLE_CHOICE') === 'MULTIPLE_CHOICE' ? question.optionCount ?? 4 : null)) {
+      throw new QuestionFormValidationError('Kaydedilmiş sorunun türü ve seçenek sayısı değiştirilemez.');
+    }
+    return { ...next, expectedUpdatedAt: question.updatedAt };
+  }
   const input: PatchQuestionInput = { expectedUpdatedAt: question.updatedAt };
   const content = draft.content.trim();
   if (content !== question.content.trim()) input.content = content;
