@@ -1,66 +1,39 @@
-import {
-  ArrowRight,
-  ArrowUpRight,
-  BookOpen,
-  CheckCircle2,
-  ClipboardCheck,
-  CreditCard,
-  FileQuestion,
-  GraduationCap,
-  History,
-  ListChecks,
-  MessageSquareText,
-  PenTool,
-  ShieldCheck,
-  Users,
-  Workflow
-} from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import './public-enterprise-v1.css';
 
-const projectPulse = [
+/**
+ * Public site only. Examples below are editorial mock content, not live records.
+ * Real auth, membership, project and question flows are owned by their existing modules.
+ */
+const platformAreas = [
   {
-    status: 'DEVAM EDİYOR',
-    code: 'MATEMATİK · 8. SINIF',
-    title: '8. Sınıf Matematik Soru Bankası',
-    meta: 'Yayın hazırlık akışı',
-    signal: 'Üretim aktif',
-    badge: '8. Sınıf'
+    number: '01',
+    eyebrow: 'PLANLAMA',
+    heading: 'Önce yayın planı.',
+    copy: 'Hangi sınıf, hangi ders, kimlerle ve ne zaman? Yayın projesinin kapsamı ile görev dağılımı aynı yerde tanımlanır.',
+    capabilities: ['Proje Yönetimi', 'Görev Takibi', 'Yazar Ağı']
   },
   {
-    status: 'KONTROL',
-    code: 'EDİTÖR AKIŞI',
-    title: 'İçerik inceleme ve revizyon döngüsü',
-    meta: 'Rol bazlı kontrol',
-    signal: 'İnceleme',
-    badge: 'Editör'
+    number: '02',
+    eyebrow: 'EDİTORYAL SÜREÇ',
+    heading: 'Sonra nitelikli içerik.',
+    copy: 'Yazarın hazırladığı soru editöre ulaşır. Revizyon ve değerlendirme adımları işin bağlamından kopmadan izlenir.',
+    capabilities: ['Soru Üretimi', 'Editör İncelemesi', 'Kurumsal Mesajlar']
   },
   {
-    status: 'PLANLAMA',
-    code: 'YENİ PROJE',
-    title: 'Yeni yayın projeleri için ekip ve görev planlama',
-    meta: 'Proje yönetimi',
-    signal: 'Ekip planı',
-    badge: 'Hazırlık'
+    number: '03',
+    eyebrow: 'YÖNETİM',
+    heading: 'Her adımın kaydı.',
+    copy: 'Yetki kapsamı, işlem geçmişi ve telif süreçleri üretimin dışında kalan ayrı işler değil; yayın sürecinin parçalarıdır.',
+    capabilities: ['Rol & Yetki', 'İşlem Geçmişi', 'Telif ve Ödemeler']
   }
 ];
 
-const platformFeatures = [
-  { icon: BookOpen, title: 'Proje Yönetimi', copy: 'Proje kapsamı, sınıf, branş, ekip ve yaşam döngüsünü tek yerde yönetin.' },
-  { icon: ListChecks, title: 'Görev Takibi', copy: 'Görevleri atayın, terminleri izleyin ve kontrol bekleyen işleri görün.' },
-  { icon: FileQuestion, title: 'Soru Üretimi', copy: 'Yazar–editör üretim ve inceleme akışını proje kapsamıyla birlikte yürütün.' },
-  { icon: MessageSquareText, title: 'Kurumsal Mesajlar', copy: 'Yetki kapsamındaki ekip üyeleriyle kayıtlı ve kontrollü iletişim kurun.' },
-  { icon: Users, title: 'Yazar Ağı', copy: 'Yazarları branş ve coğrafi kapsamlarıyla birlikte yönetin.' },
-  { icon: CreditCard, title: 'Telif ve Ödemeler', copy: 'Onaylanan üretimi telif ve ödeme sürecine kontrollü biçimde taşıyın.' },
-  { icon: ShieldCheck, title: 'Rol & Yetki', copy: 'Her rol yalnız kendi görev ve sorumluluk alanındaki veriyi görür.' },
-  { icon: History, title: 'İşlem Geçmişi', copy: 'Kritik işlemleri denetlenebilir bir kayıt iziyle takip edin.' }
-];
-
-const processSteps = [
-  { no: '01', icon: BookOpen, title: 'Projeyi oluştur', copy: 'Branş, hedef sınıf ve proje kapsamını tanımlayın.' },
-  { no: '02', icon: Users, title: 'Ekibi oluştur', copy: 'Yetki kapsamındaki yazar ve koordinasyon ekibini projeye bağlayın.' },
-  { no: '03', icon: ClipboardCheck, title: 'Görevleri ata', copy: 'Sorumlu, öncelik ve termin bilgileriyle üretim işlerini planlayın.' },
-  { no: '04', icon: PenTool, title: 'İçeriği üret', copy: 'Yazarlar proje ve branş kapsamındaki içerikleri hazırlar.' },
-  { no: '05', icon: ShieldCheck, title: 'Kontrol et', copy: 'Editör ve koordinatörler inceleme, revizyon ve onay akışını yürütür.' },
-  { no: '06', icon: CheckCircle2, title: 'Süreci tamamla', copy: 'Onaylanan üretim proje ve telif ve ödeme akışına taşınır.' }
+const stages = [
+  { number: 'I', title: 'Yayın dosyası', detail: 'Kapsam ve ekip belirlenir.' },
+  { number: 'II', title: 'Yazar masası', detail: 'Sorular hazırlanır.' },
+  { number: 'III', title: 'Editör kontrolü', detail: 'İnceleme ve revizyon yapılır.' },
+  { number: 'IV', title: 'Yayın kararı', detail: 'Son durum kayıt altına alınır.' }
 ];
 
 export function PublicLanding({
@@ -73,20 +46,14 @@ export function PublicLanding({
   authenticated?: boolean;
 }) {
   return (
-    <div className="public-shell public-v2">
-      <div className="public-ambient public-ambient-one" />
-      <div className="public-ambient public-ambient-two" />
+    <div className="public-shell public-v2 public-enterprise-v1 public-editorial-v2">
+      <a className="public-skip-link" href="#public-content">Ana içeriğe geç</a>
 
       <header className="public-header">
         <div className="public-header-inner">
           <a className="public-brand public-brand-image-link" href="#anasayfa" aria-label="PRO-LİG ana sayfa">
-            <img
-              className="public-brand-logo"
-              src="/brand/prolig-logo-primary.png"
-              alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu"
-            />
+            <img className="public-brand-logo" src="/brand/prolig-logo-primary.png" alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu" />
           </a>
-
           <nav className="public-nav" aria-label="Sayfa bölümleri">
             <a href="#anasayfa">Ana Sayfa</a>
             <a href="#platform">Platform</a>
@@ -94,225 +61,135 @@ export function PublicLanding({
             <a href="#nasil-calisir">Nasıl Çalışır</a>
             <a href="#yayin-projesi">Yayın Akışı</a>
           </nav>
-
           <div className="public-header-actions">
             {!authenticated && <button className="public-ghost-button" onClick={onApplyClick}>Üyelik Başvurusu</button>}
             <button className="public-primary-button compact" onClick={onLoginClick}>
-              {authenticated ? 'Çalışma Alanına Dön' : 'Giriş Yap'} <ArrowRight size={16} />
+              {authenticated ? 'Çalışma Alanına Dön' : 'Giriş Yap'} <ArrowRight size={15} aria-hidden="true" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="public-main">
-        <section id="anasayfa" className="public-hero public-major-section public-v2-hero">
-          <div className="public-hero-copy">
-            <div className="public-hero-eyebrow">
-              <span /> YAYIN OPERASYON PLATFORMU
-            </div>
-            <h1>
-              Yayın üretiminden
-              <span>ekip koordinasyonuna.</span>
-            </h1>
-            <p>
-              Proje, soru üretimi, görev takibi, kurumsal mesajlaşma ve telif ve ödeme süreçlerini
-              rol bazlı, izlenebilir ve tek merkezden yönetilen bir çalışma alanında birleştirin.
-            </p>
+      <nav className="public-mobile-nav" aria-label="Mobil bölüm bağlantıları">
+        <a href="#platform">Platform</a>
+        <a href="#projeler">Projeler</a>
+        <a href="#nasil-calisir">İş Akışı</a>
+        <a href="#yayin-projesi">Yayın Akışı</a>
+      </nav>
 
+      <main className="public-main" id="public-content">
+        <section className="public-hero public-major-section" id="anasayfa" aria-labelledby="public-hero-heading">
+          <div className="public-hero-copy">
+            <p className="editorial-label">PRO-LİG <span aria-hidden="true">/</span> YAYIN VE İÇERİK YÖNETİMİ</p>
+            <h1 id="public-hero-heading">Bir soru bankası, <span>yalnız sorulardan oluşmaz.</span></h1>
+            <p className="editorial-lead">Arkasında bir yayın planı, yazarlar, editörler ve sayısız küçük karar vardır. PRO-LİG, bütün bu çalışmaları aynı zeminde buluşturur.</p>
             <div className="public-hero-actions">
               <button className="public-primary-button" onClick={onLoginClick}>
-                {authenticated ? 'Çalışma Alanına Dön' : 'Canlı Sistemi İncele'} <ArrowUpRight size={17} />
+                {authenticated ? 'Çalışma Alanına Dön' : 'Çalışma Alanına Giriş'} <ArrowUpRight size={16} aria-hidden="true" />
               </button>
-              {!authenticated && <button className="public-secondary-button" onClick={onApplyClick}>
-                Üyelik Başvurusu
-              </button>}
+              {!authenticated && <button className="public-secondary-button" onClick={onApplyClick}>Üyelik Başvurusu</button>}
             </div>
-
-            <div className="public-trust-row">
-              <div><ShieldCheck size={15} /><span>Rol bazlı yetkilendirme</span></div>
-              <div><Workflow size={15} /><span>Proje → görev → içerik akışı</span></div>
-              <div><History size={15} /><span>İzlenebilir süreç</span></div>
-            </div>
+            <a className="editorial-inline-link" href="#projeler">Bir yayın nasıl hazırlanır? <ArrowRight size={16} aria-hidden="true" /></a>
           </div>
 
-          <div className="public-hero-visual" aria-label="PRO-LİG operasyon merkezi görünümü">
-            <div className="public-v2-console">
-              <div className="public-v2-console-head">
-                <div className="public-product-preview-brand public-product-preview-brand-image">
-                  <img
-                    className="public-operations-logo"
-                    src="/brand/prolig-logo-operations.png"
-                    alt="PRO-LİG Operasyon Merkezi"
-                  />
-                </div>
-                <span className="public-product-preview-live"><i /> Yayın Yönetimi</span>
+          <div className="public-hero-visual editorial-proof" aria-label="Temsili soru sayfası ve editör incelemesi">
+            <div className="editorial-proof-top"><span>YAZAR / EDİTÖR MASASI</span><span>ÖRNEK ÇALIŞMA · 001</span></div>
+            <div className="editorial-proof-page">
+              <div className="editorial-proof-meta"><span>MATEMATİK / 8. SINIF</span><span>ÇALIŞMA TASLAĞI</span></div>
+              <div className="editorial-proof-rule" />
+              <p className="editorial-proof-kicker">ÖRNEK SORU — 01</p>
+              <p className="editorial-proof-question">Bir dikdörtgenin kısa kenarı 4 cm, uzun kenarı ise kısa kenarının iki katıdır. Bu dikdörtgenin çevresi kaç santimetredir?</p>
+              <div className="editorial-proof-answers" aria-label="Temsili cevap seçenekleri">
+                <span>A) 16</span><span>B) 20</span><span className="editorial-proof-answer">C) 24</span><span>D) 32</span>
               </div>
+              <div className="editorial-proof-note"><span>EDİTÖR NOTU / 01</span><p>Seçeneklerin birbirinden ayırt edilebilirliğini yeniden gözden geçir.</p></div>
+              <div className="editorial-proof-bottom"><span>YAZAR TASLAĞI</span><span>→</span><span>EDİTÖR İNCELEMESİ</span><span>→</span><span>REVİZYON</span></div>
+            </div>
+            <p className="editorial-proof-disclaimer">Temsili ürün görünümü · Gerçek kullanıcı verisi içermez.</p>
+          </div>
+        </section>
 
-              <div className="public-v2-console-body">
-                <div className="public-v2-console-caption">
-                  <div>
-                    <span>TEK ÇALIŞMA ALANI</span>
-                    <strong>Yayın üretim sürecinin merkez görünümü</strong>
-                  </div>
-                  <Workflow size={18} />
-                </div>
-
-                <div className="public-v2-module-grid">
-                  <div><BookOpen size={17}/><span><small>PROJELER</small><strong>Kapsam ve ekip</strong></span></div>
-                  <div><ListChecks size={17}/><span><small>GÖREVLER</small><strong>Termin ve sorumlu</strong></span></div>
-                  <div><FileQuestion size={17}/><span><small>SORULAR</small><strong>Üretim ve kontrol</strong></span></div>
-                  <div><MessageSquareText size={17}/><span><small>MESAJLAR</small><strong>Ekip iletişimi</strong></span></div>
-                </div>
-
-                <div className="public-v2-focus">
-                  <div className="public-v2-focus-top">
-                    <div>
-                      <span>YAYIN AKIŞI</span>
-                      <strong>8. Sınıf Matematik Soru Bankası</strong>
-                    </div>
-                    <em>MATEMATİK · 8. SINIF</em>
-                  </div>
-                  <div className="public-v2-progress-track"><span /></div>
-                  <div className="public-v2-focus-flow">
-                    <span><i className="done"/> Proje</span>
-                    <span><i className="done"/> Görev</span>
-                    <span><i className="active"/> Üretim</span>
-                    <span><i/> Kontrol</span>
-                  </div>
-                </div>
-
-                <div className="public-v2-console-note">
-                  <ShieldCheck size={15}/>
-                  <span><strong>Yetki kontrollü çalışma alanı</strong><small>Her rol yalnız kendi kapsamındaki işi görür.</small></span>
-                </div>
-              </div>
+        <section className="editorial-case public-major-section" id="projeler" aria-labelledby="editorial-case-title">
+          <div className="editorial-case-intro">
+            <span className="editorial-label">YAYIN DOSYASI / ÖRNEK</span>
+            <h2 id="editorial-case-title">İyi hazırlanmış bir içerik, <em>iyi yönetilmiş bir sürecin sonucudur.</em></h2>
+          </div>
+          <div className="editorial-case-spread">
+            <div className="editorial-case-record">
+              <div className="editorial-case-record-head"><span>DOSYA NO. 001</span><span>TEMSİLİ PROJE</span></div>
+              <h3>8. Sınıf Matematik<br />Soru Bankası</h3>
+              <p>Örnek bir yayın dosyasının temel bilgileri.</p>
+              <dl>
+                <div><dt>Kapsam</dt><dd>Ortaokul · Matematik</dd></div>
+                <div><dt>Ekip</dt><dd>Yazar ve editör ekibi</dd></div>
+                <div><dt>İçerik</dt><dd>Soru üretimi ve inceleme</dd></div>
+              </dl>
+            </div>
+            <div className="editorial-case-story">
+              <span className="editorial-label">BİR YAYININ İZİNİ SÜRÜN</span>
+              <p className="editorial-case-quote">“Kim hazırladı, hangi aşamada, sırada kim var?”</p>
+              <p>Bu soruların cevabı ayrı tabloların, mesajların veya kişisel notların arasında kaybolmamalı. Proje, görev ve içerik aynı iş akışında birbirine bağlanmalı.</p>
+              <a href="#nasil-calisir" className="editorial-inline-link">Yayın sürecini görün <ArrowRight size={16} aria-hidden="true" /></a>
             </div>
           </div>
         </section>
 
-        <section id="projeler" className="public-pulse-section public-major-section">
-          <div className="public-pulse-heading">
-            <div>
-              <span className="public-overline">PROJE NABZI</span>
-              <h2>Yayın projeleri hareket halinde.</h2>
-            </div>
-            <p>Proje planlama, içerik üretimi ve editör kontrolünü tek akışta birleştirin.</p>
+        <section className="editorial-capabilities public-major-section" id="platform" aria-labelledby="editorial-capabilities-title">
+          <div className="editorial-section-heading">
+            <span className="editorial-label">PLATFORM / ÜÇ TEMEL ALAN</span>
+            <h2 id="editorial-capabilities-title">Yayın işinin her tarafı, <em>birbiriyle konuşmalı.</em></h2>
+            <p>PRO-LİG, birbirinden kopuk araçlar yerine yayın ekibinin iş yapma biçimine odaklanır.</p>
           </div>
-
-          <div className="public-pulse-shell" aria-label="Proje nabzı akan proje bandı">
-            <div className="public-pulse-label">
-              <span className="public-pulse-live-dot"/>
-              <div>
-                <strong>PROJE NABZI</strong>
-                <small>YAYIN OPERASYONU</small>
-              </div>
-            </div>
-            <div className="public-pulse-viewport">
-              <div className="public-pulse-fade public-pulse-fade-left" />
-              <div className="public-pulse-fade public-pulse-fade-right" />
-              <div className="public-pulse-track">
-                {[0, 1].map(copy => (
-                  <div className="public-pulse-copy" key={copy} aria-hidden={copy === 1 ? true : undefined}>
-                    {projectPulse.map(item => (
-                      <article className="public-pulse-item" key={`${copy}-${item.code}`}>
-                        <span className={`public-pulse-status status-${item.status.toLocaleLowerCase('tr-TR').replaceAll(' ', '-').replaceAll('İ','i').replaceAll('ı','i')}`}>
-                          <i /> {item.status}
-                        </span>
-                        <div className="public-pulse-project">
-                          <strong>{item.title}</strong>
-                          <small>{item.code} <b>•</b> {item.meta}</small>
-                        </div>
-                        <div className="public-pulse-signal">
-                          <small>AKIŞ</small>
-                          <strong>{item.signal}</strong>
-                        </div>
-                        <span className="public-pulse-badge">{item.badge}</span>
-                        <ArrowRight className="public-pulse-arrow" size={16}/>
-                      </article>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="platform" className="public-platform-section public-major-section">
-          <div className="public-section-heading public-v2-section-heading">
-            <span className="public-overline">PLATFORM YETENEKLERİ</span>
-            <h2>Yalnız içerik değil, bütün üretim operasyonu.</h2>
-            <p>PRO-LİG, yayın üretiminin farklı parçalarını aynı yetki ve denetim modeli altında bir araya getirir.</p>
-          </div>
-
-          <div className="public-feature-grid">
-            {platformFeatures.map(({ icon: Icon, title, copy }) => (
-              <article className="public-feature-card" key={title}>
-                <div className="public-feature-icon"><Icon size={19}/></div>
-                <h3>{title}</h3>
-                <p>{copy}</p>
+          <div className="editorial-capability-list">
+            {platformAreas.map(area => (
+              <article className="editorial-capability" key={area.number}>
+                <span className="editorial-capability-number">{area.number} / {area.eyebrow}</span>
+                <div className="editorial-capability-body">
+                  <h3>{area.heading}</h3><p>{area.copy}</p>
+                </div>
+                <div className="editorial-capability-tags" aria-label={`${area.heading} özellikleri`}>
+                  {area.capabilities.map(capability => <span key={capability}>{capability}</span>)}
+                </div>
               </article>
             ))}
           </div>
         </section>
 
-        <section id="nasil-calisir" className="public-process-section public-major-section public-v2-process">
-          <div className="public-section-heading public-v2-section-heading">
-            <span className="public-overline">UÇTAN UCA İŞ AKIŞI</span>
-            <h2>Projeden onaya kadar herkes ne yapacağını bilir.</h2>
-            <p>Süreç proje kapsamıyla başlar, görev ve üretim akışından geçerek denetlenebilir biçimde tamamlanır.</p>
-          </div>
-
-          <div className="public-v2-process-grid">
-            {processSteps.map(({ no, icon: Icon, title, copy }) => (
-              <article className="public-v2-process-card" key={no}>
-                <div className="public-v2-process-top">
-                  <div className="public-card-icon teal"><Icon size={20}/></div>
-                  <span>{no}</span>
-                </div>
-                <h3>{title}</h3>
-                <p>{copy}</p>
-              </article>
-            ))}
+        <section className="editorial-process public-major-section" id="nasil-calisir" aria-labelledby="editorial-process-title">
+          <div className="editorial-process-inner">
+            <div className="editorial-process-heading">
+              <span className="editorial-label">YAYIN ÜRETİMİNİN DÖRT AŞAMASI</span>
+              <h2 id="editorial-process-title">Masadan masaya değil, <em>aşamadan aşamaya.</em></h2>
+              <p>Bir sorunun yaşam döngüsü, yayın kararına kadar görünür olmalı.</p>
+            </div>
+            <ol className="editorial-process-steps">
+              {stages.map(stage => (
+                <li key={stage.number}>
+                  <span className="editorial-stage-number">{stage.number}</span>
+                  <div><h3>{stage.title}</h3><p>{stage.detail}</p></div>
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
 
-        <section id="yayin-projesi" className="public-project-section public-major-section public-v2-pilot">
-          <div className="public-pilot-summary">
-            <div className="public-pilot-copy">
-              <span className="public-overline">YAYIN PROJESİ</span>
-              <h2>8. Sınıf Matematik Soru Bankası</h2>
-              <p>
-                Bir soru bankasının kapsamını belirleyin, ekibini oluşturun ve içerik üretimini
-                editör kontrolüyle birlikte yönetin.
-              </p>
-            </div>
-            <div className="public-project-meta">
-              <div>
-                <GraduationCap size={18} />
-                <span><small>KADEME</small><strong>Ortaokul</strong></span>
-              </div>
-              <div>
-                <Users size={18} />
-                <span><small>YAZAR KADROSU</small><strong>Yazar ve editör ekibi</strong></span>
-              </div>
-              <div>
-                <BookOpen size={18} />
-                <span><small>BRANŞ</small><strong>Matematik</strong></span>
-              </div>
+        <section className="editorial-outro public-major-section" id="yayin-projesi" aria-labelledby="editorial-outro-title">
+          <span className="editorial-label">YAYIN AKIŞI / ORTAK ÇALIŞMA</span>
+          <div className="editorial-outro-layout">
+            <h2 id="editorial-outro-title">Yayın kalitesi, <em>birlikte çalışmanın sonucudur.</em></h2>
+            <div><p>Yazarın emeğini, editörün değerlendirmesini ve koordinatörün planlamasını aynı süreçte buluşturun.</p>
+              <button className="editorial-inline-button" onClick={onLoginClick}>
+                {authenticated ? 'Çalışma Alanına Dön' : 'Çalışma Alanına Giriş'} <ArrowUpRight size={16} aria-hidden="true" />
+              </button>
             </div>
           </div>
         </section>
       </main>
-
       <footer className="public-footer">
         <div className="public-brand footer-brand footer-brand-image">
-          <img
-            className="public-brand-logo footer-brand-logo"
-            src="/brand/prolig-logo-primary.png"
-            alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu"
-          />
+          <img className="public-brand-logo footer-brand-logo" src="/brand/prolig-logo-primary.png" alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu" />
         </div>
-        <span>© {new Date().getFullYear()} Pro-Lig Platformu</span>
+        <span>© {new Date().getFullYear()} Pro-Lig Platformu · Yayın ve İçerik Yönetimi</span>
       </footer>
     </div>
   );
