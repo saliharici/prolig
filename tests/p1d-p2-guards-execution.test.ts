@@ -110,6 +110,23 @@ describe('P2-2E Guarded Persistence Runtime Execution', () => {
   });
 
   describe('POST Question Creation Guards', () => {
+    it('rejects typed question payloads even for approved sandbox author and project', async () => {
+      vi.mocked(currentUserModule.getCurrentUser).mockResolvedValue(pilotUser as any);
+      vi.mocked(prisma.project.findUnique).mockResolvedValue(pilotProject as any);
+      const req = {
+        path: '/api/v1/questions', method: 'POST',
+        body: { projectId: 1, content: 'Korumalı test sorusu', objectiveCode: 'P2-UAT',
+          questionType: 'MULTIPLE_CHOICE', optionCount: 4,
+          options: ['A', 'B', 'C', 'D'], correctAnswer: 'C' }
+      };
+      const res = createMockRes();
+
+      await applyP2Guards(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.body.error).toContain('Typed question fields are disabled');
+      expect(next).not.toHaveBeenCalled();
+    });
     it('rejects POST if user is not the synthetic pilot author', async () => {
       vi.mocked(currentUserModule.getCurrentUser).mockResolvedValue(otherUser as any);
       vi.mocked(prisma.user.findUnique).mockResolvedValue(otherUser as any);

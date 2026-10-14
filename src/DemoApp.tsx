@@ -15,7 +15,7 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
-import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions } from './questions/edit';
+import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions, toP2SandboxLegacyDraft } from './questions/edit';
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
@@ -886,6 +886,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   // Keep P1/P1-D payloads unchanged unless the separate multi-type UI flag is enabled.
   const guidedStudioOn = import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' &&
     import.meta.env.VITE_QUESTION_STUDIO_P2_TYPES === 'true';
+  const guardedLegacyQuestionWrite = import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true';
   const questionFormValues: QuestionStudioFormValues = {
     ...(guidedStudioOn ? questionTypeExtras : {}),
     content: questionTitle,
@@ -1214,7 +1215,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionSaveError('');
     try {
       if (editingQuestion) {
-        const input = buildQuestionEditPatch(editingQuestion, {
+        const draft = {
           content: questionTitle,
           grade: questionGrade,
           explanation: questionExplanation,
@@ -1223,12 +1224,18 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           correctAnswer: questionCorrectAnswer,
           assets: normalizeQuestionAssets(questionAssets),
           ...(guidedStudioOn ? questionTypeExtras : {})
-        });
+        };
+        const input = buildQuestionEditPatch(editingQuestion, guardedLegacyQuestionWrite ? toP2SandboxLegacyDraft(draft) : draft);
+        if (guardedLegacyQuestionWrite) {
+          const code = questionTypeExtras.objectiveCode?.trim() || '';
+          input.objectiveCode = code.includes('P2-UAT') ? code : ['P2-UAT', code].filter(Boolean).join(' ');
+          input.difficulty = questionTypeExtras.difficulty?.trim() || null;
+        }
         input.expectedUpdatedAt = editingQuestion.updatedAt;
         await patchQuestion(editingQuestion.id, input);
         setToast('Soru düzeltmeleri kaydedildi.');
       } else {
-        await createQuestion(buildQuestionCreateInput({
+        const draft = {
           content: questionTitle,
           grade: questionGrade,
           options: questionOptions,
@@ -1237,7 +1244,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           projectId: questionProjectId,
           assets: normalizeQuestionAssets(questionAssets),
           ...(guidedStudioOn ? questionTypeExtras : {})
-        }, import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true'));
+        };
+        await createQuestion(buildQuestionCreateInput(
+          guardedLegacyQuestionWrite ? toP2SandboxLegacyDraft(draft) : draft,
+          guardedLegacyQuestionWrite
+        ));
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
       durableDraftGenerationRef.current += 1;
@@ -2352,7 +2363,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </div>
             </aside>
           </div>}
-          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button>{(!guidedStudioOn || questionStep === 5) && <button type="submit" className="primary-button" disabled={questionSaving || durableDraftBusy || durableDraftConflict}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button>}</div>
+          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button>{(!guidedStudioOn || questionStep === 5) && <button type="submit" className="primary-button" disabled={questionSaving || durableDraftBusy || durableDraftConflict || (guardedLegacyQuestionWrite && questionTypeExtras.questionType !== 'MULTIPLE_CHOICE')}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button>}</div>
         </form>
       </div>}
       {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>

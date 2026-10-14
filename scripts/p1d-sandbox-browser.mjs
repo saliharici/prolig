@@ -117,9 +117,9 @@ function isolatedEnvironment(config, allowWrites, p2Editor = false, isP2Write = 
     PROLIG_P1D_BROWSER_WRITES: allowWrites ? 'true' : 'false',
     PROLIG_P2_GUARDED_WRITES: isP2Write ? 'true' : 'false',
     VITE_QUESTION_STUDIO_P2_EDITOR: p2Editor ? 'true' : 'false',
-    // Only --serve-p2 may show multi-type UI. Migration and typed writes remain disabled.
+    // Guided UI in guarded P2 writes uses legacy 4-option payloads; typed writes stay disabled.
     PROLIG_QUESTION_TYPES_P2: 'false',
-    VITE_QUESTION_STUDIO_P2_TYPES: p2Editor && !allowWrites ? 'true' : 'false',
+    VITE_QUESTION_STUDIO_P2_TYPES: p2Editor && (!allowWrites || isP2Write) ? 'true' : 'false',
     DOTENV_CONFIG_PATH: PILOT
   };
 }

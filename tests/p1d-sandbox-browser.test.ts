@@ -84,8 +84,8 @@ describe('P1-D isolated browser UAT safety', () => {
     expect(server).toContain("const P2_EDITOR = process.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true'");
     expect(server).toContain("'import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR': JSON.stringify(P2_EDITOR ? 'true' : 'false')");
     expect(launcher).toContain("PROLIG_QUESTION_TYPES_P2: 'false'");
-    expect(launcher).toContain("VITE_QUESTION_STUDIO_P2_TYPES: p2Editor && !allowWrites ? 'true' : 'false'");
-    expect(server).toContain("const P2_TYPES_UI_PREVIEW = P2_EDITOR && !WRITES && process.env.VITE_QUESTION_STUDIO_P2_TYPES === 'true'");
+    expect(launcher).toContain("VITE_QUESTION_STUDIO_P2_TYPES: p2Editor && (!allowWrites || isP2Write) ? 'true' : 'false'");
+    expect(server).toContain("const P2_TYPES_UI_PREVIEW = P2_EDITOR && (!WRITES || P2_GUARDED_WRITES) && process.env.VITE_QUESTION_STUDIO_P2_TYPES === 'true'");
     expect(server).toContain("'import.meta.env.VITE_QUESTION_STUDIO_P2_TYPES': JSON.stringify(P2_TYPES_UI_PREVIEW ? 'true' : 'false')");
   });
 

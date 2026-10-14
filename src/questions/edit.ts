@@ -84,6 +84,20 @@ export function requireCompleteQuestionAnswers(options: string[], correctAnswer:
   return { options: normalized, correctAnswer };
 }
 
+/** Adapt the guided wizard to the strictly guarded legacy sandbox contract (MCQ, A-D). */
+export function toP2SandboxLegacyDraft(draft: QuestionEditDraft): QuestionEditDraft {
+  if ((draft.questionType ?? 'MULTIPLE_CHOICE') !== 'MULTIPLE_CHOICE' ||
+      (draft.optionCount ?? 4) !== 4 || draft.options.length !== 4) {
+    throw new QuestionFormValidationError('Sandbox kayıt modunda yalnızca dört seçenekli çoktan seçmeli soru kullanılabilir.');
+  }
+  return {
+    content: draft.content, grade: draft.grade, projectId: draft.projectId,
+    options: [...draft.options], correctAnswer: draft.correctAnswer,
+    explanation: draft.explanation, assets: draft.assets,
+    objectiveCode: draft.objectiveCode, difficulty: draft.difficulty
+  };
+}
+
 export function buildQuestionCreateInput(draft: QuestionEditDraft, p2GuardedWrites = false): CreateQuestionInput {
   const answers = draft.questionType ? serializeTypedAnswers(draft) : requireCompleteQuestionAnswers(draft.options, draft.correctAnswer);
   if (draft.questionType) {
@@ -98,7 +112,7 @@ export function buildQuestionCreateInput(draft: QuestionEditDraft, p2GuardedWrit
     explanation: draft.explanation.trim() || null,
     projectId: draft.projectId,
     assets: normalizeQuestionAssets(draft.assets),
-    ...(draft.questionType ? { objectiveCode: objectiveCode || null, difficulty: draft.difficulty?.trim() || null } : {}),
+    ...(draft.questionType || p2GuardedWrites ? { objectiveCode: objectiveCode || null, difficulty: draft.difficulty?.trim() || null } : {}),
     ...(p2GuardedWrites ? { objectiveCode: objectiveCode.includes('P2-UAT') ? objectiveCode : ['P2-UAT', objectiveCode].filter(Boolean).join(' ') } : {})
   };
 }
