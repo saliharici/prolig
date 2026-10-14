@@ -56,6 +56,7 @@ import './questions/studio-preview.css';
 import './questions/studio-workspace.css';
 import './questions/studio-durable.css';
 import './workspace/corporate-workspace-v3.css';
+import './workspace/corporate-modules-v3b.css';
 import { QuestionStemWysiwygEditor } from './questions/QuestionStemWysiwygEditor';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
@@ -1954,7 +1955,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 })}</tbody></table>}{filteredQuestions.length === 0 && <div className="empty-state workspace-question-empty"><FileQuestion size={26} aria-hidden="true" /><strong>{questionView === 'archived' ? 'Arşivde soru bulunmuyor' : apiQuestions.length === 0 ? 'Soru havuzu henüz boş' : 'Bu ölçütlere uygun soru bulunamadı'}</strong><p>{questionView === 'archived' ? 'Arşivlenmiş bir soru kaydı yok.' : apiQuestions.length === 0 ? 'İlk soru hazırlandığında kayıtlar burada listelenecek.' : 'Arama veya durum filtresini değiştirerek yeniden deneyin.'}</p>{currentUser.role === 'YAZAR' && questionView === 'active' && apiQuestions.length === 0 && <button type="button" className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={16} /> İlk soru taslağını oluştur</button>}</div>}</div>}</div></>}
           {section === 'projects' && <>
             <div className="page-heading">
-              <div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Sunucu kapsamınızdaki projeleri; sınıf, yazar ve soru üretimiyle birlikte yönetin.</p></div>
+              <div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>{canCreateProjects ? 'Erişiminizdeki yayın projelerini, ekip ve üretim ilerlemesiyle birlikte yönetin.' : 'Atandığınız yayın projelerini, ekibi ve üretim ilerlemesini görüntüleyin.'}</p></div>
               <div className="page-heading-actions"><span className="heading-chip"><BookOpen size={16} /> {filteredProjects.length} proje</span>{canCreateProjects&&<button className="primary-button" onClick={openNewProject}><Plus size={17}/> Yeni Proje</button>}</div>
             </div>
             <div className="toolbar">
@@ -1963,26 +1964,31 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             </div>
             {projectsLoading && <div className="panel empty-state">Projeler yükleniyor...</div>}
             {projectsError && !projectsLoading && <div className="panel empty-state"><div>{projectsError}</div><button className="secondary-button" onClick={loadApiProjects} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
-            {!projectsLoading && !projectsError && <div className="project-grid">{filteredProjects.map(project => {
+            {!projectsLoading && !projectsError && <div className={"project-grid corporate-project-grid" + (filteredProjects.length === 1 ? " corporate-project-single" : "")}>{filteredProjects.map(project => {
               const stats = projectQuestionStats(project.id, apiQuestions);
               return <button type="button" className="panel project-card project-card-button" key={project.id} onClick={()=>setSelectedProjectId(project.id)}>
-                <div className="project-card-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div>
-                <span className="project-code">{project.code}</span>
-                <h2>{project.title}</h2>
-                <p>{project.branch.name} · {project.targetGrade} · {project.projectType}</p>
-                <div className="project-card-counts">
-                  <span><Users size={14}/><strong>{project.authors.length}</strong> Yazar</span>
-                  <span><FileQuestion size={14}/><strong>{stats.total}</strong> Soru</span>
-                  <span><CheckCircle2 size={14}/><strong>{stats.approved}</strong> Onaylı</span>
-                  <span><ClipboardList size={14}/><strong>{project.taskCount ?? 0}</strong> Görev</span>
+                <div className="corporate-project-summary">
+                  <div className="project-card-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div>
+                  <span className="project-code">{project.code}</span>
+                  <h2>{project.title}</h2>
+                  <p>{project.branch.name} · {project.targetGrade} · {project.projectType}</p>
                 </div>
-                <div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div>
-                <div className="progress-line"><span style={{ width: project.progress + '%' }} /></div>
-                <div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div>
-                <span className="project-open-hint">Detayı aç <ArrowRight size={14}/></span>
+                <div className="corporate-project-production">
+                  <span className="corporate-project-caption">PROJE ÜRETİM ÖZETİ</span>
+                  <div className="project-card-counts">
+                    <span><Users size={14}/><strong>{project.authors.length}</strong> Yazar</span>
+                    <span><FileQuestion size={14}/><strong>{stats.total}</strong> Soru</span>
+                    <span><CheckCircle2 size={14}/><strong>{stats.approved}</strong> Onaylı</span>
+                    <span><ClipboardList size={14}/><strong>{project.taskCount ?? 0}</strong> Görev</span>
+                  </div>
+                  <div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div>
+                  <div className="progress-line"><span style={{ width: project.progress + '%' }} /></div>
+                  <div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div>
+                  <span className="project-open-hint">Proje dosyasını aç <ArrowRight size={14}/></span>
+                </div>
               </button>;
             })}</div>}
-            {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}
+            {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state corporate-project-empty"><BookOpen size={24} aria-hidden="true" /><strong>{apiProjects.length === 0 ? 'Henüz erişilebilir proje bulunmuyor' : 'Arama ölçütlerine uygun proje yok'}</strong><p>{apiProjects.length === 0 ? 'Yeni bir projeye atandığınızda burada görüntülenecektir.' : 'Arama ifadesini veya sınıf filtresini değiştirerek yeniden deneyin.'}</p></div>}
           </>}
         {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} />}
         {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
