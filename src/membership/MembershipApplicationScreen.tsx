@@ -12,6 +12,7 @@ import { submitMembershipApplication } from './api';
 import { PROVINCES } from './provinces';
 import { MEB_TEACHING_BRANCHES } from '../../shared/branch-catalog';
 import { districtsForProvince } from '../../shared/district-catalog';
+import '../auth/corporate-access-v1.css';
 
 type FormState = {
   fullName: string;
@@ -87,7 +88,7 @@ export function MembershipApplicationScreen({
 
   if (status === 'done') {
     return (
-      <div className="membership-page membership-success-page">
+      <div className="membership-page membership-success-page prolig-access-v1">
         <div className="membership-success">
           <div className="membership-success-icon">
             <CheckCircle2 size={28} />
@@ -120,7 +121,7 @@ export function MembershipApplicationScreen({
   }
 
   return (
-    <div className="membership-page">
+    <div className="membership-page prolig-access-v1">
       <div className="membership-container">
         <button
           type="button"
@@ -132,7 +133,7 @@ export function MembershipApplicationScreen({
         </button>
 
         <header className="membership-header">
-          <div className="public-overline">PRO-LİG ÜYELİK</div>
+          <div className="access-eyebrow">PRO-LİG / YAZAR VE EDİTÖR AĞI</div>
 
           <h1>Üyelik Başvurusu</h1>
 
@@ -406,7 +407,7 @@ export function MembershipApplicationScreen({
               <ClipboardCheck size={21} />
             </div>
 
-            <div className="public-overline">
+            <div className="access-eyebrow">
               DEĞERLENDİRME SÜRECİ
             </div>
 
