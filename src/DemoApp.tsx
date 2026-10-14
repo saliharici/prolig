@@ -57,6 +57,7 @@ import './questions/studio-workspace.css';
 import './questions/studio-durable.css';
 import './workspace/corporate-workspace-v3.css';
 import './workspace/corporate-modules-v3b.css';
+import './workspace/corporate-finance-v3c.css';
 import { QuestionStemWysiwygEditor } from './questions/QuestionStemWysiwygEditor';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
@@ -2111,6 +2112,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           tasksLoading={reportTasksLoading}
           tasksError={reportTasksError}
           authorsError={authorsError}
+          paymentsLoading={paymentsLoading}
+          paymentsError={paymentsError}
         />}
         {section === 'payments' && <PaymentCenter
           payments={apiPayments}

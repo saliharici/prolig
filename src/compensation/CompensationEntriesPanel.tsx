@@ -83,12 +83,12 @@ export function CompensationEntriesPanel({ personal = false }: { personal?: bool
 
   return (
     <div className="compensation-entries-panel">
-      <div className="compensation-entry-kpis">
+      {!loading && !error && <div className="compensation-entry-kpis">
         <article className="panel"><span className="comp-entry-icon total"><CheckCircle2 size={17}/></span><div><small>TOPLAM KAZANIM</small><strong>{money(summary.total)}</strong><span>{summary.count} kazanım kaydı</span></div></article>
         <article className="panel"><span className="comp-entry-icon writer"><FileQuestion size={17}/></span><div><small>{personal ? 'ÖDEME BEKLEYEN' : 'YAZAR TELİFLERİ'}</small><strong>{money(personal ? summary.waiting : summary.writer)}</strong><span>{personal ? 'Hak edilmiş / döneme alınmış' : 'Onaylanan sorulardan'}</span></div></article>
         <article className="panel"><span className="comp-entry-icon editor"><Users size={17}/></span><div><small>{personal ? 'ÖDEME SÜRECİNDE' : 'EDİTÖR ÜCRETLERİ'}</small><strong>{money(personal ? summary.inProcess : summary.editor)}</strong><span>{personal ? 'Ödeme emri oluşturuldu' : 'Sonuçlanan incelemelerden'}</span></div></article>
         <article className="panel"><span className="comp-entry-icon coordinator"><BriefcaseBusiness size={17}/></span><div><small>{personal ? 'ÖDENEN' : 'KOORDİNATÖR ÜCRETLERİ'}</small><strong>{money(personal ? summary.paid : summary.coordinator)}</strong><span>{personal ? 'Tamamlanan ödemeler' : 'Tamamlanan projelerden'}</span></div></article>
-      </div>
+      </div>}
 
       <section className="panel compensation-entry-workbench">
         <div className="compensation-entry-head">
@@ -96,7 +96,7 @@ export function CompensationEntriesPanel({ personal = false }: { personal?: bool
           <button className="secondary-button" disabled={loading} onClick={() => loadEntries()}><RotateCcw size={15}/> Yenile</button>
         </div>
 
-        <div className="compensation-entry-toolbar">
+        {!loading && !error && <div className="compensation-entry-toolbar">
           <div className="search-box compensation-entry-search">
             <Search size={16}/>
             <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Kişi, proje veya soru numarası ara..." />
@@ -109,10 +109,10 @@ export function CompensationEntriesPanel({ personal = false }: { personal?: bool
             <option value="ALL">Tüm projeler</option>
             {projects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title}</option>)}
           </select>
-        </div>
+        </div>}
 
         {loading && <div className="compensation-state"><RotateCcw size={18} className="spin"/> Kazanımlar yükleniyor...</div>}
-        {error && !loading && <div className="compensation-alert error"><span>{error}</span><button onClick={() => loadEntries()}>Tekrar Dene</button></div>}
+        {error && !loading && <div className="compensation-alert error corporate-finance-unavailable" role="status"><div><strong>Kazanım ve ödeme bilgileri şu anda görüntülenemiyor</strong><p>{error.includes('API not available in isolated P1-D browser preview') ? 'Bu salt okunur önizlemede telif API erişimi kapalıdır. Bu durum, kazanımlarınızın sıfır olduğu anlamına gelmez.' : error}</p></div><button onClick={() => loadEntries()}>Tekrar Dene</button></div>}
         {!loading && !error && <div className="table-wrap">
           <table className="compensation-entry-table">
             <thead><tr><th>KİŞİ</th><th>ROL</th><th>KAYNAK</th><th>BİRİM</th><th>ADET</th><th>TUTAR</th><th>DURUM</th><th>HAK EDİŞ TARİHİ</th><th>ÖDEME DÖNEMİ</th><th>ÖDEME TARİHİ</th></tr></thead>
@@ -131,8 +131,8 @@ export function CompensationEntriesPanel({ personal = false }: { personal?: bool
           </table>
           {!filtered.length && <div className="compensation-state">Bu filtrelerde kazanım kaydı bulunmuyor.</div>}
         </div>}
-        {!loading && nextCursor && <button className="secondary-button" onClick={() => loadEntries(true)}>Daha fazla kazanım yükle ({entries.length} / {summary.count})</button>}
-        <p className="panel-sub">Özet tutarlar tüm kazanımları kapsar. Arama ve filtreler yüklenmiş satırlarda çalışır.</p>
+        {!loading && !error && nextCursor && <button className="secondary-button" onClick={() => loadEntries(true)}>Daha fazla kazanım yükle ({entries.length} / {summary.count})</button>}
+        {!loading && !error && <p className="panel-sub">Özet tutarlar tüm kazanımları kapsar. Arama ve filtreler yüklenmiş satırlarda çalışır.</p>}
       </section>
     </div>
   );
