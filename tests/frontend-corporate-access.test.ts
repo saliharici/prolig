@@ -30,8 +30,10 @@ describe('Corporate access visual redesign V1', () => {
     expect(membership).toContain("useState<'idle' | 'sending' | 'done'>('idle')");
   });
   it('isolates the new style system to login and membership only', () => {
-    expect(login).toContain('className="soft-login-shell prolig-access-v1"');
-    expect(membership).toContain('className="membership-page prolig-access-v1"');
+    expect(login).toContain('soft-login-shell prolig-access-v1');
+    expect(login).toContain("import.meta.env.VITE_PUBLISHER_PRESENTATION_THEME === 'true'");
+    expect(membership).toContain('membership-page prolig-access-v1');
+    expect(membership).toContain("import.meta.env.VITE_PUBLISHER_PRESENTATION_THEME === 'true'");
     expect(css).toContain('.prolig-access-v1');
     expect(css).not.toContain('.demo-sidebar');
     expect(css).not.toContain('.question-studio');
