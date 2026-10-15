@@ -1827,7 +1827,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     ['overview', 'projects', 'tasks', 'messages', 'announcements', 'authors'].includes(item.id) && allowed.includes(item.id)
   );
 
-  return <div className="demo-shell corporate-workspace-v3">
+  return <div className={`demo-shell corporate-workspace-v3 ${import.meta.env.VITE_PUBLISHER_PRESENTATION_THEME === 'true' ? 'publisher-theme' : ''}`}>
     <a className="workspace-skip-link" href="#workspace-content">İçeriğe geç</a>
     <aside
       id="workspace-navigation"
