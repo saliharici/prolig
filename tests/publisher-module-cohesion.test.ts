@@ -10,7 +10,7 @@ describe('Publisher Edition / phase 2 module & question editing skin', () => {
   it('styles every real publishing workspace without unscoped global overrides', () => {
     const modules = [
       '.question-view-toggle', '.row-actions', '.editor-review-modal',
-      '.question-preview-card', '.question-editor-toolbar',
+      '.question-preview-card',
       '.corporate-project-summary', '.task-kanban-column',
       '.message-row', '.announcement-card', '.reports-filter-panel',
       '.report-bar-row', '.payment-module-tabs', '.compensation-rule-form',
@@ -19,6 +19,7 @@ describe('Publisher Edition / phase 2 module & question editing skin', () => {
     for (const name of modules) {
       expect(css, name).toContain('.publisher-theme.corporate-workspace-v3 ' + name);
     }
+    expect(css).toContain('.publisher-theme.corporate-workspace-v3 .question-studio-modal .question-editor-toolbar');
     expect(css).toContain('PUBLISHER EDITION PHASE 2 / REAL CONTENT & REVIEW');
   });
 
