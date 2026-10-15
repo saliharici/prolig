@@ -585,3 +585,447 @@
   .publisher-theme.corporate-workspace-v3 .p2-steps button { min-height: 77px; }
   .publisher-theme.corporate-workspace-v3 .p2-stage { border-radius: 6px; }
 }
+
+
+/* ---------- PUBLISHER EDITION PHASE 2 / REAL CONTENT & REVIEW ---------- */
+/* Layout polish only: controls retain the existing hooks, permissions and semantics.
+   Deliberately preserve semantic state colors (success, warnings, danger). */
+.publisher-theme.corporate-workspace-v3 .topbar-global-search button,
+.publisher-theme.corporate-workspace-v3 .topbar-global-search button[type="submit"] {
+  background: var(--pub-burgundy);
+  border-color: var(--pub-burgundy);
+  color: white;
+}
+.publisher-theme.corporate-workspace-v3 .topbar-global-search button:hover {
+  background: #572136;
+}
+.publisher-theme.corporate-workspace-v3 .question-view-toggle,
+.publisher-theme.corporate-workspace-v3 .task-quick-filters,
+.publisher-theme.corporate-workspace-v3 .task-view-toggle,
+.publisher-theme.corporate-workspace-v3 .announcement-box-toggle {
+  background: #f8f2f1;
+  border-color: #e7d8da;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .question-view-toggle button.active,
+.publisher-theme.corporate-workspace-v3 .task-quick-filters button.active,
+.publisher-theme.corporate-workspace-v3 .task-view-toggle button.active,
+.publisher-theme.corporate-workspace-v3 .announcement-box-toggle button.active {
+  background: #fffdfa;
+  color: var(--pub-burgundy);
+  box-shadow: inset 0 -2px 0 var(--pub-gold);
+}
+.publisher-theme.corporate-workspace-v3 .context-filter-bar,
+.publisher-theme.corporate-workspace-v3 .context-filter-chip {
+  background: #f7edef;
+  color: var(--pub-burgundy);
+  border-color: #e9d5da;
+}
+.publisher-theme.corporate-workspace-v3 .row-actions button:not(.danger-action) {
+  background: #fff9f8;
+  color: var(--pub-burgundy);
+  border-color: #e6d4d9;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .row-actions button:not(.danger-action):hover {
+  background: #f2e6e9;
+  border-color: #c89eab;
+}
+.publisher-theme.corporate-workspace-v3 .table-wrap table tbody tr:hover {
+  background: #fffbfa;
+}
+.publisher-theme.corporate-workspace-v3 .table-wrap table td strong {
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .table-heading strong {
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .question-preview-panel,
+.publisher-theme.corporate-workspace-v3 .p2-live-preview {
+  background: #fcf8f5;
+  border-color: #eadeda;
+}
+.publisher-theme.corporate-workspace-v3 .question-preview-card,
+.publisher-theme.corporate-workspace-v3 .question-quality-panel,
+.publisher-theme.corporate-workspace-v3 .question-asset-preview {
+  background: #fffefa;
+  border-color: #e7d8d6;
+  color: #48373e;
+}
+.publisher-theme.corporate-workspace-v3 .question-preview-head span,
+.publisher-theme.corporate-workspace-v3 .question-preview-head strong {
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .question-preview-solution,
+.publisher-theme.corporate-workspace-v3 .p2-completion {
+  background: #fcf6f3;
+  border-color: #e7d7d6;
+  color: #56474a;
+}
+.publisher-theme.corporate-workspace-v3 .question-formula {
+  background: #f3e8eb;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .editor-change-badge {
+  background: #f7ecf0;
+  border-color: #e5ccd6;
+  color: #754052;
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal .question-editor-shell,
+.publisher-theme.corporate-workspace-v3 .question-studio-modal .question-editor-toolbar {
+  border-color: #e4d7d6;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal .question-editor-toolbar button:hover {
+  background: #f2e6ea;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal .question-editor-toolbar button[aria-pressed="true"] {
+  background: #ede0e5;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .studio-revision-review {
+  background: #fffbf8;
+  border-color: #dcc6c7;
+}
+.publisher-theme.corporate-workspace-v3 .studio-revision-row.changed {
+  background: #fff3ed;
+}
+
+/* Editor acceptance/revision modal — readable on all question types. */
+.publisher-theme.corporate-workspace-v3 .editor-review-modal {
+  background: #fffdfa;
+  border: 1px solid #e7d8d6;
+  border-radius: 9px;
+}
+.publisher-theme.corporate-workspace-v3 .editor-review-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .project-detail-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .task-form-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .project-management-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .message-compose-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .announcement-form-modal .modal-head h2 {
+  color: var(--pub-dark);
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: -.03em;
+}
+.publisher-theme.corporate-workspace-v3 .editor-review-context span {
+  background: #f5e8ed;
+  color: #753b50;
+  border: 1px solid #ebd4db;
+}
+.publisher-theme.corporate-workspace-v3 .editor-review-modal .question-preview-card {
+  box-shadow: 0 3px 15px #45223008;
+}
+.publisher-theme.corporate-workspace-v3 .editor-review-modal .modal-actions,
+.publisher-theme.corporate-workspace-v3 .project-management-footer,
+.publisher-theme.corporate-workspace-v3 .profile-modal-footer {
+  background: #fffdfa;
+  border-color: #e8deda;
+}
+.publisher-theme.corporate-workspace-v3 .editor-note-box textarea {
+  background: #fffbf7;
+  border-color: #d9bdac;
+}
+.publisher-theme.corporate-workspace-v3 .modal-head > button,
+.publisher-theme.corporate-workspace-v3 .profile-modal-close {
+  background: #f5edef;
+  color: #6e4153;
+}
+.publisher-theme.corporate-workspace-v3 .modal-head > button:hover,
+.publisher-theme.corporate-workspace-v3 .profile-modal-close:hover {
+  background: #ecdae1;
+}
+
+/* Real publication projects and assignment workflows. */
+.publisher-theme.corporate-workspace-v3 .corporate-project-summary .project-code,
+.publisher-theme.corporate-workspace-v3 .corporate-project-caption,
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .project-open-hint {
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .project-card-counts span,
+.publisher-theme.corporate-workspace-v3 .project-detail-summary > div {
+  background: #fffdfa;
+  border-color: #e7dad6;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .project-card-counts strong,
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .project-meta strong {
+  color: #493740;
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-grid .project-card-button:hover {
+  border-color: #b67b8f;
+  box-shadow: 0 10px 25px #43203110;
+}
+.publisher-theme.corporate-workspace-v3 .project-management-modal,
+.publisher-theme.corporate-workspace-v3 .project-detail-modal,
+.publisher-theme.corporate-workspace-v3 .task-form-modal,
+.publisher-theme.corporate-workspace-v3 .profile-modal,
+.publisher-theme.corporate-workspace-v3 .message-compose-modal,
+.publisher-theme.corporate-workspace-v3 .announcement-form-modal {
+  background: #fffdfa;
+  border: 1px solid #e6d8d5;
+  border-radius: 9px;
+}
+.publisher-theme.corporate-workspace-v3 .project-management-head,
+.publisher-theme.corporate-workspace-v3 .profile-modal-head {
+  border-color: #e9dcda;
+}
+.publisher-theme.corporate-workspace-v3 .project-management-fields input,
+.publisher-theme.corporate-workspace-v3 .project-management-fields select,
+.publisher-theme.corporate-workspace-v3 .task-form-grid input,
+.publisher-theme.corporate-workspace-v3 .task-form-grid select,
+.publisher-theme.corporate-workspace-v3 .task-form-grid textarea,
+.publisher-theme.corporate-workspace-v3 .profile-modal input,
+.publisher-theme.corporate-workspace-v3 .profile-biography {
+  border-color: #e2d5d5;
+  color: #3c3035;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .task-form-grid input:focus,
+.publisher-theme.corporate-workspace-v3 .task-form-grid select:focus,
+.publisher-theme.corporate-workspace-v3 .task-form-grid textarea:focus,
+.publisher-theme.corporate-workspace-v3 .profile-biography:focus {
+  border-color: #b98297;
+  box-shadow: 0 0 0 3px #76273e16;
+}
+.publisher-theme.corporate-workspace-v3 .profile-modal-avatar {
+  background: #f0dfe6;
+  color: #783750;
+}
+.publisher-theme.corporate-workspace-v3 .profile-locked-box {
+  background: #f9f2f0;
+  border-color: #e8dad8;
+}
+
+/* Task planning — preserve priority severity and overdue indicators. */
+.publisher-theme.corporate-workspace-v3 .task-summary-card:not(.overdue),
+.publisher-theme.corporate-workspace-v3 .announcement-summary-card:not(.urgent) {
+  border-color: var(--pub-line);
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .task-summary-card:not(.overdue) > span,
+.publisher-theme.corporate-workspace-v3 .announcement-summary-card:not(.urgent) > span {
+  background: #f5e9ed;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .task-kanban-column {
+  background: #f8f2f0;
+  border-color: #e9d8db;
+  border-radius: 7px;
+}
+.publisher-theme.corporate-workspace-v3 .task-kanban-column > header strong,
+.publisher-theme.corporate-workspace-v3 .task-kanban-column > header span {
+  color: #6a4053;
+}
+.publisher-theme.corporate-workspace-v3 .task-card {
+  border-color: #e7dadd;
+  border-radius: 6px;
+  background: #fffefa;
+  box-shadow: 0 4px 12px #38182407;
+}
+.publisher-theme.corporate-workspace-v3 .task-card:hover {
+  border-color: #c99faa;
+}
+.publisher-theme.corporate-workspace-v3 .task-card-actions button {
+  border-color: #e6d4d8;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .corporate-task-preview-note,
+.publisher-theme.corporate-workspace-v3 .corporate-task-empty {
+  background: #f9f2ee;
+  border-color: #e6d8d6;
+  color: #62535a;
+}
+.publisher-theme.corporate-workspace-v3 .corporate-task-preview-symbol {
+  background: #efdee4;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .corporate-task-preview-label,
+.publisher-theme.corporate-workspace-v3 .corporate-task-preview-note h2,
+.publisher-theme.corporate-workspace-v3 .corporate-task-empty h2 {
+  color: var(--pub-dark);
+}
+
+/* Messages & announcements retain unread and priority state distinctions. */
+.publisher-theme.corporate-workspace-v3 .message-center-shell .panel,
+.publisher-theme.corporate-workspace-v3 .announcement-layout .panel,
+.publisher-theme.corporate-workspace-v3 .announcement-card {
+  border-color: #e7dad9;
+  background-color: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .message-mailboxes > button:not(.message-compose-mobile) {
+  color: #745e69;
+}
+.publisher-theme.corporate-workspace-v3 .message-mailboxes > button:not(.message-compose-mobile).active {
+  background: #f5e9ec;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .message-row {
+  border-color: #eee3e2;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .message-row.selected,
+.publisher-theme.corporate-workspace-v3 .message-row:hover {
+  background: #f9eef1;
+}
+.publisher-theme.corporate-workspace-v3 .message-row.unread {
+  background: #fff6f3;
+}
+.publisher-theme.corporate-workspace-v3 .message-avatar,
+.publisher-theme.corporate-workspace-v3 .message-person-card .message-avatar {
+  background: #f2e1e7;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .message-detail-head,
+.publisher-theme.corporate-workspace-v3 .announcement-detail-head {
+  border-color: #ebdddb;
+}
+.publisher-theme.corporate-workspace-v3 .announcement-card.selected,
+.publisher-theme.corporate-workspace-v3 .announcement-card:hover {
+  border-color: #b98596;
+  box-shadow: 0 5px 17px #5325390c;
+}
+.publisher-theme.corporate-workspace-v3 .announcement-card.unread {
+  background: #fff7f4;
+}
+/* Do not repaint priority-card-acil or error panels. */
+
+/* Reporting: stable hierarchy, comparison bars remain distinguishable by row. */
+.publisher-theme.corporate-workspace-v3 .reports-filter-panel,
+.publisher-theme.corporate-workspace-v3 .reports-project-panel,
+.publisher-theme.corporate-workspace-v3 .reports-network-card,
+.publisher-theme.corporate-workspace-v3 .reports-finance-card,
+.publisher-theme.corporate-workspace-v3 .report-chart-card,
+.publisher-theme.corporate-workspace-v3 .report-kpi {
+  background: #fffefa;
+  border-color: #e7d8d6;
+  border-radius: 6px;
+}
+.publisher-theme.corporate-workspace-v3 .reports-filter-grid label,
+.publisher-theme.corporate-workspace-v3 .reports-filter-grid select {
+  color: #69515d;
+}
+.publisher-theme.corporate-workspace-v3 .reports-filter-grid select {
+  border-color: #e0cfce;
+  background: #fffefa;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .reports-filter-grid select:focus {
+  border-color: var(--pub-burgundy);
+  box-shadow: 0 0 0 3px #76273e1a;
+}
+.publisher-theme.corporate-workspace-v3 .report-kpi strong,
+.publisher-theme.corporate-workspace-v3 .reports-project-row strong {
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .report-kpi-icon.teal,
+.publisher-theme.corporate-workspace-v3 .report-kpi-icon.purple {
+  background: #f3e6eb;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .report-bar-row > i {
+  background: #f2e9e7;
+}
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+1)>i>b { background: #822c49; }
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+2)>i>b { background: #b6758e; }
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+3)>i>b { background: #bc9564; }
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+4)>i>b { background: #76617d; }
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+5)>i>b { background: #577d85; }
+.publisher-theme.corporate-workspace-v3 .report-project-code {
+  color: var(--pub-burgundy);
+}
+
+/* Publishing rights, pricing and payment dashboards. */
+.publisher-theme.corporate-workspace-v3 .payment-module-tabs,
+.publisher-theme.corporate-workspace-v3 .payment-filter-tabs {
+  background: #f7eeed;
+  border-color: #e5d5d7;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .payment-module-tabs button:hover,
+.publisher-theme.corporate-workspace-v3 .payment-filter-tabs button:hover {
+  color: var(--pub-burgundy);
+  background: #f3e3e8;
+}
+.publisher-theme.corporate-workspace-v3 .payment-module-tabs button.active,
+.publisher-theme.corporate-workspace-v3 .payment-filter-tabs button.active {
+  background: #fffefa;
+  color: var(--pub-burgundy);
+  box-shadow: inset 0 -2px 0 var(--pub-gold);
+}
+.publisher-theme.corporate-workspace-v3 .compensation-policy-card,
+.publisher-theme.corporate-workspace-v3 .compensation-rule-editor,
+.publisher-theme.corporate-workspace-v3 .compensation-rule-list,
+.publisher-theme.corporate-workspace-v3 .compensation-history,
+.publisher-theme.corporate-workspace-v3 .compensation-entry-workbench,
+.publisher-theme.corporate-workspace-v3 .payment-period-panel {
+  border-color: #e7dad8;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form {
+  background: #faf5f3;
+  border-color: #e8dada;
+}
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form label,
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form select {
+  color: #6a535d;
+}
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form select,
+.publisher-theme.corporate-workspace-v3 .compensation-money-input,
+.publisher-theme.corporate-workspace-v3 .compensation-entry-search {
+  border-color: #decdcf;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form select:focus,
+.publisher-theme.corporate-workspace-v3 .compensation-money-input:focus-within,
+.publisher-theme.corporate-workspace-v3 .compensation-entry-search:focus-within {
+  border-color: #aa7186;
+  box-shadow: 0 0 0 3px #76273e19;
+}
+.publisher-theme.corporate-workspace-v3 .comp-entry-icon.total,
+.publisher-theme.corporate-workspace-v3 .comp-entry-icon.editor {
+  background: #f2e4e9;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .compensation-price,
+.publisher-theme.corporate-workspace-v3 .compensation-entry-kpis strong {
+  color: var(--pub-dark);
+}
+/* Preserve numeric amounts and financial state badges. */
+
+/* User administration & permissions — selectors are cosmetic, no role logic. */
+.publisher-theme.corporate-workspace-v3 .member-form-card,
+.publisher-theme.corporate-workspace-v3 .member-control,
+.publisher-theme.corporate-workspace-v3 .member-branch-options,
+.publisher-theme.corporate-workspace-v3 .roles-intro,
+.publisher-theme.corporate-workspace-v3 .matrix-panel {
+  background-color: #fffefa;
+  border-color: #e5d8d7;
+}
+.publisher-theme.corporate-workspace-v3 .member-form-icon,
+.publisher-theme.corporate-workspace-v3 .roles-intro-icon {
+  background: #f0e1e7;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .member-control:focus-within {
+  border-color: #b78496;
+  box-shadow: 0 0 0 3px #76273e13;
+}
+.publisher-theme.corporate-workspace-v3 .matrix .current-role {
+  background: #faf0f2;
+}
+.publisher-theme.corporate-workspace-v3 .member-form-heading h2 {
+  color: var(--pub-dark);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+@media (max-width: 600px) {
+  .publisher-theme.corporate-workspace-v3 .editor-review-modal,
+  .publisher-theme.corporate-workspace-v3 .project-management-modal,
+  .publisher-theme.corporate-workspace-v3 .task-form-modal {
+    border-radius: 6px;
+  }
+  .publisher-theme.corporate-workspace-v3 .message-center-shell .panel {
+    border-radius: 5px;
+  }
+}
