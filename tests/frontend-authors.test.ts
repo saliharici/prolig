@@ -78,7 +78,7 @@ describe('Author API Frontend Client', () => {
       expect(mapCode).not.toContain('Pilot yazar');
       
       // Dashboard uses apiAuthors for counts
-      expect(demoAppCode).toContain('apiAuthors.length.toString(');
+      expect(demoAppCode).toContain('<StatCard label="Yazar ağı" value={apiAuthors.length}');
       
       
     });

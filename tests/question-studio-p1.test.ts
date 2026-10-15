@@ -27,6 +27,16 @@ describe('P1 structured question preview spike', () => {
     expect(studioDocumentToLegacy(document).options).toEqual(input.options);
   });
 
+  it('renders five choices only when the typed P2 question explicitly requests five', () => {
+    const values = ['A', 'B', 'C', 'D', 'E'];
+    const document = legacyQuestionToStudioDocument({ content: 'Lise örneği', options: values, optionCount: 5, correctAnswer: 'E' });
+    expect(document.choices).toHaveLength(5);
+    expect(studioDocumentToLegacy(document).options).toEqual(values);
+    const html = renderToStaticMarkup(createElement(StudioDocumentPreview, { document }));
+    expect((html.match(/<li/g) || []).length).toBe(5);
+    expect(html).toMatch(/<li class="correct">[\s\S]*?<span>E<\/span>[\s\S]*?<\/li>/);
+  });
+
   it('parses emphasis, underlines, math and HTTPS links as typed nodes', () => {
     const nodes = parseStudioInline('**kalın** _eğik_ <u>alt</u> $x^2$ [MEB](https://meb.gov.tr/soru)');
     expect(nodes.map(x => x.kind)).toEqual(['bold', 'text', 'italic', 'text', 'underline', 'text', 'math', 'text', 'link']);

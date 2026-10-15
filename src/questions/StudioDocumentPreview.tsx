@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { QuestionAssetPlacement } from './types';
 import type { StudioBlock, StudioDocumentV1, StudioInline } from './studio-document';
-import { parseStudioInline } from './studio-document';
+import { parseStudioInline, parseStudioBlocks } from './studio-document';
 
 /**
  * Non-editable, React-escaped proof of concept. Never uses dangerouslySetInnerHTML.
@@ -12,11 +12,11 @@ function renderInline(nodes: StudioInline[]): ReactNode {
   return nodes.map((node, i) => {
     const key = `inline-${i}`;
     switch (node.kind) {
-      case 'bold': return <strong key={key}>{node.text}</strong>;
-      case 'italic': return <em key={key}>{node.text}</em>;
-      case 'underline': return <u key={key}>{node.text}</u>;
+      case 'bold': return <strong key={key}>{renderInline(parseStudioInline(node.text))}</strong>;
+      case 'italic': return <em key={key}>{renderInline(parseStudioInline(node.text))}</em>;
+      case 'underline': return <u key={key}>{renderInline(parseStudioInline(node.text))}</u>;
       case 'math': return <code key={key} className="studio-math-source" aria-label={`Matematik ifadesi: ${node.text}`}>{node.text}</code>;
-      case 'link': return <a key={key} href={node.href} target="_blank" rel="noopener noreferrer">{node.text}</a>;
+      case 'link': return <a key={key} href={node.href} target="_blank" rel="noopener noreferrer">{renderInline(parseStudioInline(node.text))}</a>;
       default: return <span key={key}>{node.text}</span>;
     }
   });
@@ -39,15 +39,23 @@ function renderBlocks(blocks: StudioBlock[], prefix: string): ReactNode {
   });
 }
 
+export function StudioMarkup({ value }: { value: string }) {
+  return <div className="formatted-question-text">{renderBlocks(parseStudioBlocks(value), 'markup')}</div>;
+}
+
 export function StudioDocumentPreview({
   document,
-  renderAssets
+  renderAssets,
+  previewNote
 }: {
   document: StudioDocumentV1;
   renderAssets?: (placement: QuestionAssetPlacement) => ReactNode;
+  previewNote?: string;
 }) {
   return <article className="question-preview-card studio-p1-preview" aria-label="Yapılandırılmış soru önizlemesi">
-    <div className="studio-preview-note">P1 deneysel önizleme · mevcut kayıt biçimi korunur</div>
+    <div className="studio-preview-note">
+      {previewNote || 'P1 deneysel önizleme · mevcut kayıt biçimi korunur'}
+    </div>
     <div className="formatted-question-text">{renderBlocks(document.stem, 'stem')}</div>
     {renderAssets?.('STEM')}
     <ol className="studio-choices" type="A">

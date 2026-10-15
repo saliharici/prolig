@@ -515,6 +515,12 @@ model ActivityLog {
   @@index([createdAt])
 }
 
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  OPEN_ENDED
+}
+
 model Question {
   id           Int     @id @default(autoincrement())
   content      String // Metin veya Soru içeriği
@@ -534,6 +540,13 @@ model Question {
   options       String[] @default([])
   correctAnswer String?
   explanation   String?
+  // NULL identifies legacy four-choice questions without rewriting existing rows.
+  questionType QuestionType?
+  optionCount Int?
+  booleanAnswer Boolean?
+  modelAnswer String?
+  scoringRubric String?
+  evaluationCriteria String?
 
   status     QuestionStatus @default(TASLAK)
   editorNote String?

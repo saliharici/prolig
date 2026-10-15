@@ -2,6 +2,12 @@ export function formatQuestionDto(question: any, isArchived = false) {
   return {
     id: question.id,
     content: question.content,
+    questionType: question.questionType ?? 'MULTIPLE_CHOICE',
+    optionCount: (question.questionType ?? 'MULTIPLE_CHOICE') === 'MULTIPLE_CHOICE' ? question.optionCount ?? 4 : null,
+    booleanAnswer: question.booleanAnswer ?? null,
+    modelAnswer: question.modelAnswer ?? null,
+    scoringRubric: question.scoringRubric ?? null,
+    evaluationCriteria: question.evaluationCriteria ?? null,
     imageUrl: question.imageUrl,
     assets: Array.isArray(question.assets) ? question.assets
       .slice()

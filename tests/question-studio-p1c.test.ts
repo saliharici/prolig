@@ -124,7 +124,10 @@ describe('P1-C encrypted local draft recovery', () => {
     expect(app).toContain('removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId)');
     expect(app).toContain('Otomatik kurtarmayı durdur');
     expect(app).toContain('conflicted: durableDraftConflict');
-    // JSX gate must close before the editor grid; normalize Windows CRLF checkout.
-    expect(app.replace(/\r\n/g, '\n')).toContain('</section>}\n          <div className="question-studio-layout"');
+    // P1-C recovery gate still closes before either P2 wizard or legacy editor.
+    // Verify both branches so a layout refactor cannot quietly drop the legacy fallback.
+    const normalized = app.replace(/\r\n/g, '\n');
+    expect(normalized).toContain('</section>}\n          {guidedStudioOn ? <GuidedQuestionStudio');
+    expect(normalized).toContain(' /> : <div className="question-studio-layout" inert=');
   });
 });

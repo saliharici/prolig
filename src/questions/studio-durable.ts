@@ -130,16 +130,23 @@ function isStudioDraftData(value: unknown): value is StudioDurableDraftData {
       (x.serverUpdatedAt !== null && typeof x.serverUpdatedAt !== 'string')) return false;
   if (typeof v.content !== 'string' || typeof v.level !== 'string' || typeof v.grade !== 'string' ||
       (v.projectId !== null && (!Number.isSafeInteger(v.projectId) || (v.projectId ?? 0) < 1)) ||
-      !Array.isArray(v.options) || v.options.length !== 4 || !v.options.every(x => typeof x === 'string') ||
+      !Array.isArray(v.options) || ![4, 5].includes(v.options.length) || !v.options.every(x => typeof x === 'string') ||
       typeof v.correctAnswer !== 'string' || typeof v.explanation !== 'string' ||
       !Array.isArray(v.assets) || v.assets.length > 20 ||
       !v.assets.every(asset => asset && typeof asset === 'object' &&
-        typeof asset.url === 'string' && ['STEM','OPTION_A','OPTION_B','OPTION_C','OPTION_D','EXPLANATION'].includes(asset.placement) &&
+        typeof asset.url === 'string' && ['STEM','OPTION_A','OPTION_B','OPTION_C','OPTION_D','OPTION_E','EXPLANATION'].includes(asset.placement) &&
         ['IMAGE','VIDEO_URL','LINK'].includes(asset.assetType)) ||
-      !['STEM','OPTION_A','OPTION_B','OPTION_C','OPTION_D','EXPLANATION'].includes(v.assetPlacement) ||
+      !['STEM','OPTION_A','OPTION_B','OPTION_C','OPTION_D','OPTION_E','EXPLANATION'].includes(v.assetPlacement) ||
       !['IMAGE','VIDEO_URL','LINK'].includes(v.assetType) ||
       typeof v.assetUrl !== 'string' || typeof v.assetTitle !== 'string' ||
       typeof v.assetAltText !== 'string') return false;
+  if (v.questionType !== undefined) {
+    if (!['MULTIPLE_CHOICE', 'TRUE_FALSE', 'OPEN_ENDED'].includes(v.questionType) ||
+        ![4, 5].includes(v.optionCount ?? 4) ||
+        (v.booleanAnswer !== null && typeof v.booleanAnswer !== 'boolean') ||
+        ['modelAnswer', 'scoringRubric', 'evaluationCriteria', 'objectiveCode', 'difficulty'].some(key =>
+          typeof (v as unknown as Record<string, unknown>)[key] !== 'string')) return false;
+  }
   return true;
 }
 

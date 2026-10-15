@@ -61,7 +61,14 @@ try {
   assert.equal(await panel.getByRole('button', { name: 'Rol ve Yetkiler', exact: true }).count(), 1);
   await assertNoOverflow(page);
   assert.equal(await panel.locator('.nav-link').evaluateAll(buttons => buttons.every(button => button.getBoundingClientRect().height >= 44)), true);
-  assert.equal(/pilot|test ortamı|örnek veri/i.test(await page.locator('body').innerText()), false);
+  const visibleText = await page.locator('body').innerText();
+  const previewMarker = /pilot|test ortamı|örnek veri/i.exec(visibleText);
+  if (previewMarker) {
+    const start = Math.max(0, previewMarker.index - 100);
+    const end = Math.min(visibleText.length, previewMarker.index + previewMarker[0].length + 100);
+    console.error('NAVIGATION_UNEXPECTED_PREVIEW_MARKER_CONTEXT=' + JSON.stringify(visibleText.slice(start, end)));
+  }
+  assert.equal(previewMarker === null, true, 'Authenticated UI must not display preview markers');
   console.log('NAVIGATION_DESKTOP_IMAGE=' + (await page.screenshot({ type: 'jpeg', quality: 45 })).toString('base64'));
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -121,12 +128,12 @@ try {
   assert.ok(logoutBounds && logoutBounds.y >= 0 && logoutBounds.y + logoutBounds.height <= 568, 'Mobile logout must be visible without scrolling');
   assert.ok(logoutBounds.height >= 44, 'Mobile logout needs a usable touch target');
   await logoutButton.click();
-  await logoutPage.getByRole('heading', { name: 'Yayın üretiminden ekip koordinasyonuna.' }).waitFor();
+  await logoutPage.locator('#public-hero-heading').waitFor();
   assert.equal(logoutCalls.get(logoutPage), 1, 'Logout must call the session endpoint once');
   assert.equal(await logoutPage.locator('#workspace-navigation').count(), 0);
   assert.equal(await logoutPage.evaluate(() => document.body.style.position), '');
   await logoutPage.reload();
-  await logoutPage.getByRole('heading', { name: 'Yayın üretiminden ekip koordinasyonuna.' }).waitFor();
+  await logoutPage.locator('#public-hero-heading').waitFor();
   assert.equal(await logoutPage.locator('#workspace-navigation').count(), 0);
   await logoutPage.close();
 
@@ -142,7 +149,7 @@ try {
   }
 
   const publicPage = await fixturePage(null);
-  await publicPage.getByRole('heading', { name: 'Yayın üretiminden ekip koordinasyonuna.' }).waitFor();
+  await publicPage.locator('#public-hero-heading').waitFor();
   assert.equal(/pilot|test ortamı|örnek veri|önizleme/i.test(await publicPage.locator('body').innerText()), false);
   await publicPage.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
   await publicPage.locator('input[type="password"]').waitFor();

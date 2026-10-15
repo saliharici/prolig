@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, BookOpen, CheckCircle2, FileQuestion, ListChecks, Loader2, LockKeyhole, LogIn, Mail, MessageSquareText } from 'lucide-react';
+import { ArrowLeft, Loader2, LockKeyhole, LogIn, Mail } from 'lucide-react';
 import { login } from './api';
+import './corporate-access-v1.css';
 
 export interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -34,9 +35,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   };
 
   return (
-    <div className="soft-login-shell">
-      <div className="public-ambient public-ambient-one" />
-      <div className="public-ambient public-ambient-two" />
+    <div className="soft-login-shell prolig-access-v1">
 
       <button onClick={onCancel} className="soft-login-back">
         <ArrowLeft size={16} /> Ana sayfaya dön
@@ -52,51 +51,35 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
             />
           </div>
           <div className="soft-login-copy">
-            <span className="public-overline">GÜVENLİ ÇALIŞMA ALANI</span>
-            <h1>İşinize kaldığınız yerden devam edin.</h1>
-            <p>Rolünüz ve yetki kapsamınız doğrultusunda size ait proje, içerik ve değerlendirme ekranlarına erişin.</p>
-            <div className="soft-login-capabilities" aria-label="PRO-LİG platform yetenekleri">
-              <div className="soft-login-capability">
-                <span><BookOpen size={16} /></span>
-                <div><strong>Proje Yönetimi</strong><small>Kapsam, ekip ve ilerleme</small></div>
-              </div>
-              <div className="soft-login-capability">
-                <span><ListChecks size={16} /></span>
-                <div><strong>Görev Takibi</strong><small>Sorumlu, termin ve durum</small></div>
-              </div>
-              <div className="soft-login-capability">
-                <span><FileQuestion size={16} /></span>
-                <div><strong>İçerik Üretimi</strong><small>Soru, inceleme ve revizyon</small></div>
-              </div>
-              <div className="soft-login-capability">
-                <span><MessageSquareText size={16} /></span>
-                <div><strong>Ekip İletişimi</strong><small>Kurumsal mesaj ve duyuru</small></div>
-              </div>
-            </div>
+            <span className="access-eyebrow">PRO-LİG / ÇALIŞMA ALANI</span>
+            <h1>Yayın hazırlığı,<br /><em>ortak bir çalışma.</em></h1>
+            <p>Yazarlık, editörlük ve yayın koordinasyonu. Size tanımlanan çalışma alanından sürecinize devam edin.</p>
 
-            <div className="soft-login-flow" aria-label="PRO-LİG yayın üretim akışı">
-              <span>PROJE</span><i />
-              <span>GÖREV</span><i />
-              <span>ÜRETİM</span><i />
-              <span>KONTROL</span><i />
-              <span>YAYIN</span>
-            </div>
-
-            <div className="soft-login-points">
-              <div><CheckCircle2 size={15} /><span>Rol tabanlı erişim</span></div>
-              <div><CheckCircle2 size={15} /><span>Güvenli oturum</span></div>
-              <div><CheckCircle2 size={15} /><span>İzlenebilir işlem geçmişi</span></div>
+            <div className="access-dossier" aria-label="Temsili yayın çalışma dosyası">
+              <div className="access-dossier-head">
+                <span>ÇALIŞMA DÜZENİ / ÖRNEK</span>
+                <span className="access-dossier-seal">PRO-LİG</span>
+              </div>
+              <div className="access-dossier-body">
+                <p className="access-dossier-caption">Bir yayın dosyasının yolculuğu</p>
+                <div className="access-dossier-row"><span>01</span><strong>Yazarın taslağı</strong><small>İçerik üretimi</small></div>
+                <div className="access-dossier-row"><span>02</span><strong>Editör incelemesi</strong><small>Geri bildirim ve revizyon</small></div>
+                <div className="access-dossier-row"><span>03</span><strong>Yayın hazırlığı</strong><small>Onay ve teslim takibi</small></div>
+              </div>
+              <div className="access-dossier-foot">Bu görsel gerçek proje veya kullanıcı verisi içermez.</div>
             </div>
           </div>
         </aside>
 
         <section className="soft-login-card">
-          <div className="soft-login-card-icon"><LogIn size={22} /></div>
-          <span className="public-overline">PRO-LİG HESABI</span>
-          <h2>Oturum açın</h2>
+          <div className="access-form-heading">
+            <span className="access-eyebrow">KİŞİSEL ÇALIŞMA ALANI</span>
+            <span className="access-form-symbol" aria-hidden="true"><LogIn size={20} /></span>
+          </div>
+          <h2>Yeniden hoş geldiniz.</h2>
           <p className="soft-login-subtitle">Çalışma alanınıza erişmek için kurum hesabınızla giriş yapın.</p>
 
-          {error && <div className="soft-login-error">{error}</div>}
+          {error && <div className="soft-login-error" role="alert">{error}</div>}
 
           <form onSubmit={handleSubmit} className="soft-login-form">
             <label htmlFor="email">
@@ -140,7 +123,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
           </form>
 
           <div className="soft-login-footnote">
-            Rol bazlı erişim · İşlem geçmişi
+            Hesabınıza tanımlanan rol ve yetkilerle güvenli erişim.
           </div>
         </section>
       </div>

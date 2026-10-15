@@ -4,6 +4,7 @@ import { getCurrentUser } from '../_lib/current-user.js';
 import { buildQuestionReadScope } from '../_lib/question-access.js';
 import { formatQuestionDto } from '../_lib/question-dto.js';
 import { parseQuestionAssets } from '../_lib/question-assets.js';
+import { parseTypedQuestion, usesTypedQuestion } from '../_lib/question-type-validation.js';
 import { getQuestionArchiveStateMap } from '../_lib/question-archive.js';
 import { Client } from 'pg';
 import { isP1DPreviewSandboxTarget, p1dPreviewRefusalCode, P1D_SANDBOX_DATABASE } from '../_lib/p1d-preview-identity.js';
@@ -152,6 +153,9 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
   }
 
   const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, assets } = req.body || {};
+  const typed = usesTypedQuestion(req.body);
+  const typedResult = typed ? parseTypedQuestion(req.body) : null;
+  if (typedResult?.error) return res.status(typedResult.status!).json({ error: typedResult.error });
 
   if (!content || typeof content !== 'string' || content.trim().length < 10 || content.trim().length > 1200) {
     return res.status(400).json({ error: 'Invalid content' });
@@ -161,15 +165,15 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Invalid grade' });
   }
 
-  if (!options || !Array.isArray(options) || options.length !== 4) {
+  if (!typed && (!options || !Array.isArray(options) || options.length !== 4)) {
     return res.status(400).json({ error: 'Options must be exactly 4 strings' });
   }
-  const cleanOptions = options.map((o: any) => typeof o === 'string' ? o.trim() : '');
-  if (cleanOptions.some((o: string) => o.length === 0 || o.length > 500)) {
+  const cleanOptions = (options || []).map((o: any) => typeof o === 'string' ? o.trim() : '');
+  if (!typed && cleanOptions.some((o: string) => o.length === 0 || o.length > 500)) {
     return res.status(400).json({ error: 'Invalid option length' });
   }
 
-  if (!correctAnswer || !['A', 'B', 'C', 'D'].includes(correctAnswer)) {
+  if (!typed && (!correctAnswer || !['A', 'B', 'C', 'D'].includes(correctAnswer))) {
     return res.status(400).json({ error: 'Invalid correctAnswer' });
   }
 
@@ -234,6 +238,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
         difficulty: difficulty ? difficulty.trim() : null,
         options: cleanOptions,
         correctAnswer: correctAnswer,
+        ...typedResult?.data,
         explanation: explanation ? explanation.trim() : null,
         projectId: projectId || null,
         authorUserId: user.id,

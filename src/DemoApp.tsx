@@ -15,10 +15,13 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
-import { buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions, requireCompleteQuestionAnswers } from './questions/edit';
+import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions, toP2SandboxLegacyDraft } from './questions/edit';
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
+import { GuidedQuestionStudio } from './questions/GuidedQuestionStudio';
+import { QuestionTypePreview } from './questions/QuestionTypePreview';
+import { questionTypeDraft } from './questions/question-type-state';
 import { questionStudioFingerprint, pausedQuestionDraftKey, copyPausedQuestionDraft, type QuestionStudioFormValues, type QuestionStudioPausedDraft } from './questions/studio-state';
 import { hasDurableQuestionDraft, saveEncryptedQuestionDraft, recoverEncryptedQuestionDraft, removeEncryptedQuestionDraft, validateDraftPassphrase, type StudioDurableDraftData } from './questions/studio-durable';
 import { compareQuestionRevisions } from './questions/revision-compare';
@@ -52,6 +55,10 @@ import './demo.css';
 import './questions/studio-preview.css';
 import './questions/studio-workspace.css';
 import './questions/studio-durable.css';
+import './workspace/corporate-workspace-v3.css';
+import './workspace/corporate-modules-v3b.css';
+import './workspace/corporate-finance-v3c.css';
+import { QuestionStemWysiwygEditor } from './questions/QuestionStemWysiwygEditor';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', icon: LayoutDashboard },
@@ -815,6 +822,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
   const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
   const [questionExplanation, setQuestionExplanation] = useState('');
+  const [questionTypeExtras, setQuestionTypeExtras] = useState(questionTypeDraft());
+  const [questionStep, setQuestionStep] = useState(1);
   const [questionAssets, setQuestionAssets] = useState<QuestionAssetInput[]>([]);
   const [questionAssetPlacement, setQuestionAssetPlacement] = useState<QuestionAssetPlacement>('STEM');
   const [questionAssetType, setQuestionAssetType] = useState<QuestionAssetType>('IMAGE');
@@ -836,6 +845,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const pausedQuestionDraftsRef = useRef(new Map<string, QuestionStudioPausedDraft<ApiQuestion>>());
   const [pausedDraftsVersion, setPausedDraftsVersion] = useState(0);
   const [durableDraftEnabled, setDurableDraftEnabled] = useState(false);
+  const [durableDraftExpanded, setDurableDraftExpanded] = useState(false);
   const [durableDraftBusy, setDurableDraftBusy] = useState(false);
   const [durableDraftConflict, setDurableDraftConflict] = useState(false);
   const [durableDraftMessage, setDurableDraftMessage] = useState('');
@@ -873,7 +883,12 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
   const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role);
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
+  // Keep P1/P1-D payloads unchanged unless the separate multi-type UI flag is enabled.
+  const guidedStudioOn = import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' &&
+    import.meta.env.VITE_QUESTION_STUDIO_P2_TYPES === 'true';
+  const guardedLegacyQuestionWrite = import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true';
   const questionFormValues: QuestionStudioFormValues = {
+    ...(guidedStudioOn ? questionTypeExtras : {}),
     content: questionTitle,
     level: questionLevel,
     grade: questionGrade,
@@ -887,6 +902,22 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     assetUrl: questionAssetUrl,
     assetTitle: questionAssetTitle,
     assetAltText: questionAssetAltText
+  };
+  const updateGuidedQuestionValues = (next: QuestionStudioFormValues) => {
+    setQuestionTitle(next.content);
+    setQuestionLevel(next.level);
+    setQuestionGrade(next.grade);
+    setQuestionProjectId(next.projectId);
+    setQuestionOptions([...next.options]);
+    setQuestionCorrectAnswer(next.correctAnswer);
+    setQuestionExplanation(next.explanation);
+    setQuestionAssets(next.assets.map(asset => ({ ...asset })));
+    setQuestionAssetPlacement(next.assetPlacement);
+    setQuestionAssetType(next.assetType);
+    setQuestionAssetUrl(next.assetUrl);
+    setQuestionAssetTitle(next.assetTitle);
+    setQuestionAssetAltText(next.assetAltText);
+    setQuestionTypeExtras(questionTypeDraft(next));
   };
   const questionSnapshot = questionStudioFingerprint(questionFormValues);
   const hasUnsavedQuestionChanges = Boolean(questionBaseline) && questionSnapshot !== questionBaseline;
@@ -915,6 +946,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionOptions([...values.options]);
     setQuestionCorrectAnswer(values.correctAnswer);
     setQuestionExplanation(values.explanation);
+    if (guidedStudioOn) setQuestionTypeExtras(questionTypeDraft(values));
+    setQuestionStep(1);
     setQuestionAssets(values.assets.map(asset => ({ ...asset })));
     setQuestionAssetPlacement(values.assetPlacement);
     setQuestionAssetType(values.assetType);
@@ -1182,29 +1215,40 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionSaveError('');
     try {
       if (editingQuestion) {
-        const input = buildQuestionEditPatch(editingQuestion, {
+        const draft = {
           content: questionTitle,
           grade: questionGrade,
           explanation: questionExplanation,
           projectId: questionProjectId,
           options: questionOptions,
           correctAnswer: questionCorrectAnswer,
-          assets: normalizeQuestionAssets(questionAssets)
-        });
+          assets: normalizeQuestionAssets(questionAssets),
+          ...(guidedStudioOn ? questionTypeExtras : {})
+        };
+        const input = buildQuestionEditPatch(editingQuestion, guardedLegacyQuestionWrite ? toP2SandboxLegacyDraft(draft) : draft);
+        if (guardedLegacyQuestionWrite) {
+          const code = questionTypeExtras.objectiveCode?.trim() || '';
+          input.objectiveCode = code.includes('P2-UAT') ? code : ['P2-UAT', code].filter(Boolean).join(' ');
+          input.difficulty = questionTypeExtras.difficulty?.trim() || null;
+        }
         input.expectedUpdatedAt = editingQuestion.updatedAt;
         await patchQuestion(editingQuestion.id, input);
         setToast('Soru düzeltmeleri kaydedildi.');
       } else {
-        const answers = requireCompleteQuestionAnswers(questionOptions, questionCorrectAnswer);
-        await createQuestion({
-          content: questionTitle.trim(),
+        const draft = {
+          content: questionTitle,
           grade: questionGrade,
-          options: answers.options,
-          correctAnswer: answers.correctAnswer,
-          explanation: questionExplanation.trim() || null,
+          options: questionOptions,
+          correctAnswer: questionCorrectAnswer,
+          explanation: questionExplanation,
           projectId: questionProjectId,
-          assets: normalizeQuestionAssets(questionAssets)
-        });
+          assets: normalizeQuestionAssets(questionAssets),
+          ...(guidedStudioOn ? questionTypeExtras : {})
+        };
+        await createQuestion(buildQuestionCreateInput(
+          guardedLegacyQuestionWrite ? toP2SandboxLegacyDraft(draft) : draft,
+          guardedLegacyQuestionWrite
+        ));
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
       durableDraftGenerationRef.current += 1;
@@ -1224,6 +1268,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       setQuestionBaseline('');
       setQuestionTitle('');
       setQuestionOptions(['', '', '', '']);
+      setQuestionTypeExtras(questionTypeDraft());
+      setQuestionStep(1);
       setQuestionExplanation('');
       setQuestionAssets([]);
       setQuestionProjectId(null);
@@ -1269,6 +1315,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionTitle('');
     setQuestionSaveError('');
     setQuestionBaseline(questionStudioFingerprint({
+      ...(guidedStudioOn ? questionTypeDraft() : {}),
       content: '', level: 'Ortaokul', grade: '8. Sınıf', projectId: null,
       options: ['', '', '', ''], correctAnswer: 'A', explanation: '', assets: [],
       assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
@@ -1279,6 +1326,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setOriginalQuestionProjectId(null);
     setQuestionOptions(['', '', '', '']);
     setQuestionCorrectAnswer('A');
+    setQuestionTypeExtras(questionTypeDraft());
+    setQuestionStep(1);
     setQuestionExplanation('');
     setQuestionAssets([]);
     setQuestionAssetPlacement('STEM');
@@ -1348,7 +1397,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     });
   };
   const updateQuestionOption = (index: number, value: string) => setQuestionOptions(current => current.map((option, optionIndex) => optionIndex === index ? value : option));
-  const addQuestionAsset = () => {
+  const addQuestionAssetAt = (placement: QuestionAssetPlacement = questionAssetPlacement) => {
     const url = questionAssetUrl.trim();
     if (!url) {
       setToast('Medya bağlantısı girin.');
@@ -1371,7 +1420,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssets(current => normalizeQuestionAssets([
       ...current,
       {
-        placement: questionAssetPlacement,
+        placement,
         assetType: questionAssetType,
         url,
         title: questionAssetTitle.trim() || null,
@@ -1383,6 +1432,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssetTitle('');
     setQuestionAssetAltText('');
   };
+  const addQuestionAsset = () => addQuestionAssetAt();
   const removeQuestionAsset = (index: number) => {
     setQuestionAssets(current => normalizeQuestionAssets(current.filter((_, assetIndex) => assetIndex !== index)));
   };
@@ -1415,9 +1465,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     ))}</div>;
   };
 
-  const renderQuestionInlineFormatting = (text: string) => {
+  const renderQuestionInlineFormatting = (text: string): ReactNode => {
     const nodes: ReactNode[] = [];
-    const pattern = /(\*\*[^*]+\*\*|_[^_\s][^_]*_|<u>.+?<\/u>|\$[^$]+\$|\[[^\]]+\]\([^)]+\))/g;
+    const pattern = /(\*\*[^*]+\*\*|_[^_\s][^_]*_|<u>[\s\S]*?<\/u>|\$[^$]+\$|\[[^\]]+\]\([^)]+\))/g;
     let lastIndex = 0;
     let tokenIndex = 0;
 
@@ -1427,11 +1477,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       if (index > lastIndex) nodes.push(text.slice(lastIndex, index));
 
       if (token.startsWith('**')) {
-        nodes.push(<strong key={`strong-${tokenIndex}`}>{token.slice(2, -2)}</strong>);
+        nodes.push(<strong key={`strong-${tokenIndex}`}>{renderQuestionInlineFormatting(token.slice(2, -2))}</strong>);
       } else if (token.startsWith('_')) {
-        nodes.push(<em key={`em-${tokenIndex}`}>{token.slice(1, -1)}</em>);
+        nodes.push(<em key={`em-${tokenIndex}`}>{renderQuestionInlineFormatting(token.slice(1, -1))}</em>);
       } else if (token.startsWith('<u>')) {
-        nodes.push(<u key={`underline-${tokenIndex}`}>{token.slice(3, -4)}</u>);
+        nodes.push(<u key={`underline-${tokenIndex}`}>{renderQuestionInlineFormatting(token.slice(3, -4))}</u>);
       } else if (token.startsWith('$')) {
         nodes.push(<code className="question-formula" key={`formula-${tokenIndex}`}>{token.slice(1, -1)}</code>);
       } else {
@@ -1439,7 +1489,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         const href = linkMatch?.[2]?.trim();
         const label = linkMatch?.[1] || token;
         if (href && /^https?:\/\//i.test(href)) {
-          nodes.push(<a href={href} target="_blank" rel="noreferrer" key={`link-${tokenIndex}`}>{label}</a>);
+          nodes.push(<a href={href} target="_blank" rel="noreferrer" key={`link-${tokenIndex}`}>{renderQuestionInlineFormatting(label)}</a>);
         } else {
           nodes.push(label);
         }
@@ -1496,8 +1546,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     return blocks;
   };
   const renderQuestionReviewPreview = (question: ApiQuestion) => {
+    if (question.questionType && question.questionType !== 'MULTIPLE_CHOICE') {
+      return <QuestionTypePreview question={question} renderAssets={placement => renderQuestionAssets(question.assets, placement)} />;
+    }
     const options = normalizeQuestionOptions(question.options);
-    const hasOptions = hasFourValidQuestionOptions(options);
+    const hasOptions = (question.optionCount ?? 4) === options.length && options.every(option => option.trim());
 
     return <article className="editor-question-preview">
       <div className="editor-question-stem">
@@ -1586,6 +1639,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionOptions(normalizeQuestionOptions(question.options));
     setQuestionCorrectAnswer(isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '');
     setQuestionExplanation(question.explanation || '');
+    if (guidedStudioOn) setQuestionTypeExtras(questionTypeDraft(question));
+    setQuestionStep(1);
     setQuestionAssets(normalizeQuestionAssets(question.assets));
     setQuestionProjectId(question.projectId);
     setOriginalQuestionProjectId(question.projectId);
@@ -1596,6 +1651,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssetAltText('');
     setQuestionSaveError('');
     setQuestionBaseline(questionStudioFingerprint({
+      ...(guidedStudioOn ? questionTypeDraft(question) : {}),
       content: question.content, level, grade, projectId: question.projectId,
       options: normalizeQuestionOptions(question.options),
       correctAnswer: isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '',
@@ -1771,7 +1827,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     ['overview', 'projects', 'tasks', 'messages', 'announcements', 'authors'].includes(item.id) && allowed.includes(item.id)
   );
 
-  return <div className="demo-shell">
+  return <div className="demo-shell corporate-workspace-v3">
     <a className="workspace-skip-link" href="#workspace-content">İçeriğe geç</a>
     <aside
       id="workspace-navigation"
@@ -1887,31 +1943,31 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 
         {section === 'overview' && currentUser.role === 'MUHASEBE' && <FinanceOverview apiPayments={apiPayments} data={data} onNavigate={navigate} currentUser={currentUser} />}
         {section === 'overview' && currentUser.role !== 'MUHASEBE' && <>
-          <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>{currentUser.role === 'YAZAR' ? 'Sorularınızı hazırlayın, editör değerlendirmesini takip edin.' : 'Üretim sürecindeki son durumu tek yerden takip edin.'}</p></div><span className="heading-chip"><ShieldCheck size={16} /> {roleLabels[currentUser.role]} görünümü</span></div>
+          <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>{currentUser.role === 'YAZAR' ? 'Sorularınızı hazırlayın, editör değerlendirmesini takip edin.' : 'Üretim sürecindeki son durumu tek yerden takip edin.'}</p></div><div className="workspace-overview-actions"><span className="heading-chip"><ShieldCheck size={16} /> {roleLabels[currentUser.role]} görünümü</span><button type="button" className="workspace-main-action" onClick={() => navigate(currentUser.role === 'YAZAR' || currentUser.role === 'EDITOR' ? 'questions' : 'projects')}>{currentUser.role === 'YAZAR' ? 'Soru havuzuna git' : currentUser.role === 'EDITOR' ? 'İnceleme kuyruğunu aç' : 'Projeleri görüntüle'} <ArrowRight size={16} aria-hidden="true" /></button></div></div>
           <div className="stats-grid">
             <StatCard label="Aktif projeler" value={activeProjects} note="Üretim takviminde" icon={BookOpen} tone="blue" />
             <StatCard label={currentUser.role === 'YAZAR' ? 'Sorularım' : 'İncelemede'} value={currentUser.role === 'YAZAR' ? apiQuestions.length : pendingQuestions} note={currentUser.role === 'YAZAR' ? 'Soru havuzunda' : 'Editör kararı bekliyor'} icon={FileQuestion} tone="amber" />
-            {currentUser.role === 'EDITOR' ? <StatCard label="Revizyon bekleyen" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Yazara iletilen sorular" icon={RotateCcw} tone="purple" /> : currentUser.role === 'YAZAR' ? <StatCard label="Revizyonlarım" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Düzenleme bekleyen" icon={RotateCcw} tone="purple" /> : <StatCard label="Yazar ağı" value={apiAuthors.length.toString().padStart(2, '0')} note="Kapsamınızdaki yazarlar" icon={Users} tone="purple" />}
-            <StatCard label="Tamamlanan sorular" value={apiQuestions.filter(q => q.status === 'ONAYLANDI').length.toString().padStart(2, '0')} note="Yayın hazırlığında" icon={CheckCircle2} tone="green" />
+            {currentUser.role === 'EDITOR' ? <StatCard label="Revizyon bekleyen" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Yazara iletilen sorular" icon={RotateCcw} tone="purple" /> : currentUser.role === 'YAZAR' ? <StatCard label="Revizyonlarım" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Düzenleme bekleyen" icon={RotateCcw} tone="purple" /> : <StatCard label="Yazar ağı" value={apiAuthors.length} note="Kapsamınızdaki yazarlar" icon={Users} tone="purple" />}
+            <StatCard label="Tamamlanan sorular" value={apiQuestions.filter(q => q.status === 'ONAYLANDI').length} note="Yayın hazırlığında" icon={CheckCircle2} tone="green" />
           </div>
-          <div className="overview-grid"><section className="panel"><div className="panel-head"><div><span className="panel-kicker">İŞ AKIŞI</span><h2>Soru üretim hattı</h2></div><button className="text-button" onClick={() => navigate('questions')}>Tüm sorular <ArrowRight size={16} /></button></div><p className="panel-sub">Taslaklardan onaya uzanan süreci rolünüze göre deneyin.</p><div className="pipeline">{[{label: 'Taslak', code: 'TASLAK'}, {label: 'İncelemede', code: 'INCELEMEDE'}, {label: 'Revizyon', code: 'REVIZYON'}, {label: 'Onaylandı', code: 'ONAYLANDI'}].map((status, index) => <div key={status.code} className="pipeline-step"><span className={`pipeline-dot dot-${index}`}><span>{apiQuestions.filter(q => q.status === status.code).length}</span></span><strong>{status.label}</strong><small>{index === 0 ? 'Yazar hazırlar' : index === 1 ? 'Editör inceler' : index === 2 ? 'Yazar düzenler' : 'Yayına hazır'}</small>{index < 3 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><CircleHelp size={20} /></div><div><strong>Rolünüzde neler yapabilirsiniz?</strong><span>Yetki matrisinde ekran ve işlem kapsamını görün.</span></div><button onClick={() => navigate('roles')}><ArrowUpRight size={18} /></button></div></section>
-          <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section></div>
+          <div className="overview-grid"><section className="panel"><div className="panel-head"><div><span className="panel-kicker">İŞ AKIŞI</span><h2>Soru üretim hattı</h2></div><button className="text-button" onClick={() => navigate('questions')}>Tüm sorular <ArrowRight size={16} /></button></div><p className="panel-sub">Taslaklardan onaya uzanan süreci rolünüze göre deneyin.</p><div className="pipeline">{[{label: 'Taslak', code: 'TASLAK'}, {label: 'İncelemede', code: 'INCELEMEDE'}, {label: 'Revizyon', code: 'REVIZYON'}, {label: 'Onaylandı', code: 'ONAYLANDI'}].map((status, index) => <div key={status.code} className="pipeline-step"><span className={`pipeline-dot dot-${index}`}><span>{apiQuestions.filter(q => q.status === status.code).length}</span></span><strong>{status.label}</strong><small>{index === 0 ? 'Yazar hazırlar' : index === 1 ? 'Editör inceler' : index === 2 ? 'Yazar düzenler' : 'Yayına hazır'}</small>{index < 3 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><CircleHelp size={20} /></div><div><strong>{allowed.includes('roles') ? 'Rolünüzde neler yapabilirsiniz?' : currentUser.role === 'YAZAR' ? 'Soru üretimine başlayın' : 'Soru çalışmalarınızı takip edin'}</strong><span>{allowed.includes('roles') ? 'Yetki matrisinde ekran ve işlem kapsamını görün.' : 'Soru havuzuna giderek size açık çalışmaları görüntüleyin.'}</span></div><button type="button" aria-label={allowed.includes('roles') ? 'Rol ve Yetkiler ekranına git' : 'Soru Havuzuna git'} onClick={() => navigate(allowed.includes('roles') ? 'roles' : 'questions')}><ArrowUpRight size={18} /></button></div></section>
+          <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{apiQuestions.length === 0 ? <div className="workspace-activity-empty"><FileQuestion size={21} aria-hidden="true" /><strong>Henüz soru hareketi yok</strong><p>Soru havuzunda kayıt oluştuğunda süreci buradan takip edebilirsiniz.</p></div> : <><p className="workspace-activity-disclaimer">Örnek hareketler — doğrulanmış işlem geçmişi değildir.</p>{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</>}</div></section></div>
           <section className="panel projects-preview"><div className="panel-head"><div><span className="panel-kicker">YAKLAŞAN TESLİMLER</span><h2>Devam eden projeler</h2></div><button className="text-button" onClick={() => navigate('projects')}>Projeleri görüntüle <ArrowRight size={16} /></button></div>{projectsLoading && <div className="empty-state">Projeler yükleniyor...</div>}{projectsError && !projectsLoading && <div className="empty-state">{projectsError}</div>}{!projectsLoading && !projectsError && <div className="project-mini-grid">{apiProjects.slice(0, 3).map(project => <div className="project-mini" key={project.id}><div className="project-mini-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div><strong>{project.title}</strong><small><Clock3 size={14} /> {date(project.deadline)}</small><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>İlerleme</span><strong>%{project.progress}</strong></div></div>)}</div>}</section>
         </>}
         {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını yönetin.'}</p></div>{currentUser.role === 'YAZAR' && questionView === 'active' && <button className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div><div className="question-view-toggle"><button className={questionView==='active'?'active':''} onClick={()=>setQuestionView('active')}><FileQuestion size={14}/> Aktif</button><button className={questionView==='archived'?'active':''} onClick={async()=>{setQuestionView('archived');if(archivedQuestions.length===0) await loadArchivedQuestions();}}><Archive size={14}/> Arşiv</button></div></div>{(questionProjectFilter||questionGradeFilter)&&<div className="context-filter-bar"><span>{questionProjectFilter?apiProjects.find(project=>project.id===questionProjectFilter)?.title||'Proje filtresi':questionGradeFilter}</span><button onClick={()=>{setQuestionProjectFilter(null);setQuestionGradeFilter('')}}>Filtreyi kaldır <X size={13}/></button></div>}<div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Kayıtlar rolünüzün yetki kapsamına göre listelenir.</span></div>
 {apiLoading && <div className="loading-state" style={{padding: '2rem', textAlign: 'center'}}>Sorular yükleniyor...</div>}
 {apiError && !apiLoading && <div className="error-state" style={{padding: '2rem', textAlign: 'center', color: '#ef4444'}}><div>{apiError}</div><button className="secondary-button" onClick={loadApiQuestions} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
-{!apiLoading && !apiError && <div className="table-wrap"><table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>BRANŞ</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => {
+{!apiLoading && !apiError && <div className="table-wrap">{filteredQuestions.length > 0 && <table><thead><tr><th>SORU / KAZANIM</th><th>YAZAR</th><th>BRANŞ</th><th>PROJE</th><th>DURUM</th><th>GÜNCELLEME</th><th>İŞLEM</th></tr></thead><tbody>{filteredQuestions.map(q => {
   const canEdit = !q.isArchived && currentUser.role === 'YAZAR' && ['TASLAK', 'REVIZYON'].includes(q.status);
   const canReview = !q.isArchived && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && q.status === 'INCELEMEDE';
   const canArchive = q.isArchived ? canRestoreQuestionUi(q) : canArchiveQuestionUi(q);
   const canDelete = canDeleteQuestionUi(q);
   const hasAction = canEdit || canReview || canArchive || canDelete;
   return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}</small>{q.editorNote && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.editorNote}</small>}</td><td>{q.author?.fullName}</td><td>{q.author?.branchName || '-'}</td><td>{q.project?.title || 'Genel Soru Havuzu'}</td><td><Status value={statusDisplay(q.status)} /></td><td>{new Date(q.updatedAt).toLocaleDateString('tr-TR')}</td><td><div className="row-actions">{canEdit && <><button onClick={() => openYazarEdit(q)} title="Düzenle"><PencilLine size={15} /></button><button onClick={() => handleYazarSubmit(q)}>İncelemeye gönder <ArrowRight size={14} /></button></>}{canReview && <button onClick={() => openEditorReview(q)} title="Değerlendir"><CheckCircle2 size={15} /> İncele</button>}{canArchive && <button onClick={() => handleQuestionArchive(q)} title={q.isArchived?'Arşivden çıkar':'Arşivle'}>{q.isArchived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {q.isArchived?'Geri al':'Arşivle'}</button>}{canDelete && <button className="danger-action" onClick={() => handleQuestionDelete(q)} title="Kalıcı sil"><Trash2 size={15}/> Sil</button>}{!hasAction && <span className="no-action">—</span>}</div></td></tr>;
-})}</tbody></table>{filteredQuestions.length === 0 && <div className="empty-state">Bu filtreye uygun soru bulunamadı.</div>}</div>}</div></>}
+})}</tbody></table>}{filteredQuestions.length === 0 && <div className="empty-state workspace-question-empty"><FileQuestion size={26} aria-hidden="true" /><strong>{questionView === 'archived' ? 'Arşivde soru bulunmuyor' : apiQuestions.length === 0 ? 'Soru havuzu henüz boş' : 'Bu ölçütlere uygun soru bulunamadı'}</strong><p>{questionView === 'archived' ? 'Arşivlenmiş bir soru kaydı yok.' : apiQuestions.length === 0 ? 'İlk soru hazırlandığında kayıtlar burada listelenecek.' : 'Arama veya durum filtresini değiştirerek yeniden deneyin.'}</p>{currentUser.role === 'YAZAR' && questionView === 'active' && apiQuestions.length === 0 && <button type="button" className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={16} /> İlk soru taslağını oluştur</button>}</div>}</div>}</div></>}
           {section === 'projects' && <>
             <div className="page-heading">
-              <div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>Sunucu kapsamınızdaki projeleri; sınıf, yazar ve soru üretimiyle birlikte yönetin.</p></div>
+              <div><div className="eyebrow">YAYIN TAKVİMİ</div><h1>Projeler</h1><p>{canCreateProjects ? 'Erişiminizdeki yayın projelerini, ekip ve üretim ilerlemesiyle birlikte yönetin.' : 'Atandığınız yayın projelerini, ekibi ve üretim ilerlemesini görüntüleyin.'}</p></div>
               <div className="page-heading-actions"><span className="heading-chip"><BookOpen size={16} /> {filteredProjects.length} proje</span>{canCreateProjects&&<button className="primary-button" onClick={openNewProject}><Plus size={17}/> Yeni Proje</button>}</div>
             </div>
             <div className="toolbar">
@@ -1920,26 +1976,31 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             </div>
             {projectsLoading && <div className="panel empty-state">Projeler yükleniyor...</div>}
             {projectsError && !projectsLoading && <div className="panel empty-state"><div>{projectsError}</div><button className="secondary-button" onClick={loadApiProjects} style={{marginTop: '1rem'}}><RotateCcw size={16} /> Tekrar Dene</button></div>}
-            {!projectsLoading && !projectsError && <div className="project-grid">{filteredProjects.map(project => {
+            {!projectsLoading && !projectsError && <div className={"project-grid corporate-project-grid" + (filteredProjects.length === 1 ? " corporate-project-single" : "")}>{filteredProjects.map(project => {
               const stats = projectQuestionStats(project.id, apiQuestions);
               return <button type="button" className="panel project-card project-card-button" key={project.id} onClick={()=>setSelectedProjectId(project.id)}>
-                <div className="project-card-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div>
-                <span className="project-code">{project.code}</span>
-                <h2>{project.title}</h2>
-                <p>{project.branch.name} · {project.targetGrade} · {project.projectType}</p>
-                <div className="project-card-counts">
-                  <span><Users size={14}/><strong>{project.authors.length}</strong> Yazar</span>
-                  <span><FileQuestion size={14}/><strong>{stats.total}</strong> Soru</span>
-                  <span><CheckCircle2 size={14}/><strong>{stats.approved}</strong> Onaylı</span>
-                  <span><ClipboardList size={14}/><strong>{project.taskCount ?? 0}</strong> Görev</span>
+                <div className="corporate-project-summary">
+                  <div className="project-card-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div>
+                  <span className="project-code">{project.code}</span>
+                  <h2>{project.title}</h2>
+                  <p>{project.branch.name} · {project.targetGrade} · {project.projectType}</p>
                 </div>
-                <div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div>
-                <div className="progress-line"><span style={{ width: project.progress + '%' }} /></div>
-                <div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div>
-                <span className="project-open-hint">Detayı aç <ArrowRight size={14}/></span>
+                <div className="corporate-project-production">
+                  <span className="corporate-project-caption">PROJE ÜRETİM ÖZETİ</span>
+                  <div className="project-card-counts">
+                    <span><Users size={14}/><strong>{project.authors.length}</strong> Yazar</span>
+                    <span><FileQuestion size={14}/><strong>{stats.total}</strong> Soru</span>
+                    <span><CheckCircle2 size={14}/><strong>{stats.approved}</strong> Onaylı</span>
+                    <span><ClipboardList size={14}/><strong>{project.taskCount ?? 0}</strong> Görev</span>
+                  </div>
+                  <div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div>
+                  <div className="progress-line"><span style={{ width: project.progress + '%' }} /></div>
+                  <div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div>
+                  <span className="project-open-hint">Proje dosyasını aç <ArrowRight size={14}/></span>
+                </div>
               </button>;
             })}</div>}
-            {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state">Proje bulunamadı.</div>}
+            {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state corporate-project-empty"><BookOpen size={24} aria-hidden="true" /><strong>{apiProjects.length === 0 ? 'Henüz erişilebilir proje bulunmuyor' : 'Arama ölçütlerine uygun proje yok'}</strong><p>{apiProjects.length === 0 ? 'Yeni bir projeye atandığınızda burada görüntülenecektir.' : 'Arama ifadesini veya sınıf filtresini değiştirerek yeniden deneyin.'}</p></div>}
           </>}
         {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} />}
         {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
@@ -2062,6 +2123,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           tasksLoading={reportTasksLoading}
           tasksError={reportTasksError}
           authorsError={authorsError}
+          paymentsLoading={paymentsLoading}
+          paymentsError={paymentsError}
         />}
         {section === 'payments' && <PaymentCenter
           payments={apiPayments}
@@ -2118,7 +2181,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             <div><span className="panel-kicker">SORU ÜRETİM STÜDYOSU</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div>
             <button type="button" aria-label="Kapat" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}><X size={20} /></button>
           </div>
-          <p>Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.</p>
+          <p>{guidedStudioOn ? 'Soru türünü belirleyin ve beş aşamada hazırlayın.' : 'Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.'}</p>
           {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <p className="studio-dirty-status" role="status">{questionSaving ? 'Kaydediliyor…' : hasUnsavedQuestionChanges ? 'Kaydedilmemiş değişiklikler var' : 'Henüz kaydedilmemiş değişiklik yok'}</p>}
           {questionSaveError && <div className="studio-save-error" role="alert">{questionSaveError}</div>}
           {serverQuestionConflict && <section className="studio-revision-review" aria-label="Soru sürüm karşılaştırması">
@@ -2145,43 +2208,83 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           </section>}
           {questionConflictLookupFailed && <p className="studio-save-error" role="alert">Güncel sunucu sürümü alınamadı. Ekrandaki taslak korundu; başka bir sekmede soru listesini kontrol edin.</p>}
           {durableFeatureOn && <section className="studio-durable-control" aria-label="Şifreli taslak kurtarma">
-            <div className="studio-durable-heading"><strong>Bu cihazda şifreli taslak kurtarma</strong><span>{durableDraftConflict ? 'Sürüm çakışması' : durableDraftEnabled ? 'Etkin' : durableCopyExists ? 'Kopya bulundu' : 'Kapalı'}</span></div>
-            <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Unutursanız taslak açılamaz. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
-            {!durableDraftEnabled && !durableDraftConflict && <div className="studio-durable-actions">
-              <input type="password" ref={durableDraftInputRef} autoComplete="new-password" onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} placeholder="En az 12 karakterlik ayrı kurtarma parolası" aria-label="Taslak kurtarma parolası" disabled={durableDraftBusy || questionSaving}/>
-              {!durableCopyExists && <button type="button" className="secondary-button" onClick={enableDurableRecovery} disabled={durableDraftBusy || questionSaving}>Şifreli korumayı aç</button>}
-              {durableCopyExists && <button type="button" className="secondary-button" onClick={() => void recoverDurableDraft()} disabled={durableDraftBusy || questionSaving}>Şifreli taslağı kurtar</button>}
-            </div>}
-            {durableDraftEnabled && <button type="button" className="studio-durable-discard" onClick={() => {
-              durableDraftGenerationRef.current += 1;
-              durableDraftPhraseRef.current = '';
-              setDurableDraftEnabled(false);
-              setDurableDraftMessage('Otomatik kurtarma durduruldu. Daha önce oluşturulan şifreli kopya cihazda kalır.');
-            }}>Otomatik kurtarmayı durdur</button>}
-            {durableCopyExists && <button type="button" className="studio-durable-discard" onClick={discardDurableDraft} disabled={durableDraftBusy || questionSaving}>Bu cihazdaki şifreli kopyayı sil</button>}
-            {durableDraftConflict && editingQuestion && <button type="button" className="secondary-button" onClick={() => {
-              if (!window.confirm('Kurtarılan yerel düzenlemeler bırakılıp sunucudaki güncel soru açılsın mı? Önce gerekli metinleri kopyalayın.')) return;
-              pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
-              durableDraftGenerationRef.current += 1;
-              try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId); } catch { /* browser restrictions */ }
-              openYazarEdit(editingQuestion);
-            }}>Yerel değişiklikleri bırak ve güncel soruya dön</button>}
-            {durableDraftMessage && <p className={durableDraftConflict ? 'studio-durable-message error' : 'studio-durable-message'} role="status">{durableDraftMessage}</p>}
+            <div className="studio-durable-heading">
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <strong>Bu cihazda şifreli taslak kurtarma</strong>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  style={{fontSize: '11px', padding: '2px 8px', minHeight: 'auto'}}
+                  onClick={() => setDurableDraftExpanded(exp => !exp)}
+                >
+                  {durableDraftExpanded || durableCopyExists || durableDraftConflict ? 'Detayları gizle' : 'Ayarları göster'}
+                </button>
+              </div>
+              <span>{durableDraftConflict ? 'Sürüm çakışması' : durableDraftEnabled ? 'Etkin' : durableCopyExists ? 'Kopya bulundu' : 'Kapalı'}</span>
+            </div>
+            {(durableDraftExpanded || durableCopyExists || durableDraftConflict || durableDraftEnabled) && (
+              <>
+                <p>İsteğe bağlıdır. Taslak 7 gün saklanır ve AES-GCM ile şifrelenir. Parola bu cihazda saklanmaz veya sunucuya gönderilmez. Unutursanız taslak açılamaz. Ortak bilgisayarda kullanmayın; giriş şifrenizden farklı bir parola seçin.</p>
+                {!durableDraftEnabled && !durableDraftConflict && <div className="studio-durable-actions">
+                  <input type="password" ref={durableDraftInputRef} autoComplete="new-password" onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} placeholder="En az 12 karakterlik ayrı kurtarma parolası" aria-label="Taslak kurtarma parolası" disabled={durableDraftBusy || questionSaving}/>
+                  {!durableCopyExists && <button type="button" className="secondary-button" onClick={enableDurableRecovery} disabled={durableDraftBusy || questionSaving}>Şifreli korumayı aç</button>}
+                  {durableCopyExists && <button type="button" className="secondary-button" onClick={() => void recoverDurableDraft()} disabled={durableDraftBusy || questionSaving}>Şifreli taslağı kurtar</button>}
+                </div>}
+                {durableDraftEnabled && <button type="button" className="studio-durable-discard" onClick={() => {
+                  durableDraftGenerationRef.current += 1;
+                  durableDraftPhraseRef.current = '';
+                  setDurableDraftEnabled(false);
+                  setDurableDraftMessage('Otomatik kurtarma durduruldu. Daha önce oluşturulan şifreli kopya cihazda kalır.');
+                }}>Otomatik kurtarmayı durdur</button>}
+                {durableCopyExists && <button type="button" className="studio-durable-discard" onClick={discardDurableDraft} disabled={durableDraftBusy || questionSaving}>Bu cihazdaki şifreli kopyayı sil</button>}
+                {durableDraftConflict && editingQuestion && <button type="button" className="secondary-button" onClick={() => {
+                  if (!window.confirm('Kurtarılan yerel düzenlemeler bırakılıp sunucudaki güncel soru açılsın mı? Önce gerekli metinleri kopyalayın.')) return;
+                  pausedQuestionDraftsRef.current.delete(pausedQuestionKey);
+                  durableDraftGenerationRef.current += 1;
+                  try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, durableQuestionId); } catch { /* browser restrictions */ }
+                  openYazarEdit(editingQuestion);
+                }}>Yerel değişiklikleri bırak ve güncel soruya dön</button>}
+                {durableDraftMessage && <p className={durableDraftConflict ? 'studio-durable-message error' : 'studio-durable-message'} role="status">{durableDraftMessage}</p>}
+              </>
+            )}
           </section>}
-          <div className="question-studio-layout" inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}>
+          {guidedStudioOn ? <GuidedQuestionStudio
+            values={questionFormValues} onChange={updateGuidedQuestionValues}
+            step={questionStep} onStepChange={setQuestionStep}
+            projects={questionAssignableProjects} projectsLoading={projectsLoading} projectsError={projectsError}
+            originalProjectId={originalQuestionProjectId} levels={questionLevels} grades={questionGrades}
+            onProject={changeQuestionProject} onLevel={changeQuestionLevel} onGrade={changeQuestionGrade}
+            branchName={currentUser.role === 'YAZAR' ? (currentUser as any).branchName || '' : ''}
+            editing={Boolean(editingQuestion)} disabled={questionSaving || durableDraftBusy}
+            sandbox={import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true'}
+            onAddAsset={placement => { setQuestionAssetPlacement(placement); addQuestionAssetAt(placement); }}
+            onRemoveAsset={removeQuestionAsset}
+            renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
+          /> : <div className="question-studio-layout" inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}>
             <div className="question-studio-main">
               <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
+              {import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true' && <p className="field-help" role="note">P2 yerel test kaydı: yalnızca PILOT-MAT-8-001 projesi kabul edilir. Yeni taslağa P2-UAT sahiplik işareti otomatik eklenir ve düzenleme sırasında korunur.</p>}
               <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
               <label className="question-editor-label">Soru gövdesi</label>
-              <div className="question-editor-shell">
-                <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
-                  <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
-                  <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
-                  <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button>{import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <button type="button" title="Tablo ekle (deneysel)" aria-label="Tablo ekle" onClick={insertQuestionTable}><Table2 size={16} /></button>}<button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+              {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
+                <QuestionStemWysiwygEditor
+                  value={questionTitle}
+                  onChange={setQuestionTitle}
+                  maxLength={1200}
+                  placeholder="Sorunun yönergesini ve içeriğini yazın..."
+                  disabled={questionSaving || durableDraftBusy}
+                />
+              ) : (
+                <div className="question-editor-shell">
+                  <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
+                    <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
+                    <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
+                    <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button>{import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <button type="button" title="Tablo ekle (deneysel)" aria-label="Tablo ekle" onClick={insertQuestionTable}><Table2 size={16} /></button>}<button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+                  </div>
+                  <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
+                  <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
                 </div>
-                <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
-                <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
-              </div>
+              )}
 
               <section className="question-media-builder" aria-label="Soru medyaları">
                 <div className="question-answer-head"><div><strong>Medya ve görsel alanı</strong><span>Soru kökü, seçenekler veya çözüm için görsel ya da YouTube/Vimeo/Dailymotion gömme bağlantısı ekleyin.</span></div><span className="answer-key">{questionAssets.length} medya</span></div>
@@ -2197,8 +2300,42 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </section>
 
               <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer || 'Seçilmedi'}</span></div>
-              <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
-              <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini, çözüm adımlarını veya editör için notu yazın..." /></label>
+              {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
+                <div className="question-options-grid">{questionOptions.map((option, index) => {
+                  const letter = String.fromCharCode(65 + index);
+                  return <div className={`question-option question-option-p2 ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}>
+                    <input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} />
+                    <span>{letter}</span>
+                    <QuestionStemWysiwygEditor
+                      variant="option"
+                      ariaLabel={`${letter} seçeneği zengin metin editörü`}
+                      value={option}
+                      onChange={value => updateQuestionOption(index, value)}
+                      maxLength={500}
+                      placeholder={`${letter} seçeneğini yazın`}
+                      disabled={questionSaving || durableDraftBusy}
+                    />
+                  </div>;
+                })}</div>
+              ) : (
+                <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
+              )}
+              {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
+                <div className="question-p2-explanation-field">
+                  <label className="question-editor-label">Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span></label>
+                  <QuestionStemWysiwygEditor
+                    variant="explanation"
+                    ariaLabel="Çözüm ve açıklama zengin metin editörü"
+                    value={questionExplanation}
+                    onChange={setQuestionExplanation}
+                    maxLength={600}
+                    placeholder="Çözüm adımlarını yazın..."
+                    disabled={questionSaving || durableDraftBusy}
+                  />
+                </div>
+              ) : (
+                <label>Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span><textarea className="question-explanation" maxLength={600} value={questionExplanation} onChange={event => setQuestionExplanation(event.target.value)} placeholder="Doğru cevabın gerekçesini, çözüm adımlarını veya editör için notu yazın..." /></label>
+              )}
             </div>
 
             <aside className="question-preview-panel">
@@ -2212,6 +2349,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                     correctAnswer: questionCorrectAnswer
                   })}
                   renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
+                  previewNote={import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? 'Canlı Soru Önizlemesi · standart kayıt biçimi korunur' : undefined}
                 />
               ) : <article className="question-preview-card">
                 <div className="formatted-question-text">{renderFormattedQuestionText(questionTitle, 'Soru kökü burada görünecek.')}</div>
@@ -2221,11 +2359,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </article>}
               <div className="question-quality-panel">
                 <strong>Kontrol listesi</strong>
-                {questionQualityIssues.length === 0 ? <span className="quality-ok">Soru editöre gönderime hazır görünüyor.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
+                {questionQualityIssues.length === 0 ? <span className="quality-ok">Zorunlu alanlar ve teknik biçim kriterleri tamamlandı.</span> : <ul>{questionQualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
               </div>
             </aside>
-          </div>
-          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button><button type="submit" className="primary-button" disabled={questionSaving || durableDraftBusy || durableDraftConflict}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button></div>
+          </div>}
+          <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button>{(!guidedStudioOn || questionStep === 5) && <button type="submit" className="primary-button" disabled={questionSaving || durableDraftBusy || durableDraftConflict || (guardedLegacyQuestionWrite && questionTypeExtras.questionType !== 'MULTIPLE_CHOICE')}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button>}</div>
         </form>
       </div>}
       {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>

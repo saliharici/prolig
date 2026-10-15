@@ -1,0 +1,72 @@
+/* PRO-LIG phase 3B: publishing projects & task workflow.
+   Only applies inside the authenticated workspace. */
+.corporate-workspace-v3 .corporate-project-grid {gap: 18px;align-items:stretch}
+.corporate-workspace-v3 .corporate-project-grid .project-card-button {
+  display:flex;flex-direction:column;align-items:stretch;gap:0;
+  padding:0;overflow:hidden;min-width:0;text-align:left;
+  background:#fff;border:1px solid #dce7e2;border-radius:15px;
+  box-shadow:0 3px 18px rgba(24,53,61,.035);
+  transition:border-color .18s,box-shadow .18s;
+}
+.corporate-workspace-v3 .corporate-project-grid .project-card-button:hover,
+.corporate-workspace-v3 .corporate-project-grid .project-card-button:focus-visible {
+  transform:none;border-color:#87bfb1;
+  box-shadow:0 9px 25px rgba(24,53,61,.085);
+}
+.corporate-workspace-v3 .corporate-project-summary {padding:24px 26px 23px;flex:1;min-width:0}
+.corporate-workspace-v3 .corporate-project-summary .project-card-top {margin:0 0 25px}
+.corporate-workspace-v3 .corporate-project-summary .project-code {margin:0 0 9px;font-size:10px;color:#147d72;letter-spacing:.105em}
+.corporate-workspace-v3 .corporate-project-summary h2 {font-size:clamp(18px,1.7vw,23px);line-height:1.34;letter-spacing:-.025em;color:#173742;max-width:39ch}
+.corporate-workspace-v3 .corporate-project-summary p {font-size:12px;line-height:1.6;color:#637c83;margin:12px 0 0}
+.corporate-workspace-v3 .corporate-project-production {border-top:1px solid #e1e9e5;padding:22px 26px 23px;background:#f5f9f6;min-width:0}
+.corporate-workspace-v3 .corporate-project-caption {display:block;color:#507971;letter-spacing:.105em;font-size:10px;font-weight:800;margin-bottom:14px}
+.corporate-workspace-v3 .corporate-project-production .project-card-counts {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 20px}
+.corporate-workspace-v3 .corporate-project-production .project-card-counts span {background:#fff;border:1px solid #e2eae5;border-radius:8px;min-height:47px;padding:8px;display:flex;justify-content:center;font-size:10px;color:#627b83;gap:5px;white-space:nowrap}
+.corporate-workspace-v3 .corporate-project-production .project-card-counts strong {font-size:13px;color:#143c43}
+.corporate-workspace-v3 .corporate-project-production .project-meta {font-size:11px;gap:12px;color:#647b80}
+.corporate-workspace-v3 .corporate-project-production .project-meta strong {font-size:12px;color:#254650}
+.corporate-workspace-v3 .corporate-project-production .progress-line {margin-top:18px;height:7px;background:#dae7e1}
+.corporate-workspace-v3 .corporate-project-production .progress-line span {background:#168e79}
+.corporate-workspace-v3 .corporate-project-production .progress-caption {margin:7px 0 18px;font-size:11px}
+.corporate-workspace-v3 .corporate-project-production .project-open-hint {margin:0;padding-top:12px;border-top:1px solid #dde9e2;font-size:12px;gap:8px;color:#12695f}
+/* A single publishing project uses the available horizontal space without a blank second column. */
+@media (min-width:1240px) {
+  .corporate-workspace-v3 .corporate-project-grid.corporate-project-single {grid-template-columns:minmax(0,1fr)}
+  .corporate-workspace-v3 .corporate-project-single .project-card-button {display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);min-height:300px}
+  .corporate-workspace-v3 .corporate-project-single .corporate-project-production {border-top:0;border-left:1px solid #e0e9e5;padding:30px 28px;display:flex;flex-direction:column;justify-content:center}
+  .corporate-workspace-v3 .corporate-project-single .corporate-project-summary {padding:30px 32px}
+}
+.corporate-workspace-v3 .corporate-project-empty {display:flex;flex-direction:column;align-items:center;gap:10px;padding:42px 22px;color:#12695f}
+.corporate-workspace-v3 .corporate-project-empty strong {color:#173742;font-size:17px}
+.corporate-workspace-v3 .corporate-project-empty p {font-size:13px;margin:0;color:#617982;text-align:center}
+/* Do not display misleading zero KPIs or filters while task API access has failed. */
+.corporate-workspace-v3 .corporate-task-preview-note {display:grid;grid-template-columns:54px minmax(0,1fr);gap:20px;align-items:start;padding:34px 35px;background:#f7f6f1;border:1px solid #e5e2d7;border-radius:14px;min-height:170px}
+.corporate-workspace-v3 .corporate-task-preview-symbol {display:grid;place-items:center;width:52px;height:52px;background:#e5f2ea;color:#17776e;border-radius:11px}
+.corporate-workspace-v3 .corporate-task-preview-label {color:#277a6c;font-size:10px;font-weight:800;letter-spacing:.12em}
+.corporate-workspace-v3 .corporate-task-preview-note h2 {font-size:19px;line-height:1.3;margin:8px 0 8px;color:#173641}
+.corporate-workspace-v3 .corporate-task-preview-note p {font-size:13px;line-height:1.7;margin:0;max-width:73ch;color:#5b7176}
+.corporate-workspace-v3 .corporate-task-empty {padding:44px 22px;display:flex;flex-direction:column;align-items:center;gap:12px;color:#14796d}
+.corporate-workspace-v3 .corporate-task-empty h2 {color:#163740;font-size:20px;margin:0}
+.corporate-workspace-v3 .corporate-task-empty p {font-size:13px;margin:0 0 8px;color:#5a747b;text-align:center;max-width:54ch;line-height:1.6}
+.corporate-workspace-v3 .task-summary-card {border-color:#e0e9e5;padding:18px 20px}
+.corporate-workspace-v3 .task-summary-card strong {font-size:25px;color:#173b43}
+.corporate-workspace-v3 .task-summary-card small {font-size:11px;color:#667f84}
+.corporate-workspace-v3 .task-toolbar input,.corporate-workspace-v3 .task-toolbar select {font-size:12px}
+.corporate-workspace-v3 .task-quick-filters button {font-size:11px}
+.corporate-workspace-v3 .task-kanban-column>header strong {font-size:11px}
+@media (max-width:1239px) {
+  .corporate-workspace-v3 .corporate-project-production .project-card-counts {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:950px) {
+  .corporate-workspace-v3 .corporate-project-grid {grid-template-columns:minmax(0,1fr)}
+  .corporate-workspace-v3 .corporate-project-production .project-card-counts {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .corporate-workspace-v3 .corporate-task-preview-note {padding:26px;grid-template-columns:1fr}
+}
+@media (max-width:480px) {
+  .corporate-workspace-v3 .corporate-project-summary,.corporate-workspace-v3 .corporate-project-production {padding:20px}
+  .corporate-workspace-v3 .corporate-project-production .project-meta {flex-wrap:wrap}
+  .corporate-workspace-v3 .corporate-task-preview-note {padding:22px}
+}
+@media (prefers-reduced-motion:reduce) {
+  .corporate-workspace-v3 .corporate-project-grid .project-card-button {transition:none}
+}

@@ -54,7 +54,7 @@ describe('Final UX Stabilization', () => {
 
     expect(submitStart).toBeGreaterThan(-1);
     expect(submitCode).toMatch(/if \(editingQuestion\)[\s\S]*await patchQuestion\(editingQuestion\.id, input\);/);
-    expect(submitCode).toMatch(/\} else \{[\s\S]*await createQuestion\(\{/);
+    expect(submitCode).toMatch(/\} else \{[\s\S]*await createQuestion\(buildQuestionCreateInput\(/);
   });
 
   it('YAZAR can edit TASLAK and REVIZYON', () => {
@@ -135,23 +135,20 @@ describe('Final UX Stabilization', () => {
     expect(demoAppCode).not.toContain("{section === 'roles' && <MemberManagement");
   });
 
-  it('enriches the login screen with platform capabilities and production flow', () => {
+  it('keeps the corporate publishing dossier and existing login behavior', () => {
     const loginPath = path.resolve(__dirname, '../src/auth/LoginScreen.tsx');
     const loginCode = fs.readFileSync(loginPath, 'utf8');
-    const cssPath = path.resolve(__dirname, '../src/demo.css');
+    const cssPath = path.resolve(__dirname, '../src/auth/corporate-access-v1.css');
     const cssCode = fs.readFileSync(cssPath, 'utf8');
 
-    expect(loginCode).toContain('Proje Yönetimi');
-    expect(loginCode).toContain('Görev Takibi');
-    expect(loginCode).toContain('İçerik Üretimi');
-    expect(loginCode).toContain('Ekip İletişimi');
-    expect(loginCode).toContain('PROJE');
-    expect(loginCode).toContain('GÖREV');
-    expect(loginCode).toContain('ÜRETİM');
-    expect(loginCode).toContain('KONTROL');
-    expect(loginCode).toContain('YAYIN');
-    expect(cssCode).toContain('.soft-login-capabilities');
-    expect(cssCode).toContain('.soft-login-flow');
+    expect(loginCode).toContain('Bir yayın dosyasının yolculuğu');
+    expect(loginCode).toContain('Yazarın taslağı');
+    expect(loginCode).toContain('Editör incelemesi');
+    expect(loginCode).toContain('Yayın hazırlığı');
+    expect(loginCode).toContain('Bu görsel gerçek proje veya kullanıcı verisi içermez.');
+    expect(loginCode).toContain('onSubmit={handleSubmit}');
+    expect(loginCode).toContain('onLoginSuccess();');
+    expect(cssCode).toContain('.prolig-access-v1 .access-dossier');
   });
 
   it('Landing page copy is accurate and neutral', () => {
@@ -159,7 +156,8 @@ describe('Final UX Stabilization', () => {
     const landingCode = fs.readFileSync(landingPath, 'utf8');
 
     // Public publishing example does not expose internal project identifiers.
-    expect(landingCode).toContain('8. Sınıf Matematik Soru Bankası');
+    expect(landingCode).toContain('<h3>8. Sınıf Matematik<br />Soru Bankası</h3>');
+    expect(landingCode).toContain('TEMSİLİ PROJE');
     
     // unsupported "8. Sınıf LGS Soru Bankası" is absent
     expect(landingCode).not.toContain('8. Sınıf LGS Soru Bankası');

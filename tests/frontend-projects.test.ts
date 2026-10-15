@@ -76,7 +76,9 @@ describe('Projects UI source regressions', () => {
     expect(source).toContain('projectsLoading');
     expect(source).toContain('projectsError');
     expect(source).toContain('loadApiProjects');
-    expect(source).toContain('Proje bulunamadı.');
+    expect(source).toContain('Henüz erişilebilir proje bulunmuyor');
+    expect(source).toContain('Arama ölçütlerine uygun proje yok');
+    expect(source).toContain('filteredProjects.length === 0');
     expect(source).not.toContain('Pro Lig test ortamı');
   });
 
