@@ -46,7 +46,7 @@ export function PublicLanding({
   authenticated?: boolean;
 }) {
   return (
-    <div className="public-shell public-v2 public-enterprise-v1 public-editorial-v2">
+    <div className={`public-shell public-v2 public-enterprise-v1 public-editorial-v2 ${import.meta.env.VITE_PUBLISHER_PRESENTATION_THEME === 'true' ? 'publisher-theme' : ''}`}>
       <a className="public-skip-link" href="#public-content">Ana içeriğe geç</a>
 
       <header className="public-header">
