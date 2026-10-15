@@ -53,7 +53,7 @@ async function patch(q: ApiQuestion, data: Record<string, any>) {
 describe('P2 isolated real PostgreSQL authoring + legacy compatibility', () => {
   beforeAll(async () => {
     const role = await prisma.role.create({ data: { code: 'YAZAR', name: 'CI Test Yazarı' } });
-    const province = await prisma.province.create({ data: { id: 81, code: '81', name: 'P2 CI Province', region: 'CI' } });
+    const province = (await prisma.province.findFirst()) ?? await prisma.province.create({ data: { id: 9000, code: '90', name: 'P2 CI Province', region: 'CI' } });
     const branch = await prisma.branch.create({ data: { name: 'P2 CI Matematik', category: 'CI' } });
     const user = await prisma.user.create({ data: {
       username: 'ci-p2-writer', email: 'ci-p2-writer@example.test', fullName: 'CI P2 Writer',
@@ -123,7 +123,7 @@ describe('P2 isolated real PostgreSQL authoring + legacy compatibility', () => {
     expect(created.correctAnswer).toBeNull();
     const reopened = (await list()).find(q => q.id === created.id)!;
     const edited = await patch(reopened, buildQuestionEditPatch(reopened, {
-      ...raw, booleanAnswer: true, content: 'Every square has exactly four equal sides.'
+      ...raw, booleanAnswer: true, content: 'Every square has exactly four equal sides.', explanation: raw.explanation || '', correctAnswer: raw.correctAnswer || ''
     }));
     expect(edited.statusCode, JSON.stringify(edited.data)).toBe(200);
     expect(edited.data.booleanAnswer).toBe(true);
@@ -147,7 +147,7 @@ describe('P2 isolated real PostgreSQL authoring + legacy compatibility', () => {
     const reopened = (await list()).find(q => q.id === created.id)!;
     expect(reopened.scoringRubric).toBe('Doğruluk: 5 puan');
     const edited = await patch(reopened, buildQuestionEditPatch(reopened, {
-      ...raw, scoringRubric: 'Doğruluk: 8 puan', modelAnswer: 'Yeni model cevap: 43'
+      ...raw, scoringRubric: 'Doğruluk: 8 puan', modelAnswer: 'Yeni model cevap: 43', explanation: raw.explanation || '', correctAnswer: raw.correctAnswer || ''
     }));
     expect(edited.statusCode, JSON.stringify(edited.data)).toBe(200);
     const stored = await prisma.question.findUniqueOrThrow({ where: { id: created.id } });
