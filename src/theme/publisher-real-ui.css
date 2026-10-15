@@ -1,0 +1,408 @@
+
+/**
+ * PRO-LİG / Publisher Edition — real application visual system, Phase 1.
+ *
+ * Preview-only Vite opt-in: VITE_PUBLISHER_PRESENTATION_THEME=true.
+ * Preserves the entire AuthGate, API, role checks, P2 contracts, routing and event handlers.
+ * The brand is PRO-LİG. This is an independent concept, not an İşler property.
+ */
+.publisher-theme {
+  --pub-ink: #33282d;
+  --pub-burgundy: #76273e;
+  --pub-dark: #421b2d;
+  --pub-darkest: #311524;
+  --pub-rose: #f5ebee;
+  --pub-rose-border: #e8d4da;
+  --pub-paper: #faf8f5;
+  --pub-stone: #f4efea;
+  --pub-line: #e5dcd8;
+  --pub-muted: #756b70;
+  --pub-gold: #bd9566;
+  color: var(--pub-ink);
+  background: var(--pub-paper);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+}
+.publisher-theme *, .publisher-theme *::before, .publisher-theme *::after { box-sizing: border-box; }
+.publisher-theme button:focus-visible,
+.publisher-theme input:focus-visible,
+.publisher-theme select:focus-visible,
+.publisher-theme textarea:focus-visible,
+.publisher-theme a:focus-visible {
+  outline: 3px solid #bf9b72;
+  outline-offset: 3px;
+}
+.publisher-theme button { transition: background-color .18s ease,border-color .18s ease,color .18s ease; }
+
+/* ---------------- PUBLIC LANDING / ACTUAL NAV & LOGIN FLOW ---------------- */
+.publisher-theme.public-editorial-v2 {
+  --ed-green: var(--pub-burgundy);
+  --ed-dark: var(--pub-dark);
+  --ed-paper: var(--pub-paper);
+  --ed-ink: var(--pub-ink);
+  --ed-cream: #f5ebee;
+  --ed-line: var(--pub-line);
+  --ed-muted: var(--pub-muted);
+  --ed-accent: #995267;
+  --ed-mint: #f5ebee;
+  --ed-mint-edge: #ead5dc;
+  --ed-sand: var(--pub-stone);
+  --ed-gold: var(--pub-gold);
+  --ed-warm-stone: #f3ede8;
+  background: var(--pub-paper);
+}
+.publisher-theme.public-editorial-v2 .public-header {
+  background: rgba(255,253,250,.97);
+  border-top: 4px solid var(--pub-dark);
+  border-bottom-color: var(--pub-line);
+}
+.publisher-theme.public-editorial-v2 .public-nav a { color: #60545a; }
+.publisher-theme.public-editorial-v2 .public-nav a:hover,
+.publisher-theme.public-editorial-v2 .public-mobile-nav a { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .public-nav a::after { background: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .public-primary-button {
+  background: var(--pub-burgundy);
+  border-color: var(--pub-burgundy);
+  color: #fff;
+}
+.publisher-theme.public-editorial-v2 .public-primary-button:hover:not(:disabled) {
+  background: #571c30; border-color: #571c30;
+}
+.publisher-theme.public-editorial-v2 .public-secondary-button {
+  color: var(--pub-burgundy);
+  background: #fffefa;
+  border-color: #d7c2c5;
+}
+.publisher-theme.public-editorial-v2 .public-secondary-button:hover { background: var(--pub-rose); }
+.publisher-theme.public-editorial-v2 .public-hero {
+  background: var(--pub-paper);
+  gap: clamp(38px, 5vw, 90px);
+}
+.publisher-theme.public-editorial-v2 .public-hero .editorial-label { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .public-hero h1 {
+  color: var(--pub-dark);
+  font-weight: 700;
+  font-size: clamp(44px, 4.7vw, 72px);
+  letter-spacing: -.052em;
+}
+.publisher-theme.public-editorial-v2 h1 span,
+.publisher-theme.public-editorial-v2 h2 em { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .public-hero-copy .editorial-lead { color: #74686c; }
+.publisher-theme.public-editorial-v2 .editorial-inline-link,
+.publisher-theme.public-editorial-v2 .editorial-inline-button { color: var(--pub-burgundy); border-color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-proof {
+  background: transparent;
+}
+.publisher-theme.public-editorial-v2 .editorial-proof-top {
+  color: var(--pub-burgundy);
+}
+.publisher-theme.public-editorial-v2 .editorial-proof-page {
+  border-color: var(--pub-rose-border);
+  box-shadow: 10px 12px 0 #ebdedc;
+  background: #fffefa;
+}
+.publisher-theme.public-editorial-v2 .editorial-proof-rule { background: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-proof-kicker { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-proof-answer {
+  border-color: #bd8a9c;
+  background: var(--pub-rose);
+  color: var(--pub-burgundy);
+}
+.publisher-theme.public-editorial-v2 .editorial-proof-note {
+  border-left-color: var(--pub-burgundy);
+  background: #f8eff0;
+}
+.publisher-theme.public-editorial-v2 .editorial-case {
+  background: #f6e9ec;
+  border-top-color: var(--pub-rose-border);
+}
+.publisher-theme.public-editorial-v2 .editorial-case-record {
+  border-color: var(--pub-rose-border);
+  border-top-color: var(--pub-gold);
+  background: #fffefa;
+  box-shadow: 10px 12px 0 #ead4d9;
+}
+.publisher-theme.public-editorial-v2 .editorial-case-quote { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-capability-list,
+.publisher-theme.public-editorial-v2 .editorial-capability { border-color: var(--pub-line); }
+.publisher-theme.public-editorial-v2 .editorial-capability-number {
+  border-left-color: var(--pub-burgundy);
+  color: var(--pub-burgundy);
+}
+.publisher-theme.public-editorial-v2 .editorial-capability-tags span::before { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-process {
+  background: var(--pub-dark);
+  border-top-color: var(--pub-gold);
+}
+.publisher-theme.public-editorial-v2 .editorial-process-heading h2 em { color: #ecc4ce; }
+.publisher-theme.public-editorial-v2 .editorial-process-steps { border-color: #765264; }
+.publisher-theme.public-editorial-v2 .editorial-process-steps li + li { border-color: #765264; }
+.publisher-theme.public-editorial-v2 .editorial-outro { background: #f3ece8; }
+
+/* ---------------- AUTH / REAL LOGIN & MEMBERSHIP ---------------- */
+.publisher-theme.prolig-access-v1 {
+  --acc-ink: var(--pub-ink);
+  --acc-green: var(--pub-burgundy);
+  --acc-line: var(--pub-line);
+  --acc-paper: var(--pub-paper);
+  --acc-mint: var(--pub-rose);
+  --acc-gold: var(--pub-gold);
+  --acc-muted: var(--pub-muted);
+  background: var(--pub-paper);
+}
+.publisher-theme.prolig-access-v1.soft-login-shell {
+  background: linear-gradient(90deg,#f5edeb 0 49.7%,#fffdfa 49.7% 100%);
+}
+.publisher-theme.prolig-access-v1 .access-eyebrow { color: var(--pub-burgundy); }
+.publisher-theme.prolig-access-v1 .soft-login-copy h1 { color: var(--pub-dark); }
+.publisher-theme.prolig-access-v1 .soft-login-copy h1 em { color: var(--pub-burgundy); }
+.publisher-theme.prolig-access-v1 .access-dossier {
+  border-color: #e6d4d9;
+  background: #fffaf7;
+  box-shadow: 10px 12px 0 #e9dade;
+}
+.publisher-theme.prolig-access-v1 .access-dossier-seal,
+.publisher-theme.prolig-access-v1 .access-dossier-row > span { color: var(--pub-burgundy); }
+.publisher-theme.prolig-access-v1 .soft-login-card {
+  border-color: var(--pub-line);
+  background: #fffefa;
+}
+.publisher-theme.prolig-access-v1 .soft-input-wrap { border-color: #ddcecd; background: #fffefa; }
+.publisher-theme.prolig-access-v1 .soft-input-wrap:focus-within { border-color: var(--pub-burgundy); box-shadow: 0 0 0 3px #76273e1c; }
+.publisher-theme.prolig-access-v1 .access-form-symbol,
+.publisher-theme.prolig-access-v1 .membership-process-icon { color: var(--pub-burgundy); background: var(--pub-rose); }
+.publisher-theme.prolig-access-v1 .public-primary-button { background: var(--pub-burgundy); border-color: var(--pub-burgundy); color: white; }
+.publisher-theme.prolig-access-v1 .public-primary-button:hover:not(:disabled) { background: #571c30; border-color: #571c30; }
+.publisher-theme.prolig-access-v1 .membership-submit { background: var(--pub-rose); }
+.publisher-theme.prolig-access-v1 .membership-label em { color: var(--pub-burgundy); }
+
+/* ---------------- AUTHENTICATED PRO-LIG WORKSPACE ---------------- */
+.publisher-theme.corporate-workspace-v3 {
+  --workspace-ink: var(--pub-ink);
+  --workspace-teal: var(--pub-burgundy);
+  --workspace-mint: var(--pub-rose);
+  --workspace-warm: #f7f1ec;
+  --workspace-outline: var(--pub-line);
+  --workspace-muted: var(--pub-muted);
+  background: var(--pub-paper);
+}
+.publisher-theme.corporate-workspace-v3 .demo-main { background: var(--pub-paper); }
+.publisher-theme.corporate-workspace-v3 .demo-sidebar.workspace-navigation {
+  background: var(--pub-dark);
+  border-right: 1px solid #663748;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-navigation .brand.app-brand {
+  border-bottom: 1px solid #ffffff25;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-navigation-scroll {
+  scrollbar-color: #8c6270 transparent;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-navigation-group > h2 {
+  color: #d4b1bf;
+  letter-spacing: .14em;
+}
+.publisher-theme.corporate-workspace-v3.demo-shell .demo-sidebar .nav-link {
+  color: #f1e5e9;
+  border-radius: 4px;
+  font-weight: 600;
+  min-height: 44px;
+}
+.publisher-theme.corporate-workspace-v3.demo-shell .demo-sidebar .nav-link:hover {
+  color: #fff;
+  background: #ffffff1a;
+}
+.publisher-theme.corporate-workspace-v3.demo-shell .demo-sidebar .nav-link.active {
+  color: white!important;
+  background: #743449!important;
+  border-left: none!important;
+  border-radius: 4px!important;
+  box-shadow: inset 3px 0 0 var(--pub-gold)!important;
+}
+.publisher-theme.corporate-workspace-v3 .sidebar-active-indicator { color: #f3d5bd; }
+.publisher-theme.corporate-workspace-v3 .workspace-navigation-footer {
+  background: var(--pub-darkest);
+  border-top: 1px solid #ffffff16;
+}
+.publisher-theme.corporate-workspace-v3 .sidebar-account-avatar,
+.publisher-theme.corporate-workspace-v3 .profile-badge { background: #98506b; color: #fff; }
+.publisher-theme.corporate-workspace-v3 .topbar.topbar-command {
+  background: #fffdfa!important;
+  border-bottom-color: var(--pub-line);
+  box-shadow: none;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-context > span { color: #8b7880; }
+.publisher-theme.corporate-workspace-v3 .workspace-context > strong { color: var(--pub-dark); }
+.publisher-theme.corporate-workspace-v3 .topbar-global-search {
+  background: #faf7f4;
+  border: 1px solid #e3d8d6;
+  border-radius: 5px;
+  color: #6b5360;
+}
+.publisher-theme.corporate-workspace-v3 .topbar-global-search:focus-within {
+  border-color: var(--pub-burgundy);
+  box-shadow: 0 0 0 3px #76273e1c;
+}
+.publisher-theme.corporate-workspace-v3 .topbar-quick-nav { border-left-color: var(--pub-line); }
+.publisher-theme.corporate-workspace-v3 .topbar-quick-nav > button { border-radius: 5px; }
+.publisher-theme.corporate-workspace-v3 .topbar-quick-nav > button.active {
+  background: var(--pub-rose);
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .topbar-profile { border-color: var(--pub-line); }
+.publisher-theme.corporate-workspace-v3 .content { max-width: 1510px; }
+.publisher-theme.corporate-workspace-v3 .page-heading { margin-top: 20px; margin-bottom: 27px; }
+.publisher-theme.corporate-workspace-v3 .page-heading h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  font-size: clamp(32px, 3.1vw, 42px);
+  line-height: 1.13;
+  letter-spacing: -.045em;
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .page-heading .wave { color: var(--pub-gold); }
+.publisher-theme.corporate-workspace-v3 .page-heading p { font-size: 13px; line-height: 1.65; color: var(--pub-muted); }
+.publisher-theme.corporate-workspace-v3 .eyebrow,
+.publisher-theme.corporate-workspace-v3 .panel-kicker {
+  color: var(--pub-burgundy);
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-main-action,
+.publisher-theme.corporate-workspace-v3 .primary-button {
+  background: var(--pub-burgundy);
+  border-color: var(--pub-burgundy);
+  color: white;
+  border-radius: 4px;
+  box-shadow: none;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-main-action:hover:not(:disabled),
+.publisher-theme.corporate-workspace-v3 .primary-button:hover:not(:disabled) {
+  background: #5b1b31;
+  border-color: #5b1b31;
+  box-shadow: none;
+}
+.publisher-theme.corporate-workspace-v3 .heading-chip {
+  color: #783850;
+  background: #fffafa;
+  border-color: var(--pub-rose-border);
+  border-radius: 4px;
+}
+.publisher-theme.corporate-workspace-v3 .stat-card {
+  background: #fffefa;
+  border: 1px solid var(--pub-line)!important;
+  border-radius: 5px;
+  box-shadow: none!important;
+  transition: border-color .18s;
+}
+.publisher-theme.corporate-workspace-v3 .stat-card:first-child {
+  background: #f6e9ed;
+  border-color: #e7cdd5!important;
+}
+.publisher-theme.corporate-workspace-v3 .stat-card:hover { transform: none!important; border-color: #c596a5!important; }
+.publisher-theme.corporate-workspace-v3 .stat-card > strong { color: var(--pub-dark); font-family: Manrope, system-ui, sans-serif; }
+.publisher-theme.corporate-workspace-v3 .stat-card .stat-top { color: #775d66; }
+.publisher-theme.corporate-workspace-v3 .stat-card .stat-icon { border-radius: 4px; }
+.publisher-theme.corporate-workspace-v3 .stat-card .stat-icon.blue,
+.publisher-theme.corporate-workspace-v3 .stat-card .stat-icon.purple {
+  background: #efdee5; color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .overview-grid > .panel,
+.publisher-theme.corporate-workspace-v3 .projects-preview,
+.publisher-theme.corporate-workspace-v3 .panel {
+  background: #fffefa;
+  border-color: var(--pub-line);
+  border-radius: 5px;
+  box-shadow: none;
+}
+.publisher-theme.corporate-workspace-v3 .overview-grid > .panel:first-child { background: #fffefa; }
+.publisher-theme.corporate-workspace-v3 .panel h2 {
+  font-family: Georgia,'Times New Roman',serif;
+  font-size: 22px;
+  color: var(--pub-dark);
+  letter-spacing: -.03em;
+}
+.publisher-theme.corporate-workspace-v3 .panel-sub { color: var(--pub-muted); }
+.publisher-theme.corporate-workspace-v3 .pipeline-dot {
+  border-color: #e6c9d2;
+  background: #f8edf1;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .pipeline-step strong { color: var(--pub-dark); }
+.publisher-theme.corporate-workspace-v3 .pipeline-arrow { color: #b9979f; }
+.publisher-theme.corporate-workspace-v3 .panel-action {
+  background: #f8f1ef;
+  border-color: #eddbdb;
+  border-radius: 4px;
+}
+.publisher-theme.corporate-workspace-v3 .panel-action .action-icon {
+  background: #f1e1e6;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .activity-item { border-color: #efe5e3; }
+.publisher-theme.corporate-workspace-v3 .activity-glyph { background: #f4e8eb; color: var(--pub-burgundy); }
+.publisher-theme.corporate-workspace-v3 .projects-preview .project-mini,
+.publisher-theme.corporate-workspace-v3 .corporate-project-grid .project-card-button {
+  border-color: var(--pub-line);
+  background: #fffefa;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-summary h2,
+.publisher-theme.corporate-workspace-v3 .project-mini > strong { color: var(--pub-dark); }
+.publisher-theme.corporate-workspace-v3 .corporate-project-production {
+  background: #f9f3f2;
+  border-color: var(--pub-line);
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .progress-line span,
+.publisher-theme.corporate-workspace-v3 .progress-line span { background: #9a5066; }
+.publisher-theme.corporate-workspace-v3 .table-panel,
+.publisher-theme.corporate-workspace-v3 .table-wrap { border-color: var(--pub-line); }
+.publisher-theme.corporate-workspace-v3 .table-heading { color: #695b62; }
+.publisher-theme.corporate-workspace-v3 .table-wrap table th {
+  background: #f7efef;
+  color: #6f4d5c;
+  border-color: var(--pub-line);
+}
+.publisher-theme.corporate-workspace-v3 .table-wrap table td { border-color: #eee5e2; }
+.publisher-theme.corporate-workspace-v3 .toolbar .search-box,
+.publisher-theme.corporate-workspace-v3 .toolbar .filter-box {
+  background: #fffefa;
+  border-color: var(--pub-line);
+  border-radius: 4px;
+}
+.publisher-theme.corporate-workspace-v3 .toolbar .search-box:focus-within,
+.publisher-theme.corporate-workspace-v3 .toolbar .filter-box:focus-within {
+  border-color: #b47e90;
+}
+.publisher-theme.corporate-workspace-v3 .text-button,
+.publisher-theme.corporate-workspace-v3 .panel-action button { color: var(--pub-burgundy); }
+.publisher-theme.corporate-workspace-v3 .secondary-button { border-color: #dccacc; background: #fffcfa; color: var(--pub-dark); }
+
+/* Question Studio, workflows and editor actions KEEP their behavior and valid state signals. */
+.publisher-theme.corporate-workspace-v3 .question-modal {
+  background: #fffefa;
+  border-color: var(--pub-line);
+}
+.publisher-theme.corporate-workspace-v3 .question-modal .modal-header,
+.publisher-theme.corporate-workspace-v3 .question-modal .modal-actions { border-color: var(--pub-line); }
+.publisher-theme.corporate-workspace-v3 .question-modal .primary-button { background: var(--pub-burgundy); border-color: var(--pub-burgundy); }
+.publisher-theme.corporate-workspace-v3 .question-modal input:focus,
+.publisher-theme.corporate-workspace-v3 .question-modal select:focus,
+.publisher-theme.corporate-workspace-v3 .question-modal textarea:focus {
+  border-color: var(--pub-burgundy);
+  box-shadow: 0 0 0 3px #76273e18;
+}
+
+/* The compact mobile navigation, role-based visibility and modal traps remain untouched. */
+@media (max-width: 1050px) {
+  .publisher-theme.corporate-workspace-v3 .topbar.topbar-command { border-color: var(--pub-line); }
+}
+@media (max-width: 600px) {
+  .publisher-theme.corporate-workspace-v3 .content { padding-left: 16px; padding-right: 16px; }
+  .publisher-theme.corporate-workspace-v3 .page-heading h1 { font-size: 31px; }
+  .publisher-theme.public-editorial-v2 .public-hero h1 { font-size: clamp(38px,10.5vw,56px); }
+  .publisher-theme.public-editorial-v2 .editorial-proof-page { box-shadow: 6px 7px 0 #ead8dd; }
+  .publisher-theme.prolig-access-v1.soft-login-shell { background: var(--pub-paper); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .publisher-theme button { transition: none; }
+}
