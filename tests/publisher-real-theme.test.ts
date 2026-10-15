@@ -20,6 +20,12 @@ describe('publisher edition theme / production-safe rollout contract', () => {
 
   it('loads one isolated CSS theme without routing or authentication bypasses', () => {
     const main = file('src/main.tsx');
+    const authGate = file('src/auth/AuthGate.tsx');
+    expect(authGate).toContain("import.meta.env.VITE_PUBLISHER_PRESENTATION_THEME === 'true'");
+    expect(authGate).toContain("setPreviewConnectionUnavailable(true)");
+    expect(authGate).toContain("setAuthState({ status: 'unauthenticated' })");
+    expect(authGate).toContain("publisher-preview-connection-notice");
+    expect(authGate).toContain("setAuthState({ status: 'error', message: err.message");
     expect(main).toContain("import './theme/publisher-real-ui.css'");
     expect(main).toContain('<AuthGate />');
     expect(main).not.toContain('PublishingPresentationConcept');
