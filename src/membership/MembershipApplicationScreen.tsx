@@ -88,7 +88,7 @@ export function MembershipApplicationScreen({
 
   if (status === 'done') {
     return (
-      <div className="membership-page membership-success-page prolig-access-v1">
+      <div className={`membership-page membership-success-page prolig-access-v1 ${import.meta.env.VITE_PUBLISHER_PRESENTATION_THEME === 'true' ? 'publisher-theme' : ''}`}>
         <div className="membership-success">
           <div className="membership-success-icon">
             <CheckCircle2 size={28} />
@@ -121,7 +121,7 @@ export function MembershipApplicationScreen({
   }
 
   return (
-    <div className="membership-page prolig-access-v1">
+    <div className={`membership-page prolig-access-v1 ${import.meta.env.VITE_PUBLISHER_PRESENTATION_THEME === 'true' ? 'publisher-theme' : ''}`}>
       <div className="membership-container">
         <button
           type="button"
