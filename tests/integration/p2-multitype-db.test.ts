@@ -4,6 +4,7 @@ import { serialize } from 'cookie';
 import { prisma } from '../../api/v1/_lib/prisma.js';
 import questionsHandler from '../../api/v1/questions/index.js';
 import questionHandler from '../../api/v1/questions/[id].js';
+import workflowHandler from '../../api/v1/questions/[id]/workflow.js';
 import { buildQuestionCreateInput, buildQuestionEditPatch } from '../../src/questions/edit';
 import type { ApiQuestion } from '../../src/questions/types';
 
@@ -28,9 +29,10 @@ const reply = (): Reply => {
   return r;
 };
 let userId = 0;
-const request = (method: string, body?: unknown, id?: number, query: Record<string, any> = {}) => ({
+let editorId = 0;
+const request = (method: string, body?: unknown, id?: number, query: Record<string, any> = {}, actorId = userId) => ({
   method, body, query: { ...query, ...(id ? { id: String(id) } : {}) },
-  headers: { cookie: serialize('prolig_session', jwt.sign({ sub: String(userId) }, process.env.AUTH_SECRET!, { algorithm: 'HS256' })) }
+  headers: { cookie: serialize('prolig_session', jwt.sign({ sub: String(actorId) }, process.env.AUTH_SECRET!, { algorithm: 'HS256' })) }
 }) as any;
 async function create(body: Record<string, any>) {
   const res = reply();
@@ -60,6 +62,12 @@ describe('P2 isolated real PostgreSQL authoring + legacy compatibility', () => {
       roleId: role.id, status: 'Aktif'
     } });
     userId = user.id;
+    const editorRole = await prisma.role.create({ data: { code: 'EDITOR', name: 'CI Test Editörü' } });
+    const editor = await prisma.user.create({ data: {
+      username: 'ci-p2-editor', email: 'ci-p2-editor@example.test', fullName: 'CI P2 Editor',
+      roleId: editorRole.id, status: 'Aktif', editorBranchId: branch.id, provinceId: province.id
+    } });
+    editorId = editor.id;
     await prisma.authorProfile.create({ data: {
       userId: user.id, branchId: branch.id, provinceId: province.id
     } });
@@ -154,6 +162,71 @@ describe('P2 isolated real PostgreSQL authoring + legacy compatibility', () => {
     expect(stored.scoringRubric).toBe('Doğruluk: 8 puan');
     expect(stored.modelAnswer).toBe('Yeni model cevap: 43');
     expect(stored.options).toEqual([]);
+  });
+
+  it('preserves typed fields through YAZAR submission and scoped EDITOR approval', async () => {
+    const fixtures = [
+      {
+        type: 'MULTIPLE_CHOICE' as const, grade: '11. Sınıf', count: 5,
+        options: ['5', '6', '7', '8', '9'], correctAnswer: 'E', booleanAnswer: null,
+        modelAnswer: null, scoringRubric: null, evaluationCriteria: null
+      },
+      {
+        type: 'TRUE_FALSE' as const, grade: '8. Sınıf', count: null,
+        options: [], correctAnswer: '', booleanAnswer: false,
+        modelAnswer: null, scoringRubric: null, evaluationCriteria: null
+      },
+      {
+        type: 'OPEN_ENDED' as const, grade: '8. Sınıf', count: null,
+        options: [], correctAnswer: '', booleanAnswer: null,
+        modelAnswer: 'A model answer', scoringRubric: '10 points',
+        evaluationCriteria: 'Reasoning and clarity'
+      }
+    ];
+
+    for (const fixture of fixtures) {
+      const created = await create(buildQuestionCreateInput({
+        questionType: fixture.type, optionCount: fixture.count,
+        booleanAnswer: fixture.booleanAnswer,
+        modelAnswer: fixture.modelAnswer, scoringRubric: fixture.scoringRubric,
+        evaluationCriteria: fixture.evaluationCriteria,
+        content: 'P2 editor workflow acceptance question for ' + fixture.type,
+        grade: fixture.grade, projectId: null,
+        options: fixture.options, correctAnswer: fixture.correctAnswer,
+        explanation: 'Test explanation', assets: []
+      }));
+      expect(created.status).toBe('TASLAK');
+
+      // Scoped editor cannot approve an unsubmitted draft.
+      const early = reply();
+      await workflowHandler(request('POST', { action: 'approve' }, created.id, {}, editorId), early as any);
+      expect(early.statusCode).toBe(409);
+
+      const submitted = reply();
+      await workflowHandler(request('POST', { action: 'submit' }, created.id), submitted as any);
+      expect(submitted.statusCode, JSON.stringify(submitted.data)).toBe(200);
+      expect(submitted.data.status).toBe('INCELEMEDE');
+
+      const locked = await patch(submitted.data, { content: 'An impermissible change while in review' });
+      expect(locked.statusCode).toBe(409);
+
+      const accepted = reply();
+      await workflowHandler(request('POST', { action: 'approve' }, created.id, {}, editorId), accepted as any);
+      expect(accepted.statusCode, JSON.stringify(accepted.data)).toBe(200);
+      expect(accepted.data.status).toBe('ONAYLANDI');
+      expect(accepted.data.questionType).toBe(fixture.type);
+      expect(accepted.data.options).toEqual(fixture.options);
+      if (fixture.type === 'TRUE_FALSE') expect(accepted.data.booleanAnswer).toBe(false);
+      if (fixture.type === 'OPEN_ENDED') {
+        expect(accepted.data.modelAnswer).toBe('A model answer');
+        expect(accepted.data.scoringRubric).toBe('10 points');
+      }
+      const stored = await prisma.question.findUniqueOrThrow({ where: { id: created.id } });
+      expect(stored.status).toBe('ONAYLANDI');
+      expect(await prisma.activityLog.count({ where: {
+        entityType: 'Question', entityId: created.id, action: 'QUESTION_APPROVED'
+      } })).toBe(1);
+    }
   });
 
   it('rejects wrong answer shape and rejected type switches without writing records', async () => {
