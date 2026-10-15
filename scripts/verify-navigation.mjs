@@ -128,12 +128,12 @@ try {
   assert.ok(logoutBounds && logoutBounds.y >= 0 && logoutBounds.y + logoutBounds.height <= 568, 'Mobile logout must be visible without scrolling');
   assert.ok(logoutBounds.height >= 44, 'Mobile logout needs a usable touch target');
   await logoutButton.click();
-  await logoutPage.getByRole('heading', { name: 'Yayın üretiminden ekip koordinasyonuna.' }).waitFor();
+  await logoutPage.locator('#public-hero-heading').waitFor();
   assert.equal(logoutCalls.get(logoutPage), 1, 'Logout must call the session endpoint once');
   assert.equal(await logoutPage.locator('#workspace-navigation').count(), 0);
   assert.equal(await logoutPage.evaluate(() => document.body.style.position), '');
   await logoutPage.reload();
-  await logoutPage.getByRole('heading', { name: 'Yayın üretiminden ekip koordinasyonuna.' }).waitFor();
+  await logoutPage.locator('#public-hero-heading').waitFor();
   assert.equal(await logoutPage.locator('#workspace-navigation').count(), 0);
   await logoutPage.close();
 
@@ -149,7 +149,7 @@ try {
   }
 
   const publicPage = await fixturePage(null);
-  await publicPage.getByRole('heading', { name: 'Yayın üretiminden ekip koordinasyonuna.' }).waitFor();
+  await publicPage.locator('#public-hero-heading').waitFor();
   assert.equal(/pilot|test ortamı|örnek veri|önizleme/i.test(await publicPage.locator('body').innerText()), false);
   await publicPage.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
   await publicPage.locator('input[type="password"]').waitFor();
