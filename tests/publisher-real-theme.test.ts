@@ -36,6 +36,25 @@ describe('publisher edition theme / production-safe rollout contract', () => {
     expect(css).not.toMatch(/DATABASE_URL|AUTH_SECRET|fetch\s*\(|localStorage\s*\(/);
   });
 
+  it('uses authorProfile branch from verified session in the real P2 editor, never an undeclared field', () => {
+    const app = file('src/DemoApp.tsx');
+    const types = file('src/auth/types.ts');
+    expect(types).toContain('authorProfile?:');
+    expect(types).toContain('branch: { id: number; name: string };');
+    expect(app).toContain("currentUser.authorProfile?.branch.name ?? ''");
+    expect(app).not.toContain("(currentUser as any).branchName");
+  });
+
+  it('overrides guided P2 authoring palette only beneath the preview publisher theme', () => {
+    const css = file('src/theme/publisher-real-ui.css');
+    expect(css).toContain('.publisher-theme.corporate-workspace-v3 .p2-steps button[aria-current="step"]');
+    expect(css).toContain('.publisher-theme.corporate-workspace-v3 .p2-stage');
+    expect(css).toContain('.publisher-theme.corporate-workspace-v3 .p2-option-tabs button[aria-selected="true"]');
+    expect(css).toContain('.publisher-theme.corporate-workspace-v3 .p2-boolean');
+    expect(css).toContain('.publisher-theme.corporate-workspace-v3 .p2-guided button:focus-visible');
+    expect(css).not.toMatch(/(^|\\n)\\s*\\.p2-steps button\\s*\\{/);
+  });
+
   it('retains the existing question workflow, scoped navigation and editor implementation', () => {
     const app = file('src/DemoApp.tsx');
     expect(app).toContain('GuidedQuestionStudio');
