@@ -406,3 +406,19 @@
 @media (prefers-reduced-motion: reduce) {
   .publisher-theme button { transition: none; }
 }
+
+/* Preview-only connection notice: never displayed on the real Production application. */
+.publisher-preview-connection-notice {
+  position: fixed; z-index: 150; bottom: 20px; right: 20px;
+  width: min(360px, calc(100vw - 32px));
+  display: grid; gap: 5px; padding: 15px 18px;
+  background: #fffcf9; color: #49313a; border: 1px solid #dec6cb;
+  border-left: 4px solid #76273e;
+  box-shadow: 0 12px 32px rgba(62, 25, 44, .12);
+  border-radius: 5px; font: 500 12px/1.55 'DM Sans', system-ui, sans-serif;
+}
+.publisher-preview-connection-notice strong { color: #76273e; font-weight: 800; font-size: 13px; }
+.publisher-preview-connection-notice span { color: #67555e; }
+@media (max-width: 600px) {
+  .publisher-preview-connection-notice { bottom: 12px; right: 12px; left: 12px; width: auto; }
+}
