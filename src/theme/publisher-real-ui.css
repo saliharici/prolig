@@ -422,3 +422,166 @@
 @media (max-width: 600px) {
   .publisher-preview-connection-notice { bottom: 12px; right: 12px; left: 12px; width: auto; }
 }
+
+
+/* ---------- P2 / REAL FIVE-STEP QUESTION STUDIO ---------- */
+/* Scoped to the selected Preview theme. P2 stage transitions, data and validation
+   remain owned by GuidedQuestionStudio, not by this decorative layer. */
+.publisher-theme.corporate-workspace-v3 .question-studio-modal {
+  --p2-publisher-paper: #fffdfa;
+  --p2-publisher-tint: #f8f0f1;
+  --p2-publisher-border: #e7d9d8;
+  color: var(--pub-ink);
+  background: var(--p2-publisher-paper);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal > .modal-head,
+.publisher-theme.corporate-workspace-v3 .question-studio-workspace > .modal-head {
+  background: var(--p2-publisher-paper);
+  border-bottom-color: var(--p2-publisher-border);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal > .modal-head h2 {
+  color: var(--pub-dark);
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: -.035em;
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal > p {
+  color: #796c70;
+}
+.publisher-theme.corporate-workspace-v3 .p2-guided {
+  color: var(--pub-ink);
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button {
+  background: #fcf8f6;
+  color: #745c65;
+  border: 1px solid #e7d8d9;
+  border-radius: 5px;
+  min-height: 81px;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button:hover {
+  background: #f7ecee;
+  border-color: #b88998;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button > span {
+  border-color: #c7aab3;
+  color: var(--pub-burgundy);
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button > strong {
+  font-weight: 750;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button > small {
+  color: #826e77;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button[aria-current="step"] {
+  background: var(--pub-burgundy);
+  border-color: var(--pub-burgundy);
+  color: #fff;
+  box-shadow: inset 0 -3px 0 #c49a70;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button[aria-current="step"] > span {
+  background: transparent;
+  border-color: #eacbd4;
+  color: white;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button[aria-current="step"] > small {
+  color: #f7e6ed;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage {
+  border: 1px solid #e6dad6;
+  background: #fffefa;
+  border-radius: 9px;
+  box-shadow: 0 7px 32px #4522300a;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage-heading h3 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(23px, 2.3vw, 31px);
+  letter-spacing: -.035em;
+  line-height: 1.2;
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage-heading small {
+  color: var(--pub-burgundy);
+  font-weight: 800;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage label,
+.publisher-theme.corporate-workspace-v3 .p2-boolean legend {
+  color: #53444a;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage input:not([type="radio"]),
+.publisher-theme.corporate-workspace-v3 .p2-stage select {
+  border-color: #e3d6d4;
+  border-radius: 5px;
+  background-color: #fffefa;
+  color: #392c32;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage input[readonly] {
+  background: #f7f1ef;
+  color: #65545d;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage input:focus-visible,
+.publisher-theme.corporate-workspace-v3 .p2-stage select:focus-visible {
+  outline: 3px solid #caa473;
+  outline-offset: 2px;
+  border-color: #a05e76;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage .secondary-button {
+  border-color: #e0cbd0;
+  background: #fff9f8;
+  color: var(--pub-burgundy);
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage .secondary-button:hover:not(:disabled) {
+  background: #f4e7eb;
+}
+.publisher-theme.corporate-workspace-v3 .p2-option-tabs button {
+  border-color: #e0cdd3;
+  background: #faf6f5;
+  color: #654a57;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .p2-option-tabs button[aria-selected="true"] {
+  background: var(--pub-burgundy);
+  color: white;
+  border-color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .p2-boolean {
+  background: #fffdfa;
+  border-color: #e4d5d9;
+  border-radius: 6px;
+}
+.publisher-theme.corporate-workspace-v3 .p2-boolean input[type="radio"] {
+  accent-color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .p2-media,
+.publisher-theme.corporate-workspace-v3 .p2-step-actions,
+.publisher-theme.corporate-workspace-v3 .p2-completion {
+  border-color: #e8ddda;
+}
+.publisher-theme.corporate-workspace-v3 .p2-media summary {
+  color: var(--pub-burgundy);
+  font-weight: 700;
+}
+.publisher-theme.corporate-workspace-v3 .p2-notice {
+  background: #f9f0ed;
+  border-left-color: var(--pub-gold);
+  color: #674d51;
+}
+.publisher-theme.corporate-workspace-v3 .p2-completion button {
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .p2-guided button:focus-visible {
+  outline-color: var(--pub-gold);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-workspace > .modal-actions {
+  background: var(--p2-publisher-paper);
+  border-color: var(--p2-publisher-border);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-workspace .studio-dirty-status {
+  border-color: #e7d2d7;
+  background: #f8f0f2;
+  color: #754456;
+}
+@media (max-width: 800px) {
+  .publisher-theme.corporate-workspace-v3 .p2-steps button { min-height: 77px; }
+  .publisher-theme.corporate-workspace-v3 .p2-stage { border-radius: 6px; }
+}
