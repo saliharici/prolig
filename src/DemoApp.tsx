@@ -1827,7 +1827,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     ['overview', 'projects', 'tasks', 'messages', 'announcements', 'authors'].includes(item.id) && allowed.includes(item.id)
   );
 
-  return <div className="demo-shell corporate-workspace-v3">
+  return <div className={`demo-shell corporate-workspace-v3 ${import.meta.env.VITE_PUBLISHER_PRESENTATION_THEME === 'true' ? 'publisher-theme' : ''}`}>
     <a className="workspace-skip-link" href="#workspace-content">İçeriğe geç</a>
     <aside
       id="workspace-navigation"
@@ -2254,7 +2254,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             projects={questionAssignableProjects} projectsLoading={projectsLoading} projectsError={projectsError}
             originalProjectId={originalQuestionProjectId} levels={questionLevels} grades={questionGrades}
             onProject={changeQuestionProject} onLevel={changeQuestionLevel} onGrade={changeQuestionGrade}
-            branchName={currentUser.role === 'YAZAR' ? (currentUser as any).branchName || '' : ''}
+            branchName={currentUser.role === 'YAZAR' ? (currentUser.authorProfile?.branch.name ?? '') : ''}
             editing={Boolean(editingQuestion)} disabled={questionSaving || durableDraftBusy}
             sandbox={import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true'}
             onAddAsset={placement => { setQuestionAssetPlacement(placement); addQuestionAssetAt(placement); }}

@@ -12,18 +12,27 @@ export function AuthGate() {
   const [showLogin, setShowLogin] = useState(false);
   const [showApplication, setShowApplication] = useState(false);
   const [showPublicPreview, setShowPublicPreview] = useState(false);
+  const [previewConnectionUnavailable, setPreviewConnectionUnavailable] = useState(false);
 
   const checkSession = async () => {
     setAuthState({ status: 'loading' });
     try {
       const user = await fetchMe();
+      setPreviewConnectionUnavailable(false);
       if (user) {
         setAuthState({ status: 'authenticated', user });
       } else {
         setAuthState({ status: 'unauthenticated' });
       }
     } catch (err: any) {
-      setAuthState({ status: 'error', message: err.message || 'Sisteme bağlanırken bir hata oluştu.' });
+      if (import.meta.env.VITE_PUBLISHER_PRESENTATION_THEME === 'true') {
+        // The presentation branch is intentionally isolated: show public design if its
+        // Preview database has not been connected yet. Never affect Production login.
+        setPreviewConnectionUnavailable(true);
+        setAuthState({ status: 'unauthenticated' });
+      } else {
+        setAuthState({ status: 'error', message: err.message || 'Sisteme bağlanırken bir hata oluştu.' });
+      }
     }
   };
 
@@ -86,7 +95,13 @@ export function AuthGate() {
     if (showLogin) {
       return <LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }} onCancel={() => setShowLogin(false)} />;
     }
-    return <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />;
+    return <>
+      {previewConnectionUnavailable && <div role="status" aria-live="polite" className="publisher-preview-connection-notice">
+        <strong>Tasarım önizlemesi</strong>
+        <span>Kurumsal sayfa görüntülenebilir. Yönetim paneline giriş için izole Preview veritabanı bağlantısı bekleniyor.</span>
+      </div>}
+      <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />
+    </>;
   }
 
   // Authenticated
