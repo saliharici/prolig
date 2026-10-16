@@ -35,7 +35,7 @@ function call(method: string, body: unknown = undefined, id?: number) {
   const res: any = {
     statusCode: 200, data: undefined,
     status(statusCode: number) { this.statusCode = statusCode; return this; },
-    json(data: unknown) { this.data = data; return this; },
+    json(data: unknown) { this.data = JSON.parse(JSON.stringify(data)); return this; },
     setHeader() { return this; }
   };
   return { req, res: res as VercelResponse & { statusCode: number; data: any } };
