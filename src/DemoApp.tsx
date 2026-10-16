@@ -15,7 +15,7 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
-import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions } from './questions/edit';
+import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionOptions, restoredQuestionCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions } from './questions/edit';
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
@@ -1623,7 +1623,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionGrade(grade);
 
     setQuestionOptions(normalizeQuestionOptions(question.options));
-    setQuestionCorrectAnswer(isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '');
+    setQuestionCorrectAnswer(restoredQuestionCorrectAnswer(question));
     setQuestionExplanation(question.explanation || '');
     if (guidedStudioOn) setQuestionTypeExtras(questionTypeDraft(question));
     setQuestionStep(1);
@@ -1640,7 +1640,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       ...(guidedStudioOn ? questionTypeDraft(question) : {}),
       content: question.content, level, grade, projectId: question.projectId,
       options: normalizeQuestionOptions(question.options),
-      correctAnswer: isValidCorrectAnswer(question.correctAnswer) ? question.correctAnswer : '',
+      correctAnswer: restoredQuestionCorrectAnswer(question),
       explanation: question.explanation || '', assets: normalizeQuestionAssets(question.assets),
       assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
     }));
