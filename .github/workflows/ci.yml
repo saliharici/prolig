@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, feat/compensation-engine]
   pull_request:
-    branches: [main]
+    branches: [main, feat/p2-professional-question-editor-20261012]
   workflow_dispatch:
 
 jobs:
