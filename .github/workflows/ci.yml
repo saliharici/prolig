@@ -24,7 +24,9 @@ jobs:
         # Keep CI read-only with respect to the repository while installing from package.json.
         run: npm install --package-lock=false --no-audit --no-fund
       - name: Validate read-only P2 pilot preflight syntax
-        run: node --check scripts/p2-pilot-readonly-check.mjs
+        run: |
+          node --check scripts/p2-pilot-readonly-check.mjs
+          node --check scripts/p2-acceptance-branch-check.mjs
       - name: Lint
         run: npm run lint
       - name: Unit and contract tests
