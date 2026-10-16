@@ -155,7 +155,7 @@ beforeAll(async () => {
         method: incoming.method, headers: incoming.headers,
         query: match ? { id: match[1] } : {}, body
       } as unknown as VercelRequest;
-      const res = {
+      const res: any = {
         statusCode: 200,
         status(code: number) { this.statusCode = code; return this; },
         setHeader(key: string, val: string | string[]) { outgoing.setHeader(key, val); return this; },
@@ -164,7 +164,7 @@ beforeAll(async () => {
           outgoing.end(JSON.stringify(value));
           return this;
         }
-      } as unknown as VercelResponse;
+      };
       if (match && parts.pathname.endsWith('/workflow')) await questionWorkflow(req, res);
       else if (match) await questionDetail(req, res);
       else if (parts.pathname === '/api/v1/questions') await questions(req, res);
