@@ -21,6 +21,7 @@ function savedTypedQuestion(draft: QuestionStudioFormValues): ApiQuestion {
     createdAt: '2026-10-17T00:00:00.000Z', updatedAt: '2026-10-17T00:00:00.000Z',
     isArchived: false, author: null, project: null,
     ...payload,
+    assets: [], // API DTO assets have persisted numeric IDs; this fixture has no media.
     questionType: payload.questionType,
     optionCount: payload.optionCount ?? null,
     booleanAnswer: payload.booleanAnswer ?? null,
