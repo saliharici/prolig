@@ -27,6 +27,7 @@ jobs:
         run: |
           node --check scripts/p2-pilot-readonly-check.mjs
           node --check scripts/p2-acceptance-branch-check.mjs
+          node --check scripts/p2-live-http-acceptance.mjs
       - name: Lint
         run: npm run lint
       - name: Unit and contract tests
