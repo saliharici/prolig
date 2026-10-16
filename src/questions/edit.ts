@@ -118,7 +118,29 @@ export function buildQuestionEditPatch(question: ApiQuestion, draft: QuestionEdi
         next.optionCount !== ((question.questionType ?? 'MULTIPLE_CHOICE') === 'MULTIPLE_CHOICE' ? question.optionCount ?? 4 : null)) {
       throw new QuestionFormValidationError('Kaydedilmiş sorunun türü ve seçenek sayısı değiştirilemez.');
     }
-    return { ...next, expectedUpdatedAt: question.updatedAt };
+    // Typed questions should update only the fields actually edited. Sending the
+    // entire serialized question can unnecessarily rewrite answers and media.
+    const input: PatchQuestionInput = { expectedUpdatedAt: question.updatedAt };
+    if (next.content !== question.content.trim()) input.content = next.content;
+    if (next.grade.trim() !== (question.grade?.trim() || '')) input.grade = next.grade.trim();
+    if (next.explanation !== (question.explanation?.trim() || null)) input.explanation = next.explanation;
+    if (next.projectId !== question.projectId) input.projectId = next.projectId;
+    if (next.objectiveCode !== (question.objectiveCode?.trim() || null)) input.objectiveCode = next.objectiveCode;
+    if (next.difficulty !== (question.difficulty?.trim() || null)) input.difficulty = next.difficulty;
+
+    const savedOptions = Array.isArray(question.options) ? question.options.map(option => option.trim()) : [];
+    if (JSON.stringify(next.options) !== JSON.stringify(savedOptions)) input.options = next.options;
+    if (next.correctAnswer !== (question.correctAnswer ?? null)) input.correctAnswer = next.correctAnswer;
+    if (next.booleanAnswer !== (question.booleanAnswer ?? null)) input.booleanAnswer = next.booleanAnswer;
+    if (next.modelAnswer !== (question.modelAnswer?.trim() || null)) input.modelAnswer = next.modelAnswer;
+    if (next.scoringRubric !== (question.scoringRubric?.trim() || null)) input.scoringRubric = next.scoringRubric;
+    if (next.evaluationCriteria !== (question.evaluationCriteria?.trim() || null)) input.evaluationCriteria = next.evaluationCriteria;
+    if (!areQuestionAssetsEqual(question.assets, next.assets)) input.assets = next.assets;
+
+    if (Object.keys(input).length === 1) {
+      throw new QuestionFormValidationError('Kaydedilecek bir değişiklik bulunamadı.');
+    }
+    return input;
   }
   const input: PatchQuestionInput = { expectedUpdatedAt: question.updatedAt };
   const content = draft.content.trim();
