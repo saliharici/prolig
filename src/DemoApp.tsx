@@ -15,7 +15,7 @@ import {
 } from './demo/model';
 import { AuthorMap } from './demo/AuthorMap';
 import { fetchQuestions, createQuestion, patchQuestion, runQuestionWorkflow, changeQuestionArchive, deleteQuestion, ApiError } from './questions/api';
-import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionOptions, restoredQuestionCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions } from './questions/edit';
+import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionOptions, isValidCorrectAnswer, restoredQuestionCorrectAnswer, normalizeQuestionAssets, normalizeQuestionOptions } from './questions/edit';
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
