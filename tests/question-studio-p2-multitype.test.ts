@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { allowsFiveOptions, validateQuestionAnswerStructure } from '../shared/question-contract';
 import { questionTypeDraft, serializeTypedAnswers, switchQuestionType } from '../src/questions/question-type-state';
-import { buildQuestionCreateInput } from '../src/questions/edit';
+import { buildQuestionCreateInput, restoredQuestionCorrectAnswer, isValidCorrectAnswer } from '../src/questions/edit';
 import { guidedQuestionIssues } from '../src/questions/GuidedQuestionStudio';
 import type { QuestionStudioFormValues } from '../src/questions/studio-state';
 
@@ -43,6 +43,26 @@ describe('P2 guided multi-type question authoring', () => {
     expect(payload.modelAnswer).toBe('Gerekçeli açıklama');
     expect(payload.scoringRubric).toBe('5+5 puan');
     expect(validateQuestionAnswerStructure(payload as any)).toBeNull();
+  });
+
+  it.each([4, 5] as const)('restores the saved correct answer for %i-choice questions', optionCount => {
+    const correctAnswer = optionCount === 5 ? 'E' : 'D';
+    const initial = { ...fixture(), optionCount, correctAnswer };
+    const created = buildQuestionCreateInput(initial);
+    const reopenedAnswer = restoredQuestionCorrectAnswer({
+      correctAnswer: created.correctAnswer,
+      optionCount: created.optionCount
+    });
+    expect(reopenedAnswer).toBe(correctAnswer);
+    const edited = buildQuestionCreateInput({ ...initial, correctAnswer: reopenedAnswer, content: 'Düzenlenmiş soru metni' });
+    expect(edited.correctAnswer).toBe(correctAnswer);
+    expect(edited.options).toHaveLength(optionCount);
+  });
+
+  it('rejects E for four-choice questions and clears non-MCQ answer keys', () => {
+    expect(isValidCorrectAnswer('E')).toBe(false);
+    expect(restoredQuestionCorrectAnswer({ correctAnswer: 'E', optionCount: 4 })).toBe('');
+    expect(restoredQuestionCorrectAnswer({ correctAnswer: null, optionCount: null })).toBe('');
   });
 
   it('keeps inactive answer data locally across type switching', () => {

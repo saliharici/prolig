@@ -3,6 +3,7 @@ import { validateQuestionAnswerStructure, type QuestionTypeFields } from '../../
 import { serializeTypedAnswers } from './question-type-state';
 
 const answerKeys = new Set(['A', 'B', 'C', 'D']);
+const fiveOptionAnswerKeys = new Set(['A', 'B', 'C', 'D', 'E']);
 const assetPlacements = new Set<QuestionAssetPlacement>(['STEM', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'OPTION_E', 'EXPLANATION']);
 const assetTypes = new Set<QuestionAssetType>(['IMAGE', 'VIDEO_URL', 'LINK']);
 
@@ -34,8 +35,15 @@ export function hasFourValidQuestionOptions(options: unknown): boolean {
   return Array.isArray(options) && options.length === 4 && options.every(option => typeof option === 'string' && option.trim().length > 0);
 }
 
-export function isValidCorrectAnswer(value: unknown): value is string {
-  return typeof value === 'string' && answerKeys.has(value);
+export function isValidCorrectAnswer(value: unknown, optionCount: 4 | 5 = 4): value is string {
+  return typeof value === 'string' && (optionCount === 5 ? fiveOptionAnswerKeys : answerKeys).has(value);
+}
+
+/** Restore the saved answer without dropping E from five-choice questions. */
+export function restoredQuestionCorrectAnswer(question: Pick<ApiQuestion, 'correctAnswer' | 'optionCount'>): string {
+  return isValidCorrectAnswer(question.correctAnswer, question.optionCount === 5 ? 5 : 4)
+    ? question.correctAnswer
+    : '';
 }
 
 export function normalizeQuestionAssets(assets: unknown): QuestionAssetInput[] {
