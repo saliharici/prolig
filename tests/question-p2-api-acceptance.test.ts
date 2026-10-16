@@ -68,8 +68,8 @@ function reopen(question: ApiQuestion): QuestionEditDraft {
 function installIsolatedPrisma() {
   vi.mocked(auth.getSessionUserId).mockReturnValue(author.id);
   vi.mocked(prisma.user.findUnique).mockResolvedValue(author as any);
-  vi.mocked(prisma.question.findUnique).mockImplementation(async () => saved);
-  vi.mocked(prisma.question.findMany).mockImplementation(async () => saved ? [saved] : []);
+  vi.mocked(prisma.question.findUnique).mockImplementation((async () => saved) as any);
+  vi.mocked(prisma.question.findMany).mockImplementation((async () => saved ? [saved] : []) as any);
   vi.mocked(prisma.activityLog.findFirst).mockResolvedValue(null);
   vi.mocked(prisma.activityLog.findMany).mockResolvedValue([]);
   vi.mocked(prisma.$transaction).mockImplementation(async (operation: any) => {
