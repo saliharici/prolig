@@ -13,6 +13,8 @@ import react from '@vitejs/plugin-react';
 import authMe from '../api/v1/auth/me.js';
 import authLogout from '../api/v1/auth/logout.js';
 import questions from '../api/v1/questions/index.js';
+import questionDetail from '../api/v1/questions/[id].js';
+import { getCurrentUser } from '../api/v1/_lib/current-user.js';
 import projects from '../api/v1/projects/index.js';
 import { setSessionCookie } from '../api/v1/_lib/auth.js';
 import { prisma } from '../api/v1/_lib/prisma.js';
@@ -20,13 +22,17 @@ import { prisma } from '../api/v1/_lib/prisma.js';
 const PORT = 3138;
 const ORIGIN = 'http://127.0.0.1:' + PORT;
 const EXPECTED_HOST = 'ep-wild-sea-b2wlp46v.c-6.eu-central-1.aws.neon.tech';
+const WRITE_MODE = process.env.PROLIG_P2_BROWSER_GUARDED_WRITES === 'P2_ACCEPTANCE_DRAFT_ONLY';
+const UAT_MARKER = 'P2-UAT-BROWSER-20261017';
+const UAT_PROJECT = 'PILOT-MAT-8-001';
+const UAT_GRADE = '8. Sınıf';
 const PILOTS = {
   author: { email: 'pilot.yazar@prolig.local', role: 'YAZAR' },
   editor: { email: 'pilot.editor@prolig.local', role: 'EDITOR' }
 } as const;
 
 function verifyRuntime() {
-  if (process.env.PROLIG_P2_BROWSER_READONLY !== 'P2_ACCEPTANCE_READONLY_ONLY' ||
+  if (process.env.PROLIG_P2_BROWSER_ISOLATED !== 'P2_ACCEPTANCE_ISOLATED_ONLY' ||
       process.env.PROLIG_QUESTION_TYPES_P2 !== 'true' ||
       !process.env.AUTH_SECRET || !process.env.DATABASE_URL) {
     throw new Error('P2 read-only browser isolation not enabled.');
@@ -62,9 +68,8 @@ app.get('/__p2-uat', (_req, res) => res.type('html').send(`<!doctype html>
 <title>PRO-LIG P2 — izole tarayıcı kabulü</title></head>
 <body style="font:16px system-ui;max-width:700px;padding:30px;margin:auto;line-height:1.6">
 <h1>PRO-LIG P2 — Güvenli tarayıcı önizlemesi</h1>
-<p><strong>Yalnızca test dalı. SALT OKUNUR.</strong> Bu oturum, gerçek parola girişi değil;
-yerel test JWT'si ile pilot rol seçimini sağlar. Kaydetme, silme, gönderme,
-onaylama ve profil değişiklikleri engellenir.</p>
+<p><strong>Yalnızca izole Neon test dalı.</strong> ${WRITE_MODE ? 'GÜVENLİ TEST TASLAĞI: yalnızca PILOT-MAT-8-001 / 8. Sınıf; silme ve gönderme kapalı.' : 'SALT OKUNUR: soru kaydı ve düzenleme kapalı.'} Bu oturum, gerçek parola girişi değil;
+yerel test JWT'si ile pilot rol seçimini sağlar. Silme, gönderme, onaylama ve profil değişiklikleri engellenir.</p>
 <form action="/__p2-uat/activate" method="post">
 <button name="role" value="author" style="padding:14px;margin-right:12px">Pilot YAZAR olarak aç</button>
 <button name="role" value="editor" style="padding:14px">Pilot EDITÖR olarak aç</button>
@@ -96,7 +101,88 @@ app.post('/api/v1/auth/logout', adapt(authLogout));
 app.get('/api/v1/questions', adapt(questions));
 app.get('/api/v1/projects', adapt(projects));
 
-// No handler capable of DB writes is mounted in this isolated browser service.
+function withId(req: any, _res: any, next: any) {
+  Object.defineProperty(req, 'query', {
+    value: { ...req.query, id: req.params.id }, configurable: true
+  });
+  next();
+}
+
+/**
+ * Defense in depth: the browser may call only CREATE and PATCH on clearly
+ * disposable drafts owned by the pilot author, assigned to a dedicated project.
+ * No workflow, delete, archive, real question or asset mutation is mounted.
+ */
+async function requireTestDraft(req: any, res: any, next: any) {
+  if (!WRITE_MODE || req.headers.origin !== ORIGIN) {
+    return res.status(403).json({ error: 'P2 write mode or same-origin approval is missing.' });
+  }
+  const actor = await getCurrentUser(req);
+  if (!actor || actor.role.code !== 'YAZAR' || actor.email !== PILOTS.author.email) {
+    return res.status(403).json({ error: 'Only isolated pilot YAZAR can write test drafts.' });
+  }
+  const author = await prisma.user.findUnique({
+    where: { id: actor.id },
+    include: { AuthorProfile: true }
+  });
+  const project = await prisma.project.findUnique({ where: { code: UAT_PROJECT } });
+  if (!author?.AuthorProfile || !project ||
+      project.branchId !== author.AuthorProfile.branchId ||
+      project.targetGrade !== UAT_GRADE ||
+      !(await prisma.projectAuthor.findUnique({
+        where: { projectId_authorProfileId: {
+          projectId: project.id, authorProfileId: author.AuthorProfile.id
+        } }
+      }))) {
+    return res.status(403).json({ error: 'Dedicated pilot author/project assignment mismatch.' });
+  }
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body) ||
+      (req.body.assets !== undefined && (!Array.isArray(req.body.assets) || req.body.assets.length !== 0))) {
+    return res.status(403).json({ error: 'Only media-free synthetic question drafts are allowed.' });
+  }
+  if (req.method === 'POST') {
+    if (req.body.projectId !== project.id || req.body.grade !== UAT_GRADE ||
+        !['MULTIPLE_CHOICE','TRUE_FALSE','OPEN_ENDED'].includes(req.body.questionType)) {
+      return res.status(403).json({ error: 'Only supported question types in PILOT-MAT-8-001 / 8. Sınıf.' });
+    }
+    if (req.body.questionType === 'MULTIPLE_CHOICE' && req.body.optionCount !== 4) {
+      return res.status(403).json({ error: 'Five options require a separate high-school acceptance fixture.' });
+    }
+    const code = typeof req.body.objectiveCode === 'string' ? req.body.objectiveCode.trim() : '';
+    const suffix = code.replace(/^P2-UAT(?:\s+|$)/, '').trim();
+    const objectiveCode = [UAT_MARKER, suffix].filter(Boolean).join(' ');
+    if (objectiveCode.length > 100) return res.status(400).json({ error: 'Test marker exceeds objective code limit.' });
+    const count = await prisma.question.count({ where: { objectiveCode: { startsWith: UAT_MARKER } } });
+    if (count >= 6) return res.status(409).json({ error: 'Test draft limit reached: clean existing test questions first.' });
+    req.body.objectiveCode = objectiveCode;
+    return next();
+  }
+  if (req.method === 'PATCH') {
+    const id = Number(req.params?.id);
+    if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid synthetic question ID.' });
+    const saved = await prisma.question.findUnique({ where: { id } });
+    if (!saved || saved.authorUserId !== author.id ||
+        saved.projectId !== project.id || saved.grade !== UAT_GRADE ||
+        saved.status !== 'TASLAK' || !saved.objectiveCode?.startsWith(UAT_MARKER)) {
+      return res.status(403).json({ error: 'Question is not an owned synthetic P2 draft.' });
+    }
+    if ((req.body.projectId !== undefined && req.body.projectId !== saved.projectId) ||
+        (req.body.grade !== undefined && req.body.grade !== UAT_GRADE) ||
+        (req.body.objectiveCode !== undefined && req.body.objectiveCode !== saved.objectiveCode) ||
+        (req.body.questionType !== undefined && req.body.questionType !== saved.questionType) ||
+        (req.body.optionCount !== undefined && req.body.optionCount !== saved.optionCount)) {
+      return res.status(403).json({ error: 'Cannot change synthetic draft scope, marker or type.' });
+    }
+    return next();
+  }
+  return res.status(403).json({ error: 'Only synthetic create/edit is enabled.' });
+}
+const guarded = (req: any, res: any, next: any) =>
+  Promise.resolve(requireTestDraft(req, res, next)).catch(next);
+app.post('/api/v1/questions', guarded, adapt(questions));
+app.patch('/api/v1/questions/:id', withId, guarded, adapt(questionDetail));
+
+// All remaining endpoints (including workflow, DELETE, archive and approval) are blocked.
 app.use('/api/', (_req, res) => res.status(403).json({
   error: 'P2 browser acceptance is READ ONLY; database mutation is blocked.'
 }));
@@ -110,7 +196,7 @@ if (!process.env.VITEST) {
       'import.meta.env.VITE_QUESTION_STUDIO_P1C': JSON.stringify('true'),
       'import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR': JSON.stringify('true'),
       'import.meta.env.VITE_QUESTION_STUDIO_P2_TYPES': JSON.stringify('true'),
-      'import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES': JSON.stringify('false')
+      'import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES': JSON.stringify(WRITE_MODE ? 'true' : 'false')
     },
     plugins: [react()],
     resolve: { alias: { '@': root } },
@@ -144,7 +230,9 @@ if (!process.env.VITEST) {
   server.listen(PORT, '127.0.0.1', () => {
     console.log('P2 isolated browser preview: ' + ORIGIN + '/__p2-uat');
     console.log('Pilot roles: YAZAR / EDITOR; session uses ephemeral local JWT.');
-    console.log('READ ONLY: CREATE/PATCH/DELETE/WORKFLOW/PROFILE operations disabled.');
+    console.log(WRITE_MODE
+      ? 'GUARDED DRAFTS: only marked PILOT-MAT-8-001 / 8. Sınıf CREATE/PATCH; no delete/submit/approve.'
+      : 'READ ONLY: CREATE/PATCH/DELETE/WORKFLOW/PROFILE operations disabled.');
     console.log('Ctrl+C to stop. No Vercel or production service is used.');
   });
   const stop = () => { server.close(); void vite.close(); void prisma.$disconnect(); };
@@ -152,4 +240,4 @@ if (!process.env.VITEST) {
   process.on('SIGTERM', stop);
 }
 
-export { app, verifyRuntime, PILOTS, EXPECTED_HOST };
+export { app, verifyRuntime, PILOTS, EXPECTED_HOST, UAT_MARKER, requireTestDraft };
