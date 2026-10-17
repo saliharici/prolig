@@ -30,6 +30,7 @@ import { fetchProjects } from './projects/api';
 import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/types';
 import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
 import { ProjectManagementModal } from './projects/ProjectManagementModal';
+import { ProjectProductionOverview } from './projects/ProjectProductionOverview';
 import { TaskTracking } from './tasks/TaskTracking';
 import { fetchTasks } from './tasks/api';
 import type { ApiTask } from './tasks/types';
@@ -2139,6 +2140,15 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <div><strong>{selectedProject.taskCount ?? 0}</strong><span>Görev</span></div>
         <div><strong>%{selectedProject.progress}</strong><span>İlerleme</span></div>
       </div>})()}
+      <ProjectProductionOverview
+        key={selectedProject.id}
+        projectId={selectedProject.id}
+        questions={apiQuestions}
+        questionsLoading={apiLoading}
+        questionsError={apiError}
+        role={currentUser.role}
+        onOpenQuestions={() => openQuestionsForProject(selectedProject.id)}
+      />
       <div className="project-detail-body">
         <div>
           <div className="grade-detail-subhead"><strong>Proje yazarları</strong><span>{selectedProject.authors.length} kişi</span></div>
