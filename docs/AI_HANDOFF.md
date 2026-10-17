@@ -32,4 +32,12 @@
 - Tarayıcı çalışma planı ve ekran kontrol listesi: `docs/P2_BROWSER_UAT_20261017.md`. Ortam: `D:\\Proje\\pro-lig-p2-acceptance`. Önce CI / ilgili PR merge doğrulanmalı, sonra salt-okunur `node scripts/p2-browser-acceptance.mjs --preflight`, ardından `--serve`.
 - İlk etapta YAZAR ve EDITOR pilot rollerinin gerçek arayüzünde P2 ekranları incelenecek. **Kayıt ve silme bloklu; tarayıcıda kalıcı kayıt henüz doğrulanmadı.** Yerel rol seçici parola ile giriş değil, test JWT oturumudur. Salt-okunur görsel kabul PASS ise ayrı yazmalı etap tasarlanacak.
 
+## P2 görsel kabul ve güvenli kayıt testi — 17 Ekim 2026 (güncel)
+
+- Kullanıcı ekran görüntüleriyle P2 beş adım, doğru/yanlış, dört ve beş seçenekli (10. sınıf A–E) alanlar, açık uçlu model cevap/rubrik/ölçüt ekranı ve editör karar menüsünün bulunduğunu doğruladı. Bu **görsel kısmi PASS**; tarayıcı kalıcı kayıt henüz doğrulanmadı.
+- PR #31 (feature SHA `58839cd0`, lint/tests/build/navigation CI PASS) ile **Genel Soru Havuzu'nda yazar branşı oturum profilinden Matematik olarak gösteriliyor** ve her zengin metin editörünün bağlamsal yer tutucusu düzeltildi. Kullanıcı **branş = Matematik PASS** bildirdi.
+- Bu aşama sonrası yeni scoped yazmalı tarayıcı UAT `scripts/p2-browser-acceptance.mjs --serve-write` (ayrı açık izin gerekir) ve **tek-ID dry-run cleanup** hazırlanıyor. `docs/P2_BROWSER_WRITE_UAT_20261017.md` dosyasını oku. PR #32 inceleme/CI onayı gelmeden yerelde çalıştırma; işlem sadece `br-quiet-tree-b2ganqkl` Neon acceptance dalında.
+- Yalnızca pilot Matematik yazarı, `PILOT-MAT-8-001`, **8. Sınıf**, `P2-UAT-BROWSER-20261017` işaretli **TASLAK** CREATE/PATCH; editör kararları/gönderme/silme/medya ve telif engelli. Ayrı `scripts/p2-browser-acceptance-cleanup.mjs --question-id N` salt okunur ilk aşama; `--apply` için farklı onay gerekir. P1-D ayrı database ile ASLA karıştırma.
+- Ana worktree `D:\Proje\pro-lig` içindeki değişikliklere, production'a ve Neon main'e dokunma. Kullanıcının `.env.p2-acceptance.local` dosyası özel kalır.
+
 **Sıradaki mantıklı adım:** P2 özelliğinin **ayrı test ortamındaki tarayıcı kabulünü** ve release öncesi uyumluluk/yetki kontrol listesini planla. Kullanıcıdan production merge için ayrıca açık onay gelmeden üretim işlemi yapma. Geçmiş testleri tekrar koşturma, yalnızca değişen kod veya yeni risk bunu gerektiriyorsa tekrarla.
