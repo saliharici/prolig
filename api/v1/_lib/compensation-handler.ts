@@ -154,7 +154,7 @@ async function listEntries(req: VercelRequest, res: VercelResponse, user: any) {
   const rawProjectIds = req.query.projectIds;
   let projectIds: number[] | undefined;
   if (rawProjectIds !== undefined) {
-    if (typeof rawProjectIds !== 'string' || !/^[1-9]\\d*(,[1-9]\\d*)*$/.test(rawProjectIds)) {
+    if (typeof rawProjectIds !== 'string' || !/^[1-9]\d*(,[1-9]\d*)*$/.test(rawProjectIds)) {
       return res.status(400).json({ error: 'Invalid projectIds filter' });
     }
     projectIds = Array.from(new Set(rawProjectIds.split(',').map(Number)));
