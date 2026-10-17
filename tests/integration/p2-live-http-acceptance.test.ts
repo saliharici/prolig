@@ -33,6 +33,7 @@ const idsCreated = new Set<number>();
 // Vitest may time out a test body while its HTTP request is still in flight.
 // Never clean a synthetic row until every request from that test has settled.
 const pendingRequests = new Set<Promise<unknown>>();
+const executingCases = new Set<Promise<unknown>>();
 
 function verifyWriteTarget() {
   if (process.env.PROLIG_P2_LIVE_WRITE_APPROVAL !== 'P2_ACCEPTANCE_ONLY' ||
@@ -71,9 +72,21 @@ async function request(method: string, path: string, userId: number | null, body
   }
 }
 
+async function trackWriteCase<T>(task: () => Promise<T>): Promise<T> {
+  const work = task();
+  executingCases.add(work);
+  try {
+    return await work;
+  } finally {
+    executingCases.delete(work);
+  }
+}
+
 async function waitForOutstandingRequests() {
-  while (pendingRequests.size > 0) {
-    await Promise.allSettled([...pendingRequests]);
+  // The test case itself can continue after a Vitest timeout. Waiting for
+  // its whole body prevents it from scheduling a new write after cleanup.
+  while (executingCases.size > 0 || pendingRequests.size > 0) {
+    await Promise.allSettled([...executingCases, ...pendingRequests]);
   }
 }
 
@@ -291,7 +304,7 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
       patch: { modelAnswer: 'Yeni model cevap' },
       target: { modelAnswer: 'Yeni model cevap', scoringRubric: 'İlk rubrik', evaluationCriteria: 'İlk ölçüt' }
     }
-  ])('creates → reopens → edits → submits $label', async ({ input, patch, target }) => {
+  ])('creates → reopens → edits → submits $label', async ({ input, patch, target }) => trackWriteCase(async () => {
     const created = await create(basePayload(input));
     const opened = await read(created.id);
     const result = await request('PATCH', '/api/v1/questions/' + created.id, authorId, {
@@ -312,9 +325,9 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
     expect(audit.map(row => row.action)).toContain('QUESTION_CREATED');
     expect(audit.map(row => row.action)).toContain('QUESTION_UPDATED');
     expect(audit.map(row => row.action)).toContain('QUESTION_SUBMITTED');
-  }, 45_000);
+  }), 45_000);
 
-  it('blocks incomplete open-ended submission and a stale PATCH', async () => {
+  it('blocks incomplete open-ended submission and a stale PATCH', async () => trackWriteCase(async () => {
     const q = await create(basePayload({
       questionType: 'OPEN_ENDED', optionCount: null, options: [], correctAnswer: null,
       modelAnswer: null, scoringRubric: 'Eksik model cevaplı rubrik'
@@ -329,5 +342,5 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
     const submit = await request('POST', '/api/v1/questions/' + q.id + '/workflow', authorId, { action: 'submit' });
     expect(submit.status).toBe(400);
     expect((await read(q.id)).status).toBe('TASLAK');
-  }, 45_000);
+  }), 45_000);
 });
