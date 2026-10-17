@@ -31,7 +31,7 @@ npm run build
 
 ### Soru Stüdyosu özellik bayrakları
 
-Varsayılan olarak bütün opsiyonel bayraklar kapalıdır. Görsel bayraklar Vite **build anında**, sunucu bayrağı API runtime'da okunur.
+Bayrak kararları `src/questions/studio-release-flags.ts`, Vite ortam değişkenleri ise yalnızca `src/questions/studio-runtime-flags.ts` üzerinden okunur. Varsayılan olarak bütün opsiyonel bayraklar kapalıdır. Görsel bayraklar Vite **build anında**, sunucu bayrağı API runtime'da okunur.
 
 | Bayrak | Kapsam |
 |---|---|
