@@ -50,3 +50,12 @@ Tarayıcıda **`http://127.0.0.1:3138/__p2-uat`** adresini açıp **Pilot YAZAR*
 ## Mevcut gerçek HTTP kabul sonucu
 
 17 Ekim 2026: 6/6 PASS, 48 saniye, `ec0d1a13`. Sonrasında Neon `main` ve izole kabul dallarında 5'er soru, yapay soru kalıntısı 0, orijinal Question satır özetleri eşleşiyor. İzole dalda önceki timeout denemesinden `ActivityLog #529` tarihi kayıt olarak kaldı; otomatik silinmedi.
+
+## Operatör ekran görüntülerinin gözlemsel kabulü — 17 Ekim 2026
+
+- Kullanıcı beş aşamalı editörü, Doğru/Yanlış seçimini, çözüm ekranını, önizleme ve editör aksiyon listesini ilk görsellerle gösterdi.
+- Ek görsellerde **Lise / 10. Sınıf** için **5 seçenek · A-E** seçimi ve A, B, C, D, E cevap sekmeleri görüldü. Gerçek metin girilip kaydedildiği/yeniden açıldığı henüz gösterilmedi.
+- **Açık Uçlu** ekranda Beklenen / model cevap, Puanlama anahtarı ve Değerlendirme ölçütleri ayrı alanlar olarak görüldü. Girdi/kalıcılık ve tekrar açma henüz doğrulanmadı.
+- İki görsel sorun saptandı: **Genel Soru Havuzu ile Branş boş**, ve çözüm/model cevap/rubrik/ölçüt editörleri yanlışlıkla soru kökü yer tutucusu kullanıyor. Bu yalnızca UI sorunu; çözüm PR #31'de. Yeni kodun tarayıcıda gözlemi ayrı PASS bekliyor.
+- **Görsel kabul: KISMİ PASS (alanların varlığı ve yerleşimi).** Henüz tam uçtan uca tarayıcı UAT PASS değildir. Read-only oturumda API'de soru kaydı/güncelleme akışları zaten kapalıdır.
+- Önerilen sonraki aşama: PR #31 merge+yerel güncelleme sonrası düzeltilen iki alanı gözle; sonra ayrı doğrulanmış yazmalı tarayıcı modu tasarla ve işaretlenmiş yeni test sorusu CREATE → GET → PATCH → GET → güvenli temizlik kabulünü al.
