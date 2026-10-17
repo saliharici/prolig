@@ -51,7 +51,7 @@ import { CompensationEntriesPanel } from './compensation/CompensationEntriesPane
 import { ReportsCenter } from './reports/ReportsCenter';
 import { GeneralCoordinatorDashboard } from './overview/GeneralCoordinatorDashboard';
 import { latestAuthorizedAudit, latestScopedPayments, latestScopedQuestions } from './overview/live-activity';
-import { questionStudioReleaseFlags } from './questions/studio-release-flags';
+import { questionStudioReleaseFlags } from './questions/studio-runtime-flags';
 import { MemberManagement } from './membership/MemberManagement';
 import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
