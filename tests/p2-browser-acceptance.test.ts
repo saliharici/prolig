@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const launcher = readFileSync('scripts/p2-browser-acceptance.mjs', 'utf8');
 const server = readFileSync('scripts/p2-browser-acceptance-app.ts', 'utf8');
+const cleanup = readFileSync('scripts/p2-browser-acceptance-cleanup.mjs', 'utf8');
 
 describe('P2 isolated browser acceptance fail-closed contract', () => {
   it('requires exact Neon branch, independent read-only preflight and private file', () => {
@@ -65,4 +66,20 @@ describe('P2 isolated browser acceptance fail-closed contract', () => {
     expect(server).toContain("'import.meta.env.VITE_QUESTION_STUDIO_P2_TYPES': JSON.stringify('true')");
     expect(server).toContain("'import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR': JSON.stringify('true')");
   });
+  it('keeps exact-ID dry-run cleanup separate from browser writes and disallows real data deletion', () => {
+    expect(cleanup).toContain("const EXPECTED_HOST = 'ep-wild-sea-b2wlp46v.c-6.eu-central-1.aws.neon.tech'");
+    expect(cleanup).toContain("const EXPECTED_MARKER = 'P2-UAT-BROWSER-20261017'");
+    expect(cleanup).toContain("const EXPECTED_AUTHOR = 'pilot.yazar@prolig.local'");
+    expect(cleanup).toContain("const EXPECTED_PROJECT = 'PILOT-MAT-8-001'");
+    expect(cleanup).toContain("const apply = args.includes('--apply')");
+    expect(cleanup).toContain("if (apply && process.env[CLEANUP_VAR] !== CLEANUP_APPROVAL)");
+    expect(cleanup).toContain("SELECT count(*)::int AS n FROM public.\\"CompensationEntry\\"");
+    expect(cleanup).toContain("q.status !== 'TASLAK'");
+    expect(cleanup).toContain("q.objectiveCode.startsWith(EXPECTED_MARKER)");
+    expect(cleanup).toContain("if (!apply)");
+    expect(cleanup).toContain("WHERE id=$1 AND \\"objectiveCode\\" LIKE $2 AND status='TASLAK'");
+    expect(cleanup).not.toContain("DELETE FROM public.\\"User\\"");
+    expect(cleanup).not.toContain("DELETE FROM public.\\"Project\\"");
+  });
+
 });
