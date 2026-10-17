@@ -30,6 +30,9 @@ let editorId = 0;
 let projectId = 0;
 let originalIds: number[] = [];
 const idsCreated = new Set<number>();
+// Vitest may time out a test body while its HTTP request is still in flight.
+// Never clean a synthetic row until every request from that test has settled.
+const pendingRequests = new Set<Promise<unknown>>();
 
 function verifyWriteTarget() {
   if (process.env.PROLIG_P2_LIVE_WRITE_APPROVAL !== 'P2_ACCEPTANCE_ONLY' ||
@@ -52,12 +55,26 @@ function cookie(id: number): string {
 }
 
 async function request(method: string, path: string, userId: number | null, body?: unknown) {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (userId) headers.cookie = cookie(userId);
-  const res = await fetch(rootUrl + path, {
-    method, headers, body: body === undefined ? undefined : JSON.stringify(body)
-  });
-  return { status: res.status, data: await res.json() as any };
+  const work = (async () => {
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (userId) headers.cookie = cookie(userId);
+    const res = await fetch(rootUrl + path, {
+      method, headers, body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    return { status: res.status, data: await res.json() as any };
+  })();
+  pendingRequests.add(work);
+  try {
+    return await work;
+  } finally {
+    pendingRequests.delete(work);
+  }
+}
+
+async function waitForOutstandingRequests() {
+  while (pendingRequests.size > 0) {
+    await Promise.allSettled([...pendingRequests]);
+  }
 }
 
 function assertNoCollision(rows: Array<{ id: number; authorUserId: number; objectiveCode: string | null; status: string }>) {
@@ -108,6 +125,10 @@ async function cleanSynthetic() {
     });
     if (deleted.count !== cleanupIds.length) throw new Error('Cleanup did not delete exactly the disposable questions.');
   });
+  const leftoverLogs = await prisma.activityLog.count({
+    where: { entityType: 'Question', entityId: { in: cleanupIds } }
+  });
+  if (leftoverLogs !== 0) throw new Error('Cleanup left audit logs for this test run.');
   for (const id of cleanupIds) idsCreated.delete(id);
 }
 
@@ -184,11 +205,15 @@ beforeAll(async () => {
 }, 20_000);
 
 // Cleanup uses real remote PostgreSQL and can require several round trips.
-afterEach(async () => { await cleanSynthetic(); }, 45_000);
+afterEach(async () => {
+  await waitForOutstandingRequests();
+  await cleanSynthetic();
+}, 45_000);
 
 afterAll(async () => {
   try {
     // Attempt safe cleanup even if an assertion failed before afterEach.
+    await waitForOutstandingRequests();
     if (authorId) await cleanSynthetic();
     if (originalIds.length) {
       const current = await prisma.question.findMany({ select: { id: true } });
