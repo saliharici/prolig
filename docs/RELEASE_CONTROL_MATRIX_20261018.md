@@ -11,7 +11,7 @@
 
 | İsim | Çalıştığı yer | Varsayılan | Etkinleşme / bağımlılık |
 |---|---|---|---|
-| `VITE_QUESTION_STUDIO_P1` | Vite build, `src/questions/studio-release-flags.ts` | OFF | Yalnızca **literal** `true`; P1 görünümü |
+| `VITE_QUESTION_STUDIO_P1` | Vite build, `src/questions/studio-runtime-flags.ts` (saf kural: `studio-release-flags.ts`) | OFF | Yalnızca **literal** `true`; P1 görünümü |
 | `VITE_QUESTION_STUDIO_P1C` | Vite build | OFF | `P1=true` ve `P1C=true` birlikte; encrypted draft recovery yalnız YAZAR |
 | `VITE_QUESTION_STUDIO_P2_EDITOR` | Vite build | OFF | `true` ise rich editor, mevcut legacy fallback korunur |
 | `VITE_QUESTION_STUDIO_P2_TYPES` | Vite build | OFF | `P2_EDITOR=true` **ve** `P2_TYPES=true` birlikte rehberli multi-type UI |
