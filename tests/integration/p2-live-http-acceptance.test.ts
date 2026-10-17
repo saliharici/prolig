@@ -30,6 +30,10 @@ let editorId = 0;
 let projectId = 0;
 let originalIds: number[] = [];
 const idsCreated = new Set<number>();
+// Vitest may time out a test body while its HTTP request is still in flight.
+// Never clean a synthetic row until every request from that test has settled.
+const pendingRequests = new Set<Promise<unknown>>();
+const executingCases = new Set<Promise<unknown>>();
 
 function verifyWriteTarget() {
   if (process.env.PROLIG_P2_LIVE_WRITE_APPROVAL !== 'P2_ACCEPTANCE_ONLY' ||
@@ -52,12 +56,38 @@ function cookie(id: number): string {
 }
 
 async function request(method: string, path: string, userId: number | null, body?: unknown) {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (userId) headers.cookie = cookie(userId);
-  const res = await fetch(rootUrl + path, {
-    method, headers, body: body === undefined ? undefined : JSON.stringify(body)
-  });
-  return { status: res.status, data: await res.json() as any };
+  const work = (async () => {
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (userId) headers.cookie = cookie(userId);
+    const res = await fetch(rootUrl + path, {
+      method, headers, body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    return { status: res.status, data: await res.json() as any };
+  })();
+  pendingRequests.add(work);
+  try {
+    return await work;
+  } finally {
+    pendingRequests.delete(work);
+  }
+}
+
+async function trackWriteCase<T>(task: () => Promise<T>): Promise<T> {
+  const work = task();
+  executingCases.add(work);
+  try {
+    return await work;
+  } finally {
+    executingCases.delete(work);
+  }
+}
+
+async function waitForOutstandingRequests() {
+  // The test case itself can continue after a Vitest timeout. Waiting for
+  // its whole body prevents it from scheduling a new write after cleanup.
+  while (executingCases.size > 0 || pendingRequests.size > 0) {
+    await Promise.allSettled([...executingCases, ...pendingRequests]);
+  }
 }
 
 function assertNoCollision(rows: Array<{ id: number; authorUserId: number; objectiveCode: string | null; status: string }>) {
@@ -108,6 +138,10 @@ async function cleanSynthetic() {
     });
     if (deleted.count !== cleanupIds.length) throw new Error('Cleanup did not delete exactly the disposable questions.');
   });
+  const leftoverLogs = await prisma.activityLog.count({
+    where: { entityType: 'Question', entityId: { in: cleanupIds } }
+  });
+  if (leftoverLogs !== 0) throw new Error('Cleanup left audit logs for this test run.');
   for (const id of cleanupIds) idsCreated.delete(id);
 }
 
@@ -183,11 +217,16 @@ beforeAll(async () => {
   rootUrl = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
 }, 20_000);
 
-afterEach(async () => { await cleanSynthetic(); }, 20_000);
+// Cleanup uses real remote PostgreSQL and can require several round trips.
+afterEach(async () => {
+  await waitForOutstandingRequests();
+  await cleanSynthetic();
+}, 45_000);
 
 afterAll(async () => {
   try {
     // Attempt safe cleanup even if an assertion failed before afterEach.
+    await waitForOutstandingRequests();
     if (authorId) await cleanSynthetic();
     if (originalIds.length) {
       const current = await prisma.question.findMany({ select: { id: true } });
@@ -198,7 +237,7 @@ afterAll(async () => {
     if (server) await new Promise<void>(resolve => server!.close(() => resolve()));
     await prisma.$disconnect();
   }
-}, 20_000);
+}, 45_000);
 
 function basePayload(partial: Record<string, unknown>) {
   return {
@@ -234,7 +273,7 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
   it('rejects unauthenticated access and non-author creation', async () => {
     expect((await request('GET', '/api/v1/questions', null)).status).toBe(401);
     expect((await request('POST', '/api/v1/questions', editorId, basePayload({}))).status).toBe(403);
-  });
+  }, 30_000);
 
   it.each([
     {
@@ -265,7 +304,7 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
       patch: { modelAnswer: 'Yeni model cevap' },
       target: { modelAnswer: 'Yeni model cevap', scoringRubric: 'İlk rubrik', evaluationCriteria: 'İlk ölçüt' }
     }
-  ])('creates → reopens → edits → submits $label', async ({ input, patch, target }) => {
+  ])('creates → reopens → edits → submits $label', async ({ input, patch, target }) => trackWriteCase(async () => {
     const created = await create(basePayload(input));
     const opened = await read(created.id);
     const result = await request('PATCH', '/api/v1/questions/' + created.id, authorId, {
@@ -286,9 +325,9 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
     expect(audit.map(row => row.action)).toContain('QUESTION_CREATED');
     expect(audit.map(row => row.action)).toContain('QUESTION_UPDATED');
     expect(audit.map(row => row.action)).toContain('QUESTION_SUBMITTED');
-  });
+  }), 45_000);
 
-  it('blocks incomplete open-ended submission and a stale PATCH', async () => {
+  it('blocks incomplete open-ended submission and a stale PATCH', async () => trackWriteCase(async () => {
     const q = await create(basePayload({
       questionType: 'OPEN_ENDED', optionCount: null, options: [], correctAnswer: null,
       modelAnswer: null, scoringRubric: 'Eksik model cevaplı rubrik'
@@ -303,5 +342,5 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
     const submit = await request('POST', '/api/v1/questions/' + q.id + '/workflow', authorId, { action: 'submit' });
     expect(submit.status).toBe(400);
     expect((await read(q.id)).status).toBe('TASLAK');
-  });
+  }), 45_000);
 });
