@@ -4,7 +4,7 @@ import type { ApiProject } from '../projects/types';
 import type { Role } from '../demo/model';
 import {
   authorDetailsCsv, comparisonCsv, fetchAuthorPerformanceReport,
-  filterAuthorReportRows, formatKurus, groupAuthorReport
+  filterAuthorReportRows, formatKurus, groupAuthorReport, parseKurus
 } from './author-performance';
 import type { AuthorPerformanceReport, ComparisonDimension } from './author-performance';
 import './author-comparison.css';
@@ -166,8 +166,7 @@ export function AuthorComparisonPanel({ projects, role }: { projects: ApiProject
               <td><strong>{row.authorName}</strong></td><td>{row.projectCode}</td><td>{row.branchName}</td><td>{row.provinceName}</td>
               <td>{row.counts.total}</td><td>{row.counts.draft}</td><td>{row.counts.review}</td>
               <td>{row.counts.revision}</td><td><strong>{row.counts.approved}</strong></td><td>{row.counts.rejected}</td>
-              {financeVisible && <td>{row.earnings ? formatKurus(BigInt(row.earnings.total.split('.')[0]) * 100n +
-                BigInt((row.earnings.total.split('.')[1] ?? '').padEnd(2, '0'))) : '—'}</td>}
+              {financeVisible && <td>{row.earnings ? formatKurus(parseKurus(row.earnings.total)) : '—'}</td>}
             </tr>)}</tbody>
           </table>
         </div>
