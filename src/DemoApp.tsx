@@ -2100,6 +2100,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           tasks={reportTasks}
           authors={apiAuthors}
           payments={apiPayments}
+          paymentsLoading={paymentsLoading}
+          paymentsError={paymentsError}
           role={currentUser.role}
           tasksLoading={reportTasksLoading}
           tasksError={reportTasksError}
