@@ -159,17 +159,6 @@ async function requireTestDraft(req: any, res: any, next: any) {
     const suffix = code.replace(/^P2-UAT(?:\s+|$)/, '').trim();
     const objectiveCode = [ACTIVE_MARKER, suffix].filter(Boolean).join(' ');
     if (objectiveCode.length > 100) return res.status(400).json({ error: 'Test marker exceeds objective code limit.' });
-    // Prevent a TOCTOU race against the per-mode synthetic-question cap. This
-    // localhost harness binds a single process to 127.0.0.1:3138, so one
-    // in-flight create at a time makes count + subsequent handler write serial.
-    // Keep the lease through the entire response, not just this middleware.
-    if (syntheticCreateInFlight) {
-      return res.status(409).json({ error: 'Another synthetic question is being created.' });
-    }
-    syntheticCreateInFlight = true;
-    const releaseSyntheticCreate = () => { syntheticCreateInFlight = false; };
-    res.once('finish', releaseSyntheticCreate);
-    res.once('close', releaseSyntheticCreate);
     const count = await prisma.question.count({ where: { objectiveCode: { startsWith: ACTIVE_MARKER } } });
     if (count >= (REVISION_MODE ? 1 : 6)) return res.status(409).json({ error: 'Test draft limit reached: clean existing test questions first.' });
     req.body.objectiveCode = objectiveCode;
@@ -198,7 +187,24 @@ async function requireTestDraft(req: any, res: any, next: any) {
 }
 const guarded = (req: any, res: any, next: any) =>
   Promise.resolve(requireTestDraft(req, res, next)).catch(next);
-app.post('/api/v1/questions', guarded, adapt(questions));
+
+// Hold the admission lease until the actual API handler finishes, even if the
+// client disconnects before a transaction commits. All requests run through
+// the single loopback listener, so count + handler are serial within the UAT.
+async function guardedCreate(req: any, res: any, next: any) {
+  if (syntheticCreateInFlight) {
+    return res.status(409).json({ error: 'Another synthetic question is being created.' });
+  }
+  syntheticCreateInFlight = true;
+  try {
+    await requireTestDraft(req, res, () => Promise.resolve(questions(req, res)));
+  } catch (error) {
+    next(error);
+  } finally {
+    syntheticCreateInFlight = false;
+  }
+}
+app.post('/api/v1/questions', guardedCreate);
 app.patch('/api/v1/questions/:id', withId, guarded, adapt(questionDetail));
 
 // Only a *separately approved* revision acceptance mode mounts this explicit gate;
