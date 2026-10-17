@@ -37,7 +37,7 @@ function childEnvironment(connection, writable) {
   return {
     ...clean, DATABASE_URL: connection, AUTH_SECRET: randomBytes(48).toString('hex'),
     NODE_ENV: 'test', PROLIG_QUESTION_TYPES_P2: 'true',
-    PROLIG_P2_BROWSER_READONLY: 'P2_ACCEPTANCE_READONLY_ONLY',
+    PROLIG_P2_BROWSER_ISOLATED: 'P2_ACCEPTANCE_ISOLATED_ONLY',
     PROLIG_P2_BROWSER_GUARDED_WRITES: writable ? 'P2_ACCEPTANCE_DRAFT_ONLY' : 'false'
   };
 }
