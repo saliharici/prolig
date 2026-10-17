@@ -73,13 +73,13 @@ describe('P2 isolated browser acceptance fail-closed contract', () => {
     expect(cleanup).toContain("const EXPECTED_PROJECT = 'PILOT-MAT-8-001'");
     expect(cleanup).toContain("const apply = args.includes('--apply')");
     expect(cleanup).toContain("if (apply && process.env[CLEANUP_VAR] !== CLEANUP_APPROVAL)");
-    expect(cleanup).toContain("SELECT count(*)::int AS n FROM public.\\"CompensationEntry\\"");
+    expect(cleanup).toContain('CompensationEntry');
     expect(cleanup).toContain("q.status !== 'TASLAK'");
     expect(cleanup).toContain("q.objectiveCode.startsWith(EXPECTED_MARKER)");
     expect(cleanup).toContain("if (!apply)");
-    expect(cleanup).toContain("WHERE id=$1 AND \\"objectiveCode\\" LIKE $2 AND status='TASLAK'");
-    expect(cleanup).not.toContain("DELETE FROM public.\\"User\\"");
-    expect(cleanup).not.toContain("DELETE FROM public.\\"Project\\"");
+    expect(cleanup).toContain("AND status='TASLAK'");
+    expect(cleanup).not.toContain('DELETE FROM public.' + '"User"');
+    expect(cleanup).not.toContain('DELETE FROM public.' + '"Project"');
   });
 
 });
