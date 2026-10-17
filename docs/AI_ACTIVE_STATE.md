@@ -21,7 +21,7 @@ P2 Question Studio dört soru formatını destekler: çoktan seçmeli 4 seçenek
 - PR #20: no-op edit guard; PR #21: beş seçenekli E yanıtı korunması; PR #22: typed differential PATCH; PR #23: API handler contract tests (mock Prisma); PR #24: eski P1-D pilot için read-only güvenlik.
 - PR #25 (squash `a3ecea35...`): Gerçek Neon PostgreSQL üzerinde dört format INSERT/read/update, stale revision ve SQL koşullu durum simülasyonu; savepoint/rollback. Test 5 yapay kaydı geri aldı. Bu **gerçek veritabanı testidir**, fakat gerçek uygulama HTTP akışı **değildir**.
 - PR #26 (squash `0290b719...`): İzole canlı API test runner `scripts/p2-live-http-acceptance.mjs`, suite `tests/integration/p2-live-http-acceptance.test.ts`, kullanım notu `docs/p2-live-http-acceptance.md`; 59/59 test dosyası, lint, build ve navigasyon CI **PASS**. Bu CI yazmalı DB testini **çalıştırmaz**.
-- **CANLI API-POSTGRES KABULÜ HENÜZ PASS DEĞİL.** Kullanıcı 17 Ekim'de canlı runner'ı ilk defa denedi; preflight PASS, Vitest **0 test** / **FAIL**, çünkü `generated/prisma/client.js` bulunamadı. Bu uygulamanın işlevsel kabul hatası kanıtı değildir; Prisma Client önceden oluşturulmamış. **Kaldığımız tam adım: `npx prisma generate`.** Bunun başarılı olup olmadığı henüz kullanıcı tarafından raporlanmadı.
+- **CANLI API↔İZOLE NEON POSTGRES KABULÜ: 6/6 PASS (2026-10-17).** Kullanıcı `npx prisma generate` komutunu Prisma 7.10.0 ile PASS tamamladı. İlk API denemesi Vitest 5s timeout nedeniyle 2 PASS/4 timeout verdi; bu engel PR #28 ile giderildi (squash `ec0d1a13...`, CI PASS). Kullanıcı gerçek localhost HTTP handler + Neon PostgreSQL kabulünü **6/6 PASS**, 48.00s toplam süreyle tamamladı: yetkisiz create reddi, MC4 doğru D, MC5 doğru E, TRUE_FALSE, OPEN_ENDED, stale PATCH 409 ve eksik cevapla submit reddi. Testler gerçek DB kayıt döngülerini kullandı. **Production deploy, browser P2 UAT ve editör approve/telif tahakkuku bu test kapsamına girmez.**
 - `pg-connection-string` SSL uyarısı (require/verify-full gelecekteki semantik) hata sebebi değil; `sslmode=verify-full` ileride tercih edilebilir.
 
 ## 3. Neon ortamları: karıştırma
@@ -53,20 +53,13 @@ Windows PowerShell:
 - Kullanıcı `node scripts/p2-live-http-acceptance.mjs --run` çalıştırdı: branch preflight PASS; Vitest modül import hatası `Cannot find module '../../../generated/prisma/client.js'` ve **0 tests**. **Sonraki güvenli adım `npx prisma generate`**. Bu komut Prisma Client üretir, DB migration veya seed çalıştırmaz.
 - `git worktree --detach` nedeniyle bu klasörde rastgele `git pull`/dal değiştirme önerme; önce `git status -sb` ile durum doğrulanmalı. `.env.p2-acceptance.local` gizli kalmalı.
 
-### Hemen devam etmek için PowerShell (test worktree)
+### Kabul sonrası son doğrulama — 17 Ekim 2026
 
-```powershell
-cd D:\Proje\pro-lig-p2-acceptance
-npx prisma generate
-```
-
-Başarılıysa **yalnızca** güvenlik kontrolünden geçecek şu test komutunu çalıştır:
-
-```powershell
-node scripts/p2-live-http-acceptance.mjs --run
-```
-
-Test `FAIL` olursa **tekrar etme**: Önce hata, cleanup sonucu ve test dalında kalan `P2-HTTP-UAT-%` yapay kayıtlarının sayısını **salt-okunur** doğrula. Kayıt/ödeme temizliğine otomatik dalma.
+- Kullanıcıdan gerçek test çıktısı: `Test Files 1 passed (1)`, `Tests 6 passed (6)`, `P2 live API ↔ isolated Neon acceptance: PASS`.
+- Neon salt-okunur yeniden kontrolü: **main 5 soru, izole kabul dalı 5 soru**; her iki dalda P2 sentetik marker sayısı **0**, mevcut Question veri özeti birebir eşleşiyor (`a34adf9c66590a5f7802a1dc8eebbe91`).
+- İzole dalda **47 Question ActivityLog**, main'de **46**; acceptance'da eski denemeden kalan `ActivityLog #529 / QUESTION_SUBMITTED / entityId=84` mevcut. Main'de yok; silinmedi.
+- P2 canlı test için **yeniden çalıştırma gerekmiyor**. Sonraki yeni kapsam: tarayıcı P2 UI UAT / release öncesi uyumluluk, güvenlik, rol kapsamı değerlendirmesi ve izole dal audit hijyeni. `main` ve Production için ayrıca izin gerekir.
+- Ayrı çalışma klasörü: `D:\Proje\pro-lig-p2-acceptance`; ana çalışma klasörünün değiştirilmiş logosunu, özel `.env.p2-acceptance.local` dosyasını veya production Neon hostunu değiştirme.
 
 ## 5. Yeni sohbet devri çalışma protokolü
 
