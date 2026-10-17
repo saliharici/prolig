@@ -91,7 +91,7 @@ describe('P1 structured question preview spike', () => {
   it('stays opt-in and never changes existing question API write endpoints', () => {
     const app = fs.readFileSync(path.join(process.cwd(), 'src/DemoApp.tsx'), 'utf8');
     const api = fs.readFileSync(path.join(process.cwd(), 'src/questions/api.ts'), 'utf8');
-    expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true'");
+    expect(app).toContain('questionStudioReleaseFlags.p1Workspace');
     expect(app).toContain('StudioDocumentPreview');
     const previewSource = fs.readFileSync(path.join(process.cwd(), 'src/questions/StudioDocumentPreview.tsx'), 'utf8');
     expect(app).toContain("import './questions/studio-preview.css'");
