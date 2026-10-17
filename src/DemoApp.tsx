@@ -49,6 +49,7 @@ import { PaymentPeriodsPanel } from './compensation/PaymentPeriodsPanel';
 import { CompensationRulesPanel } from './compensation/CompensationRulesPanel';
 import { CompensationEntriesPanel } from './compensation/CompensationEntriesPanel';
 import { ReportsCenter } from './reports/ReportsCenter';
+import { GeneralCoordinatorDashboard } from './overview/GeneralCoordinatorDashboard';
 import { MemberManagement } from './membership/MemberManagement';
 import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
@@ -1938,6 +1939,22 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             {currentUser.role === 'EDITOR' ? <StatCard label="Revizyon bekleyen" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Yazara iletilen sorular" icon={RotateCcw} tone="purple" /> : currentUser.role === 'YAZAR' ? <StatCard label="Revizyonlarım" value={apiQuestions.filter(q => q.status === 'REVIZYON').length} note="Düzenleme bekleyen" icon={RotateCcw} tone="purple" /> : <StatCard label="Yazar ağı" value={apiAuthors.length.toString().padStart(2, '0')} note="Kapsamınızdaki yazarlar" icon={Users} tone="purple" />}
             <StatCard label="Tamamlanan sorular" value={apiQuestions.filter(q => q.status === 'ONAYLANDI').length.toString().padStart(2, '0')} note="Yayın hazırlığında" icon={CheckCircle2} tone="green" />
           </div>
+          {currentUser.role === 'GENEL_KOORDINATOR' && <GeneralCoordinatorDashboard
+            key={currentUser.id}
+            role={currentUser.role}
+            userId={currentUser.id}
+            projects={apiProjects}
+            projectsLoading={projectsLoading}
+            projectsError={projectsError}
+            questions={apiQuestions}
+            questionsLoading={apiLoading}
+            questionsError={apiError}
+            onProjects={() => navigate('projects')}
+            onOpenProject={(id) => { navigate('projects'); setSelectedProjectId(id); }}
+            onReviewQuestions={() => { navigate('questions'); setStatusFilter('İncelemede'); }}
+            onReports={() => navigate('reports')}
+            onPayments={() => navigate('payments')}
+          />}
           <div className="overview-grid"><section className="panel"><div className="panel-head"><div><span className="panel-kicker">İŞ AKIŞI</span><h2>Soru üretim hattı</h2></div><button className="text-button" onClick={() => navigate('questions')}>Tüm sorular <ArrowRight size={16} /></button></div><p className="panel-sub">Taslaklardan onaya uzanan süreci rolünüze göre deneyin.</p><div className="pipeline">{[{label: 'Taslak', code: 'TASLAK'}, {label: 'İncelemede', code: 'INCELEMEDE'}, {label: 'Revizyon', code: 'REVIZYON'}, {label: 'Onaylandı', code: 'ONAYLANDI'}].map((status, index) => <div key={status.code} className="pipeline-step"><span className={`pipeline-dot dot-${index}`}><span>{apiQuestions.filter(q => q.status === status.code).length}</span></span><strong>{status.label}</strong><small>{index === 0 ? 'Yazar hazırlar' : index === 1 ? 'Editör inceler' : index === 2 ? 'Yazar düzenler' : 'Yayına hazır'}</small>{index < 3 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><CircleHelp size={20} /></div><div><strong>Rolünüzde neler yapabilirsiniz?</strong><span>Yetki matrisinde ekran ve işlem kapsamını görün.</span></div><button onClick={() => navigate('roles')}><ArrowUpRight size={18} /></button></div></section>
           <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section></div>
           <section className="panel projects-preview"><div className="panel-head"><div><span className="panel-kicker">YAKLAŞAN TESLİMLER</span><h2>Devam eden projeler</h2></div><button className="text-button" onClick={() => navigate('projects')}>Projeleri görüntüle <ArrowRight size={16} /></button></div>{projectsLoading && <div className="empty-state">Projeler yükleniyor...</div>}{projectsError && !projectsLoading && <div className="empty-state">{projectsError}</div>}{!projectsLoading && !projectsError && <div className="project-mini-grid">{apiProjects.slice(0, 3).map(project => <div className="project-mini" key={project.id}><div className="project-mini-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div><strong>{project.title}</strong><small><Clock3 size={14} /> {date(project.deadline)}</small><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>İlerleme</span><strong>%{project.progress}</strong></div></div>)}</div>}</section>
