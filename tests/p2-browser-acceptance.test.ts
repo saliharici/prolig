@@ -40,6 +40,19 @@ describe('P2 isolated browser acceptance fail-closed contract', () => {
     expect(server).not.toMatch(/app\.patch\('\/api\/v1\/auth\/me/);
   });
 
+  it('holds one synthetic create admission across both the cap query and the handler response', () => {
+    const guardPosition = server.indexOf('if (syntheticCreateInFlight)');
+    const countPosition = server.indexOf('const count = await prisma.question.count');
+    const handlerPosition = server.indexOf("app.post('/api/v1/questions', guarded, adapt(questions))");
+    expect(guardPosition).toBeGreaterThan(-1);
+    expect(guardPosition).toBeLessThan(countPosition);
+    expect(countPosition).toBeLessThan(handlerPosition);
+    expect(server).toContain('syntheticCreateInFlight = true');
+    expect(server).toContain("res.once('finish', releaseSyntheticCreate)");
+    expect(server).toContain("res.once('close', releaseSyntheticCreate)");
+    expect(server).toContain('syntheticCreateInFlight = false');
+  });
+
   it('never inherits Vercel or local production credentials into the child', () => {
     expect(launcher).toContain("for (const name of ['PATH','Path','PATHEXT'");
     expect(launcher).toContain("AUTH_SECRET: randomBytes(48).toString('hex')");
