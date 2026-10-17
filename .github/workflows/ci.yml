@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, feat/compensation-engine]
   pull_request:
-    branches: [main, feat/p2-professional-question-editor-20261012]
+    branches: [main, feat/p2-professional-question-editor-20261012, feat/p2-browser-guarded-write-20261017]
   workflow_dispatch:
 
 jobs:
@@ -28,6 +28,8 @@ jobs:
           node --check scripts/p2-pilot-readonly-check.mjs
           node --check scripts/p2-acceptance-branch-check.mjs
           node --check scripts/p2-live-http-acceptance.mjs
+          node --check scripts/p2-browser-acceptance.mjs
+          node --check scripts/p2-browser-revision-cleanup.mjs
       - name: Lint
         run: npm run lint
       - name: Unit and contract tests
