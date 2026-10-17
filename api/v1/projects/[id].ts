@@ -20,6 +20,7 @@ import {
   validateProjectAuthors
 } from '../_lib/project-management.js';
 import { accrueProjectCoordinatorCompletion } from '../_lib/compensation-engine.js';
+import { canReadProjectAuthorPerformance, getProjectAuthorPerformance } from '../_lib/project-author-performance.js';
 
 const patchFields = new Set([
   'title', 'code', 'projectType', 'deadline', 'priority', 'targetGrade',
@@ -58,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    if (req.method === 'GET') return await handleGet(id, user, res);
+    if (req.method === 'GET') return await handleGet(id, user, req, res);
     if (req.method === 'PATCH') return await handlePatch(id, user, req, res);
     if (req.method === 'POST') return await handleLifecycle(id, user, req, res);
     if (req.method === 'DELETE') return await handleDelete(id, user, res);
@@ -71,9 +72,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function handleGet(id: number, user: any, res: VercelResponse) {
+async function handleGet(id: number, user: any, req: VercelRequest, res: VercelResponse) {
   const project = await findReadableProject(id, user);
   if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (req.query.view !== undefined && req.query.view !== 'authorPerformance') {
+    return res.status(400).json({ error: 'Unknown project view' });
+  }
+  if (req.query.view === 'authorPerformance') {
+    if (!canReadProjectAuthorPerformance(user.role?.code)) {
+      return res.status(403).json({ error: 'Author performance is restricted to coordinators and finance.' });
+    }
+    return res.status(200).json(await getProjectAuthorPerformance(project, user));
+  }
   return res.status(200).json(formatProjectDto(project, canManageProject(user, project)));
 }
 

@@ -31,6 +31,7 @@ import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/t
 import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
 import { ProjectManagementModal } from './projects/ProjectManagementModal';
 import { ProjectProductionOverview } from './projects/ProjectProductionOverview';
+import { ProjectAuthorPerformancePanel } from './projects/ProjectAuthorPerformancePanel';
 import { TaskTracking } from './tasks/TaskTracking';
 import { fetchTasks } from './tasks/api';
 import type { ApiTask } from './tasks/types';
@@ -2149,6 +2150,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         role={currentUser.role}
         onOpenQuestions={() => openQuestionsForProject(selectedProject.id)}
       />
+      <ProjectAuthorPerformancePanel key={selectedProject.id + ':' + currentUser.role} projectId={selectedProject.id} role={currentUser.role} />
       <div className="project-detail-body">
         <div>
           <div className="grade-detail-subhead"><strong>Proje yazarları</strong><span>{selectedProject.authors.length} kişi</span></div>

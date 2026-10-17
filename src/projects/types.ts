@@ -42,3 +42,29 @@ export type UpdateProjectInput = Partial<CreateProjectInput> & {
   progress?: number;
   status?: Exclude<ProjectStatus, 'Arsiv'>;
 };
+
+/** Aggregated, project-scoped author productivity and role-limited royalties. */
+export interface ProjectAuthorPerformance {
+  projectId: number;
+  financeVisible: boolean;
+  authors: Array<{
+    userId: number;
+    fullName: string;
+    provinceName: string;
+    counts: {
+      total: number;
+      draft: number;
+      review: number;
+      revision: number;
+      approved: number;
+      rejected: number;
+    };
+    /** Omitted by the server for non-financial roles. */
+    earnings?: {
+      total: string;
+      waiting: string;
+      inProcess: string;
+      paid: string;
+    };
+  }>;
+}
