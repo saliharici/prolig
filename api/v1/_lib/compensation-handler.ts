@@ -147,8 +147,27 @@ async function listEntries(req: VercelRequest, res: VercelResponse, user: any) {
   const limit = Number.isSafeInteger(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 200;
   const cursor = req.query.cursor == null ? null : positiveInt(req.query.cursor);
   if (req.query.cursor != null && !cursor) return res.status(400).json({ error: 'Invalid cursor' });
-  // Query/body userId can never widen an authenticated user's financial scope.
-  const where = canReadRules(user) ? {} : { userId: user.id };
+
+  // Reports can restrict financial summary to visible projects. The filter
+  // only narrows the authenticated scope and is used for BOTH rows and totals.
+  // Do not accept arbitrary Prisma objects, empty strings or numeric coercion.
+  const rawProjectIds = req.query.projectIds;
+  let projectIds: number[] | undefined;
+  if (rawProjectIds !== undefined) {
+    if (typeof rawProjectIds !== 'string' || !/^[1-9]\\d*(,[1-9]\\d*)*$/.test(rawProjectIds)) {
+      return res.status(400).json({ error: 'Invalid projectIds filter' });
+    }
+    projectIds = Array.from(new Set(rawProjectIds.split(',').map(Number)));
+    if (projectIds.length === 0 || projectIds.length > 150 ||
+        projectIds.some(id => !Number.isSafeInteger(id))) {
+      return res.status(400).json({ error: 'Invalid projectIds filter' });
+    }
+  }
+  // A filter can NEVER widen a personal earning scope to other users.
+  const where: any = {
+    ...(canReadRules(user) ? {} : { userId: user.id }),
+    ...(projectIds ? { projectId: { in: projectIds } } : {})
+  };
   if (cursor) {
     const ownCursor = await prisma.compensationEntry.findFirst({ where: { ...where, id: cursor }, select: { id: true } });
     if (!ownCursor) return res.status(400).json({ error: 'Invalid cursor' });
