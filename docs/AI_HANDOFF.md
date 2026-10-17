@@ -1,35 +1,36 @@
-# PRO-LIG — Yeni sohbet başlangıcı (17 Ekim 2026)
+# PRO-LIG — Aktif sohbet devri (17 Ekim 2026, P2-E)
 
-> **Aktif durum: P2 Question Studio yerel gerçek HTTP/API ↔ izole Neon PostgreSQL kabulü 6/6 PASS.** Bu, Production veya tüm tarayıcı arayüzü kabulü anlamına gelmez.
+> **Aktif durum:** P2 4-format gerçek localhost HTTP↔izole Neon **6/6 PASS**; pilot YAZAR gerçek tarayıcı sentetik soru CREATE→REOPEN→PATCH→REOPEN **PASS** ve temizliği bağımsız doğrulandı; P2-E **editör iş akışı mock sözleşmesi 11/11 PASS**, PR #33 yalnızca P2 feature dalına birleştirildi. **Gerçek tarayıcı editör onayı, ücret tahakkuku ve Production release henüz kabul edilmedi.**
 
-## Okuma sırası
+## Yetkili okuma sırası
 
-1. `docs/AI_HANDOFF.md` (bu dosya)
-2. `docs/AI_ACTIVE_STATE.md` (teknik mimari, şube ve güvenlik sınırları, son test)
-3. `docs/P2_HTTP_TIMEOUT_20261017.md` (ilk başarısız deneme ve 17 Ekim başarılı tekrar)
-4. `docs/AI_PROJECT_CONTEXT.md` (roller, hakediş, yetki ve mimari)
-5. Gerekirse `docs/AI_CURRENT_STATE.md` (P0/P1 uzun geçmiş)
+1. Bu dosya: `docs/AI_HANDOFF.md`.
+2. `docs/P2_EDITOR_DECISION_UAT_20261017.md` — P2-E 11 iş akışı/mock testi, editör kapsamı ve onay → ödeme riski.
+3. `docs/P2_BROWSER_UAT_20261017.md` — salt-okunur 5 adım ve dört soru türü görsel kontrolü.
+4. `docs/AI_ACTIVE_STATE.md` — mimari, branch ve Neon sınırları (bazı erken aşama notları tarihsel olabilir).
+5. `docs/P2_HTTP_TIMEOUT_20261017.md` — 6/6 gerçek HTTP-Neon ilk timeout ve nihai PASS.
+6. **Yazmalı tarayıcı raporu henüz yalnızca açık PR #32 dalında:** `feat/p2-browser-guarded-write-20261017:docs/P2_BROWSER_WRITE_UAT_20261017.md`. PR #32'nin özelliği P2 ana geliştirme dalında **yok**.
 
-## Son doğrulanmış işlem
+## Kod ve iş akışı
 
-- **Repo** `saliharici/prolig`, P2 feature branch `feat/p2-professional-question-editor-20261012`.
-- **Kod commit (kabul testi sırasında)** `ec0d1a137de985067f3cee41d98e7686f38edfb1` (PR #28 merged). Bu belge için başka bir docs-merge gelince branch SHA değişir; GitHub'dan doğrula.
-- Kullanıcının özel Git worktree dizini `D:\Proje\pro-lig-p2-acceptance`; detached HEAD ile P2 feature commit üzerinde ve git durumu temizdi. `npx prisma generate` PASS.
-- Son komut `node scripts/p2-live-http-acceptance.mjs --run` → branch preflight PASS, **Vitest 6/6 PASS**, 48 saniye; localhost gerçek Vercel question API handler'ları ve izole Neon'da CREATE / GET / PATCH / submit, yetki engeli ve 409/incomplete kontrolü.
-- **Neon bağımsız salt-okunur kontrol**: main ve acceptance dallarında 5'er soru, her ikisinde 0 adet `P2-HTTP-UAT-%` ve 0 adet `P2-TXN-20261017-%`, bütün mevcut Question satırlarının hash özeti aynı `a34adf9c66590a5f7802a1dc8eebbe91`; P2 migration her ikisinde tamam.
-- İzole acceptance dalında eski timeout denemesinden **1 denetim kaydı hâlâ mevcut**: `ActivityLog.id=529`, `QUESTION_SUBMITTED`, `entityId=84`. Main'de bu kayıt yok. **Silinmedi; ayrı kayıt hijyeni kararı gerekir.**
+- GitHub `saliharici/prolig` — aktif feature `feat/p2-professional-question-editor-20261012` son code SHA `5a01c1efade11ffaffcb4125aa46c4c3f8a300a3` (PR #33 squash). Doküman merge sonrasında SHA değişir; yeniden sorgula.
+- **PR #32 AÇIK / MERGE YOK:** `feat/p2-browser-guarded-write-20261017`, SHA `711014cc2477987fd896248f0054e13ee6703c32`; önceden merge aracı platform güvenlik kontrolüyle engellendi, korumayı aşmaya çalışma. 11. saat başka branch'e kaçak taşıma veya main merge yok.
+- **PR #33 MERGED yalnızca feature:** `test/p2-editor-decision-contract-20261017`, yeni dosya `tests/p2-editor-decision-contract.test.ts`; GitHub CI lint/test/build/navigation PASS; **11/11** senaryo mock Prisma+session+compensation ile iş akışı API handler'ını sınadı. Belge `docs/P2_EDITOR_DECISION_UAT_20261017.md`.
+- Kullanıcının ana Windows dizini `D:\Proje\pro-lig` üzerinde **kaydedilmemiş logo ve diğer değişiklikler var**, dokunma. Ayrı test worktree `D:\Proje\pro-lig-p2-acceptance`, son kullanıcının çalıştığı detached branch SHA `d7afb11` (PR #32 test runner sürümü); özel `.env.p2-acceptance.local` kimseye aktarılmamalı. Kullanıcıdan tüm çalışmaları sıfırdan başlatmasını isteme.
 
-## Güvenlik / açık kapsam
+## Gerçek P2 kabul sonuçları
 
-- `main` / Vercel Production / Neon main verileri ve Vercel ortam değişkenlerini değiştirme. `D:\Proje\pro-lig` ana worktree içindeki kaydedilmemiş logo dosyaları ve untracked klasörler korunmalı.
-- Neon izole kabul branch'i `br-quiet-tree-b2ganqkl`, proje `calm-band-45633698`. Neon main `br-soft-salad-b2vb8sdr`. Parola, JWT veya gitignored `.env.p2-acceptance.local` içeriğini isteme/paylaşma.
-- Tam tarayıcı P2 görsel kabulü, gerçek dağıtım doğrulaması, tüm diğer modüller, editör onay/telif tahakkuku ve production release **bu 6 test kapsamında değil**.
-- SSL-mode gelecek sürüm uyarısı ve `pg client.query() while executing` deprecation ayrı teknik borç; testleri engellemedi.
+- **HTTP API/Neon:** 17 Ekim, Vitest 6/6 PASS, gerçek localhost API↔izole Neon; 4 seçenek D, 5 seçenek E, Doğru/Yanlış, Açık uçlu, yetki ve eski PATCH koruması. CI gerçek Neon'u test etmiyor, kullanıcının ortamında koşuldu.
+- **Yazar görsel:** Beş aşama, 10. sınıfta A–E, Doğru/Yanlış, Açık Uçlu model cevap/rubrik/ölçüt; editör karar menüsü ekranda. PR #31 branş açıklaması düzeltmesi PASS; yazarın Genel Soru Havuzu branşı Matematik görünüyor.
+- **Yazar gerçek tarayıcı kalıcılık:** P2 acceptance Neon'da `P2-UAT-BROWSER-20261017` işaretli `#92`, `PILOT-MAT-8-001` / 8. sınıf / pilot yazar, A=10 B=11 C=12 D=13 doğru C; CREATE/REOPEN/PATCH/REOPEN PASS. Kullanıcı açık onayla `scripts/p2-browser-acceptance-cleanup.mjs --question-id 92 --apply` çalıştırdı: #92 + 2 audit log temizlendi; iki izin değişkeni silindi.
+- **Bağımsız son Neon salt-okunur denetim:** main `br-soft-salad-b2vb8sdr` ve acceptance `br-quiet-tree-b2ganqkl`, proje `calm-band-45633698`, database `neondb`; iki dalda da 5'er orijinal Question, `#92=0`, `P2-UAT-BROWSER-20261017%=0`, diğer eski P2 test markerları 0, #92 Asset/Compensation/Audit=0, Question digest **`a34adf9c66590a5f7802a1dc8eebbe91`** iki dalda aynı. Eski kabul dalı `ActivityLog #529` tek tarihi kayıt olarak korunuyor (main yok); bu kaydı ayrı onay olmadan silme.
+- **P2-E yeni mock-only test:** 11/11 PASS; author submit, editor revision/note/resubmit, reject, approve => `accrueQuestionApproval` çağrısı, yetkisiz ve yanlış branş/il/sınıf, not sınırı, eksik typed cevap, arşivli/tekrarlı karar. **Bu gerçek editör kararının Neon'a yazıldığı veya telifin üretildiği anlamına gelmiyor.**
 
-## P2 tarayıcı kabul hazırlığı — 17 Ekim 2026
+## Güvenlik / sıradaki aşama
 
-- `scripts/p2-browser-acceptance.mjs` ve `scripts/p2-browser-acceptance-app.ts` ile **sadece gerçek GET API'leri** kullanan yeni bağımsız Neon P2 tarayıcı önizlemesi PR #30 için hazırlandı; önceki P1-D tarayıcı ortamıyla karıştırılmayacak.
-- Tarayıcı çalışma planı ve ekran kontrol listesi: `docs/P2_BROWSER_UAT_20261017.md`. Ortam: `D:\\Proje\\pro-lig-p2-acceptance`. Önce CI / ilgili PR merge doğrulanmalı, sonra salt-okunur `node scripts/p2-browser-acceptance.mjs --preflight`, ardından `--serve`.
-- İlk etapta YAZAR ve EDITOR pilot rollerinin gerçek arayüzünde P2 ekranları incelenecek. **Kayıt ve silme bloklu; tarayıcıda kalıcı kayıt henüz doğrulanmadı.** Yerel rol seçici parola ile giriş değil, test JWT oturumudur. Salt-okunur görsel kabul PASS ise ayrı yazmalı etap tasarlanacak.
+- **Asla** GitHub `main`, Vercel Production, Neon main, kullanıcı logosu veya `.env` değiştirme; genel kullanıcı tablolarında yazma/DELETE yok. Şifre, JWT, bağlantı URL'si isteme.
+- Öncelik **P2-E editör tarayıcı salt-okunur değerlendirme kabulü**: mevcut pilot EDITOR oturumuyla modal/rol görünümünü kontrol et, gerçek karar butonuna tıklama. Devamında gerçek iş akışı kabulü için yeni yalnızca sentetik soru + yetki + kontrol edilen geri alma planı gerekecek.
+- **Onay/telif riski:** `approve` işleyicisi transaction içinde `CompensationEntry` ve ActivityLog üretebiliyor. Mevcut 5 soruda editör onayı DENEME; ödeme / telif doğuran çağrılar için ayrıca izolasyon ve açık onay olmadan yazma yetkisi verme.
+- PR #32'nin açık kalmasını ve eski güvenlik merge engelini aşmaya çalışma. PR #33 test başarısı bu kuralı değiştirmiyor.
 
-**Sıradaki mantıklı adım:** P2 özelliğinin **ayrı test ortamındaki tarayıcı kabulünü** ve release öncesi uyumluluk/yetki kontrol listesini planla. Kullanıcıdan production merge için ayrıca açık onay gelmeden üretim işlemi yapma. Geçmiş testleri tekrar koşturma, yalnızca değişen kod veya yeni risk bunu gerektiriyorsa tekrarla.
+**Bir sonraki en mantıklı adım:** Mevcut izole tarayıcıda pilot **EDITOR** rolünün soru inceleme ekranına ilişkin salt-okunur görsel kabul; ardından kontrollü sentetik editör revizyon/ret aşamasının teknik planı. Production için ayrıca kullanıcı izni gerekir.
