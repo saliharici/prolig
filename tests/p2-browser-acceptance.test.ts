@@ -14,15 +14,26 @@ describe('P2 isolated browser acceptance fail-closed contract', () => {
     expect(launcher).toContain("if (safety.error || safety.status !== 0)");
   });
 
-  it('defaults to preflight and explicitly declines write/browser mutation modes', () => {
+  it('defaults to read-only preflight and requires a separate approval for guarded browser draft mode', () => {
     expect(launcher).toContain("const mode = process.argv.length === 3 ? process.argv[2] : '--preflight'");
-    expect(launcher).toContain("['--preflight','--serve'].includes(mode)");
-    expect(launcher).not.toContain("'--serve-write'");
-    expect(server).toContain("PROLIG_P2_BROWSER_READONLY !== 'P2_ACCEPTANCE_READONLY_ONLY'");
+    expect(launcher).toContain("['--preflight','--serve','--serve-write'].includes(mode)");
+    expect(launcher).toContain("const writable = mode === '--serve-write'");
+    expect(launcher).toContain("if (writable && process.env[WRITE_APPROVAL_VAR] !== WRITE_APPROVAL)");
+    expect(launcher).toContain("ALLOW_P2_BROWSER_DRAFT_WRITES_IN_ISOLATED_NEON_20261017");
+    expect(server).toContain("PROLIG_P2_BROWSER_ISOLATED !== 'P2_ACCEPTANCE_ISOLATED_ONLY'");
+    expect(server).toContain("const WRITE_MODE = process.env.PROLIG_P2_BROWSER_GUARDED_WRITES === 'P2_ACCEPTANCE_DRAFT_ONLY'");
     expect(server).toContain("app.get('/api/v1/questions', adapt(questions))");
     expect(server).toContain("app.get('/api/v1/projects', adapt(projects))");
     expect(server).toContain("app.use('/api/', (_req, res) => res.status(403)");
-    expect(server).not.toMatch(/app\.(post|patch|delete)\('\/api\/v1\/questions/);
+    expect(server).toContain("app.post('/api/v1/questions', guarded, adapt(questions))");
+    expect(server).toContain("app.patch('/api/v1/questions/:id', withId, guarded, adapt(questionDetail))");
+    expect(server).toContain("if (!WRITE_MODE || req.headers.origin !== ORIGIN)");
+    expect(server).toContain("saved.status !== 'TASLAK'");
+    expect(server).toContain("saved.objectiveCode?.startsWith(UAT_MARKER)");
+    expect(server).toContain("project.targetGrade !== UAT_GRADE");
+    expect(server).toContain("const UAT_MARKER = 'P2-UAT-BROWSER-20261017'");
+    expect(server).not.toContain("app.delete('/api/v1/questions");
+    expect(server).not.toContain("app.post('/api/v1/questions/:id");
     expect(server).not.toMatch(/app\.patch\('\/api\/v1\/auth\/me/);
   });
 
