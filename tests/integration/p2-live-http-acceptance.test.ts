@@ -183,7 +183,8 @@ beforeAll(async () => {
   rootUrl = 'http://127.0.0.1:' + (server.address() as AddressInfo).port;
 }, 20_000);
 
-afterEach(async () => { await cleanSynthetic(); }, 20_000);
+// Cleanup uses real remote PostgreSQL and can require several round trips.
+afterEach(async () => { await cleanSynthetic(); }, 45_000);
 
 afterAll(async () => {
   try {
@@ -198,7 +199,7 @@ afterAll(async () => {
     if (server) await new Promise<void>(resolve => server!.close(() => resolve()));
     await prisma.$disconnect();
   }
-}, 20_000);
+}, 45_000);
 
 function basePayload(partial: Record<string, unknown>) {
   return {
@@ -234,7 +235,7 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
   it('rejects unauthenticated access and non-author creation', async () => {
     expect((await request('GET', '/api/v1/questions', null)).status).toBe(401);
     expect((await request('POST', '/api/v1/questions', editorId, basePayload({}))).status).toBe(403);
-  });
+  }, 30_000);
 
   it.each([
     {
@@ -286,7 +287,7 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
     expect(audit.map(row => row.action)).toContain('QUESTION_CREATED');
     expect(audit.map(row => row.action)).toContain('QUESTION_UPDATED');
     expect(audit.map(row => row.action)).toContain('QUESTION_SUBMITTED');
-  });
+  }, 45_000);
 
   it('blocks incomplete open-ended submission and a stale PATCH', async () => {
     const q = await create(basePayload({
@@ -303,5 +304,5 @@ describe('P2 live authenticated localhost API + isolated Neon PostgreSQL', () =>
     const submit = await request('POST', '/api/v1/questions/' + q.id + '/workflow', authorId, { action: 'submit' });
     expect(submit.status).toBe(400);
     expect((await read(q.id)).status).toBe('TASLAK');
-  });
+  }, 45_000);
 });
