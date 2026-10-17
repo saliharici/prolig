@@ -1,3 +1,11 @@
+## P2-E editör tarayıcı görsel kabulü — 17 Ekim 2026
+
+- Kullanıcı, `node scripts/p2-browser-acceptance.mjs --serve` ile açtığı izole tarayıcı önizlemesinde pilot **EDITOR** rolünün inceleme penceresini ve **Onayla / Revizyon İste / Reddet** ile editör notu gösterimini **PASS** olarak bildirdi. Bu **kullanıcı teyitli SALT-OKUNUR GÖRSEL PASS** sonucudur; karar kaydedilmedi, soru durumu değişmedi, ücret tahakkuku yapılmadı.
+- Mevcut `scripts/p2-browser-acceptance-app.ts` (açık PR #32 dalı) `--serve` modunda **tüm yazmaları**, `--serve-write` modunda **workflow /submit /request_revision /reject /approve dahil tüm kararları** bilerek engelliyor. Bu nedenle mevcut tarayıcıda gerçek revizyon döngüsü *henüz test edilemez*; kullanıcıdan `Kararı Kaydet` basmasını isteme.
+- Sıradaki kontrollü kabul **YAZAR TASLAK → INCELEMEDE → EDITOR REVIZYON → YAZAR REVIZYON → INCELEMEDE** (varsa son durumda INCELEMEDE) olmalı. Yalnızca yeni, özel işaretli sentetik 8. sınıf Matematik sorusu; tam sahiplik/proje/branch kontrolü, istisnasız `approve`/telif/ödeme engeli, ayrı yazma onayı, ayrı temizlik onayı, canlı DB öncesi mock test ve bağımsız son snapshot doğrulaması.
+- **Temizlik kritik:** Mevcut `p2-browser-acceptance-cleanup.mjs` yalnızca `TASLAK` sentetik #92 benzeri kaydı siliyor; workflow sonrası `REVIZYON` veya `INCELEMEDE` soruyu **temizlemez**. Yeni test yazılmadan önce, yalnızca yeni revizyon test işaretine bağlı, son durumları doğru doğrulayan, medya/telif/ödeme 0 zorunlu kontrolü ve tek-ID atomik temizlik mekanizması ayrı kod incelemesine tabi tutulmalı. Mevcut PR #32 koruma kapsamını atlatacak alternatif merge/push/araç kullanılmamalı.
+- Önceki 5 gerçek sorudan **hiçbirinde** workflow başlatma; eski izole `ActivityLog #529` silinmeyecek. `main`, Neon main ve Production korunacak.
+
 # PRO-LIG P2-E — Editör kararları ve yetki kabulü (17 Ekim 2026)
 
 ## Test kapsamı
