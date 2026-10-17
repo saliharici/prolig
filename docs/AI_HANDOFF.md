@@ -26,4 +26,10 @@
 - Tam tarayıcı P2 görsel kabulü, gerçek dağıtım doğrulaması, tüm diğer modüller, editör onay/telif tahakkuku ve production release **bu 6 test kapsamında değil**.
 - SSL-mode gelecek sürüm uyarısı ve `pg client.query() while executing` deprecation ayrı teknik borç; testleri engellemedi.
 
+## P2 tarayıcı kabul hazırlığı — 17 Ekim 2026
+
+- `scripts/p2-browser-acceptance.mjs` ve `scripts/p2-browser-acceptance-app.ts` ile **sadece gerçek GET API'leri** kullanan yeni bağımsız Neon P2 tarayıcı önizlemesi PR #30 için hazırlandı; önceki P1-D tarayıcı ortamıyla karıştırılmayacak.
+- Tarayıcı çalışma planı ve ekran kontrol listesi: `docs/P2_BROWSER_UAT_20261017.md`. Ortam: `D:\\Proje\\pro-lig-p2-acceptance`. Önce CI / ilgili PR merge doğrulanmalı, sonra salt-okunur `node scripts/p2-browser-acceptance.mjs --preflight`, ardından `--serve`.
+- İlk etapta YAZAR ve EDITOR pilot rollerinin gerçek arayüzünde P2 ekranları incelenecek. **Kayıt ve silme bloklu; tarayıcıda kalıcı kayıt henüz doğrulanmadı.** Yerel rol seçici parola ile giriş değil, test JWT oturumudur. Salt-okunur görsel kabul PASS ise ayrı yazmalı etap tasarlanacak.
+
 **Sıradaki mantıklı adım:** P2 özelliğinin **ayrı test ortamındaki tarayıcı kabulünü** ve release öncesi uyumluluk/yetki kontrol listesini planla. Kullanıcıdan production merge için ayrıca açık onay gelmeden üretim işlemi yapma. Geçmiş testleri tekrar koşturma, yalnızca değişen kod veya yeni risk bunu gerektiriyorsa tekrarla.
