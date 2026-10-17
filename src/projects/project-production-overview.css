@@ -1,0 +1,26 @@
+.project-production-overview{margin:15px 0 0;border:1px solid #e4eceb;border-radius:12px;padding:15px;background:#fff}
+.project-production-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.project-production-heading h3{margin:4px 0 0;font-size:13px;font-weight:800;color:#2f5157}
+.project-production-heading .text-button{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;font-size:10px}
+.project-production-pipeline{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0}
+.project-production-pipeline>div{border:1px solid #e3eeed;border-radius:9px;padding:11px 7px;background:#f8fbfa;text-align:center}
+.project-production-pipeline strong,.project-production-pipeline span{display:block}
+.project-production-pipeline strong{font:800 18px Manrope,sans-serif;color:#2b6562}
+.project-production-pipeline span{margin-top:5px;color:#70898e;font-size:9px}
+.project-production-progress{display:grid;grid-template-columns:1fr auto;align-items:center;gap:7px;font-size:10px;color:#59747a}
+.project-production-progress strong{color:#27675e}
+.project-production-progress-track{grid-column:1/-1;height:7px;background:#eaf2f0;border-radius:999px;overflow:hidden}
+.project-production-progress-track span{display:block;height:100%;background:linear-gradient(90deg,#2da58d,#6cceba);border-radius:inherit}
+.project-production-note{display:flex;gap:7px;align-items:flex-start;margin:11px 0 0;color:#758f92;font-size:9px;line-height:1.5}
+.project-production-note svg{flex:0 0 auto;margin-top:2px}
+.project-production-finance{margin-top:15px;padding-top:15px;border-top:1px solid #e6eeee}
+.project-production-fees{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+.project-production-fees>div{padding:12px 9px;border:1px solid #e5eeee;border-radius:9px;background:#f9fbfb}
+.project-production-fees>div span,.project-production-fees>div strong{display:block}
+.project-production-fees>div span{font-size:9px;color:#678286}
+.project-production-fees>div strong{margin-top:7px;font:800 13px Manrope,sans-serif;color:#36585d;overflow-wrap:anywhere}
+.project-production-fees>div.project-production-fees-total{background:#edf7f4;border-color:#cfe9e1}
+.project-production-feedback{margin:12px 0 0;padding:12px;border-radius:8px;background:#f8faf9;color:#677e83;font-size:10px}
+.project-production-feedback[role="alert"]{color:#a34c42;background:#fff5f3}
+@media(max-width:700px){.project-production-heading{align-items:flex-start;flex-wrap:wrap}.project-production-fees{grid-template-columns:repeat(2,minmax(0,1fr))}.project-production-pipeline{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:420px){.project-production-pipeline{grid-template-columns:repeat(2,minmax(0,1fr))}.project-production-fees{grid-template-columns:1fr}}
