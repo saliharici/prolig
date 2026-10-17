@@ -12,6 +12,8 @@ const PRIVATE_ENV = '.env.p2-acceptance.local';
 const ACCEPTANCE_HOST = 'ep-wild-sea-b2wlp46v.c-6.eu-central-1.aws.neon.tech';
 const MAIN_HOST = 'ep-aged-rice-b21dkfno.c-6.eu-central-1.aws.neon.tech';
 const ACCEPTANCE_DB = 'neondb';
+const WRITE_APPROVAL_VAR = 'PROLIG_P2_BROWSER_WRITE_APPROVAL';
+const WRITE_APPROVAL = 'ALLOW_P2_BROWSER_DRAFT_WRITES_IN_ISOLATED_NEON_20261017';
 const mode = process.argv.length === 3 ? process.argv[2] : '--preflight';
 const fail = reason => { throw new Error('P2 BROWSER UAT BLOCKED: ' + reason); };
 
@@ -25,7 +27,7 @@ function safeDatabaseUrl(connection) {
   }
 }
 
-function childEnvironment(connection) {
+function childEnvironment(connection, writable) {
   // Filter out real Vercel, application, and operator credentials from process.env.
   const clean = {};
   for (const name of ['PATH','Path','PATHEXT','SystemRoot','WINDIR','ComSpec',
@@ -35,12 +37,19 @@ function childEnvironment(connection) {
   return {
     ...clean, DATABASE_URL: connection, AUTH_SECRET: randomBytes(48).toString('hex'),
     NODE_ENV: 'test', PROLIG_QUESTION_TYPES_P2: 'true',
-    PROLIG_P2_BROWSER_READONLY: 'P2_ACCEPTANCE_READONLY_ONLY'
+    PROLIG_P2_BROWSER_READONLY: 'P2_ACCEPTANCE_READONLY_ONLY',
+    PROLIG_P2_BROWSER_GUARDED_WRITES: writable ? 'P2_ACCEPTANCE_DRAFT_ONLY' : 'false'
   };
 }
 
 try {
-  if (!['--preflight','--serve'].includes(mode)) fail('Only --preflight and --serve supported. Writes are disabled.');
+  if (!['--preflight','--serve','--serve-write'].includes(mode)) {
+    fail('Only --preflight, --serve and --serve-write are supported.');
+  }
+  const writable = mode === '--serve-write';
+  if (writable && process.env[WRITE_APPROVAL_VAR] !== WRITE_APPROVAL) {
+    fail('Explicit isolated draft-write approval missing. No connection was opened.');
+  }
   if (!existsSync(PRIVATE_ENV)) fail('Gitignored .env.p2-acceptance.local not found.');
   const parsed = dotenv.parse(readFileSync(PRIVATE_ENV));
   safeDatabaseUrl(parsed.DATABASE_URL);
@@ -55,7 +64,7 @@ try {
     console.log('P2 BROWSER UAT PREFLIGHT: PASS — READ ONLY, no data changed.');
   } else {
     const child = spawn(process.execPath, ['--import','tsx','scripts/p2-browser-acceptance-app.ts'], {
-      cwd: process.cwd(), env: childEnvironment(parsed.DATABASE_URL), stdio: 'inherit', windowsHide: true
+      cwd: process.cwd(), env: childEnvironment(parsed.DATABASE_URL, writable), stdio: 'inherit', windowsHide: true
     });
     child.on('error', () => {
       console.error('P2 BROWSER UAT: local preview could not launch.');
@@ -63,7 +72,9 @@ try {
     });
     child.on('exit', code => { process.exitCode = code || 0; });
     process.on('SIGINT', () => { if (!child.killed) child.kill('SIGINT'); });
-    console.log('P2 browser preview launching on loopback only; all question mutations BLOCKED.');
+    console.log(writable
+      ? 'P2 browser UAT: only approved marked pilot TASLAK CREATE/PATCH; no submit, archive, delete or approval.'
+      : 'P2 browser preview launching on loopback only; all question mutations BLOCKED.');
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'P2 browser UAT blocked.');
