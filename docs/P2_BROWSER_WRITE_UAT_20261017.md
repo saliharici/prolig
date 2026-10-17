@@ -1,3 +1,34 @@
+# FINAL — P2 isolated browser write UAT: PASS (2026-10-17)
+
+**This run has finished. Do not re-run synthetic CREATE or the exact-ID cleanup for #92.** The original five questions are intact.
+
+### Direct user browser evidence
+
+- Tested on isolated P2 worktree SHA `d7afb11c0a1c60fd51d07b4a2bc538e8549ab16a`; `--preflight` PASS, local guarded `--serve-write` preview, pilot YAZAR assigned to project `PILOT-MAT-8-001`, target `8. Sınıf`.
+- User created synthetic multiple-choice Question **#92** in the browser, 4 choices A=10/B=11/C=12/D=13, correct C. List view showed `TASLAK`, Matematik, project assignment and server-injected `P2-UAT-BROWSER-20261017` objective code.
+- User reopened, updated only question text, saved and reopened. Independent live Neon SELECT found `5 + 7 işleminin sonucu kaçtır?(P2 düzenleme testi)` while preserving all four options, correct C, explanation and the draft/ownership marker. **Browser CREATE / persist / re-open / PATCH / re-open: PASS.**
+- User dry-ran `scripts/p2-browser-acceptance-cleanup.mjs --question-id 92`: `DRY-RUN PASS`, two audit logs, zero media and payment. User explicitly authorized cleanup and executed `--question-id 92 --apply`, receiving `CLEANUP PASS`; removed local write/cleanup approvals.
+
+### Independent final verification (read-only Neon queries)
+
+| Check | Neon main `br-soft-salad-b2vb8sdr` | Isolated acceptance `br-quiet-tree-b2ganqkl` |
+| --- | ---: | ---: |
+| Total Question rows | 5 | 5 |
+| Question #92 | 0 | 0 |
+| Browser marker `P2-UAT-BROWSER-20261017%` | 0 | 0 |
+| HTTP marker `P2-HTTP-UAT-%` | 0 | 0 |
+| Transaction marker `P2-TXN-20261017-%` | 0 | 0 |
+| #92 QuestionAsset / CompensationEntry / ActivityLog | 0 | 0 |
+| Question digest | `a34adf9c66590a5f7802a1dc8eebbe91` | `a34adf9c66590a5f7802a1dc8eebbe91` |
+| Question ActivityLog total | 46 | 47 |
+| Old acceptance-only ActivityLog #529 | 0 | 1 |
+
+The unrelated pre-existing `ActivityLog #529` (QUESTION_SUBMITTED for removed old test Question #84) was **not deleted**.
+
+**Scope and rollout:** Only the synthetic 4-choice grade-8 pilot draft was browser-persisted. Browser 5-choice/high-school writes and editor decision persistence were not covered. P2 four-format API↔Neon localhost suite previously achieved **6/6 PASS**, separate from this browser run. PR #32 contains this guarded browser runner and cleanup script, has CI PASS, and **is still open (not merged into the P2 feature branch or main)**. No Production or Neon main changes.
+
+---
+
 # P2 browser write UAT — isolated Neon, synthetic drafts only (2026-10-17)
 
 ## Scope and safeguards
