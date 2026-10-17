@@ -20,6 +20,7 @@ import { roleLabels } from '../demo/model';
 import { toKurus } from '../payments/money';
 import { fetchCompensationSummary } from '../compensation/api';
 import type { CompensationSummary } from '../compensation/types';
+import { AuthorComparisonPanel } from './AuthorComparisonPanel';
 import './reports.css';
 
 type FilterValue = 'all' | string;
@@ -33,6 +34,7 @@ type ReportsCenterProps = {
   paymentsLoading: boolean;
   paymentsError: string;
   role: Role;
+  userId: number;
   tasksLoading: boolean;
   tasksError: string;
   authorsError: string;
@@ -85,6 +87,7 @@ export function ReportsCenter({
   paymentsLoading,
   paymentsError,
   role,
+  userId,
   tasksLoading,
   tasksError,
   authorsError
@@ -352,6 +355,12 @@ export function ReportsCenter({
           {!projectRows.length && <div className="reports-empty">Bu filtrelere uygun proje bulunamadı.</div>}
         </div>
       </section>
+
+      {canSeeAuthors || canSeeFinance ? <AuthorComparisonPanel
+        key={`${userId}:${role}`}
+        role={role}
+        projects={filteredProjects}
+      /> : null}
 
       <div className="reports-bottom-grid">
         {canSeeAuthors && <section className="panel reports-network-card">
