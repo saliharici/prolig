@@ -118,7 +118,7 @@ async function requireTestDraft(req: any, res: any, next: any) {
     return res.status(403).json({ error: 'P2 write mode or same-origin approval is missing.' });
   }
   const actor = await getCurrentUser(req);
-  if (!actor || actor.role.code !== 'YAZAR' || actor.email !== PILOTS.author.email) {
+  if (!actor || actor.role.code !== 'YAZAR') {
     return res.status(403).json({ error: 'Only isolated pilot YAZAR can write test drafts.' });
   }
   const author = await prisma.user.findUnique({
@@ -126,7 +126,7 @@ async function requireTestDraft(req: any, res: any, next: any) {
     include: { AuthorProfile: true }
   });
   const project = await prisma.project.findUnique({ where: { code: UAT_PROJECT } });
-  if (!author?.AuthorProfile || !project ||
+  if (!author?.AuthorProfile || author.email !== PILOTS.author.email || !project ||
       project.branchId !== author.AuthorProfile.branchId ||
       project.targetGrade !== UAT_GRADE ||
       !(await prisma.projectAuthor.findUnique({
