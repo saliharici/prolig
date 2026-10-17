@@ -14,6 +14,8 @@ const MAIN_HOST = 'ep-aged-rice-b21dkfno.c-6.eu-central-1.aws.neon.tech';
 const ACCEPTANCE_DB = 'neondb';
 const WRITE_APPROVAL_VAR = 'PROLIG_P2_BROWSER_WRITE_APPROVAL';
 const WRITE_APPROVAL = 'ALLOW_P2_BROWSER_DRAFT_WRITES_IN_ISOLATED_NEON_20261017';
+const REVISION_APPROVAL_VAR = 'PROLIG_P2_BROWSER_REVISION_APPROVAL';
+const REVISION_APPROVAL = 'ALLOW_MARKED_AUTHOR_EDITOR_REVISION_ONLY_IN_ISOLATED_NEON_20261017';
 const mode = process.argv.length === 3 ? process.argv[2] : '--preflight';
 const fail = reason => { throw new Error('P2 BROWSER UAT BLOCKED: ' + reason); };
 
@@ -27,7 +29,7 @@ function safeDatabaseUrl(connection) {
   }
 }
 
-function childEnvironment(connection, writable) {
+function childEnvironment(connection, mode) {
   // Filter out real Vercel, application, and operator credentials from process.env.
   const clean = {};
   for (const name of ['PATH','Path','PATHEXT','SystemRoot','WINDIR','ComSpec',
@@ -38,17 +40,21 @@ function childEnvironment(connection, writable) {
     ...clean, DATABASE_URL: connection, AUTH_SECRET: randomBytes(48).toString('hex'),
     NODE_ENV: 'test', PROLIG_QUESTION_TYPES_P2: 'true',
     PROLIG_P2_BROWSER_ISOLATED: 'P2_ACCEPTANCE_ISOLATED_ONLY',
-    PROLIG_P2_BROWSER_GUARDED_WRITES: writable ? 'P2_ACCEPTANCE_DRAFT_ONLY' : 'false'
+    PROLIG_P2_BROWSER_GUARDED_WRITES: mode === '--serve-revision' ? 'P2_ACCEPTANCE_REVISION_ONLY' : mode === '--serve-write' ? 'P2_ACCEPTANCE_DRAFT_ONLY' : 'false'
   };
 }
 
 try {
-  if (!['--preflight','--serve','--serve-write'].includes(mode)) {
-    fail('Only --preflight, --serve and --serve-write are supported.');
+  if (!['--preflight','--serve','--serve-write','--serve-revision'].includes(mode)) {
+    fail('Only --preflight, --serve, --serve-write and --serve-revision are supported.');
   }
   const writable = mode === '--serve-write';
+  const revision = mode === '--serve-revision';
   if (writable && process.env[WRITE_APPROVAL_VAR] !== WRITE_APPROVAL) {
     fail('Explicit isolated draft-write approval missing. No connection was opened.');
+  }
+  if (revision && process.env[REVISION_APPROVAL_VAR] !== REVISION_APPROVAL) {
+    fail('Separate isolated revision-cycle approval missing. No connection was opened.');
   }
   if (!existsSync(PRIVATE_ENV)) fail('Gitignored .env.p2-acceptance.local not found.');
   const parsed = dotenv.parse(readFileSync(PRIVATE_ENV));
@@ -64,7 +70,7 @@ try {
     console.log('P2 BROWSER UAT PREFLIGHT: PASS — READ ONLY, no data changed.');
   } else {
     const child = spawn(process.execPath, ['--import','tsx','scripts/p2-browser-acceptance-app.ts'], {
-      cwd: process.cwd(), env: childEnvironment(parsed.DATABASE_URL, writable), stdio: 'inherit', windowsHide: true
+      cwd: process.cwd(), env: childEnvironment(parsed.DATABASE_URL, mode), stdio: 'inherit', windowsHide: true
     });
     child.on('error', () => {
       console.error('P2 BROWSER UAT: local preview could not launch.');
@@ -72,7 +78,9 @@ try {
     });
     child.on('exit', code => { process.exitCode = code || 0; });
     process.on('SIGINT', () => { if (!child.killed) child.kill('SIGINT'); });
-    console.log(writable
+    console.log(revision
+      ? 'P2 revision UAT: dedicated marked draft CREATE, owner PATCH, owner SUBMIT and in-scope editor REQUEST_REVISION only. NO APPROVE, REJECT, ARCHIVE, DELETE OR COMPENSATION.'
+      : writable
       ? 'P2 browser UAT: only approved marked pilot TASLAK CREATE/PATCH; no submit, archive, delete or approval.'
       : 'P2 browser preview launching on loopback only; all question mutations BLOCKED.');
   }
