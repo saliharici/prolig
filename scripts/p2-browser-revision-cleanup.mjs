@@ -94,7 +94,7 @@ try {
     await db.query(`DELETE FROM public."ActivityLog"
        WHERE "entityType"='Question' AND "entityId"=$1`, [questionId]);
     const deleted = await db.query(`DELETE FROM public."Question"
-       WHERE id=$1 AND ("objectiveCode"=$2 OR "objectiveCode" LIKE $3) AND status=ANY($4::text[])`,
+       WHERE id=$1 AND ("objectiveCode"=$2 OR "objectiveCode" LIKE $3) AND status::text=ANY($4::text[])`,
        [questionId, EXPECTED_MARKER, EXPECTED_MARKER + ' %', ALLOWED_STATUS]);
     if (deleted.rowCount !== 1) fail('Refusing cleanup because exact conditional delete failed.');
     await db.query('COMMIT');
