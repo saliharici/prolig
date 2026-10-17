@@ -87,6 +87,18 @@ describe('Author report filtered comparisons & CSV exports', () => {
     expect(csv.startsWith('\uFEFF')).toBe(true);
   });
 
+  it('fails closed on malformed successful report responses rather than crashing the home page', async () => {
+    for (const payload of [[], {}, null, { financeVisible: true }, { financeVisible: 'yes', rows: [] }]) {
+      const mock = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
+      vi.stubGlobal('fetch', mock);
+      try {
+        await expect(fetchAuthorPerformanceReport()).rejects.toThrow('beklenmeyen biçimde');
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    }
+  });
+
   it('uses only authenticated read-only GET for the report', async () => {
     const mock = vi.fn().mockResolvedValue({
       ok: true, json: async () => ({ financeVisible: false, rows: [] })

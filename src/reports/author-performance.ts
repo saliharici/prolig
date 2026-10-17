@@ -138,5 +138,11 @@ export async function fetchAuthorPerformanceReport(): Promise<AuthorPerformanceR
   if (!response.ok) throw new Error(response.status === 403
     ? 'Bu raporu görüntüleme yetkiniz bulunmuyor.'
     : typeof body?.error === 'string' ? body.error : 'Yazar performans raporu yüklenemedi.');
+  // A transient/empty gateway response must not crash the coordinator home
+  // page or reveal stale figures from a previous authenticated account.
+  if (!body || Array.isArray(body) ||
+      typeof body.financeVisible !== 'boolean' || !Array.isArray(body.rows)) {
+    throw new Error('Yazar performans raporu beklenmeyen biçimde döndü. Lütfen yeniden deneyin.');
+  }
   return body as AuthorPerformanceReport;
 }
