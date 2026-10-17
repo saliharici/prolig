@@ -113,6 +113,7 @@ function withId(req: any, _res: any, next: any) {
  * disposable drafts owned by the pilot author, assigned to a dedicated project.
  * No workflow, delete, archive, real question or asset mutation is mounted.
  */
+let syntheticCreateInFlight = false;
 async function requireTestDraft(req: any, res: any, next: any) {
   if (!WRITE_MODE || req.headers.origin !== ORIGIN) {
     return res.status(403).json({ error: 'P2 write mode or same-origin approval is missing.' });
@@ -179,7 +180,24 @@ async function requireTestDraft(req: any, res: any, next: any) {
 }
 const guarded = (req: any, res: any, next: any) =>
   Promise.resolve(requireTestDraft(req, res, next)).catch(next);
-app.post('/api/v1/questions', guarded, adapt(questions));
+
+// This localhost UAT has exactly one serving process. Serialize the admission
+// cap query with the actual CREATE transaction; keep the lock even if the
+// browser disconnects before the handler finishes writing the test question.
+async function guardedCreate(req: any, res: any, next: any) {
+  if (syntheticCreateInFlight) {
+    return res.status(409).json({ error: 'Another synthetic question is being created.' });
+  }
+  syntheticCreateInFlight = true;
+  try {
+    await requireTestDraft(req, res, () => Promise.resolve(questions(req, res)));
+  } catch (error) {
+    next(error);
+  } finally {
+    syntheticCreateInFlight = false;
+  }
+}
+app.post('/api/v1/questions', guardedCreate);
 app.patch('/api/v1/questions/:id', withId, guarded, adapt(questionDetail));
 
 // All remaining endpoints (including workflow, DELETE, archive and approval) are blocked.
