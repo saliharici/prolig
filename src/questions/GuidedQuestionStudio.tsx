@@ -9,6 +9,13 @@ import { QuestionTypePreview } from './QuestionTypePreview';
 import './guided-question-studio.css';
 
 const steps = ['Tür ve bilgiler', 'Soru kökü', 'Cevap yapısı', 'Çözüm ve değerlendirme', 'Önizleme ve kayıt'];
+const editorHints = {
+  content: 'Sorunun yönergesini ve içeriğini yazın...',
+  explanation: 'Cevabın gerekçesini ve çözüm adımlarını yazın...',
+  modelAnswer: 'Beklenen örnek cevabı ve çözüm yaklaşımını yazın...',
+  scoringRubric: 'Puan dağılımını ve puanlama anahtarını yazın...',
+  evaluationCriteria: 'Yanıtın değerlendirileceği ölçütleri yazın...'
+} as const;
 export function guidedQuestionIssues(v: QuestionStudioFormValues) {
   const issues: { step: number; message: string }[] = [];
   if (!v.grade) issues.push({ step: 1, message: 'Sınıf seçin.' });
@@ -67,7 +74,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
     </div><button type="button" className="secondary-button" onClick={() => onAddAsset(placement)}>Medya ekle</button>
     {v.assets.map((a, i) => a.placement === placement && <div className="p2-media-item" key={`${a.url}-${i}`}><span>{a.title || a.url}</span><button type="button" onClick={() => onRemoveAsset(i)} aria-label={`${a.title || 'Medya'} kaldır`}>Kaldır</button></div>)}
   </details>;
-  const editor = (field: 'content' | 'explanation' | 'modelAnswer' | 'scoringRubric' | 'evaluationCriteria', label: string, maxLength: number) => <div className="p2-rich-field"><label>{label}</label><QuestionStemWysiwygEditor key={field} value={v[field] || ''} onChange={value => change({ [field]: value })} ariaLabel={label} maxLength={maxLength} disabled={disabled} variant={field === 'content' ? 'stem' : 'explanation'} /></div>;
+  const editor = (field: 'content' | 'explanation' | 'modelAnswer' | 'scoringRubric' | 'evaluationCriteria', label: string, maxLength: number) => <div className="p2-rich-field"><label>{label}</label><QuestionStemWysiwygEditor key={field} value={v[field] || ''} onChange={value => change({ [field]: value })} ariaLabel={label} placeholder={editorHints[field]} maxLength={maxLength} disabled={disabled} variant={field === 'content' ? 'stem' : 'explanation'} /></div>;
   return <section className="p2-guided" aria-label="Beş aşamalı soru hazırlama" inert={disabled}>
     <nav aria-label="Soru hazırlama aşamaları" className="p2-steps">{steps.map((label, i) => <button type="button" key={label} aria-current={step === i + 1 ? 'step' : undefined} onClick={() => onStepChange(i + 1)}><span>{i + 1}</span><strong>{label}</strong><small>{issues.some(x => x.step === i + 1) ? 'Eksik alan' : i < 4 ? 'Hazır' : 'Kontrol et'}</small></button>)}</nav>
     <div className={`p2-guided-body ${preview && step < 5 ? 'with-preview' : ''}`}>
