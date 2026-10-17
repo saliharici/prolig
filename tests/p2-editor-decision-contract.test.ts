@@ -63,13 +63,13 @@ function question(overrides: Record<string, unknown> = {}) {
 function reqRes(action: string, note?: string) {
   const body = { action, ...(note === undefined ? {} : { note }) };
   const req = { method: 'POST', query: { id: String(saved.id) }, body, headers: {} } as unknown as VercelRequest;
-  const res = {
-    statusCode: 200, response: null as any,
-    status(code: number) { this.statusCode = code; return this; },
-    json(data: unknown) { this.response = JSON.parse(JSON.stringify(data)); return this; },
-    setHeader() { return this; }
-  } as unknown as VercelResponse & { statusCode: number; response: any };
-  return { req, res };
+  const res: any = {
+    statusCode: 200, response: null,
+    status(code: number) { res.statusCode = code; return res; },
+    json(data: unknown) { res.response = JSON.parse(JSON.stringify(data)); return res; },
+    setHeader() { return res; }
+  };
+  return { req, res: res as VercelResponse & { statusCode: number; response: any } };
 }
 
 async function run(actor: number, action: string, note?: string) {
@@ -86,8 +86,8 @@ beforeEach(() => {
   actorId = author.id;
   process.env.PROLIG_QUESTION_TYPES_P2 = 'true';
   vi.mocked(session.getSessionUserId).mockImplementation(() => actorId);
-  vi.mocked(prisma.user.findUnique).mockImplementation(async ({ where }: any) => userMap.get(where.id) as any);
-  vi.mocked(prisma.question.findUnique).mockImplementation(async () => saved);
+  vi.mocked(prisma.user.findUnique).mockImplementation((async ({ where }: any) => userMap.get(where.id) as any) as any);
+  vi.mocked(prisma.question.findUnique).mockImplementation((async () => saved) as any);
   vi.mocked(prisma.activityLog.findFirst).mockResolvedValue(null);
   vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => callback({
     question: {
