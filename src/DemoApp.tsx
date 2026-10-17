@@ -2195,14 +2195,14 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         <button className="primary-button" onClick={()=>openQuestionsForProject(selectedProject.id)}>Proje sorularını aç <ArrowRight size={15}/></button>
       </div>
     </div></div>}
-    {showQuestionForm && <div className={import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? 'modal-backdrop question-workspace-overlay' : 'modal-backdrop'} onMouseDown={event => { if (event.target === event.currentTarget) closeQuestionForm(); }}>
-        <form className={import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? 'question-modal pro-editor-modal question-studio-modal question-studio-workspace' : 'question-modal pro-editor-modal question-studio-modal'} onSubmit={handleCreateQuestion}>
+    {showQuestionForm && <div className={questionStudioReleaseFlags.p1Workspace ? 'modal-backdrop question-workspace-overlay' : 'modal-backdrop'} onMouseDown={event => { if (event.target === event.currentTarget) closeQuestionForm(); }}>
+        <form className={questionStudioReleaseFlags.p1Workspace ? 'question-modal pro-editor-modal question-studio-modal question-studio-workspace' : 'question-modal pro-editor-modal question-studio-modal'} onSubmit={handleCreateQuestion}>
           <div className="modal-head">
             <div><span className="panel-kicker">SORU ÜRETİM STÜDYOSU</span><h2>{editingQuestion ? 'Soruyu Düzenle' : 'Yeni soru taslağı'}</h2></div>
             <button type="button" aria-label="Kapat" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}><X size={20} /></button>
           </div>
           <p>{guidedStudioOn ? 'Soru türünü belirleyin ve beş aşamada hazırlayın.' : 'Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.'}</p>
-          {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <p className="studio-dirty-status" role="status">{questionSaving ? 'Kaydediliyor…' : hasUnsavedQuestionChanges ? 'Kaydedilmemiş değişiklikler var' : 'Henüz kaydedilmemiş değişiklik yok'}</p>}
+          {questionStudioReleaseFlags.p1Workspace && <p className="studio-dirty-status" role="status">{questionSaving ? 'Kaydediliyor…' : hasUnsavedQuestionChanges ? 'Kaydedilmemiş değişiklikler var' : 'Henüz kaydedilmemiş değişiklik yok'}</p>}
           {questionSaveError && <div className="studio-save-error" role="alert">{questionSaveError}</div>}
           {serverQuestionConflict && <section className="studio-revision-review" aria-label="Soru sürüm karşılaştırması">
             <div className="studio-revision-heading"><strong>Sunucudaki sürüm değişmiş</strong><span>Kaydetme engellendi</span></div>
@@ -2286,7 +2286,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               {questionStudioReleaseFlags.localGuardedWrites && <p className="field-help" role="note">P2 yerel test kaydı: yalnızca PILOT-MAT-8-001 projesi kabul edilir. Yeni taslağa P2-UAT sahiplik işareti otomatik eklenir ve düzenleme sırasında korunur.</p>}
               <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
               <label className="question-editor-label">Soru gövdesi</label>
-              {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
+              {questionStudioReleaseFlags.richEditor ? (
                 <QuestionStemWysiwygEditor
                   value={questionTitle}
                   onChange={setQuestionTitle}
@@ -2299,7 +2299,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                   <div className="question-editor-toolbar" aria-label="Metin biçimlendirme araçları">
                     <button type="button" title="Kalın" aria-label="Kalın" onClick={() => applyQuestionMarkup('**')}><Bold size={16} /></button><button type="button" title="İtalik" aria-label="İtalik" onClick={() => applyQuestionMarkup('_')}><Italic size={16} /></button><button type="button" title="Altı çizili" aria-label="Altı çizili" onClick={() => applyQuestionMarkup('<u>', '</u>')}><Underline size={16} /></button><span />
                     <button type="button" title="Madde işaretli liste" aria-label="Madde işaretli liste" onClick={() => applyQuestionList(false)}><List size={16} /></button><button type="button" title="Numaralı liste" aria-label="Numaralı liste" onClick={() => applyQuestionList(true)}><ListOrdered size={16} /></button><span />
-                    <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button>{import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' && <button type="button" title="Tablo ekle (deneysel)" aria-label="Tablo ekle" onClick={insertQuestionTable}><Table2 size={16} /></button>}<button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
+                    <button type="button" title="Formül ekle" aria-label="Formül ekle" onClick={() => applyQuestionMarkup('$', '$', 'formül')}><Sigma size={16} /></button>{questionStudioReleaseFlags.p1Workspace && <button type="button" title="Tablo ekle (deneysel)" aria-label="Tablo ekle" onClick={insertQuestionTable}><Table2 size={16} /></button>}<button type="button" title="Bağlantı ekle" aria-label="Bağlantı ekle" onClick={() => applyQuestionMarkup('[', '](https://)', 'bağlantı metni')}><Link size={16} /></button>
                   </div>
                   <textarea ref={questionEditorRef} autoFocus minLength={10} maxLength={1200} placeholder="Sorunun yönergesini ve içeriğini yazın..." value={questionTitle} onChange={event => setQuestionTitle(event.target.value)} required />
                   <div className="question-editor-footer"><span>Markdown ve formül işaretleri desteklenir.</span><strong>{questionTitle.length} / 1200</strong></div>
@@ -2320,7 +2320,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               </section>
 
               <div className="question-answer-head"><div><strong>Cevap seçenekleri</strong><span>Doğru cevabı soldaki işaretle belirleyin.</span></div><span className="answer-key">Doğru cevap: {questionCorrectAnswer || 'Seçilmedi'}</span></div>
-              {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
+              {questionStudioReleaseFlags.richEditor ? (
                 <div className="question-options-grid">{questionOptions.map((option, index) => {
                   const letter = String.fromCharCode(65 + index);
                   return <div className={`question-option question-option-p2 ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}>
@@ -2340,7 +2340,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
               ) : (
                 <div className="question-options-grid">{questionOptions.map((option, index) => { const letter = String.fromCharCode(65 + index); return <label className={`question-option ${questionCorrectAnswer === letter ? 'correct' : ''}`} key={letter}><input type="radio" name="correct-answer" checked={questionCorrectAnswer === letter} onChange={() => setQuestionCorrectAnswer(letter)} aria-label={`${letter} seçeneğini doğru cevap yap`} /><span>{letter}</span><input type="text" value={option} onChange={event => updateQuestionOption(index, event.target.value)} placeholder={`${letter} seçeneğini yazın`} required={!editingQuestion || hasFourValidQuestionOptions(editingQuestion.options)} /></label>; })}</div>
               )}
-              {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
+              {questionStudioReleaseFlags.richEditor ? (
                 <div className="question-p2-explanation-field">
                   <label className="question-editor-label">Çözüm ve açıklama <span className="optional-label">İsteğe bağlı</span></label>
                   <QuestionStemWysiwygEditor
@@ -2360,7 +2360,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 
             <aside className="question-preview-panel">
               <div className="question-preview-head"><span><Eye size={15} /> Canlı ön izleme</span><strong>{questionGrade}</strong></div>
-              {import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? (
+              {questionStudioReleaseFlags.p1Workspace ? (
                 <StudioDocumentPreview
                   document={legacyQuestionToStudioDocument({
                     content: questionTitle,
@@ -2369,7 +2369,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                     correctAnswer: questionCorrectAnswer
                   })}
                   renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
-                  previewNote={import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? 'Canlı Soru Önizlemesi · standart kayıt biçimi korunur' : undefined}
+                  previewNote={questionStudioReleaseFlags.richEditor ? 'Canlı Soru Önizlemesi · standart kayıt biçimi korunur' : undefined}
                 />
               ) : <article className="question-preview-card">
                 <div className="formatted-question-text">{renderFormattedQuestionText(questionTitle, 'Soru kökü burada görünecek.')}</div>
