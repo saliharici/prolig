@@ -1,42 +1,59 @@
-# Pro Lig · Etkileşimli Önizleme
+# PRO-LIG · Yayın Üretimi ve Yönetim Platformu
 
-Pro Lig ekibine gösterilecek rol ve iş akışı önizlemesi. Genel Koordinatör, İl Koordinatörü, Editör, Yazar ve Muhasebe görünümleri arasında üst sağdaki menüden geçiş yapılır.
+**Durum (18 Ekim 2026):** PRO-LIG'in aktif ürünü, yayıncılık süreçleri için **geliştirme/pilot aşamasındadır**; bu depo içindeki P2 özelliklerinin tamamı henüz Production'da kabul edilmiş değildir. Geliştirme dalı `feat/p2-professional-question-editor-20261012`, GitHub `main` ve Vercel Production birbirinden ayrı sürümlerdir. Özelliklerin kodlanmış olması canlı yayına alındığı anlamına gelmez.
 
-## Önizlemede neler denenebilir?
+## Ürün kapsamı
 
-- Yazar kendi soru taslağını oluşturur ve incelemeye gönderir.
-- Editör ve Genel Koordinatör incelemedeki soruyu onaylar, revizyona yollar veya reddeder.
-- İl Koordinatörü yalnızca İstanbul kapsamındaki örnek proje, soru ve yazarları görür.
-- Türkiye Yazar Ağı ekranında 81 ilin haritası ve yazar rehberi birlikte incelenir. İl detayındaki düğme listedeki yazarları filtreler; il araması ve bölge filtresi kullanılabilir. İl Koordinatörü yalnızca İstanbul kapsamını açabilir.
-- Muhasebe ve Genel Koordinatör örnek hakedişi onaylayıp ödendi olarak işaretler.
-- Ekranlar role göre açılır; rol ve yetki matrisi karşılaştırılabilir.
-- Genel Koordinatör, örnek işlem geçmişini görebilir. Yetki ekranı modül görünürlüğünü, işlem yetkilerini ve veri kapsamını ayrı ayrı gösterir.
-- Veriler tarayıcıda saklanır. “Örnek verileri sıfırla” başlangıç durumunu geri getirir.
+Altı kanonik rol: `GENEL_KOORDINATOR`, `BOLGE_KOORDINATORU`, `IL_KOORDINATORU`, `EDITOR`, `YAZAR`, `MUHASEBE`.
 
-Bu bir **ürün deneyimi önizlemesidir**. Kimlik doğrulama, sunucu tarafı yetkilendirme, ortak veritabanı ve gerçek ödeme işlemi içermez. Gerçek müşteri verisi girmeyin. Örnek kişiler ve tutarlar kurgusaldır. Eski API uygulaması `legacy/api` altında korunmuştur ve bu statik dağıtıma dahil değildir.
+Aktif geliştirme kodu üyelik ve kullanıcı yönetimi, coğrafi/branş bazlı yetkiler, projeler, görevler, yazar ağı, mesajlar, duyurular, Soru Stüdyosu, editör iş akışı, telif kuralları, ödeme dönemleri, raporlar ve yönetim panelini içerir. Önemli bölümlerin gerçek veritabanı, finansal bütünlük ve Production kabulleri **ayrı yayın ön koşuludur**. Multi-tenant Süper Admin, Word/PDF matbaa kitabı dizgisi ve doğrudan medya yükleme ayrı gelecek fazlardır.
 
-## SchoolFlow'dan uyarlanan ilkeler
+## Kanonik çalışma mimarisi
 
-Kullanıcının paylaştığı SchoolFlow sohbetindeki üçlü yetki ayrımı bu önizlemeye uyarlandı: **ekran görünürlüğü, işlem yetkisi ve veri kapsamı**. İşlem geçmişi ve demo/pilot sınırının açıkça gösterilmesi de bu yaklaşımdan alındı. SchoolFlow'un okul, kurs, akıllı pano ve kiosk modülleri Pro Lig'in yayıncılık iş akışına doğrudan taşınmadı. Paylaşılan sohbet, SchoolFlow kaynak dosyalarını veya yüklenen eklerin içeriğini sağlamadığından burada kaynak kod aktarımı yapılmadı.
+- **Ön yüz:** React 19, Vite, TypeScript; giriş noktası `src/main.tsx → src/auth/AuthGate.tsx → src/DemoApp.tsx` (son dosyanın tarihi adı *DemoApp* olmakla birlikte etkin ürün kabuğudur).
+- **Backend:** Vercel Functions `api/v1/*`, `vercel.json` yönlendirmeleri; kimlik ve işlem yetkileri sunucuda da doğrulanır.
+- **Veri:** Prisma 7 + PostgreSQL / Neon, `prisma/schema.prisma`; yönetilen migration'lar `prisma/migrations/`.
+- **Finans:** `CompensationEntry` tahakkukları ile `Payment` ödeme işlemleri **farklı defterlerdir; toplamları doğrudan toplanmaz**. Tarife değişikliği eski tahakkuku yeniden hesaplamaz.
+- **Referans / arşiv kodu:** `src/App.tsx`, `legacy/*`, `temp_restore/*`, `server.ts` aktif runtime değildir. `src/demo/model.ts` içinde kalan eski örnek seed/localStorage altyapısı referans/geriye uyumluluk kaynağıdır; ana sayfanın canlı işlem kartları bu verileri kullanmaz.
 
-## Yerel çalışma
+## Geliştirme ortamı
 
-Node.js 20.19+ veya 22.12+ ile:
+Node.js 24 (GitHub CI sürümü) ve npm:
 
-```bash
-npm ci
-npm run dev
-```
-
-Kontroller:
-
-```bash
+```sh
+npm install
 npm run lint
+npx vitest run --exclude 'tests/integration/**'
 npm run build
 ```
 
-## Vercel dağıtımı
+`npm run dev` Vite ön yüzünü başlatır; **tek başına Vercel API ve PostgreSQL'i sağlamaz**. Yerel tam uygulama akışı için Vercel Development ve doğru yapılandırılmış **ayrı pilot veritabanı** gerekir. Ortam kimlik bilgilerini GitHub'a veya sohbete eklemeyin. `.env.example` yalnızca yer tutuculardan oluşur. **Gerçek DB bağlantısını üretim dalına bağlayarak rastgele seed/migration/test çalıştırmayın.**
 
-Depoyu Vercel'e **Vite** projesi olarak bağlayın. Kök dizin proje kökü, build komutu `npm run build`, çıktı dizini `dist` olmalıdır; bunlar `vercel.json` içinde de belirtilir. Bu önizleme için ortam değişkeni veya veritabanı gerekmiyor. Dağıtımdan sonra `/` yolunu açıp rol menüsünden her görünümü deneyin.
+### Soru Stüdyosu özellik bayrakları
 
-Canlı ürüne geçerken gerçek kullanıcı girişini, sunucu tarafında rol ve sahiplik denetimini, veri şeması ve kalıcı veritabanını ayrı bir aşamada kurun.
+Varsayılan olarak bütün opsiyonel bayraklar kapalıdır. Görsel bayraklar Vite **build anında**, sunucu bayrağı API runtime'da okunur.
+
+| Bayrak | Kapsam |
+|---|---|
+| `VITE_QUESTION_STUDIO_P1` | P1 çalışma alanı görünümü |
+| `VITE_QUESTION_STUDIO_P1C` | P1 ile birlikte şifreli yerel kurtarma |
+| `VITE_QUESTION_STUDIO_P2_EDITOR` | Zengin metin editörü (bağımsız) |
+| `VITE_QUESTION_STUDIO_P2_TYPES` | P2 rehberli 4/5 seçenek, doğru/yanlış, açık uçlu arayüz; **P2_EDITOR ile birlikte** |
+| `PROLIG_QUESTION_TYPES_P2` | API'nin structured soru alanlarına izin verme koşulu; ayrı server-side gate |
+| `PROLIG_P2_LOCAL_GUARDED_WRITES` | **Yalnızca izolasyonlu localhost kabulü için**; Production'da etkinleştirilmez |
+
+UI P2 çoklu soru arayüzü ancak iki `VITE_QUESTION_STUDIO_P2_*` değeri **birden literal `true`** ise açılır. `P1C`, `P1` olmadan açılmaz. Sunucu P2 soru türleri için ayrıca `PROLIG_QUESTION_TYPES_P2=true` ve migration uyumu ister. **UI bayrağı yetkilendirme yerine geçmez**. Geçiş ve kapatma matrisi: [Sürüm/Yayın Kapıları](docs/RELEASE_CONTROL_MATRIX_20261018.md).
+
+## Kanıtlanmış kabul ve bilinçli sınır
+
+- P2 4 format için **localhost gerçek HTTP ↔ bağımsız Neon 6/6 PASS** (17 Ekim 2026).
+- Gerçek tarayıcı sentetik yazar taslak kaydet/yeniden aç/düzenle **PASS**; özgün veri korunarak temizlik tamamlandı.
+- Editörün değerlendirme penceresi **kullanıcı tarafından görsel PASS**, iş akışı ise **mock 11/11 PASS**. Bu sonuç **gerçek tarayıcıda revizyon veya onay/telif üretimi PASS değildir**.
+- PR #37–#41 feature'a alındı; ilgili otomatik CI lint/test/build/navigation PASS. Bunlar Production kabulü değildir.
+- **PR #32 açık ve daha önce güvenlik kontrolüyle merge engellenmiş**, PR #36 onun üstündeki taslaktır. Güvenlik engeli bir alternatif PR/branch ile aşılmayacak.
+
+## Yayın, yedek ve geri dönüş
+
+**Herhangi bir `main`/Vercel Production birleştirmesi, veritabanı migration, finansal onay ve gerçek ödeme için ayrıca açık kullanıcı kararı gerekir.** Önce staging, rol kapsamı, editör–finans işlem güvenliği, native PostgreSQL finans eşzamanlılık, bağımsız veritabanı yedeği/geri dönüş ve izleme kapıları sağlanmalıdır. PR #32 ve #36 inceleme bekler; doğrudan birleştirilmemelidir.
+
+Detaylı envanter ve yol haritası: [21 modüllü ürün envanteri](docs/PRODUCT_INVENTORY_AND_RELEASE_ROADMAP_20261018.md). Sonraki teslim koşulları: [Sürüm/Yayın Kapıları](docs/RELEASE_CONTROL_MATRIX_20261018.md). Mimarinin tek referansı: [Canonical Architecture](docs/CANONICAL_ARCHITECTURE.md). Doktora araştırma platformu bağımsız repo, Vercel ve veritabanı ile ayrı ele alınır.
