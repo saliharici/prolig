@@ -50,6 +50,8 @@ import { CompensationRulesPanel } from './compensation/CompensationRulesPanel';
 import { CompensationEntriesPanel } from './compensation/CompensationEntriesPanel';
 import { ReportsCenter } from './reports/ReportsCenter';
 import { GeneralCoordinatorDashboard } from './overview/GeneralCoordinatorDashboard';
+import { latestAuthorizedAudit, latestScopedPayments, latestScopedQuestions } from './overview/live-activity';
+import { questionStudioReleaseFlags } from './questions/studio-release-flags';
 import { MemberManagement } from './membership/MemberManagement';
 import { ProfileModal } from './profile/ProfileModal';
 import { buildGradeLevelSummary } from './demo/grade-summary';
@@ -124,18 +126,24 @@ function StatCard({ label, value, note, icon: Icon, tone }: { label: string; val
   </div>;
 }
 
-function FinanceOverview({ apiPayments, onNavigate, currentUser, data }: { apiPayments: Payment[]; onNavigate: (section: Section) => void; currentUser: AuthUser; data: DemoData }) {
+function FinanceOverview({ apiPayments, paymentsLoading, paymentsError, onNavigate, currentUser }: { apiPayments: Payment[]; paymentsLoading: boolean; paymentsError: string; onNavigate: (section: Section) => void; currentUser: AuthUser }) {
+  const recentPayments = latestScopedPayments(apiPayments);
   return <>
     <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>Telif ve ödeme kayıtlarını takip edin, ödeme akışını yönetin.</p></div><span className="heading-chip"><ShieldCheck size={16} /> Muhasebe görünümü</span></div>
     <div className="stats-grid">
-      <StatCard label="Bekleyen telif" value={moneyKurus(sumPayments(apiPayments, 'Bekliyor'))} note="Onay sırasındaki tutar" icon={Clock3} tone="amber" />
-      <StatCard label="Onaylanan" value={moneyKurus(sumPayments(apiPayments, 'Onaylandi'))} note="Ödeme sırasındaki tutar" icon={CheckCircle2} tone="blue" />
-      <StatCard label="Ödenen" value={moneyKurus(sumPayments(apiPayments, 'Odendi'))} note="Tamamlanan ödeme" icon={Wallet} tone="green" />
-      <StatCard label="Toplam kayıt" value={apiPayments.length} note="Telif ve ödeme kaydı" icon={ClipboardList} tone="purple" />
+      <StatCard label="Bekleyen ödeme" value={paymentsLoading || paymentsError ? '—' : moneyKurus(sumPayments(apiPayments, 'Bekliyor'))} note="Onay sırasındaki ödeme kaydı" icon={Clock3} tone="amber" />
+      <StatCard label="Onaylanan" value={paymentsLoading || paymentsError ? '—' : moneyKurus(sumPayments(apiPayments, 'Onaylandi'))} note="Ödeme sırasındaki tutar" icon={CheckCircle2} tone="blue" />
+      <StatCard label="Ödenen" value={paymentsLoading || paymentsError ? '—' : moneyKurus(sumPayments(apiPayments, 'Odendi'))} note="Tamamlanan ödeme" icon={Wallet} tone="green" />
+      <StatCard label="Toplam kayıt" value={paymentsLoading || paymentsError ? '—' : apiPayments.length} note="Telif ve ödeme kaydı" icon={ClipboardList} tone="purple" />
     </div>
     <div className="overview-grid">
       <section className="panel"><div className="panel-head"><div><span className="panel-kicker">FİNANS AKIŞI</span><h2>Telif ve ödeme süreci</h2></div><button className="text-button" onClick={() => onNavigate('payments')}>Tüm telif ve ödemeler <ArrowRight size={16} /></button></div><p className="panel-sub">Onay ve ödeme adımlarının güncel durumu.</p><div className="pipeline" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>{(['Bekliyor', 'Onaylandi', 'Odendi'] as const).map((status, index) => <div key={status} className="pipeline-step"><span className={`pipeline-dot dot-${index + 1}`}><span>{apiPayments.filter(payment => payment.status === status).length}</span></span><strong>{status === 'Onaylandi' ? 'Onaylandı' : status === 'Odendi' ? 'Ödendi' : 'Bekliyor'}</strong><small>{index === 0 ? 'Kontrol edilir' : index === 1 ? 'Ödeme sırasına alınır' : 'Süreç tamamlanır'}</small>{index < 2 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><Wallet size={20} /></div><div><strong>Ödeme sürecini yönetin</strong><span>Telif ve ödeme listesindeki işlemleri kullanın.</span></div><button onClick={() => onNavigate('payments')}><ArrowUpRight size={18} /></button></div></section>
-      <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER (ÖRNEK)</span><h2>İşlem Geçmişi</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{data.activities.filter(item => item.type === 'payment').slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className="activity-glyph payment"><Wallet size={16} /></span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section>
+      <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">GERÇEK ÖDEME KAYITLARI</span><h2>Son ödeme durumları</h2></div><ActivityIcon size={19} className="muted-icon" /></div>
+        {paymentsLoading ? <p className="empty-state">Ödeme kayıtları yükleniyor…</p> :
+          paymentsError ? <p className="empty-state" role="alert">{paymentsError}</p> :
+          recentPayments.length ? <div className="activity-list">{recentPayments.map(item => <div className="activity-item" key={item.id}><span className="activity-glyph payment"><Wallet size={16}/></span><div><strong>{item.title}</strong><small>{item.secondary} · {moneyKurus(toKurus(item.amount))} · {date(item.timestamp)}</small></div></div>)}</div>
+          : <p className="empty-state">Henüz ödeme kaydı yok.</p>}
+      </section>
     </div>
   </>;
 }
@@ -776,7 +784,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   }, []);
     const [section, setSection] = useState<Section>('overview');
     useEffect(() => {
-      if (section !== 'audit' || currentUser.role !== 'GENEL_KOORDINATOR') return;
+      if (currentUser.role !== 'GENEL_KOORDINATOR' || !['overview', 'audit'].includes(section)) return;
       loadAuditLogs();
     }, [section, currentUser.role]);
     useEffect(() => {
@@ -857,8 +865,6 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   useEffect(() => { if (toast) { const timer = window.setTimeout(() => setToast(''), 3800); return () => window.clearTimeout(timer); } }, [toast]);
 
   const allowed = permissions[currentUser.role];
-  const demoActivityProjects = useMemo(() => currentUser.role === 'IL_KOORDINATORU' ? data.projects.filter(p => p.province === 'İstanbul') : currentUser.role === 'YAZAR' ? data.projects.filter(p => p.id === 1) : data.projects, [data.projects, currentUser.role]);
-  
   const authorMapAuthors = useMemo(() => apiAuthors.map(author => ({
     id: author.id,
     name: author.fullName,
@@ -869,13 +875,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     levels: Object.entries(gradesByLevel).filter(([, grades]) => author.projectGrades.some(grade => grades.includes(grade))).map(([level]) => level),
     status: author.status
   })), [apiAuthors]);
-  const visibleActivities = useMemo(() => data.activities.filter(item => {
-    if (currentUser.role === 'GENEL_KOORDINATOR') return true;
-    if (item.type !== 'question') return false;
-    if (currentUser.role === 'EDITOR') return true;
-    if (currentUser.role === 'YAZAR') return item.authorId === 1 || (!item.authorId && item.actor === currentUser.fullName);
-    return currentUser.role === 'IL_KOORDINATORU' && demoActivityProjects.some(project => project.id === item.projectId);
-  }), [data.activities, currentUser.role, demoActivityProjects]);
+  const recentQuestions = useMemo(() => latestScopedQuestions(apiQuestions), [apiQuestions]);
+  const recentAudit = useMemo(() => latestAuthorizedAudit(auditLogs), [auditLogs]);
   const pendingQuestions = apiQuestions.filter(q => q.status === 'INCELEMEDE').length;
   const activeProjects = apiProjects.filter(project => !['Tamamlandi', 'Arsiv'].includes(project.status)).length;
   const questionLevels = Object.keys(gradesByLevel);
@@ -884,8 +885,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role);
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
   // Keep P1/P1-D payloads unchanged unless the separate multi-type UI flag is enabled.
-  const guidedStudioOn = import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' &&
-    import.meta.env.VITE_QUESTION_STUDIO_P2_TYPES === 'true';
+  const guidedStudioOn = questionStudioReleaseFlags.guidedP2;
   const questionFormValues: QuestionStudioFormValues = {
     ...(guidedStudioOn ? questionTypeExtras : {}),
     content: questionTitle,
@@ -923,8 +923,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const pausedQuestionKey = pausedQuestionDraftKey(currentUser.id, editingQuestion?.id ?? null);
   const durableDraftOwner = { id: currentUser.id, email: currentUser.email };
   const durableQuestionId = editingQuestion?.id ?? null;
-  const durableFeatureOn = import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' &&
-    import.meta.env.VITE_QUESTION_STUDIO_P1C === 'true' && currentUser.role === 'YAZAR';
+  const durableFeatureOn = questionStudioReleaseFlags.durableRecovery && currentUser.role === 'YAZAR';
   let durableCopyExists = false;
   if (durableFeatureOn && showQuestionForm) {
     try {
@@ -1237,7 +1236,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           projectId: questionProjectId,
           assets: normalizeQuestionAssets(questionAssets),
           ...(guidedStudioOn ? questionTypeExtras : {})
-        }, import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true'));
+        }, questionStudioReleaseFlags.localGuardedWrites));
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
       durableDraftGenerationRef.current += 1;
@@ -1930,7 +1929,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       </header>
       <main id="workspace-content" className="content" tabIndex={-1}>
 
-        {section === 'overview' && currentUser.role === 'MUHASEBE' && <FinanceOverview apiPayments={apiPayments} data={data} onNavigate={navigate} currentUser={currentUser} />}
+        {section === 'overview' && currentUser.role === 'MUHASEBE' && <FinanceOverview apiPayments={apiPayments} paymentsLoading={paymentsLoading} paymentsError={paymentsError} onNavigate={navigate} currentUser={currentUser} />}
         {section === 'overview' && currentUser.role !== 'MUHASEBE' && <>
           <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>{currentUser.role === 'YAZAR' ? 'Sorularınızı hazırlayın, editör değerlendirmesini takip edin.' : 'Üretim sürecindeki son durumu tek yerden takip edin.'}</p></div><span className="heading-chip"><ShieldCheck size={16} /> {roleLabels[currentUser.role]} görünümü</span></div>
           <div className="stats-grid">
@@ -1956,7 +1955,17 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             onPayments={() => navigate('payments')}
           />}
           <div className="overview-grid"><section className="panel"><div className="panel-head"><div><span className="panel-kicker">İŞ AKIŞI</span><h2>Soru üretim hattı</h2></div><button className="text-button" onClick={() => navigate('questions')}>Tüm sorular <ArrowRight size={16} /></button></div><p className="panel-sub">Taslaklardan onaya uzanan süreci rolünüze göre deneyin.</p><div className="pipeline">{[{label: 'Taslak', code: 'TASLAK'}, {label: 'İncelemede', code: 'INCELEMEDE'}, {label: 'Revizyon', code: 'REVIZYON'}, {label: 'Onaylandı', code: 'ONAYLANDI'}].map((status, index) => <div key={status.code} className="pipeline-step"><span className={`pipeline-dot dot-${index}`}><span>{apiQuestions.filter(q => q.status === status.code).length}</span></span><strong>{status.label}</strong><small>{index === 0 ? 'Yazar hazırlar' : index === 1 ? 'Editör inceler' : index === 2 ? 'Yazar düzenler' : 'Yayına hazır'}</small>{index < 3 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><CircleHelp size={20} /></div><div><strong>Rolünüzde neler yapabilirsiniz?</strong><span>Yetki matrisinde ekran ve işlem kapsamını görün.</span></div><button onClick={() => navigate('roles')}><ArrowUpRight size={18} /></button></div></section>
-          <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">SON HAREKETLER</span><h2>Güncel akış</h2></div><ActivityIcon size={19} className="muted-icon" /></div><div className="activity-list">{visibleActivities.slice(0, 4).map(item => <div className="activity-item" key={item.id}><span className={`activity-glyph ${item.type}`}>{item.type === 'payment' ? <Wallet size={16} /> : <FileQuestion size={16} />}</span><div><strong>{item.text}</strong><small>{item.actor} · {item.at}</small></div></div>)}</div></section></div>
+          <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">{currentUser.role === 'GENEL_KOORDINATOR' ? 'GERÇEK DENETİM KAYITLARI' : 'GÜNCEL SORU DURUMLARI'}</span><h2>{currentUser.role === 'GENEL_KOORDINATOR' ? 'Son işlemler' : 'Soru havuzundan son kayıtlar'}</h2></div><ActivityIcon size={19} className="muted-icon" /></div>
+            {currentUser.role === 'GENEL_KOORDINATOR'
+              ? auditLoading ? <p className="empty-state">Denetim kayıtları yükleniyor…</p>
+                : auditError ? <p className="empty-state" role="alert">{auditError}</p>
+                : recentAudit.length ? <div className="activity-list">{recentAudit.map(item => <div className="activity-item" key={item.id}><span className="activity-glyph question"><ActivityIcon size={16}/></span><div><strong>{humanizeAuditAction(item.action)}</strong><small>{item.userName} · {date(item.createdAt)}</small></div></div>)}</div>
+                : <p className="empty-state">Henüz kayıtlı işlem bulunmuyor.</p>
+              : apiLoading ? <p className="empty-state">Soru durumları yükleniyor…</p>
+                : apiError ? <p className="empty-state" role="alert">{apiError}</p>
+                : recentQuestions.length ? <div className="activity-list">{recentQuestions.map(item => <div className="activity-item" key={item.id}><span className="activity-glyph question"><FileQuestion size={16}/></span><div><strong>{item.title}</strong><small>{item.actor} · {item.secondary} · {date(item.timestamp)}</small></div></div>)}</div>
+                : <p className="empty-state">Yetki kapsamınızda güncel soru bulunmuyor.</p>}
+          </section></div>
           <section className="panel projects-preview"><div className="panel-head"><div><span className="panel-kicker">YAKLAŞAN TESLİMLER</span><h2>Devam eden projeler</h2></div><button className="text-button" onClick={() => navigate('projects')}>Projeleri görüntüle <ArrowRight size={16} /></button></div>{projectsLoading && <div className="empty-state">Projeler yükleniyor...</div>}{projectsError && !projectsLoading && <div className="empty-state">{projectsError}</div>}{!projectsLoading && !projectsError && <div className="project-mini-grid">{apiProjects.slice(0, 3).map(project => <div className="project-mini" key={project.id}><div className="project-mini-top"><span className="subject-icon">{project.branch.name.slice(0, 1)}</span><Status value={projectStatusDisplay(project.status)} /></div><strong>{project.title}</strong><small><Clock3 size={14} /> {date(project.deadline)}</small><div className="progress-line"><span style={{ width: `${project.progress}%` }} /></div><div className="progress-caption"><span>İlerleme</span><strong>%{project.progress}</strong></div></div>)}</div>}</section>
         </>}
         {section === 'questions' && <><div className="page-heading"><div><div className="eyebrow">İÇERİK ÜRETİMİ</div><h1>Soru Havuzu</h1><p>{currentUser.role === 'YAZAR' ? 'Taslak oluşturun ve sorularınızı editör incelemesine gönderin.' : 'Soruları inceleyin; onay, revizyon ve ret kararlarını yönetin.'}</p></div>{currentUser.role === 'YAZAR' && questionView === 'active' && <button className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={18} /> Yeni soru taslağı</button>}</div><div className="toolbar"><div className="search-box"><Search size={18} /><input aria-label="Sorularda ara" placeholder="Soru, branş veya yazar ara..." value={query} onChange={e => setQuery(e.target.value)} /></div><div className="filter-box"><Filter size={16} /><select aria-label="Duruma göre filtrele" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{['Tümü', 'Taslak', 'İncelemede', 'Revizyon', 'Onaylandı', 'Reddedildi'].map(item => <option key={item}>{item}</option>)}</select></div><div className="question-view-toggle"><button className={questionView==='active'?'active':''} onClick={()=>setQuestionView('active')}><FileQuestion size={14}/> Aktif</button><button className={questionView==='archived'?'active':''} onClick={async()=>{setQuestionView('archived');if(archivedQuestions.length===0) await loadArchivedQuestions();}}><Archive size={14}/> Arşiv</button></div></div>{(questionProjectFilter||questionGradeFilter)&&<div className="context-filter-bar"><span>{questionProjectFilter?apiProjects.find(project=>project.id===questionProjectFilter)?.title||'Proje filtresi':questionGradeFilter}</span><button onClick={()=>{setQuestionProjectFilter(null);setQuestionGradeFilter('')}}>Filtreyi kaldır <X size={13}/></button></div>}<div className="panel table-panel"><div className="table-heading"><strong>{filteredQuestions.length} soru</strong><span>Kayıtlar rolünüzün yetki kapsamına göre listelenir.</span></div>
@@ -2267,14 +2276,14 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             onProject={changeQuestionProject} onLevel={changeQuestionLevel} onGrade={changeQuestionGrade}
             branchName={currentUser.role === 'YAZAR' ? currentUser.authorProfile?.branch?.name || '' : ''}
             editing={Boolean(editingQuestion)} disabled={questionSaving || durableDraftBusy}
-            sandbox={import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true'}
+            sandbox={questionStudioReleaseFlags.localGuardedWrites}
             onAddAsset={placement => { setQuestionAssetPlacement(placement); addQuestionAssetAt(placement); }}
             onRemoveAsset={removeQuestionAsset}
             renderAssets={placement => renderQuestionAssets(questionAssets, placement)}
           /> : <div className="question-studio-layout" inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}>
             <div className="question-studio-main">
               <label>Proje<select aria-label="Proje" value={questionProjectId ?? ''} disabled={projectsLoading} onChange={event => changeQuestionProject(event.target.value)}><option value="">{projectsLoading ? 'Projeler yükleniyor...' : 'Genel Soru Havuzu'}</option>{editingQuestion && originalQuestionProjectId !== null && !apiProjects.some(project => project.id === originalQuestionProjectId) && <option value={originalQuestionProjectId} disabled>Mevcut proje erişim kapsamınızda değil</option>}{!projectsError && questionAssignableProjects.map(project => <option key={project.id} value={project.id}>{project.code} · {project.title} · {project.targetGrade}</option>)}</select>{projectsError ? <small className="field-help" style={{color: '#b45309'}}>Atanmış projeler yüklenemedi; soru genel havuza kaydedilebilir.</small> : questionProjectId ? <small className="field-help project-grade-lock"><LockKeyhole size={12}/> Sınıf, seçilen projenin hedef sınıfından otomatik alınır ve değiştirilemez.</small> : <small className="field-help">Genel havuzu veya size atanmış aktif bir projeyi seçin.</small>}</label>
-              {import.meta.env.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true' && <p className="field-help" role="note">P2 yerel test kaydı: yalnızca PILOT-MAT-8-001 projesi kabul edilir. Yeni taslağa P2-UAT sahiplik işareti otomatik eklenir ve düzenleme sırasında korunur.</p>}
+              {questionStudioReleaseFlags.localGuardedWrites && <p className="field-help" role="note">P2 yerel test kaydı: yalnızca PILOT-MAT-8-001 projesi kabul edilir. Yeni taslağa P2-UAT sahiplik işareti otomatik eklenir ve düzenleme sırasında korunur.</p>}
               <div className="question-context-grid"><label>Eğitim kademesi<select aria-label="Eğitim kademesi" value={questionLevel} disabled={questionProjectId!==null} onChange={event => changeQuestionLevel(event.target.value)}>{questionLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Sınıf<select aria-label="Sınıf" value={questionGrade} disabled={questionProjectId!==null} onChange={event => changeQuestionGrade(event.target.value)}>{questionGrades.map(grade => <option key={grade}>{grade}</option>)}</select></label></div>
               <label className="question-editor-label">Soru gövdesi</label>
               {import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true' ? (
