@@ -33,14 +33,28 @@ const zeroCounts = () => ({
   total: 0, draft: 0, review: 0, revision: 0, approved: 0, rejected: 0
 });
 
-export async function getProjectAuthorPerformance(project: any, actor: any) {
+export interface ProjectAuthorPerformanceRow {
+  userId: number;
+  fullName: string;
+  provinceName: string;
+  counts: ReturnType<typeof zeroCounts>;
+  earnings?: ReturnType<typeof zeroMoney>;
+}
+
+export interface ProjectAuthorPerformanceResponse {
+  projectId: number;
+  financeVisible: boolean;
+  authors: ProjectAuthorPerformanceRow[];
+}
+
+export async function getProjectAuthorPerformance(project: any, actor: any): Promise<ProjectAuthorPerformanceResponse> {
   const role = actor?.role?.code;
   if (!canReadProjectAuthorPerformance(role)) {
     throw new Error('PROJECT_AUTHOR_PERFORMANCE_FORBIDDEN');
   }
   const financeVisible = role === 'GENEL_KOORDINATOR' || role === 'MUHASEBE';
   const assignments = (project.projectAuthors || []).filter((a: any) => isAuthorInScope(actor, a));
-  const authors = assignments
+  const authors: ProjectAuthorPerformanceRow[] = assignments
     .map((assignment: any) => ({
       userId: assignment.authorProfile.user.id as number,
       fullName: assignment.authorProfile.user.fullName as string,
