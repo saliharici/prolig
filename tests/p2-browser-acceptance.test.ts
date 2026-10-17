@@ -26,7 +26,7 @@ describe('P2 isolated browser acceptance fail-closed contract', () => {
     expect(server).toContain("app.get('/api/v1/questions', adapt(questions))");
     expect(server).toContain("app.get('/api/v1/projects', adapt(projects))");
     expect(server).toContain("app.use('/api/', (_req, res) => res.status(403)");
-    expect(server).toContain("app.post('/api/v1/questions', guarded, adapt(questions))");
+    expect(server).toContain("app.post('/api/v1/questions', guardedCreate)");
     expect(server).toContain("app.patch('/api/v1/questions/:id', withId, guarded, adapt(questionDetail))");
     expect(server).toContain("if (!WRITE_MODE || req.headers.origin !== ORIGIN)");
     expect(server).toContain("saved.status !== 'TASLAK'");
@@ -36,6 +36,17 @@ describe('P2 isolated browser acceptance fail-closed contract', () => {
     expect(server).not.toContain("app.delete('/api/v1/questions");
     expect(server).not.toContain("app.post('/api/v1/questions/:id");
     expect(server).not.toMatch(/app\.patch\('\/api\/v1\/auth\/me/);
+  });
+
+  it('holds a single-process synthetic create lease across count and awaited API completion', () => {
+    const guard = server.slice(server.indexOf('async function guardedCreate('));
+    expect(server).toContain('let syntheticCreateInFlight = false');
+    expect(guard).toContain('if (syntheticCreateInFlight)');
+    expect(guard).toContain('await requireTestDraft(req, res, () => Promise.resolve(questions(req, res)))');
+    expect(guard).toContain('} finally {');
+    expect(guard).toContain('syntheticCreateInFlight = false');
+    expect(server).toContain("app.post('/api/v1/questions', guardedCreate)");
+    expect(server).not.toContain("res.once('close', releaseSyntheticCreate)");
   });
 
   it('never inherits Vercel or local production credentials into the child', () => {
