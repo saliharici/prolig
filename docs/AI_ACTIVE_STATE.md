@@ -1,3 +1,5 @@
+> **18 Ekim 2026 — P0 sürüm/veri bütünlüğü notu (bu PR):** GitHub'daki envanter PR #42 `feat/p2-professional-question-editor-20261012` dalına alındı (başlangıç SHA `7f2573e949c3e86305a1646de497637e5752b8da`). Ardından P0-01/P0-04/P0-05: ana sayfa artık demo `data.activities` olaylarını gerçek işlem gibi göstermiyor, P1/P2 frontend flag'leri `src/questions/studio-release-flags.ts` dosyasında merkezileştirildi, `README.md` ve `docs/RELEASE_CONTROL_MATRIX_20261018.md` güncellendi. **Bu belgede aşağıdaki erken SHA ve "sıradaki tek hedef P2-E" maddeleri tarihseldir**; güncel roadmap `docs/PRODUCT_INVENTORY_AND_RELEASE_ROADMAP_20261018.md`. P0 CI sonucu ayrıca doğrulanmalıdır. `main`, Vercel Production ve Neon dallarında yazma/yayın yapılmadı. Açık PR #32 ve #36 korumaları sürer; kritik gerçek editör onayı ve ödeme kabulü tamamlanmış sayılmaz.
+
 # PRO-LIG — Güncel sohbet devri / AI active state
 
 **Son doğrulama:** 2026-10-17 (Türkiye yerel tarihi). **Kaynak:** GitHub `saliharici/prolig`, operatör PowerShell çıktıları ve Neon doğrudan SQL sorguları.

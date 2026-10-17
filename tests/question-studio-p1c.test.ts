@@ -114,7 +114,7 @@ describe('P1-C encrypted local draft recovery', () => {
 
   it('prohibits implicit storage unless explicitly opted in, and locks old server versions', () => {
     const app = fs.readFileSync(path.join(process.cwd(), 'src/DemoApp.tsx'), 'utf8');
-    expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P1C === 'true'");
+    expect(app).toContain('questionStudioReleaseFlags.durableRecovery');
     expect(app).toContain('const [durableDraftEnabled, setDurableDraftEnabled] = useState(false)');
     expect(app).toContain('validateDraftPassphrase(phrase)');
     expect(app).toContain('if (!durableFeatureOn || !showQuestionForm) return;');

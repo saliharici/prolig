@@ -1,0 +1,45 @@
+.coordinator-dashboard{margin:18px 0 24px}
+.coordinator-dashboard-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:13px}
+.coordinator-dashboard-heading h2{font:800 20px Manrope,sans-serif;color:#264e53;margin:5px 0}
+.coordinator-dashboard-heading p{font-size:11px;color:#748c90;margin:5px 0 0}
+.coordinator-dashboard-heading .secondary-button{white-space:nowrap;display:flex;align-items:center;gap:5px}
+.coordinator-dashboard-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:14px}
+.coordinator-dashboard-metrics article{background:#fff;border:1px solid #dfeae8;border-radius:13px;padding:14px;min-width:0;box-shadow:0 2px 8px rgba(26,64,60,.035)}
+.coordinator-dashboard-metrics article>span{display:flex;align-items:center;gap:6px;font-weight:800;font-size:10px;color:#658384}
+.coordinator-dashboard-metrics article>strong{display:block;font:800 clamp(17px,2vw,23px) Manrope,sans-serif;color:#25665f;margin:12px 0 5px;overflow-wrap:anywhere}
+.coordinator-dashboard-metrics article>small{display:block;color:#7e9596;font-size:9px;line-height:1.4}
+.coordinator-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;align-items:stretch}
+.coordinator-dashboard-card{min-width:0;overflow:hidden}
+.coordinator-dashboard-card .panel-head{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:15px 16px;border-bottom:1px solid #eaf1ef}
+.coordinator-dashboard-card .panel-head h3{margin:4px 0 0;font-size:13px;font-weight:800;color:#31595d}
+.coordinator-dashboard-card .panel-head .text-button{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:10px}
+.coordinator-dashboard-list{padding:4px 12px}
+.coordinator-dashboard-list button{width:100%;display:flex;gap:12px;align-items:center;text-align:left;background:none;border:0;border-bottom:1px solid #edf2f0;padding:12px 4px;cursor:pointer}
+.coordinator-dashboard-list button:last-child{border-bottom:0}
+.coordinator-dashboard-list button:hover{background:#f7fbf9}
+.coordinator-dashboard-list button>span{flex:1;min-width:0}
+.coordinator-dashboard-list button strong{display:block;font-size:11px;color:#31565a;overflow-wrap:anywhere}
+.coordinator-dashboard-list button small{display:block;font-size:9px;color:#809496;margin-top:5px;line-height:1.5}
+.coordinator-dashboard-list button em{font-size:10px;font-style:normal;color:#a55340;font-weight:800;background:#fff2eb;padding:4px 7px;border-radius:7px;white-space:nowrap}
+.coordinator-dashboard-list button>svg{flex-shrink:0;color:#849d9e}
+.coordinator-dashboard-notice{font-size:10px;color:#799194;margin:14px 16px}
+.coordinator-dashboard-notice[role=alert]{color:#a94b40}
+.coordinator-dashboard-footnote{margin:4px 16px 13px;font-size:9px;color:#84999b;line-height:1.5}
+.coordinator-dashboard-authors{padding:5px 15px}
+.coordinator-dashboard-authors>div{display:flex;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid #eef2f1}
+.coordinator-dashboard-authors>div:last-child{border-bottom:0}
+.coordinator-dashboard-authors span>strong{display:block;font-size:11px;color:#34585c}
+.coordinator-dashboard-authors span>small{display:block;font-size:9px;color:#82989a;margin-top:4px}
+.coordinator-dashboard-authors span:last-child{text-align:right}
+.coordinator-dashboard-authors span:last-child strong{font:800 17px Manrope,sans-serif;color:#287d6d}
+.coordinator-dashboard-fees{padding:6px 15px 8px}
+.coordinator-dashboard-fees>div{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:12px 2px;border-bottom:1px solid #eef2f1}
+.coordinator-dashboard-fees>div:last-child{border-bottom:0}
+.coordinator-dashboard-fees span{font-size:10px;color:#6a8788}
+.coordinator-dashboard-fees strong{font-size:12px;color:#2b6159;white-space:nowrap}
+.coordinator-dashboard-fees .coordinator-dashboard-fees-total{background:#eff8f5;padding:12px 9px;border-radius:8px}
+.coordinator-dashboard-disclaimer{display:flex;gap:6px;align-items:flex-start;margin:11px 0;color:#809799;font-size:9px}
+.coordinator-dashboard-disclaimer svg{flex:0 0 auto}
+@media(max-width:1050px){.coordinator-dashboard-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.coordinator-dashboard-grid{grid-template-columns:1fr}}
+@media(max-width:580px){.coordinator-dashboard-heading{align-items:flex-start;flex-direction:column}.coordinator-dashboard-heading .secondary-button{align-self:flex-start}.coordinator-dashboard-metrics{gap:7px}.coordinator-dashboard-metrics article{padding:11px}.coordinator-dashboard-card .panel-head{align-items:flex-start;flex-wrap:wrap}.coordinator-dashboard-fees>div{align-items:flex-start;flex-direction:column;gap:5px}}
+@media print{.coordinator-dashboard-heading button,.coordinator-dashboard-card .text-button{display:none!important}.coordinator-dashboard-card{break-inside:avoid}}

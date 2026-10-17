@@ -3,6 +3,7 @@ import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { buildProjectReadScope, canCreateProject, canManageProject } from '../_lib/project-access.js';
 import { formatProjectDto, projectSelect } from '../_lib/project-dto.js';
+import { canReadAuthorPerformanceReport, getAuthorPerformanceReport } from '../_lib/author-performance-report.js';
 import {
   PROJECT_GRADES,
   PROJECT_PRIORITIES,
@@ -36,6 +37,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 async function handleGet(req: VercelRequest, res: VercelResponse) {
   const user = await getCurrentUser(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  if (req.query.view !== undefined && req.query.view !== 'authorPerformanceReport') {
+    return res.status(400).json({ error: 'Unknown project view' });
+  }
+  if (req.query.view === 'authorPerformanceReport') {
+    if (!canReadAuthorPerformanceReport(user.role?.code)) {
+      return res.status(403).json({ error: 'Author comparisons restricted to coordinators and finance.' });
+    }
+    try {
+      return res.status(200).json(await getAuthorPerformanceReport(user));
+    } catch (error) {
+      if (error instanceof Error && error.message === 'AUTHOR_REPORT_TOO_LARGE') {
+        return res.status(413).json({ error: 'Report too large; contact administrator.' });
+      }
+      throw error;
+    }
+  }
 
   const where = buildProjectReadScope(user);
   if (where === null) return res.status(403).json({ error: 'Forbidden' });

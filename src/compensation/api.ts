@@ -63,6 +63,23 @@ export async function fetchCompensationPage(cursor: number | null = null): Promi
   return parse<CompensationPage>(response);
 }
 
+/**
+ * Report-level totals are computed by the backend over the full eligible
+ * ledger, not from a paginated subset of CompensationEntry rows.
+ * An undefined project list means all authorized records; an empty list
+ * means no matched projects and is handled by the report before calling.
+ */
+export async function fetchCompensationSummary(projectIds?: number[]): Promise<import('./types').CompensationSummary> {
+  if (projectIds && (projectIds.length === 0 || projectIds.length > 150 ||
+      projectIds.some(id => !Number.isSafeInteger(id) || id <= 0))) {
+    throw new CompensationApiError(400, 'Proje filtresi geçersiz.');
+  }
+  const suffix = projectIds ? '&projectIds=' + projectIds.join(',') : '';
+  const response = await fetch('/api/v1/compensation/entries?limit=1' + suffix, { credentials: 'include' });
+  const body = await parse<{ summary: import('./types').CompensationSummary }>(response);
+  return body.summary;
+}
+
 export async function fetchPaymentPeriods(): Promise<PaymentPeriod[]> {
   const response = await fetch('/api/v1/compensation/periods', { credentials: 'include' });
   return (await parse<{ periods: PaymentPeriod[] }>(response)).periods;

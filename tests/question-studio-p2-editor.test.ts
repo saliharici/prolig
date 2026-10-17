@@ -10,10 +10,10 @@ import { StudioDocumentPreview } from '../src/questions/StudioDocumentPreview';
 describe('P2-1 Professional Question Stem WYSIWYG Editor', () => {
   it('correctly isolates P2 editor behind VITE_QUESTION_STUDIO_P2_EDITOR feature flag', () => {
     const app = fs.readFileSync(path.join(process.cwd(), 'src/DemoApp.tsx'), 'utf8');
-    expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true'");
+    expect(app).toContain('questionStudioReleaseFlags.richEditor');
     expect(app).toContain('QuestionStemWysiwygEditor');
     // Ensure P1 flag and legacy fallback textarea still remain intact
-    expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true'");
+    expect(app).toContain('questionStudioReleaseFlags.p1Workspace');
     expect(app).toContain('textarea ref={questionEditorRef}');
   });
 
@@ -144,7 +144,7 @@ describe('P2-2 Professional Answer + Solution Editor wiring', () => {
     expect(app).toContain('questionSaving || durableDraftBusy');
     expect(app).toContain('input type="text" value={option}'); // P1 fallback unchanged
     expect(app).toContain('className="question-explanation" maxLength={600}'); // P1 fallback unchanged
-    expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P2_EDITOR === 'true'");
+    expect(app).toContain('questionStudioReleaseFlags.richEditor');
   });
 
   it('preserves separate stem, option and explanation legacy strings', () => {

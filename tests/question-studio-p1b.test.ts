@@ -104,7 +104,7 @@ describe('P1-B in-memory draft safety', () => {
     expect(app).toContain('onClick={closeQuestionForm}');
     expect(app).toContain('question-workspace-overlay');
     expect(app).toContain('inert={questionSaving || durableDraftBusy} aria-busy={questionSaving || durableDraftBusy}');
-    expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true'");
+    expect(app).toContain('questionStudioReleaseFlags.p1Workspace');
   });
 
   it('scopes fullscreen overrides to P1 opt-in workspace only', () => {
@@ -114,6 +114,6 @@ describe('P1-B in-memory draft safety', () => {
     expect(css).toContain('.question-studio-workspace');
     expect(css).toContain('.question-workspace-overlay');
     expect(css).toContain('@media(max-width:640px)');
-    expect(app).toContain("import.meta.env.VITE_QUESTION_STUDIO_P1 === 'true' ? 'question-modal");
+    expect(app).toContain("questionStudioReleaseFlags.p1Workspace ? 'question-modal");
   });
 });
