@@ -20,6 +20,8 @@ export function resolveQuestionStudioFlags(flags: QuestionStudioFlagSource) {
   const p1c = flags.VITE_QUESTION_STUDIO_P1C === 'true';
 
   return {
+    p1Workspace: p1,
+    richEditor: p2Editor,
     guidedP2: p2Editor && p2Types,
     durableRecovery: p1 && p1c,
     localGuardedWrites: flags.PROLIG_P2_LOCAL_GUARDED_WRITES === 'true',
