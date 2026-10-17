@@ -64,7 +64,7 @@ export async function getProjectAuthorPerformance(project: any, actor: any): Pro
     }))
     .sort((a: any, b: any) => a.fullName.localeCompare(b.fullName, 'tr-TR') || a.userId - b.userId);
   const byId = new Map<number, typeof authors[number]>(authors.map((author: any) => [author.userId, author]));
-  const ids = authors.map((author: any) => author.userId);
+  const ids = authors.map(author => author.userId).sort((left, right) => left - right);
   if (!ids.length) return { projectId: project.id as number, financeVisible, authors };
 
   // The finance role cannot GET question content. Permit aggregated project
