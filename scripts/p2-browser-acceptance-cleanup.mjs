@@ -66,12 +66,11 @@ try {
       typeof q.objectiveCode !== 'string' || !q.objectiveCode.startsWith(EXPECTED_MARKER)) {
     fail('Question does not match exact synthetic marker, project, grade, owner and draft status.');
   }
-  const [assets, compensation, logs] = await Promise.all([
-    db.query('SELECT count(*)::int AS n FROM public."QuestionAsset" WHERE "questionId"=$1', [questionId]),
-    db.query('SELECT count(*)::int AS n FROM public."CompensationEntry" WHERE "questionId"=$1', [questionId]),
-    db.query(`SELECT count(*)::int AS n FROM public."ActivityLog"
-              WHERE "entityType"='Question' AND "entityId"=$1`, [questionId])
-  ]);
+  // A pg.Client holds exactly one transaction; issue its queries sequentially.
+  const assets = await db.query('SELECT count(*)::int AS n FROM public."QuestionAsset" WHERE "questionId"=$1', [questionId]);
+  const compensation = await db.query('SELECT count(*)::int AS n FROM public."CompensationEntry" WHERE "questionId"=$1', [questionId]);
+  const logs = await db.query(`SELECT count(*)::int AS n FROM public."ActivityLog"
+              WHERE "entityType"='Question' AND "entityId"=$1`, [questionId]);
   const assetCount = assets.rows[0].n;
   const compensationCount = compensation.rows[0].n;
   const auditCount = logs.rows[0].n;
