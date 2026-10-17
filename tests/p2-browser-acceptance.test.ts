@@ -26,7 +26,7 @@ describe('P2 isolated browser acceptance fail-closed contract', () => {
     expect(server).toContain("app.get('/api/v1/questions', adapt(questions))");
     expect(server).toContain("app.get('/api/v1/projects', adapt(projects))");
     expect(server).toContain("app.use('/api/', (_req, res) => res.status(403)");
-    expect(server).toContain("app.post('/api/v1/questions', guarded, adapt(questions))");
+    expect(server).toContain("app.post('/api/v1/questions', guardedCreate)");
     expect(server).toContain("app.patch('/api/v1/questions/:id', withId, guarded, adapt(questionDetail))");
     expect(server).toContain("if (!CAN_DRAFT || req.headers.origin !== ORIGIN)");
     expect(server).toContain("!(REVISION_MODE ? ['TASLAK','REVIZYON'].includes(saved.status) : saved.status === 'TASLAK')");
@@ -40,17 +40,18 @@ describe('P2 isolated browser acceptance fail-closed contract', () => {
     expect(server).not.toMatch(/app\.patch\('\/api\/v1\/auth\/me/);
   });
 
-  it('holds one synthetic create admission across both the cap query and the handler response', () => {
-    const guardPosition = server.indexOf('if (syntheticCreateInFlight)');
-    const countPosition = server.indexOf('const count = await prisma.question.count');
-    const handlerPosition = server.indexOf("app.post('/api/v1/questions', guarded, adapt(questions))");
+  it('serializes synthetic creation across the cap query and real API transaction, including client disconnects', () => {
+    const handler = server.slice(server.indexOf('async function guardedCreate('));
+    const guardPosition = handler.indexOf('if (syntheticCreateInFlight)');
+    const createPosition = handler.indexOf('await requireTestDraft(');
+    const finishPosition = handler.indexOf('syntheticCreateInFlight = false');
     expect(guardPosition).toBeGreaterThan(-1);
-    expect(guardPosition).toBeLessThan(countPosition);
-    expect(countPosition).toBeLessThan(handlerPosition);
-    expect(server).toContain('syntheticCreateInFlight = true');
-    expect(server).toContain("res.once('finish', releaseSyntheticCreate)");
-    expect(server).toContain("res.once('close', releaseSyntheticCreate)");
-    expect(server).toContain('syntheticCreateInFlight = false');
+    expect(guardPosition).toBeLessThan(createPosition);
+    expect(createPosition).toBeLessThan(finishPosition);
+    expect(handler).toContain('() => Promise.resolve(questions(req, res))');
+    expect(handler).toContain('} finally {');
+    expect(server).toContain("app.post('/api/v1/questions', guardedCreate)");
+    expect(server).not.toContain("res.once('close', releaseSyntheticCreate)");
   });
 
   it('never inherits Vercel or local production credentials into the child', () => {
