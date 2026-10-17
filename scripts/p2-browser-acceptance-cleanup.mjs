@@ -53,12 +53,12 @@ try {
   await db.query(apply ? 'BEGIN' : 'BEGIN READ ONLY');
   inTx = true;
   const result = await db.query(
-    \`SELECT q.id, q.status, q.grade, q."objectiveCode",
+    `SELECT q.id, q.status, q.grade, q."objectiveCode",
        u.email AS author_email, p.code AS project_code
        FROM public."Question" q
        JOIN public."User" u ON u.id=q."authorUserId"
        JOIN public."Project" p ON p.id=q."projectId"
-       WHERE q.id=$1 \${apply ? 'FOR UPDATE OF q' : ''}\`, [questionId]
+       WHERE q.id=$1 ${apply ? 'FOR UPDATE OF q' : ''}`, [questionId]
   );
   const q = result.rows[0];
   if (!q || q.status !== 'TASLAK' || q.grade !== '8. Sınıf' ||
@@ -69,8 +69,8 @@ try {
   const [assets, compensation, logs] = await Promise.all([
     db.query('SELECT count(*)::int AS n FROM public."QuestionAsset" WHERE "questionId"=$1', [questionId]),
     db.query('SELECT count(*)::int AS n FROM public."CompensationEntry" WHERE "questionId"=$1', [questionId]),
-    db.query(\`SELECT count(*)::int AS n FROM public."ActivityLog"
-              WHERE "entityType"='Question' AND "entityId"=$1\`, [questionId])
+    db.query(`SELECT count(*)::int AS n FROM public."ActivityLog"
+              WHERE "entityType"='Question' AND "entityId"=$1`, [questionId])
   ]);
   const assetCount = assets.rows[0].n;
   const compensationCount = compensation.rows[0].n;
@@ -85,17 +85,17 @@ try {
     await db.query('ROLLBACK');
     inTx = false;
   } else {
-    await db.query(\`DELETE FROM public."ActivityLog"
-       WHERE "entityType"='Question' AND "entityId"=$1\`, [questionId]);
-    const deleted = await db.query(\`DELETE FROM public."Question"
-       WHERE id=$1 AND "objectiveCode" LIKE $2 AND status='TASLAK'\`,
+    await db.query(`DELETE FROM public."ActivityLog"
+       WHERE "entityType"='Question' AND "entityId"=$1`, [questionId]);
+    const deleted = await db.query(`DELETE FROM public."Question"
+       WHERE id=$1 AND "objectiveCode" LIKE $2 AND status='TASLAK'`,
        [questionId, EXPECTED_MARKER + '%']);
     if (deleted.rowCount !== 1) fail('Refusing cleanup because exact conditional delete failed.');
     await db.query('COMMIT');
     inTx = false;
     const remaining = await db.query('SELECT count(*)::int AS n FROM public."Question" WHERE id=$1', [questionId]);
-    const remainingLogs = await db.query(\`SELECT count(*)::int AS n FROM public."ActivityLog"
-       WHERE "entityType"='Question' AND "entityId"=$1\`, [questionId]);
+    const remainingLogs = await db.query(`SELECT count(*)::int AS n FROM public."ActivityLog"
+       WHERE "entityType"='Question' AND "entityId"=$1`, [questionId]);
     if (remaining.rows[0].n !== 0 || remainingLogs.rows[0].n !== 0) {
       fail('Post-delete verification failed; investigate the isolated branch.');
     }
