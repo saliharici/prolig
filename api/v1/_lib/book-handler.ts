@@ -14,6 +14,7 @@ export type BookAction = 'books' | 'book';
  * NODE_ENV=test only enables mocked, isolated test execution.
  */
 export function bookApiPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.VERCEL_ENV === 'production') return false;
   if (env.PROLIG_BOOKS_V2_ENABLED !== 'true') return false;
   if (env.NODE_ENV === 'test') return true;
   if (env.VERCEL_ENV !== 'preview') return false;
