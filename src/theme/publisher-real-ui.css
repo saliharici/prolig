@@ -1131,3 +1131,24 @@
   cursor: progress;
   opacity: .75;
 }
+
+/* Publisher Edition guidance for the five-step question authoring workflow. */
+.publisher-theme.corporate-workspace-v3 .p2-progress-summary {
+  background: var(--pub-paper);
+  border-color: var(--pub-line);
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .p2-progress-summary span,
+.publisher-theme.corporate-workspace-v3 .p2-active-checklist small,
+.publisher-theme.corporate-workspace-v3 .p2-live-preview-heading small { color: #755c65; }
+.publisher-theme.corporate-workspace-v3 .p2-progress-summary progress { accent-color: var(--pub-burgundy); }
+.publisher-theme.corporate-workspace-v3 .p2-active-checklist {
+  border-left-color: var(--pub-burgundy);
+  background: #faf3f4;
+  color: #4b2733;
+}
+.publisher-theme.corporate-workspace-v3 .p2-active-checklist.has-issues {
+  border-left-color: #b88750;
+  background: #fff8ef;
+}
+.publisher-theme.corporate-workspace-v3 .p2-live-preview-heading { border-bottom-color: var(--pub-line); color: var(--pub-dark); }

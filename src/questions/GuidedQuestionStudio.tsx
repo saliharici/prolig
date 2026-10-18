@@ -54,6 +54,8 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   const letters = 'ABCDE'.slice(0, count).split('');
   const selectedOption = Math.min(activeOption, count - 1);
   const issues = guidedQuestionIssues(v);
+  const readyStageCount = [1, 2, 3, 4].filter(index => !issues.some(issue => issue.step === index)).length;
+  const activeIssues = issues.filter(issue => issue.step === step);
   const change = (patch: Partial<QuestionStudioFormValues>) => onChange({ ...v, ...patch });
   useEffect(() => {
     if (previousStep.current !== step) heading.current?.focus();
@@ -77,8 +79,20 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   const editor = (field: 'content' | 'explanation' | 'modelAnswer' | 'scoringRubric' | 'evaluationCriteria', label: string, maxLength: number) => <div className="p2-rich-field"><label>{label}</label><QuestionStemWysiwygEditor key={field} value={v[field] || ''} onChange={value => change({ [field]: value })} ariaLabel={label} placeholder={editorHints[field]} maxLength={maxLength} disabled={disabled} variant={field === 'content' ? 'stem' : 'explanation'} /></div>;
   return <section className="p2-guided" aria-label="Beş aşamalı soru hazırlama" inert={disabled}>
     <nav aria-label="Soru hazırlama aşamaları" className="p2-steps">{steps.map((label, i) => <button type="button" key={label} aria-current={step === i + 1 ? 'step' : undefined} onClick={() => onStepChange(i + 1)}><span>{i + 1}</span><strong>{label}</strong><small>{issues.some(x => x.step === i + 1) ? 'Eksik alan' : i < 4 ? 'Hazır' : 'Kontrol et'}</small></button>)}</nav>
+    <div className="p2-progress-summary" role="status" aria-live="polite">
+      <div>
+        <strong>{readyStageCount}/4 içerik aşaması inceleme için hazır</strong>
+        <span>{issues.length === 0 ? 'Zorunlu alanlar tamamlandı.' : `${issues.length} kontrol maddesi tamamlanacak.`}</span>
+      </div>
+      <progress max={4} value={readyStageCount} aria-label="İnceleme hazırlığı" />
+    </div>
     <div className={`p2-guided-body ${preview && step < 5 ? 'with-preview' : ''}`}>
       <div className="p2-stage"><div className="p2-stage-heading"><div><small>AŞAMA {step} / 5</small><h3 ref={heading} tabIndex={-1}>{steps[step - 1]}</h3></div>{step < 5 && <button type="button" className="secondary-button" aria-expanded={preview} onClick={() => setPreview(x => !x)}>{preview ? 'Önizlemeyi gizle' : 'Önizlemeyi aç'}</button>}</div>
+        {step < 5 && <div className={activeIssues.length ? 'p2-active-checklist has-issues' : 'p2-active-checklist'} aria-label="Bu aşamanın kontrol listesi">
+          <strong>{activeIssues.length ? `Bu aşamada ${activeIssues.length} eksik nokta` : 'Bu aşamada zorunlu eksik yok'}</strong>
+          {activeIssues.length > 0 && <ul>{activeIssues.map(issue => <li key={issue.message}>{issue.message}</li>)}</ul>}
+          <small>Bu gösterge inceleme hazırlığı içindir; taslak kaydetme ve gönderim kuralları değişmez.</small>
+        </div>}
         {step === 1 && <>
           <label>Soru türü<select value={type} disabled={editing} onChange={e => changeType(e.target.value as QuestionType)}>{Object.entries(questionTypeLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
           {sandbox && type !== 'MULTIPLE_CHOICE' && <p className="p2-notice" role="status">Bu soru türünü beş aşamada önizleyebilirsiniz. Korumalı sandbox kayıt modunda yalnızca dört seçenekli çoktan seçmeli sorular kaydedilebilir.</p>}
@@ -124,7 +138,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
         </>}
         <div className="p2-step-actions"><button type="button" className="secondary-button" disabled={step === 1} onClick={() => onStepChange(step - 1)}>Önceki aşama</button>{step < 5 && <button type="button" className="primary-button" onClick={() => onStepChange(step + 1)}>Sonraki aşama →</button>}</div>
       </div>
-      {preview && step < 5 && <aside className="p2-live-preview" aria-label="İsteğe bağlı önizleme"><QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} /></aside>}
+      {preview && step < 5 && <aside className="p2-live-preview" aria-label="İsteğe bağlı önizleme"><div className="p2-live-preview-heading"><strong>Canlı soru önizlemesi</strong><small>Yalnız görüntüleme; kayıt işlemi yapılmaz.</small></div><QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} /></aside>}
     </div>
   </section>;
 }
