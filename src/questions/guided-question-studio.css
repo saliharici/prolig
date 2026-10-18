@@ -32,3 +32,19 @@
 .p2-completion button { background:none; color:#985000; border:0; padding:4px 0; text-align:left; text-decoration:underline; cursor:pointer; }
 .p2-guided button:focus-visible,.p2-guided input:focus-visible,.p2-guided select:focus-visible,.p2-stage h3:focus-visible { outline:3px solid #d9ab52; outline-offset:3px; }
 @media(max-width:800px) { .p2-steps { grid-template-columns:repeat(5,140px); overflow:auto; } .p2-guided-body.with-preview { grid-template-columns:1fr; } .p2-live-preview { position:static; max-height:none; } .p2-field-grid { grid-template-columns:1fr; } .p2-stage-heading { align-items:flex-start; flex-direction:column; } .p2-option-tabs button { min-width:48px; padding:10px 12px; } .p2-stage { padding:18px; } }
+
+/* Non-blocking readiness indicator: the existing save/submit logic is unchanged. */
+.p2-progress-summary { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin:-7px 0 20px; padding:14px 17px; background:#f5f8f7; border:1px solid #dce8e4; border-radius:10px; }
+.p2-progress-summary > div { display:grid; gap:4px; }
+.p2-progress-summary strong { font-size:13px; }
+.p2-progress-summary span { font-size:12px; color:#56736a; }
+.p2-progress-summary progress { width:clamp(135px,25%,240px); height:11px; accent-color:#164f42; }
+.p2-active-checklist { padding:12px 16px; margin-bottom:20px; border-left:3px solid #5c987b; background:#f4faf7; font-size:12px; line-height:1.55; }
+.p2-active-checklist.has-issues { border-left-color:#bd8749; background:#fff9ee; }
+.p2-active-checklist > strong { display:block; font-size:13px; }
+.p2-active-checklist ul { margin:8px 0; padding-left:19px; }
+.p2-active-checklist small { display:block; margin-top:6px; color:#597068; }
+.p2-live-preview-heading { display:flex; flex-direction:column; gap:4px; padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid #dce8e4; }
+.p2-live-preview-heading strong { font-size:13px; }
+.p2-live-preview-heading small { color:#56736a; font-size:11px; }
+@media(max-width:600px) { .p2-progress-summary progress { width:100%; } }
