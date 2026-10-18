@@ -62,7 +62,9 @@ export function PublishingWorkbench({ questions, loading, error, onRefresh }: Pr
   const [columns, setColumns] = useState<1 | 2>(1);
   const [withAnswerKey, setWithAnswerKey] = useState(false);
   // Both environment markers are required: V1 remains fully read-only everywhere else.
-  const publishingPreview = publishingV2PreviewEnabled(import.meta.env);
+  const publishingPreview = publishingV2PreviewEnabled(import.meta.env as unknown as {
+    VITE_PUBLISHING_V2_PREVIEW?: string; VITE_VERCEL_ENV?: string;
+  });
   const [activeBook, setActiveBook] = useState<SavedBook | null>(null);
 
   function openSavedBook(book: SavedBook) {
