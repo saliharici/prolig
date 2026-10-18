@@ -10,6 +10,7 @@ import { handleMessageAction } from './_lib/message-handler.js';
 import { handleAnnouncementAction } from './_lib/announcement-handler.js';
 import { handlePaymentPeriodAction, type PeriodAction } from './_lib/payment-period-handler.js';
 import { handleCompensationAction } from './_lib/compensation-handler.js';
+import { handleBookAction } from './_lib/book-handler.js';
 
 const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
@@ -211,6 +212,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (action === 'books' || action === 'book') {
+      return handleBookAction(req, res, user, action);
+    }
     if (action === 'tasks' || action === 'task') {
       return handleTaskAction(req, res, user, action);
     }
