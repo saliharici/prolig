@@ -54,6 +54,12 @@ jobs:
         run: npm install --package-lock=false --no-audit --no-fund
       - name: Generate Prisma Client
         run: npx prisma generate
+      - name: Compile UI and API (Prisma generated from V2 schema)
+        run: npm run lint
+      - name: Unit and contract tests (no Neon connections)
+        run: npx vitest run tests/publishing-book-api-v2.test.ts tests/publishing-book-persistence-v2-contract.test.ts
+      - name: Production-bundle build on isolated runner (no deployment)
+        run: npm run build
       - name: Apply migrations ONLY to local disposable PostgreSQL
         run: npx prisma migrate deploy
       - name: Execute real book draft / concurrency / snapshot acceptance
