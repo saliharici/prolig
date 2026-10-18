@@ -22,6 +22,8 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  // A confirmed POST must never be repeated if the subsequent GET fails.
+  const [committedPendingId, setCommittedPendingId] = useState<number | null>(null);
   const busyRef = useRef(false);
 
   const refreshRecords = useCallback(async () => {
@@ -51,6 +53,7 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
         throw new PublishingApiError(422, 'Bu kayıt birden fazla bölüm içeriyor; tek bölümlü atölye ile değiştirilemez.');
       }
       onOpen(loaded);
+      setCommittedPendingId(null);
       setNotice('Kitap taslağının kaydedilmiş sürümü açıldı. Öğrenci önizlemesi kayıtlı soru metnini gösteriyor.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Taslak açılamadı.');
@@ -60,7 +63,7 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
   }
 
   async function save() {
-    if (busyRef.current) return;
+    if (busyRef.current || committedPendingId !== null) return;
     busyRef.current = true;
     setBusy(true); setError(''); setNotice('');
     try {
@@ -69,10 +72,18 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
       }
       const payload = prepareBookSave(view, questions, activeBook);
       const result = await saveBookDraft(payload, activeBook?.id ?? null);
-      // The server response never includes the frozen snapshot: fetch it again
-      // and only then mark the draft as saved in the UI.
-      const reopened = await loadBookDraft(result.id);
+      // The write succeeded: do not allow a second POST/PATCH while recovering
+      // the read-back, even when that subsequent GET fails or times out.
+      setCommittedPendingId(result.id);
+      let reopened: SavedBook;
+      try {
+        reopened = await loadBookDraft(result.id);
+      } catch {
+        setError('Kitap sunucuya kaydedildi (#' + result.id + '), ancak yeniden açma isteği başarısız. Tekrar Kaydet düğmesine basmayın; Kaydı Geri Getir seçeneğini kullanın.');
+        return;
+      }
       onOpen(reopened);
+      setCommittedPendingId(null);
       setNotice('Kitap taslağı kaydedildi. Güncel sürüm: ' + result.revision + '.');
       await refreshRecords();
     } catch (e) {
@@ -82,8 +93,24 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
     }
   }
 
+  async function recoverCommitted() {
+    if (committedPendingId == null || busyRef.current) return;
+    busyRef.current = true; setBusy(true); setError('');
+    try {
+      const reopened = await loadBookDraft(committedPendingId);
+      onOpen(reopened);
+      setCommittedPendingId(null);
+      setNotice('Kaydedilmiş kitap güvenle yeniden açıldı.');
+      await refreshRecords();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Kaydedilen taslak yeniden açılamadı.');
+    } finally {
+      busyRef.current = false; setBusy(false);
+    }
+  }
+
   function newDraft() {
-    if (busyRef.current) return;
+    if (busyRef.current || committedPendingId !== null) return;
     if (view.selectedIds.length &&
         !window.confirm('Kaydedilmemiş seçimler silinecek. Yeni kitap hazırlamak istiyor musunuz?')) return;
     setError(''); setNotice('');
@@ -98,9 +125,11 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
     </div>
     <p className="publishing-panel-explanation">Bu alan yalnızca özel test önizlemesinde açılır. Kaydetme işlemleri sadece bu önizlemenin ayrı test veritabanında yapılabilir. Yayınlanmış kitaplar düzenlenemez.</p>
     <div className="publishing-persistence-actions">
-      <button type="button" className="primary-button" disabled={busy || listing || loading || Boolean(sourceError)}
+      <button type="button" className="primary-button" disabled={busy || listing || loading || Boolean(sourceError) || committedPendingId !== null}
         onClick={() => void save()}><Save size={16}/>{activeBook ? 'Değişiklikleri Kaydet' : 'Kitabı Kaydet'}</button>
-      <button type="button" className="secondary-button" disabled={busy} onClick={newDraft}>Yeni kitap taslağı</button>
+      <button type="button" className="secondary-button" disabled={busy || committedPendingId !== null} onClick={newDraft}>Yeni kitap taslağı</button>
+      {committedPendingId !== null && <button type="button" className="secondary-button" disabled={busy}
+        onClick={() => void recoverCommitted()}>Kaydı Geri Getir #{committedPendingId}</button>}
       {activeBook && <span className="publishing-revision">#{activeBook.id} · Revizyon {activeBook.revision} · {activeBook.status}</span>}
     </div>
     {listing && <p role="status">Kayıtlı kitaplar yükleniyor…</p>}
