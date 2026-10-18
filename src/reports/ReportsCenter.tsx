@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
   BookOpen,
@@ -18,6 +18,9 @@ import type { ApiPayment } from '../payments/types';
 import type { Role } from '../demo/model';
 import { roleLabels } from '../demo/model';
 import { toKurus } from '../payments/money';
+import { fetchCompensationSummary } from '../compensation/api';
+import type { CompensationSummary } from '../compensation/types';
+import { AuthorComparisonPanel } from './AuthorComparisonPanel';
 import './reports.css';
 
 type FilterValue = 'all' | string;
@@ -28,12 +31,13 @@ type ReportsCenterProps = {
   tasks: ApiTask[];
   authors: ApiAuthor[];
   payments: ApiPayment[];
+  paymentsLoading: boolean;
+  paymentsError: string;
   role: Role;
+  userId: number;
   tasksLoading: boolean;
   tasksError: string;
   authorsError: string;
-  paymentsLoading: boolean;
-  paymentsError: string;
 };
 
 const money = (kurus: number) =>
@@ -56,6 +60,11 @@ const questionStatusMeta = [
   { key: 'REDDEDILDI', label: 'Reddedildi' }
 ] as const;
 
+const emptyCompensationSummary: CompensationSummary = {
+  count: 0, total: '0.00', waiting: '0.00', inProcess: '0.00', paid: '0.00',
+  writer: '0.00', editor: '0.00', coordinator: '0.00'
+};
+
 const taskStatusMeta = [
   { key: 'Bekliyor', label: 'Bekleyen' },
   { key: 'Devam_Ediyor', label: 'Devam Eden' },
@@ -75,23 +84,26 @@ export function ReportsCenter({
   tasks,
   authors,
   payments,
+  paymentsLoading,
+  paymentsError,
   role,
+  userId,
   tasksLoading,
   tasksError,
   authorsError,
-  paymentsLoading,
-  paymentsError
 }: ReportsCenterProps) {
   const [projectFilter, setProjectFilter] = useState<FilterValue>('all');
   const [branchFilter, setBranchFilter] = useState<FilterValue>('all');
   const [gradeFilter, setGradeFilter] = useState<FilterValue>('all');
+  const [compensationSummary, setCompensationSummary] = useState<CompensationSummary | null>(null);
+  const [compensationLoading, setCompensationLoading] = useState(false);
+  const [compensationError, setCompensationError] = useState('');
 
   const canSeeContent = role !== 'MUHASEBE';
   const canSeeTasks = role !== 'MUHASEBE';
   const canSeeAuthors = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(role);
   const canSeeFinance = ['GENEL_KOORDINATOR', 'MUHASEBE'].includes(role);
   const tasksUnavailable = canSeeTasks && (tasksLoading || Boolean(tasksError));
-  const financeUnavailable = canSeeFinance && (paymentsLoading || Boolean(paymentsError));
 
   const branches = useMemo(
     () => [...new Set(projects.map(project => project.branch.name))].sort((a, b) => a.localeCompare(b, 'tr-TR')),
@@ -112,6 +124,32 @@ export function ReportsCenter({
 
   const filteredProjectIds = useMemo(() => new Set(filteredProjects.map(project => project.id)), [filteredProjects]);
   const hasProjectScopedFilter = projectFilter !== 'all' || branchFilter !== 'all' || gradeFilter !== 'all';
+  const projectIdsKey = useMemo(
+    () => filteredProjects.map(project => project.id).sort((left, right) => left - right).join(','),
+    [filteredProjects]
+  );
+
+  useEffect(() => {
+    if (!canSeeFinance) return;
+    let active = true;
+    setCompensationError('');
+    // Empty filtered project sets must report zero, never unrestricted totals.
+    if (hasProjectScopedFilter && !projectIdsKey) {
+      setCompensationSummary(emptyCompensationSummary);
+      setCompensationLoading(false);
+      return () => { active = false; };
+    }
+    setCompensationSummary(null);
+    setCompensationLoading(true);
+    const projectIds = hasProjectScopedFilter ? projectIdsKey.split(',').map(Number) : undefined;
+    void fetchCompensationSummary(projectIds)
+      .then(summary => { if (active) setCompensationSummary(summary); })
+      .catch(error => {
+        if (active) setCompensationError(error instanceof Error ? error.message : 'Telif tahakkuku yüklenemedi.');
+      })
+      .finally(() => { if (active) setCompensationLoading(false); });
+    return () => { active = false; };
+  }, [canSeeFinance, hasProjectScopedFilter, projectIdsKey]);
 
   const filteredQuestions = useMemo(() => questions.filter(question => {
     if (!canSeeContent) return false;
@@ -322,6 +360,12 @@ export function ReportsCenter({
         </div>
       </section>
 
+      {canSeeAuthors || canSeeFinance ? <AuthorComparisonPanel
+        key={`${userId}:${role}`}
+        role={role}
+        projects={filteredProjects}
+      /> : null}
+
       <div className="reports-bottom-grid">
         {canSeeAuthors && <section className="panel reports-network-card">
           <div className="panel-head"><div><span className="panel-kicker">YAZAR AĞI</span><h2>Dağılım özeti</h2></div><span>{authorsError ? 'Veri yok' : `${filteredAuthors.length} yazar`}</span></div>
@@ -333,12 +377,26 @@ export function ReportsCenter({
 
         {canSeeFinance && <section className="panel reports-finance-card">
           <div className="panel-head"><div><span className="panel-kicker">TELİF VE ÖDEMELER</span><h2>Finans özeti</h2></div><Wallet size={18}/></div>
-          {financeUnavailable ? <div className="reports-state-empty"><Wallet size={23} aria-hidden="true"/><strong>{paymentsError ? 'Finans kayıtları alınamadı' : 'Finans kayıtları yükleniyor'}</strong><p>Veriler doğrulanmadan herhangi bir bakiye gösterilmez.</p></div> : <div className="reports-finance-metrics">
-            <div><span>Onay bekleyen</span><strong>{money(financeTotals.pending)}</strong></div>
-            <div><span>Ödeme sırasında</span><strong>{money(financeTotals.approved)}</strong></div>
-            <div><span>Ödenen</span><strong>{money(financeTotals.paid)}</strong></div>
-            <div className="total"><span>Toplam</span><strong>{money(financeTotals.pending + financeTotals.approved + financeTotals.paid)}</strong></div>
+          <div className="reports-finance-subhead">Telif ve ücret tahakkukları <small>{hasProjectScopedFilter ? 'Seçili projeler' : 'Yetkili tüm kayıtlar'}</small></div>
+          {compensationLoading && <p className="reports-finance-message">Kazanılmış ücretler yükleniyor...</p>}
+          {!compensationLoading && compensationError && <p className="reports-finance-message" role="alert">{compensationError}</p>}
+          {!compensationLoading && !compensationError && compensationSummary && <div className="reports-finance-metrics">
+            <div><span>Hak edilmiş / ödeme bekleyen</span><strong>{money(toKurus(compensationSummary.waiting))}</strong></div>
+            <div><span>Ödeme sürecinde</span><strong>{money(toKurus(compensationSummary.inProcess))}</strong></div>
+            <div><span>Ödenen hakediş</span><strong>{money(toKurus(compensationSummary.paid))}</strong></div>
+            <div className="total"><span>Toplam tahakkuk</span><strong>{money(toKurus(compensationSummary.total))}</strong></div>
           </div>}
+          <div className="reports-finance-subhead">Ödeme kayıtları <small>{hasProjectScopedFilter ? 'Seçili projeler' : 'Yetkili tüm kayıtlar'}</small></div>
+          {paymentsLoading && <p className="reports-finance-message">Ödeme kayıtları yükleniyor...</p>}
+          {!paymentsLoading && paymentsError && <p className="reports-finance-message" role="alert">{paymentsError}</p>}
+          {!paymentsLoading && !paymentsError && <div className="reports-finance-metrics">
+            <div><span>Onay bekleyen ödemeler</span><strong>{money(financeTotals.pending)}</strong></div>
+            <div><span>Ödeme onaylandı</span><strong>{money(financeTotals.approved)}</strong></div>
+            <div><span>Ödenen</span><strong>{money(financeTotals.paid)}</strong></div>
+            <div className="total"><span>Toplam ödeme kaydı</span><strong>{money(financeTotals.pending + financeTotals.approved + financeTotals.paid)}</strong></div>
+          </div>}
+          <p className="reports-finance-note">Tahakkuk ve ödeme kayıtları farklı aşamalardır; toplamları birbirine eklenmez. Proje/branş/sınıf filtrelerinde genel havuza bağlı olmayan kayıtlar kapsam dışındadır.</p>
+
         </section>}
       </div>
     </div>

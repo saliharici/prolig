@@ -3,6 +3,7 @@ import { validateQuestionAnswerStructure, type QuestionTypeFields } from '../../
 import { serializeTypedAnswers } from './question-type-state';
 
 const answerKeys = new Set(['A', 'B', 'C', 'D']);
+const fiveOptionAnswerKeys = new Set(['A', 'B', 'C', 'D', 'E']);
 const assetPlacements = new Set<QuestionAssetPlacement>(['STEM', 'OPTION_A', 'OPTION_B', 'OPTION_C', 'OPTION_D', 'OPTION_E', 'EXPLANATION']);
 const assetTypes = new Set<QuestionAssetType>(['IMAGE', 'VIDEO_URL', 'LINK']);
 
@@ -34,8 +35,15 @@ export function hasFourValidQuestionOptions(options: unknown): boolean {
   return Array.isArray(options) && options.length === 4 && options.every(option => typeof option === 'string' && option.trim().length > 0);
 }
 
-export function isValidCorrectAnswer(value: unknown): value is string {
-  return typeof value === 'string' && answerKeys.has(value);
+export function isValidCorrectAnswer(value: unknown, optionCount: 4 | 5 = 4): value is string {
+  return typeof value === 'string' && (optionCount === 5 ? fiveOptionAnswerKeys : answerKeys).has(value);
+}
+
+/** Restore the saved answer without dropping E from five-choice questions. */
+export function restoredQuestionCorrectAnswer(question: Pick<ApiQuestion, 'correctAnswer' | 'optionCount'>): string {
+  return isValidCorrectAnswer(question.correctAnswer, question.optionCount === 5 ? 5 : 4)
+    ? question.correctAnswer
+    : '';
 }
 
 export function normalizeQuestionAssets(assets: unknown): QuestionAssetInput[] {
@@ -124,7 +132,29 @@ export function buildQuestionEditPatch(question: ApiQuestion, draft: QuestionEdi
         next.optionCount !== ((question.questionType ?? 'MULTIPLE_CHOICE') === 'MULTIPLE_CHOICE' ? question.optionCount ?? 4 : null)) {
       throw new QuestionFormValidationError('Kaydedilmiş sorunun türü ve seçenek sayısı değiştirilemez.');
     }
-    return { ...next, expectedUpdatedAt: question.updatedAt };
+    // Typed questions should update only the fields actually edited. Sending the
+    // entire serialized question can unnecessarily rewrite answers and media.
+    const input: PatchQuestionInput = { expectedUpdatedAt: question.updatedAt };
+    if (next.content !== question.content.trim()) input.content = next.content;
+    if (next.grade.trim() !== (question.grade?.trim() || '')) input.grade = next.grade.trim();
+    if (next.explanation !== (question.explanation?.trim() || null)) input.explanation = next.explanation;
+    if (next.projectId !== question.projectId) input.projectId = next.projectId;
+    if (next.objectiveCode !== (question.objectiveCode?.trim() || null)) input.objectiveCode = next.objectiveCode;
+    if (next.difficulty !== (question.difficulty?.trim() || null)) input.difficulty = next.difficulty;
+
+    const savedOptions = Array.isArray(question.options) ? question.options.map(option => option.trim()) : [];
+    if (JSON.stringify(next.options) !== JSON.stringify(savedOptions)) input.options = next.options;
+    if (next.correctAnswer !== (question.correctAnswer ?? null)) input.correctAnswer = next.correctAnswer;
+    if (next.booleanAnswer !== (question.booleanAnswer ?? null)) input.booleanAnswer = next.booleanAnswer;
+    if (next.modelAnswer !== (question.modelAnswer?.trim() || null)) input.modelAnswer = next.modelAnswer;
+    if (next.scoringRubric !== (question.scoringRubric?.trim() || null)) input.scoringRubric = next.scoringRubric;
+    if (next.evaluationCriteria !== (question.evaluationCriteria?.trim() || null)) input.evaluationCriteria = next.evaluationCriteria;
+    if (!areQuestionAssetsEqual(question.assets, next.assets)) input.assets = next.assets;
+
+    if (Object.keys(input).length === 1) {
+      throw new QuestionFormValidationError('Kaydedilecek bir değişiklik bulunamadı.');
+    }
+    return input;
   }
   const input: PatchQuestionInput = { expectedUpdatedAt: question.updatedAt };
   const content = draft.content.trim();
@@ -173,7 +203,7 @@ export function buildQuestionEditPatch(question: ApiQuestion, draft: QuestionEdi
     input.assets = draftAssets;
   }
 
-  if (Object.keys(input).length === 0) {
+  if (Object.keys(input).length === 1) {
     throw new QuestionFormValidationError('Kaydedilecek bir değişiklik bulunamadı.');
   }
   return input;

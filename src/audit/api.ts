@@ -23,5 +23,8 @@ export async function fetchAuditLogs(limit = 100): Promise<ApiAuditLog[]> {
   const response = await parse<AuditLogResponse>(
     await fetch(`/api/v1/audit-logs?limit=${safeLimit}`, { credentials: 'include' })
   );
+  if (!response || !Array.isArray(response.logs)) {
+    throw new AuditApiError(502, 'İşlem geçmişi beklenmeyen biçimde döndü.');
+  }
   return response.logs;
 }

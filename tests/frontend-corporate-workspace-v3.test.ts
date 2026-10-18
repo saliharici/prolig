@@ -32,8 +32,11 @@ describe('Corporate workspace Phase 3A', () => {
   });
 
   it('does not present mock activity as real or mislabel empty question filters', () => {
-    expect(app).toContain('Örnek hareketler — doğrulanmış işlem geçmişi değildir.');
-    expect(app).toContain('Henüz soru hareketi yok');
+    expect(app).toContain('GERÇEK DENETİM KAYITLARI');
+    expect(app).toContain('GÜNCEL SORU DURUMLARI');
+    expect(app).toContain('Henüz kayıtlı işlem bulunmuyor.');
+    expect(app).toContain('Yetki kapsamınızda güncel soru bulunmuyor.');
+    expect(app).not.toContain('Örnek hareketler — doğrulanmış işlem geçmişi değildir.');
     expect(app).toContain('Soru havuzu henüz boş');
     expect(app).toContain('Bu ölçütlere uygun soru bulunamadı');
   });

@@ -102,4 +102,58 @@ describe.skipIf(!allowed)('Settlement database transactions (disposable localhos
     expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
     expect(await db.payment.count({ where: { paymentPeriodId: period.id } })).toBe(1);
   });
+
+  it.skipIf(process.env.SETTLEMENT_TEST_SINGLE_CONNECTION === 'true')('simultaneous period preparation never assigns the same earnings twice', async () => {
+    const first = await fixture();
+    const second = await fixture();
+    const concurrent = await Promise.allSettled([
+      transact(tx => preparePeriod(tx, first.period.id, actor)),
+      transact(tx => preparePeriod(tx, second.period.id, actor))
+    ]);
+    expect(concurrent.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    const periods = await db.paymentPeriod.findMany({
+      where: { id: { in: [first.period.id, second.period.id] } },
+      select: { id: true, status: true }
+    });
+    expect(periods.map(period => period.status).sort()).toEqual(['HAZIR', 'TASLAK']);
+    const winner = periods.find(period => period.status === 'HAZIR')!.id;
+    const claimed = await db.compensationEntry.findMany({
+      where: { id: { in: [...first.entries, ...second.entries].map(entry => entry.id) } },
+      select: { paymentPeriodId: true, status: true, paymentId: true }
+    });
+    expect(claimed).toHaveLength(4);
+    expect(claimed.every(entry =>
+      entry.paymentPeriodId === winner && entry.status === 'ODEME_BEKLIYOR' && entry.paymentId === null
+    )).toBe(true);
+  });
+
+  it.skipIf(process.env.SETTLEMENT_TEST_SINGLE_CONNECTION === 'true')('simultaneous payment approval and pay each happen exactly once', async () => {
+    const { period } = await fixture();
+    await transact(tx => preparePeriod(tx, period.id, actor));
+    await transact(tx => settlePeriod(tx, period.id, actor));
+    const payment = await db.payment.findFirstOrThrow({ where: { paymentPeriodId: period.id } });
+
+    const approvals = await Promise.allSettled([
+      transact(tx => transitionPayment(tx, payment.id, 'approve', actor)),
+      transact(tx => transitionPayment(tx, payment.id, 'approve', actor))
+    ]);
+    expect(approvals.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('Onaylandi');
+    expect(await db.activityLog.count({
+      where: { action: 'PAYMENT_APPROVED', entityType: 'Payment', entityId: payment.id }
+    })).toBe(1);
+
+    const payments = await Promise.allSettled([
+      transact(tx => transitionPayment(tx, payment.id, 'pay', actor)),
+      transact(tx => transitionPayment(tx, payment.id, 'pay', actor))
+    ]);
+    expect(payments.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect((await db.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('Odendi');
+    const linked = await db.compensationEntry.findMany({ where: { paymentId: payment.id } });
+    expect(linked.length).toBeGreaterThan(0);
+    expect(linked.every(entry => entry.status === 'ODENDI' && entry.paidAt !== null)).toBe(true);
+    expect(await db.activityLog.count({
+      where: { action: 'PAYMENT_PAID', entityType: 'Payment', entityId: payment.id }
+    })).toBe(1);
+  });
 });

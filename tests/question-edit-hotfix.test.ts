@@ -55,6 +55,12 @@ describe('Question edit hotfix', () => {
     expect(patch).not.toHaveProperty('correctAnswer');
   });
 
+  it('rejects an unchanged legacy question rather than sending a revision-only PATCH', () => {
+    const question = makeQuestion();
+    expect(() => buildQuestionEditPatch(question, editDraft(question)))
+      .toThrowError(new QuestionFormValidationError('Kaydedilecek bir değişiklik bulunamadı.'));
+  });
+
   it('sends structured media asset changes in a PATCH', () => {
     const question = makeQuestion();
     const patch = buildQuestionEditPatch(question, {

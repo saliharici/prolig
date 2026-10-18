@@ -1,4 +1,4 @@
-import type { ApiProject, CreateProjectInput, UpdateProjectInput } from './types';
+import type { ApiProject, CreateProjectInput, UpdateProjectInput, ProjectAuthorPerformance } from './types';
 
 export class ProjectApiError extends Error {
   constructor(public status: number, message: string, public details?: unknown) {
@@ -32,6 +32,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export async function fetchProjects(): Promise<ApiProject[]> {
   const response = await fetch('/api/v1/projects', { credentials: 'include' });
   return handleResponse<ApiProject[]>(response);
+}
+
+/** Read-only per-author counts and (only for financial roles) earned author royalties. */
+export async function fetchProjectAuthorPerformance(projectId: number): Promise<ProjectAuthorPerformance> {
+  if (!Number.isSafeInteger(projectId) || projectId <= 0) {
+    throw new ProjectApiError(400, 'Proje kimliği geçersiz.');
+  }
+  const response = await fetch(`/api/v1/projects/${projectId}?view=authorPerformance`, {
+    credentials: 'include'
+  });
+  return handleResponse<ProjectAuthorPerformance>(response);
 }
 
 export async function createProject(input: CreateProjectInput): Promise<ApiProject> {
