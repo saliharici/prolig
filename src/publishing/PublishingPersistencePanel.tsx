@@ -1,0 +1,118 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { BookOpen, RefreshCw, Save } from 'lucide-react';
+import type { ApiQuestion } from '../questions/types';
+import {
+  listBookDrafts, loadBookDraft, prepareBookSave, PublishingApiError, saveBookDraft,
+  type BookWorkbenchInput, type SavedBook, type SavedBookSummary
+} from './book-persistence-client';
+
+type Props = {
+  questions: ApiQuestion[];
+  loading: boolean;
+  sourceError: string;
+  view: BookWorkbenchInput;
+  activeBook: SavedBook | null;
+  onOpen: (book: SavedBook) => void;
+  onNew: () => void;
+};
+
+export function PublishingPersistencePanel({ questions, loading, sourceError, view, activeBook, onOpen, onNew }: Props) {
+  const [records, setRecords] = useState<SavedBookSummary[]>([]);
+  const [listing, setListing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const busyRef = useRef(false);
+
+  const refreshRecords = useCallback(async () => {
+    setListing(true);
+    setError('');
+    try {
+      const next = await listBookDrafts();
+      setRecords(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Kitap listesi alınamadı.');
+    } finally {
+      setListing(false);
+    }
+  }, []);
+
+  useEffect(() => { void refreshRecords(); }, [refreshRecords]);
+
+  async function open(id: number) {
+    if (busyRef.current) return;
+    if (view.selectedIds.length &&
+        !window.confirm('Mevcut ekrandaki kaydedilmemiş değişiklikleri bırakıp bu kitabı açmak istiyor musunuz?')) return;
+    busyRef.current = true;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const loaded = await loadBookDraft(id);
+      if (loaded.chapters.length !== 1) {
+        throw new PublishingApiError(422, 'Bu kayıt birden fazla bölüm içeriyor; tek bölümlü atölye ile değiştirilemez.');
+      }
+      onOpen(loaded);
+      setNotice('Kitap taslağının kaydedilmiş sürümü açıldı. Öğrenci önizlemesi kayıtlı soru metnini gösteriyor.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Taslak açılamadı.');
+    } finally {
+      busyRef.current = false; setBusy(false);
+    }
+  }
+
+  async function save() {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      if (loading || sourceError) {
+        throw new PublishingApiError(409, 'Soru havuzu yüklenemedi. Soruları yenileyip tekrar deneyin.');
+      }
+      const payload = prepareBookSave(view, questions, activeBook);
+      const result = await saveBookDraft(payload, activeBook?.id ?? null);
+      // The server response never includes the frozen snapshot: fetch it again
+      // and only then mark the draft as saved in the UI.
+      const reopened = await loadBookDraft(result.id);
+      onOpen(reopened);
+      setNotice('Kitap taslağı kaydedildi. Güncel sürüm: ' + result.revision + '.');
+      await refreshRecords();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Kitap kaydedilemedi. Yeniden deneyin.');
+    } finally {
+      busyRef.current = false; setBusy(false);
+    }
+  }
+
+  function newDraft() {
+    if (busyRef.current) return;
+    if (view.selectedIds.length &&
+        !window.confirm('Kaydedilmemiş seçimler silinecek. Yeni kitap hazırlamak istiyor musunuz?')) return;
+    setError(''); setNotice('');
+    onNew();
+  }
+
+  return <section className="panel publishing-persistence" aria-label="Kalıcı kitap taslakları">
+    <div className="publishing-panel-heading">
+      <div><div className="eyebrow">V2 · YALNIZ İZOLE ÖNİZLEME</div><h2>Kayıtlı Kitaplarım</h2></div>
+      <button type="button" className="secondary-button" disabled={listing || busy}
+        onClick={() => void refreshRecords()}><RefreshCw size={15}/> Listeyi yenile</button>
+    </div>
+    <p className="publishing-panel-explanation">Bu alan yalnızca özel test önizlemesinde açılır. Kaydetme işlemleri sadece bu önizlemenin ayrı test veritabanında yapılabilir. Yayınlanmış kitaplar düzenlenemez.</p>
+    <div className="publishing-persistence-actions">
+      <button type="button" className="primary-button" disabled={busy || listing || loading || Boolean(sourceError)}
+        onClick={() => void save()}><Save size={16}/>{activeBook ? 'Değişiklikleri Kaydet' : 'Kitabı Kaydet'}</button>
+      <button type="button" className="secondary-button" disabled={busy} onClick={newDraft}>Yeni kitap taslağı</button>
+      {activeBook && <span className="publishing-revision">#{activeBook.id} · Revizyon {activeBook.revision} · {activeBook.status}</span>}
+    </div>
+    {listing && <p role="status">Kayıtlı kitaplar yükleniyor…</p>}
+    {error && <p role="alert" className="publishing-error">{error}</p>}
+    {notice && <p role="status" className="publishing-success">{notice}</p>}
+    {!listing && !error && records.length === 0 && <p className="publishing-empty">Henüz kayıtlı kitap taslağınız bulunmuyor.</p>}
+    <div className="publishing-saved-list">
+      {records.map(book => <div key={book.id} className="publishing-saved-book">
+        <div><strong>{book.title}</strong><small>#{book.id} · {book.status} · Sürüm {book.revision}</small></div>
+        <button type="button" className="secondary-button" disabled={busy}
+          onClick={() => void open(book.id)}><BookOpen size={14}/> Taslağı Düzenle</button>
+      </div>)}
+    </div>
+  </section>;
+}
