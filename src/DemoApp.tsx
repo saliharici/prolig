@@ -1832,7 +1832,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     ['overview', 'projects', 'tasks', 'messages', 'announcements', 'authors'].includes(item.id) && allowed.includes(item.id)
   );
 
-  return <div className="demo-shell corporate-workspace-v3">
+  return <div className="demo-shell corporate-workspace-v3 publisher-theme">
     <a className="workspace-skip-link" href="#workspace-content">İçeriğe geç</a>
     <aside
       id="workspace-navigation"
