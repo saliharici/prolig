@@ -152,7 +152,7 @@ describe('Books V2 preview gate, no external DB', () => {
     }));
     expect(prisma.bookQuestion.deleteMany).toHaveBeenCalledWith({ where: { chapterId: { in: [44] } } });
     expect(prisma.bookChapter.deleteMany).toHaveBeenCalledWith({ where: { bookId: 10 } });
-    expect(prisma.bookQuestion.deleteMany).toHaveBeenCalledBefore(prisma.bookChapter.deleteMany as any);
+    expect(vi.mocked(prisma.bookQuestion.deleteMany).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(prisma.bookChapter.deleteMany).mock.invocationCallOrder[0]);
   });
 
   it('returns 409 on revision mismatch and does not touch the existing chapters', async () => {
