@@ -1074,3 +1074,15 @@
     --prolig-public-header-height: 70px;
   }
 }
+
+/* Editor decisions are single-flight operations; keep progress and error
+   messages legible without changing the workflow API or payment rules. */
+.publisher-theme.corporate-workspace-v3 .editor-review-modal .editor-review-saving {
+  color: var(--pub-burgundy);
+  background: var(--pub-rose);
+  border-left: 3px solid var(--pub-gold);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
