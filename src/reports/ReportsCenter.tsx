@@ -267,6 +267,10 @@ export function ReportsCenter({
         <span className="heading-chip"><BarChart3 size={16}/> {roleLabels[role]} kapsamı</span>
       </div>
 
+      <p className="reports-print-scope">
+        Rapor kapsamı: {roleLabels[role]} · Proje: {projectFilter === 'all' ? 'Tüm projeler' : projects.find(project => String(project.id) === projectFilter)?.title ?? 'Seçili proje'} · Branş: {branchFilter === 'all' ? 'Tüm branşlar' : branchFilter} · Sınıf: {gradeFilter === 'all' ? 'Tüm kademeler' : gradeFilter}
+      </p>
+
       <section className="panel reports-filter-panel">
         <div className="reports-filter-grid">
           <label>Proje
