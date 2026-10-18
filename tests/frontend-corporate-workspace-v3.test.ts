@@ -6,7 +6,7 @@ const styles = readFileSync(new URL('../src/workspace/corporate-workspace-v3.css
 
 describe('Corporate workspace Phase 3A', () => {
   it('scopes corporate styling to authenticated workspace only', () => {
-    expect(app).toContain('className="demo-shell corporate-workspace-v3"');
+    expect(app).toContain('className="demo-shell corporate-workspace-v3 publisher-theme"');
     expect(app).toContain("import './workspace/corporate-workspace-v3.css'");
     expect(styles).toContain('.corporate-workspace-v3 .topbar');
     expect(styles).not.toMatch(/(^|\n)\s*body\s*\{/);
