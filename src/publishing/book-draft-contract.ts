@@ -29,6 +29,7 @@ export interface FrozenBookQuestionV1 {
   sourceQuestionId: number;
   sourceQuestionUpdatedAt: string;
   content: string;
+  imageUrl: string | null;
   grade: string | null;
   objectiveCode: string | null;
   difficulty: string | null;
@@ -104,6 +105,9 @@ export function freezeApprovedQuestion(question: ApiQuestion, bookProjectId: num
   if (!question.content.trim()) {
     throw new BookDraftValidationError('Boş soru içeriği kitaba alınamaz.');
   }
+  if ((question.assets?.length ?? 0) > 40) {
+    throw new BookDraftValidationError('Tek soruda en fazla 40 medya ilişkisi desteklenir.');
+  }
   const options = [...(question.options ?? [])];
   if (type === 'MULTIPLE_CHOICE' && (options.length < 4 || options.length > 5 ||
       !options.every(text => text.trim()) ||
@@ -122,6 +126,7 @@ export function freezeApprovedQuestion(question: ApiQuestion, bookProjectId: num
     sourceQuestionId: question.id,
     sourceQuestionUpdatedAt: updated.toISOString(),
     content: question.content,
+    imageUrl: question.imageUrl,
     grade: question.grade,
     objectiveCode: question.objectiveCode,
     difficulty: question.difficulty,
@@ -134,7 +139,7 @@ export function freezeApprovedQuestion(question: ApiQuestion, bookProjectId: num
     scoringRubric: type === 'OPEN_ENDED' ? question.scoringRubric ?? null : null,
     evaluationCriteria: type === 'OPEN_ENDED' ? question.evaluationCriteria ?? null : null,
     authorName: question.author?.fullName ?? null,
-    assets: (question.assets ?? []).slice(0, 40).map(asset => ({
+    assets: (question.assets ?? []).map(asset => ({
       placement: asset.placement,
       assetType: asset.assetType,
       url: asset.url,
