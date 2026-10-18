@@ -50,6 +50,7 @@ import { PaymentPeriodsPanel } from './compensation/PaymentPeriodsPanel';
 import { CompensationRulesPanel } from './compensation/CompensationRulesPanel';
 import { CompensationEntriesPanel } from './compensation/CompensationEntriesPanel';
 import { ReportsCenter } from './reports/ReportsCenter';
+import { PublishingWorkbench } from './publishing/PublishingWorkbench';
 import { GeneralCoordinatorDashboard } from './overview/GeneralCoordinatorDashboard';
 import { latestAuthorizedAudit, latestScopedPayments, latestScopedQuestions } from './overview/live-activity';
 import { questionStudioReleaseFlags } from './questions/studio-runtime-flags';
@@ -70,6 +71,7 @@ const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', icon: LayoutDashboard },
   { id: 'grades', icon: GraduationCap },
   { id: 'questions', icon: FileQuestion },
+  { id: 'publishing', icon: BookOpen },
   { id: 'projects', icon: BookOpen },
   { id: 'tasks', icon: ClipboardList },
   { id: 'messages', icon: MessageSquareText },
@@ -83,7 +85,7 @@ const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
 ];
 const navigationGroups: { id: string; label: string; sections: Section[] }[] = [
   { id: 'overview', label: 'Genel Bakış', sections: ['overview', 'reports'] },
-  { id: 'production', label: 'Üretim', sections: ['projects', 'tasks', 'grades', 'questions', 'authors'] },
+  { id: 'production', label: 'Üretim', sections: ['projects', 'tasks', 'grades', 'questions', 'publishing', 'authors'] },
   { id: 'communication', label: 'İletişim', sections: ['messages', 'announcements'] },
   { id: 'management', label: 'Hesap ve Yönetim', sections: ['payments', 'members', 'roles', 'audit'] },
 ];
@@ -2191,6 +2193,12 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             </section>
           </>}
         </>}
+        {section === 'publishing' && currentUser.role === 'GENEL_KOORDINATOR' && <PublishingWorkbench
+          questions={apiQuestions}
+          loading={apiLoading}
+          error={apiError}
+          onRefresh={loadApiQuestions}
+        />}
         {section === 'reports' && <ReportsCenter
           projects={apiProjects}
           questions={apiQuestions}
