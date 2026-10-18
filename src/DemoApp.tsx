@@ -832,7 +832,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [announcementUnreadCount, setAnnouncementUnreadCount] = useState(0);
   const [topbarSearch, setTopbarSearch] = useState('');
     const [questionOptions, setQuestionOptions] = useState(['', '', '', '']);
-  const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState('A');
+  // P2 requires an explicit answer-key choice for a new question; the legacy editor keeps A as its default.
+  const [questionCorrectAnswer, setQuestionCorrectAnswer] = useState(questionStudioReleaseFlags.guidedP2 ? '' : 'A');
   const [questionExplanation, setQuestionExplanation] = useState('');
   const [questionTypeExtras, setQuestionTypeExtras] = useState(questionTypeDraft());
   const [questionStep, setQuestionStep] = useState(1);
@@ -1280,6 +1281,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       setQuestionBaseline('');
       setQuestionTitle('');
       setQuestionOptions(['', '', '', '']);
+      setQuestionCorrectAnswer(guidedStudioOn ? '' : 'A');
       setQuestionTypeExtras(questionTypeDraft());
       setQuestionStep(1);
       setQuestionExplanation('');
@@ -1329,7 +1331,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionBaseline(questionStudioFingerprint({
       ...(guidedStudioOn ? questionTypeDraft() : {}),
       content: '', level: 'Ortaokul', grade: '8. Sınıf', projectId: null,
-      options: ['', '', '', ''], correctAnswer: 'A', explanation: '', assets: [],
+      options: ['', '', '', ''], correctAnswer: guidedStudioOn ? '' : 'A', explanation: '', assets: [],
       assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
     }));
     setQuestionLevel('Ortaokul');
@@ -1337,7 +1339,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionProjectId(null);
     setOriginalQuestionProjectId(null);
     setQuestionOptions(['', '', '', '']);
-    setQuestionCorrectAnswer('A');
+    setQuestionCorrectAnswer(guidedStudioOn ? '' : 'A');
     setQuestionTypeExtras(questionTypeDraft());
     setQuestionStep(1);
     setQuestionExplanation('');
