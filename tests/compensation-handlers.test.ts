@@ -131,6 +131,29 @@ describe('Compensation tariff handlers', () => {
     expect(res.status).toHaveBeenCalledWith(201);
   });
 
+  it('uses Serializable isolation for rate creation and version replacement', async () => {
+    vi.mocked(prisma.compensationRule.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.compensationRule.create).mockResolvedValue(mockRule() as any);
+    const { req, res } = reqRes('POST', {}, { roleCode: 'YAZAR', unitPrice: '100.00', projectId: null });
+    await handleCompensationAction(req, res, general, 'compensationRules');
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: 'Serializable', timeout: 30000
+    });
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it.each(['P2034', 'P2002', 'P2025'])('returns a retryable 409 on a concurrent tariff conflict (%s)', async code => {
+    vi.mocked(prisma.$transaction).mockRejectedValueOnce(Object.assign(new Error('tariff conflict'), { code }));
+    const { req, res } = reqRes('POST', {}, { roleCode: 'YAZAR', unitPrice: '100.00', projectId: null });
+    await handleCompensationAction(req, res, general, 'compensationRules');
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: expect.stringContaining('Tarifeleri yenileyip tekrar deneyin.')
+    }));
+    expect(prisma.compensationRule.create).not.toHaveBeenCalled();
+    expect(prisma.activityLog.create).not.toHaveBeenCalled();
+  });
+
   it('supports project-specific overrides only for real non-archived projects', async () => {
     vi.mocked(prisma.project.findUnique).mockResolvedValue({
       id: 7,
