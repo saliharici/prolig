@@ -1,0 +1,1031 @@
+
+/**
+ * PRO-LİG / Publisher Edition — real application visual system, Phase 1.
+ *
+ * Preview-only Vite opt-in: VITE_PUBLISHER_PRESENTATION_THEME=true.
+ * Preserves the entire AuthGate, API, role checks, P2 contracts, routing and event handlers.
+ * The brand is PRO-LİG. This is an independent concept, not an İşler property.
+ */
+.publisher-theme {
+  --pub-ink: #33282d;
+  --pub-burgundy: #76273e;
+  --pub-dark: #421b2d;
+  --pub-darkest: #311524;
+  --pub-rose: #f5ebee;
+  --pub-rose-border: #e8d4da;
+  --pub-paper: #faf8f5;
+  --pub-stone: #f4efea;
+  --pub-line: #e5dcd8;
+  --pub-muted: #756b70;
+  --pub-gold: #bd9566;
+  color: var(--pub-ink);
+  background: var(--pub-paper);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+}
+.publisher-theme *, .publisher-theme *::before, .publisher-theme *::after { box-sizing: border-box; }
+.publisher-theme button:focus-visible,
+.publisher-theme input:focus-visible,
+.publisher-theme select:focus-visible,
+.publisher-theme textarea:focus-visible,
+.publisher-theme a:focus-visible {
+  outline: 3px solid #bf9b72;
+  outline-offset: 3px;
+}
+.publisher-theme button { transition: background-color .18s ease,border-color .18s ease,color .18s ease; }
+
+/* ---------------- PUBLIC LANDING / ACTUAL NAV & LOGIN FLOW ---------------- */
+.publisher-theme.public-editorial-v2 {
+  --ed-green: var(--pub-burgundy);
+  --ed-dark: var(--pub-dark);
+  --ed-paper: var(--pub-paper);
+  --ed-ink: var(--pub-ink);
+  --ed-cream: #f5ebee;
+  --ed-line: var(--pub-line);
+  --ed-muted: var(--pub-muted);
+  --ed-accent: #995267;
+  --ed-mint: #f5ebee;
+  --ed-mint-edge: #ead5dc;
+  --ed-sand: var(--pub-stone);
+  --ed-gold: var(--pub-gold);
+  --ed-warm-stone: #f3ede8;
+  background: var(--pub-paper);
+}
+.publisher-theme.public-editorial-v2 .public-header {
+  background: rgba(255,253,250,.97);
+  border-top: 4px solid var(--pub-dark);
+  border-bottom-color: var(--pub-line);
+}
+.publisher-theme.public-editorial-v2 .public-nav a { color: #60545a; }
+.publisher-theme.public-editorial-v2 .public-nav a:hover,
+.publisher-theme.public-editorial-v2 .public-mobile-nav a { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .public-nav a::after { background: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .public-primary-button {
+  background: var(--pub-burgundy);
+  border-color: var(--pub-burgundy);
+  color: #fff;
+}
+.publisher-theme.public-editorial-v2 .public-primary-button:hover:not(:disabled) {
+  background: #571c30; border-color: #571c30;
+}
+.publisher-theme.public-editorial-v2 .public-secondary-button {
+  color: var(--pub-burgundy);
+  background: #fffefa;
+  border-color: #d7c2c5;
+}
+.publisher-theme.public-editorial-v2 .public-secondary-button:hover { background: var(--pub-rose); }
+.publisher-theme.public-editorial-v2 .public-hero {
+  background: var(--pub-paper);
+  gap: clamp(38px, 5vw, 90px);
+}
+.publisher-theme.public-editorial-v2 .public-hero .editorial-label { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .public-hero h1 {
+  color: var(--pub-dark);
+  font-weight: 700;
+  font-size: clamp(44px, 4.7vw, 72px);
+  letter-spacing: -.052em;
+}
+.publisher-theme.public-editorial-v2 h1 span,
+.publisher-theme.public-editorial-v2 h2 em { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .public-hero-copy .editorial-lead { color: #74686c; }
+.publisher-theme.public-editorial-v2 .editorial-inline-link,
+.publisher-theme.public-editorial-v2 .editorial-inline-button { color: var(--pub-burgundy); border-color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-proof {
+  background: transparent;
+}
+.publisher-theme.public-editorial-v2 .editorial-proof-top {
+  color: var(--pub-burgundy);
+}
+.publisher-theme.public-editorial-v2 .editorial-proof-page {
+  border-color: var(--pub-rose-border);
+  box-shadow: 10px 12px 0 #ebdedc;
+  background: #fffefa;
+}
+.publisher-theme.public-editorial-v2 .editorial-proof-rule { background: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-proof-kicker { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-proof-answer {
+  border-color: #bd8a9c;
+  background: var(--pub-rose);
+  color: var(--pub-burgundy);
+}
+.publisher-theme.public-editorial-v2 .editorial-proof-note {
+  border-left-color: var(--pub-burgundy);
+  background: #f8eff0;
+}
+.publisher-theme.public-editorial-v2 .editorial-case {
+  background: #f6e9ec;
+  border-top-color: var(--pub-rose-border);
+}
+.publisher-theme.public-editorial-v2 .editorial-case-record {
+  border-color: var(--pub-rose-border);
+  border-top-color: var(--pub-gold);
+  background: #fffefa;
+  box-shadow: 10px 12px 0 #ead4d9;
+}
+.publisher-theme.public-editorial-v2 .editorial-case-quote { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-capability-list,
+.publisher-theme.public-editorial-v2 .editorial-capability { border-color: var(--pub-line); }
+.publisher-theme.public-editorial-v2 .editorial-capability-number {
+  border-left-color: var(--pub-burgundy);
+  color: var(--pub-burgundy);
+}
+.publisher-theme.public-editorial-v2 .editorial-capability-tags span::before { color: var(--pub-burgundy); }
+.publisher-theme.public-editorial-v2 .editorial-process {
+  background: var(--pub-dark);
+  border-top-color: var(--pub-gold);
+}
+.publisher-theme.public-editorial-v2 .editorial-process-heading h2 em { color: #ecc4ce; }
+.publisher-theme.public-editorial-v2 .editorial-process-steps { border-color: #765264; }
+.publisher-theme.public-editorial-v2 .editorial-process-steps li + li { border-color: #765264; }
+.publisher-theme.public-editorial-v2 .editorial-outro { background: #f3ece8; }
+
+/* ---------------- AUTH / REAL LOGIN & MEMBERSHIP ---------------- */
+.publisher-theme.prolig-access-v1 {
+  --acc-ink: var(--pub-ink);
+  --acc-green: var(--pub-burgundy);
+  --acc-line: var(--pub-line);
+  --acc-paper: var(--pub-paper);
+  --acc-mint: var(--pub-rose);
+  --acc-gold: var(--pub-gold);
+  --acc-muted: var(--pub-muted);
+  background: var(--pub-paper);
+}
+.publisher-theme.prolig-access-v1.soft-login-shell {
+  background: linear-gradient(90deg,#f5edeb 0 49.7%,#fffdfa 49.7% 100%);
+}
+.publisher-theme.prolig-access-v1 .access-eyebrow { color: var(--pub-burgundy); }
+.publisher-theme.prolig-access-v1 .soft-login-copy h1 { color: var(--pub-dark); }
+.publisher-theme.prolig-access-v1 .soft-login-copy h1 em { color: var(--pub-burgundy); }
+.publisher-theme.prolig-access-v1 .access-dossier {
+  border-color: #e6d4d9;
+  background: #fffaf7;
+  box-shadow: 10px 12px 0 #e9dade;
+}
+.publisher-theme.prolig-access-v1 .access-dossier-seal,
+.publisher-theme.prolig-access-v1 .access-dossier-row > span { color: var(--pub-burgundy); }
+.publisher-theme.prolig-access-v1 .soft-login-card {
+  border-color: var(--pub-line);
+  background: #fffefa;
+}
+.publisher-theme.prolig-access-v1 .soft-input-wrap { border-color: #ddcecd; background: #fffefa; }
+.publisher-theme.prolig-access-v1 .soft-input-wrap:focus-within { border-color: var(--pub-burgundy); box-shadow: 0 0 0 3px #76273e1c; }
+.publisher-theme.prolig-access-v1 .access-form-symbol,
+.publisher-theme.prolig-access-v1 .membership-process-icon { color: var(--pub-burgundy); background: var(--pub-rose); }
+.publisher-theme.prolig-access-v1 .public-primary-button { background: var(--pub-burgundy); border-color: var(--pub-burgundy); color: white; }
+.publisher-theme.prolig-access-v1 .public-primary-button:hover:not(:disabled) { background: #571c30; border-color: #571c30; }
+.publisher-theme.prolig-access-v1 .membership-submit { background: var(--pub-rose); }
+.publisher-theme.prolig-access-v1 .membership-label em { color: var(--pub-burgundy); }
+
+/* ---------------- AUTHENTICATED PRO-LIG WORKSPACE ---------------- */
+.publisher-theme.corporate-workspace-v3 {
+  --workspace-ink: var(--pub-ink);
+  --workspace-teal: var(--pub-burgundy);
+  --workspace-mint: var(--pub-rose);
+  --workspace-warm: #f7f1ec;
+  --workspace-outline: var(--pub-line);
+  --workspace-muted: var(--pub-muted);
+  background: var(--pub-paper);
+}
+.publisher-theme.corporate-workspace-v3 .demo-main { background: var(--pub-paper); }
+.publisher-theme.corporate-workspace-v3 .demo-sidebar.workspace-navigation {
+  background: var(--pub-dark);
+  border-right: 1px solid #663748;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-navigation .brand.app-brand {
+  border-bottom: 1px solid #ffffff25;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-navigation-scroll {
+  scrollbar-color: #8c6270 transparent;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-navigation-group > h2 {
+  color: #d4b1bf;
+  letter-spacing: .14em;
+}
+.publisher-theme.corporate-workspace-v3.demo-shell .demo-sidebar .nav-link {
+  color: #f1e5e9;
+  border-radius: 4px;
+  font-weight: 600;
+  min-height: 44px;
+}
+.publisher-theme.corporate-workspace-v3.demo-shell .demo-sidebar .nav-link:hover {
+  color: #fff;
+  background: #ffffff1a;
+}
+.publisher-theme.corporate-workspace-v3.demo-shell .demo-sidebar .nav-link.active {
+  color: white!important;
+  background: #743449!important;
+  border-left: none!important;
+  border-radius: 4px!important;
+  box-shadow: inset 3px 0 0 var(--pub-gold)!important;
+}
+.publisher-theme.corporate-workspace-v3 .sidebar-active-indicator { color: #f3d5bd; }
+.publisher-theme.corporate-workspace-v3 .workspace-navigation-footer {
+  background: var(--pub-darkest);
+  border-top: 1px solid #ffffff16;
+}
+.publisher-theme.corporate-workspace-v3 .sidebar-account-avatar,
+.publisher-theme.corporate-workspace-v3 .profile-badge { background: #98506b; color: #fff; }
+.publisher-theme.corporate-workspace-v3 .topbar.topbar-command {
+  background: #fffdfa!important;
+  border-bottom-color: var(--pub-line);
+  box-shadow: none;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-context > span { color: #8b7880; }
+.publisher-theme.corporate-workspace-v3 .workspace-context > strong { color: var(--pub-dark); }
+.publisher-theme.corporate-workspace-v3 .topbar-global-search {
+  background: #faf7f4;
+  border: 1px solid #e3d8d6;
+  border-radius: 5px;
+  color: #6b5360;
+}
+.publisher-theme.corporate-workspace-v3 .topbar-global-search:focus-within {
+  border-color: var(--pub-burgundy);
+  box-shadow: 0 0 0 3px #76273e1c;
+}
+.publisher-theme.corporate-workspace-v3 .topbar-quick-nav { border-left-color: var(--pub-line); }
+.publisher-theme.corporate-workspace-v3 .topbar-quick-nav > button { border-radius: 5px; }
+.publisher-theme.corporate-workspace-v3 .topbar-quick-nav > button.active {
+  background: var(--pub-rose);
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .topbar-profile { border-color: var(--pub-line); }
+.publisher-theme.corporate-workspace-v3 .content { max-width: 1510px; }
+.publisher-theme.corporate-workspace-v3 .page-heading { margin-top: 20px; margin-bottom: 27px; }
+.publisher-theme.corporate-workspace-v3 .page-heading h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  font-size: clamp(32px, 3.1vw, 42px);
+  line-height: 1.13;
+  letter-spacing: -.045em;
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .page-heading .wave { color: var(--pub-gold); }
+.publisher-theme.corporate-workspace-v3 .page-heading p { font-size: 13px; line-height: 1.65; color: var(--pub-muted); }
+.publisher-theme.corporate-workspace-v3 .eyebrow,
+.publisher-theme.corporate-workspace-v3 .panel-kicker {
+  color: var(--pub-burgundy);
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-main-action,
+.publisher-theme.corporate-workspace-v3 .primary-button {
+  background: var(--pub-burgundy);
+  border-color: var(--pub-burgundy);
+  color: white;
+  border-radius: 4px;
+  box-shadow: none;
+}
+.publisher-theme.corporate-workspace-v3 .workspace-main-action:hover:not(:disabled),
+.publisher-theme.corporate-workspace-v3 .primary-button:hover:not(:disabled) {
+  background: #5b1b31;
+  border-color: #5b1b31;
+  box-shadow: none;
+}
+.publisher-theme.corporate-workspace-v3 .heading-chip {
+  color: #783850;
+  background: #fffafa;
+  border-color: var(--pub-rose-border);
+  border-radius: 4px;
+}
+.publisher-theme.corporate-workspace-v3 .stat-card {
+  background: #fffefa;
+  border: 1px solid var(--pub-line)!important;
+  border-radius: 5px;
+  box-shadow: none!important;
+  transition: border-color .18s;
+}
+.publisher-theme.corporate-workspace-v3 .stat-card:first-child {
+  background: #f6e9ed;
+  border-color: #e7cdd5!important;
+}
+.publisher-theme.corporate-workspace-v3 .stat-card:hover { transform: none!important; border-color: #c596a5!important; }
+.publisher-theme.corporate-workspace-v3 .stat-card > strong { color: var(--pub-dark); font-family: Manrope, system-ui, sans-serif; }
+.publisher-theme.corporate-workspace-v3 .stat-card .stat-top { color: #775d66; }
+.publisher-theme.corporate-workspace-v3 .stat-card .stat-icon { border-radius: 4px; }
+.publisher-theme.corporate-workspace-v3 .stat-card .stat-icon.blue,
+.publisher-theme.corporate-workspace-v3 .stat-card .stat-icon.purple {
+  background: #efdee5; color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .overview-grid > .panel,
+.publisher-theme.corporate-workspace-v3 .projects-preview,
+.publisher-theme.corporate-workspace-v3 .panel {
+  background: #fffefa;
+  border-color: var(--pub-line);
+  border-radius: 5px;
+  box-shadow: none;
+}
+.publisher-theme.corporate-workspace-v3 .overview-grid > .panel:first-child { background: #fffefa; }
+.publisher-theme.corporate-workspace-v3 .panel h2 {
+  font-family: Georgia,'Times New Roman',serif;
+  font-size: 22px;
+  color: var(--pub-dark);
+  letter-spacing: -.03em;
+}
+.publisher-theme.corporate-workspace-v3 .panel-sub { color: var(--pub-muted); }
+.publisher-theme.corporate-workspace-v3 .pipeline-dot {
+  border-color: #e6c9d2;
+  background: #f8edf1;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .pipeline-step strong { color: var(--pub-dark); }
+.publisher-theme.corporate-workspace-v3 .pipeline-arrow { color: #b9979f; }
+.publisher-theme.corporate-workspace-v3 .panel-action {
+  background: #f8f1ef;
+  border-color: #eddbdb;
+  border-radius: 4px;
+}
+.publisher-theme.corporate-workspace-v3 .panel-action .action-icon {
+  background: #f1e1e6;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .activity-item { border-color: #efe5e3; }
+.publisher-theme.corporate-workspace-v3 .activity-glyph { background: #f4e8eb; color: var(--pub-burgundy); }
+.publisher-theme.corporate-workspace-v3 .projects-preview .project-mini,
+.publisher-theme.corporate-workspace-v3 .corporate-project-grid .project-card-button {
+  border-color: var(--pub-line);
+  background: #fffefa;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-summary h2,
+.publisher-theme.corporate-workspace-v3 .project-mini > strong { color: var(--pub-dark); }
+.publisher-theme.corporate-workspace-v3 .corporate-project-production {
+  background: #f9f3f2;
+  border-color: var(--pub-line);
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .progress-line span,
+.publisher-theme.corporate-workspace-v3 .progress-line span { background: #9a5066; }
+.publisher-theme.corporate-workspace-v3 .table-panel,
+.publisher-theme.corporate-workspace-v3 .table-wrap { border-color: var(--pub-line); }
+.publisher-theme.corporate-workspace-v3 .table-heading { color: #695b62; }
+.publisher-theme.corporate-workspace-v3 .table-wrap table th {
+  background: #f7efef;
+  color: #6f4d5c;
+  border-color: var(--pub-line);
+}
+.publisher-theme.corporate-workspace-v3 .table-wrap table td { border-color: #eee5e2; }
+.publisher-theme.corporate-workspace-v3 .toolbar .search-box,
+.publisher-theme.corporate-workspace-v3 .toolbar .filter-box {
+  background: #fffefa;
+  border-color: var(--pub-line);
+  border-radius: 4px;
+}
+.publisher-theme.corporate-workspace-v3 .toolbar .search-box:focus-within,
+.publisher-theme.corporate-workspace-v3 .toolbar .filter-box:focus-within {
+  border-color: #b47e90;
+}
+.publisher-theme.corporate-workspace-v3 .text-button,
+.publisher-theme.corporate-workspace-v3 .panel-action button { color: var(--pub-burgundy); }
+.publisher-theme.corporate-workspace-v3 .secondary-button { border-color: #dccacc; background: #fffcfa; color: var(--pub-dark); }
+
+/* Question Studio, workflows and editor actions KEEP their behavior and valid state signals. */
+.publisher-theme.corporate-workspace-v3 .question-modal {
+  background: #fffefa;
+  border-color: var(--pub-line);
+}
+.publisher-theme.corporate-workspace-v3 .question-modal .modal-header,
+.publisher-theme.corporate-workspace-v3 .question-modal .modal-actions { border-color: var(--pub-line); }
+.publisher-theme.corporate-workspace-v3 .question-modal .primary-button { background: var(--pub-burgundy); border-color: var(--pub-burgundy); }
+.publisher-theme.corporate-workspace-v3 .question-modal input:focus,
+.publisher-theme.corporate-workspace-v3 .question-modal select:focus,
+.publisher-theme.corporate-workspace-v3 .question-modal textarea:focus {
+  border-color: var(--pub-burgundy);
+  box-shadow: 0 0 0 3px #76273e18;
+}
+
+/* The compact mobile navigation, role-based visibility and modal traps remain untouched. */
+@media (max-width: 1050px) {
+  .publisher-theme.corporate-workspace-v3 .topbar.topbar-command { border-color: var(--pub-line); }
+}
+@media (max-width: 600px) {
+  .publisher-theme.corporate-workspace-v3 .content { padding-left: 16px; padding-right: 16px; }
+  .publisher-theme.corporate-workspace-v3 .page-heading h1 { font-size: 31px; }
+  .publisher-theme.public-editorial-v2 .public-hero h1 { font-size: clamp(38px,10.5vw,56px); }
+  .publisher-theme.public-editorial-v2 .editorial-proof-page { box-shadow: 6px 7px 0 #ead8dd; }
+  .publisher-theme.prolig-access-v1.soft-login-shell { background: var(--pub-paper); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .publisher-theme button { transition: none; }
+}
+
+/* Preview-only connection notice: never displayed on the real Production application. */
+.publisher-preview-connection-notice {
+  position: fixed; z-index: 150; bottom: 20px; right: 20px;
+  width: min(360px, calc(100vw - 32px));
+  display: grid; gap: 5px; padding: 15px 18px;
+  background: #fffcf9; color: #49313a; border: 1px solid #dec6cb;
+  border-left: 4px solid #76273e;
+  box-shadow: 0 12px 32px rgba(62, 25, 44, .12);
+  border-radius: 5px; font: 500 12px/1.55 'DM Sans', system-ui, sans-serif;
+}
+.publisher-preview-connection-notice strong { color: #76273e; font-weight: 800; font-size: 13px; }
+.publisher-preview-connection-notice span { color: #67555e; }
+@media (max-width: 600px) {
+  .publisher-preview-connection-notice { bottom: 12px; right: 12px; left: 12px; width: auto; }
+}
+
+
+/* ---------- P2 / REAL FIVE-STEP QUESTION STUDIO ---------- */
+/* Scoped to the selected Preview theme. P2 stage transitions, data and validation
+   remain owned by GuidedQuestionStudio, not by this decorative layer. */
+.publisher-theme.corporate-workspace-v3 .question-studio-modal {
+  --p2-publisher-paper: #fffdfa;
+  --p2-publisher-tint: #f8f0f1;
+  --p2-publisher-border: #e7d9d8;
+  color: var(--pub-ink);
+  background: var(--p2-publisher-paper);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal > .modal-head,
+.publisher-theme.corporate-workspace-v3 .question-studio-workspace > .modal-head {
+  background: var(--p2-publisher-paper);
+  border-bottom-color: var(--p2-publisher-border);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal > .modal-head h2 {
+  color: var(--pub-dark);
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: -.035em;
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal > p {
+  color: #796c70;
+}
+.publisher-theme.corporate-workspace-v3 .p2-guided {
+  color: var(--pub-ink);
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button {
+  background: #fcf8f6;
+  color: #745c65;
+  border: 1px solid #e7d8d9;
+  border-radius: 5px;
+  min-height: 81px;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button:hover {
+  background: #f7ecee;
+  border-color: #b88998;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button > span {
+  border-color: #c7aab3;
+  color: var(--pub-burgundy);
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button > strong {
+  font-weight: 750;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button > small {
+  color: #826e77;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button[aria-current="step"] {
+  background: var(--pub-burgundy);
+  border-color: var(--pub-burgundy);
+  color: #fff;
+  box-shadow: inset 0 -3px 0 #c49a70;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button[aria-current="step"] > span {
+  background: transparent;
+  border-color: #eacbd4;
+  color: white;
+}
+.publisher-theme.corporate-workspace-v3 .p2-steps button[aria-current="step"] > small {
+  color: #f7e6ed;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage {
+  border: 1px solid #e6dad6;
+  background: #fffefa;
+  border-radius: 9px;
+  box-shadow: 0 7px 32px #4522300a;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage-heading h3 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(23px, 2.3vw, 31px);
+  letter-spacing: -.035em;
+  line-height: 1.2;
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage-heading small {
+  color: var(--pub-burgundy);
+  font-weight: 800;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage label,
+.publisher-theme.corporate-workspace-v3 .p2-boolean legend {
+  color: #53444a;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage input:not([type="radio"]),
+.publisher-theme.corporate-workspace-v3 .p2-stage select {
+  border-color: #e3d6d4;
+  border-radius: 5px;
+  background-color: #fffefa;
+  color: #392c32;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage input[readonly] {
+  background: #f7f1ef;
+  color: #65545d;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage input:focus-visible,
+.publisher-theme.corporate-workspace-v3 .p2-stage select:focus-visible {
+  outline: 3px solid #caa473;
+  outline-offset: 2px;
+  border-color: #a05e76;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage .secondary-button {
+  border-color: #e0cbd0;
+  background: #fff9f8;
+  color: var(--pub-burgundy);
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .p2-stage .secondary-button:hover:not(:disabled) {
+  background: #f4e7eb;
+}
+.publisher-theme.corporate-workspace-v3 .p2-option-tabs button {
+  border-color: #e0cdd3;
+  background: #faf6f5;
+  color: #654a57;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .p2-option-tabs button[aria-selected="true"] {
+  background: var(--pub-burgundy);
+  color: white;
+  border-color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .p2-boolean {
+  background: #fffdfa;
+  border-color: #e4d5d9;
+  border-radius: 6px;
+}
+.publisher-theme.corporate-workspace-v3 .p2-boolean input[type="radio"] {
+  accent-color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .p2-media,
+.publisher-theme.corporate-workspace-v3 .p2-step-actions,
+.publisher-theme.corporate-workspace-v3 .p2-completion {
+  border-color: #e8ddda;
+}
+.publisher-theme.corporate-workspace-v3 .p2-media summary {
+  color: var(--pub-burgundy);
+  font-weight: 700;
+}
+.publisher-theme.corporate-workspace-v3 .p2-notice {
+  background: #f9f0ed;
+  border-left-color: var(--pub-gold);
+  color: #674d51;
+}
+.publisher-theme.corporate-workspace-v3 .p2-completion button {
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .p2-guided button:focus-visible {
+  outline-color: var(--pub-gold);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-workspace > .modal-actions {
+  background: var(--p2-publisher-paper);
+  border-color: var(--p2-publisher-border);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-workspace .studio-dirty-status {
+  border-color: #e7d2d7;
+  background: #f8f0f2;
+  color: #754456;
+}
+@media (max-width: 800px) {
+  .publisher-theme.corporate-workspace-v3 .p2-steps button { min-height: 77px; }
+  .publisher-theme.corporate-workspace-v3 .p2-stage { border-radius: 6px; }
+}
+
+
+/* ---------- PUBLISHER EDITION PHASE 2 / REAL CONTENT & REVIEW ---------- */
+/* Layout polish only: controls retain the existing hooks, permissions and semantics.
+   Deliberately preserve semantic state colors (success, warnings, danger). */
+.publisher-theme.corporate-workspace-v3 .topbar-global-search button,
+.publisher-theme.corporate-workspace-v3 .topbar-global-search button[type="submit"] {
+  background: var(--pub-burgundy);
+  border-color: var(--pub-burgundy);
+  color: white;
+}
+.publisher-theme.corporate-workspace-v3 .topbar-global-search button:hover {
+  background: #572136;
+}
+.publisher-theme.corporate-workspace-v3 .question-view-toggle,
+.publisher-theme.corporate-workspace-v3 .task-quick-filters,
+.publisher-theme.corporate-workspace-v3 .task-view-toggle,
+.publisher-theme.corporate-workspace-v3 .announcement-box-toggle {
+  background: #f8f2f1;
+  border-color: #e7d8da;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .question-view-toggle button.active,
+.publisher-theme.corporate-workspace-v3 .task-quick-filters button.active,
+.publisher-theme.corporate-workspace-v3 .task-view-toggle button.active,
+.publisher-theme.corporate-workspace-v3 .announcement-box-toggle button.active {
+  background: #fffdfa;
+  color: var(--pub-burgundy);
+  box-shadow: inset 0 -2px 0 var(--pub-gold);
+}
+.publisher-theme.corporate-workspace-v3 .context-filter-bar,
+.publisher-theme.corporate-workspace-v3 .context-filter-chip {
+  background: #f7edef;
+  color: var(--pub-burgundy);
+  border-color: #e9d5da;
+}
+.publisher-theme.corporate-workspace-v3 .row-actions button:not(.danger-action) {
+  background: #fff9f8;
+  color: var(--pub-burgundy);
+  border-color: #e6d4d9;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .row-actions button:not(.danger-action):hover {
+  background: #f2e6e9;
+  border-color: #c89eab;
+}
+.publisher-theme.corporate-workspace-v3 .table-wrap table tbody tr:hover {
+  background: #fffbfa;
+}
+.publisher-theme.corporate-workspace-v3 .table-wrap table td strong {
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .table-heading strong {
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .question-preview-panel,
+.publisher-theme.corporate-workspace-v3 .p2-live-preview {
+  background: #fcf8f5;
+  border-color: #eadeda;
+}
+.publisher-theme.corporate-workspace-v3 .question-preview-card,
+.publisher-theme.corporate-workspace-v3 .question-quality-panel,
+.publisher-theme.corporate-workspace-v3 .question-asset-preview {
+  background: #fffefa;
+  border-color: #e7d8d6;
+  color: #48373e;
+}
+.publisher-theme.corporate-workspace-v3 .question-preview-head span,
+.publisher-theme.corporate-workspace-v3 .question-preview-head strong {
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .question-preview-solution,
+.publisher-theme.corporate-workspace-v3 .p2-completion {
+  background: #fcf6f3;
+  border-color: #e7d7d6;
+  color: #56474a;
+}
+.publisher-theme.corporate-workspace-v3 .question-formula {
+  background: #f3e8eb;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .editor-change-badge {
+  background: #f7ecf0;
+  border-color: #e5ccd6;
+  color: #754052;
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal .question-editor-shell,
+.publisher-theme.corporate-workspace-v3 .question-studio-modal .question-editor-toolbar {
+  border-color: #e4d7d6;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal .question-editor-toolbar button:hover {
+  background: #f2e6ea;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .question-studio-modal .question-editor-toolbar button[aria-pressed="true"] {
+  background: #ede0e5;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .studio-revision-review {
+  background: #fffbf8;
+  border-color: #dcc6c7;
+}
+.publisher-theme.corporate-workspace-v3 .studio-revision-row.changed {
+  background: #fff3ed;
+}
+
+/* Editor acceptance/revision modal — readable on all question types. */
+.publisher-theme.corporate-workspace-v3 .editor-review-modal {
+  background: #fffdfa;
+  border: 1px solid #e7d8d6;
+  border-radius: 9px;
+}
+.publisher-theme.corporate-workspace-v3 .editor-review-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .project-detail-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .task-form-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .project-management-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .message-compose-modal .modal-head h2,
+.publisher-theme.corporate-workspace-v3 .announcement-form-modal .modal-head h2 {
+  color: var(--pub-dark);
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: -.03em;
+}
+.publisher-theme.corporate-workspace-v3 .editor-review-context span {
+  background: #f5e8ed;
+  color: #753b50;
+  border: 1px solid #ebd4db;
+}
+.publisher-theme.corporate-workspace-v3 .editor-review-modal .question-preview-card {
+  box-shadow: 0 3px 15px #45223008;
+}
+.publisher-theme.corporate-workspace-v3 .editor-review-modal .modal-actions,
+.publisher-theme.corporate-workspace-v3 .project-management-footer,
+.publisher-theme.corporate-workspace-v3 .profile-modal-footer {
+  background: #fffdfa;
+  border-color: #e8deda;
+}
+.publisher-theme.corporate-workspace-v3 .editor-note-box textarea {
+  background: #fffbf7;
+  border-color: #d9bdac;
+}
+.publisher-theme.corporate-workspace-v3 .modal-head > button,
+.publisher-theme.corporate-workspace-v3 .profile-modal-close {
+  background: #f5edef;
+  color: #6e4153;
+}
+.publisher-theme.corporate-workspace-v3 .modal-head > button:hover,
+.publisher-theme.corporate-workspace-v3 .profile-modal-close:hover {
+  background: #ecdae1;
+}
+
+/* Real publication projects and assignment workflows. */
+.publisher-theme.corporate-workspace-v3 .corporate-project-summary .project-code,
+.publisher-theme.corporate-workspace-v3 .corporate-project-caption,
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .project-open-hint {
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .project-card-counts span,
+.publisher-theme.corporate-workspace-v3 .project-detail-summary > div {
+  background: #fffdfa;
+  border-color: #e7dad6;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .project-card-counts strong,
+.publisher-theme.corporate-workspace-v3 .corporate-project-production .project-meta strong {
+  color: #493740;
+}
+.publisher-theme.corporate-workspace-v3 .corporate-project-grid .project-card-button:hover {
+  border-color: #b67b8f;
+  box-shadow: 0 10px 25px #43203110;
+}
+.publisher-theme.corporate-workspace-v3 .project-management-modal,
+.publisher-theme.corporate-workspace-v3 .project-detail-modal,
+.publisher-theme.corporate-workspace-v3 .task-form-modal,
+.publisher-theme.corporate-workspace-v3 .profile-modal,
+.publisher-theme.corporate-workspace-v3 .message-compose-modal,
+.publisher-theme.corporate-workspace-v3 .announcement-form-modal {
+  background: #fffdfa;
+  border: 1px solid #e6d8d5;
+  border-radius: 9px;
+}
+.publisher-theme.corporate-workspace-v3 .project-management-head,
+.publisher-theme.corporate-workspace-v3 .profile-modal-head {
+  border-color: #e9dcda;
+}
+.publisher-theme.corporate-workspace-v3 .project-management-fields input,
+.publisher-theme.corporate-workspace-v3 .project-management-fields select,
+.publisher-theme.corporate-workspace-v3 .task-form-grid input,
+.publisher-theme.corporate-workspace-v3 .task-form-grid select,
+.publisher-theme.corporate-workspace-v3 .task-form-grid textarea,
+.publisher-theme.corporate-workspace-v3 .profile-modal input,
+.publisher-theme.corporate-workspace-v3 .profile-biography {
+  border-color: #e2d5d5;
+  color: #3c3035;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .task-form-grid input:focus,
+.publisher-theme.corporate-workspace-v3 .task-form-grid select:focus,
+.publisher-theme.corporate-workspace-v3 .task-form-grid textarea:focus,
+.publisher-theme.corporate-workspace-v3 .profile-biography:focus {
+  border-color: #b98297;
+  box-shadow: 0 0 0 3px #76273e16;
+}
+.publisher-theme.corporate-workspace-v3 .profile-modal-avatar {
+  background: #f0dfe6;
+  color: #783750;
+}
+.publisher-theme.corporate-workspace-v3 .profile-locked-box {
+  background: #f9f2f0;
+  border-color: #e8dad8;
+}
+
+/* Task planning — preserve priority severity and overdue indicators. */
+.publisher-theme.corporate-workspace-v3 .task-summary-card:not(.overdue),
+.publisher-theme.corporate-workspace-v3 .announcement-summary-card:not(.urgent) {
+  border-color: var(--pub-line);
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .task-summary-card:not(.overdue) > span,
+.publisher-theme.corporate-workspace-v3 .announcement-summary-card:not(.urgent) > span {
+  background: #f5e9ed;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .task-kanban-column {
+  background: #f8f2f0;
+  border-color: #e9d8db;
+  border-radius: 7px;
+}
+.publisher-theme.corporate-workspace-v3 .task-kanban-column > header strong,
+.publisher-theme.corporate-workspace-v3 .task-kanban-column > header span {
+  color: #6a4053;
+}
+.publisher-theme.corporate-workspace-v3 .task-card {
+  border-color: #e7dadd;
+  border-radius: 6px;
+  background: #fffefa;
+  box-shadow: 0 4px 12px #38182407;
+}
+.publisher-theme.corporate-workspace-v3 .task-card:hover {
+  border-color: #c99faa;
+}
+.publisher-theme.corporate-workspace-v3 .task-card-actions button {
+  border-color: #e6d4d8;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .corporate-task-preview-note,
+.publisher-theme.corporate-workspace-v3 .corporate-task-empty {
+  background: #f9f2ee;
+  border-color: #e6d8d6;
+  color: #62535a;
+}
+.publisher-theme.corporate-workspace-v3 .corporate-task-preview-symbol {
+  background: #efdee4;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .corporate-task-preview-label,
+.publisher-theme.corporate-workspace-v3 .corporate-task-preview-note h2,
+.publisher-theme.corporate-workspace-v3 .corporate-task-empty h2 {
+  color: var(--pub-dark);
+}
+
+/* Messages & announcements retain unread and priority state distinctions. */
+.publisher-theme.corporate-workspace-v3 .message-center-shell .panel,
+.publisher-theme.corporate-workspace-v3 .announcement-layout .panel,
+.publisher-theme.corporate-workspace-v3 .announcement-card {
+  border-color: #e7dad9;
+  background-color: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .message-mailboxes > button:not(.message-compose-mobile) {
+  color: #745e69;
+}
+.publisher-theme.corporate-workspace-v3 .message-mailboxes > button:not(.message-compose-mobile).active {
+  background: #f5e9ec;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .message-row {
+  border-color: #eee3e2;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .message-row.selected,
+.publisher-theme.corporate-workspace-v3 .message-row:hover {
+  background: #f9eef1;
+}
+.publisher-theme.corporate-workspace-v3 .message-row.unread {
+  background: #fff6f3;
+}
+.publisher-theme.corporate-workspace-v3 .message-avatar,
+.publisher-theme.corporate-workspace-v3 .message-person-card .message-avatar {
+  background: #f2e1e7;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .message-detail-head,
+.publisher-theme.corporate-workspace-v3 .announcement-detail-head {
+  border-color: #ebdddb;
+}
+.publisher-theme.corporate-workspace-v3 .announcement-card.selected,
+.publisher-theme.corporate-workspace-v3 .announcement-card:hover {
+  border-color: #b98596;
+  box-shadow: 0 5px 17px #5325390c;
+}
+.publisher-theme.corporate-workspace-v3 .announcement-card.unread {
+  background: #fff7f4;
+}
+/* Do not repaint priority-card-acil or error panels. */
+
+/* Reporting: stable hierarchy, comparison bars remain distinguishable by row. */
+.publisher-theme.corporate-workspace-v3 .reports-filter-panel,
+.publisher-theme.corporate-workspace-v3 .reports-project-panel,
+.publisher-theme.corporate-workspace-v3 .reports-network-card,
+.publisher-theme.corporate-workspace-v3 .reports-finance-card,
+.publisher-theme.corporate-workspace-v3 .report-chart-card,
+.publisher-theme.corporate-workspace-v3 .report-kpi {
+  background: #fffefa;
+  border-color: #e7d8d6;
+  border-radius: 6px;
+}
+.publisher-theme.corporate-workspace-v3 .reports-filter-grid label,
+.publisher-theme.corporate-workspace-v3 .reports-filter-grid select {
+  color: #69515d;
+}
+.publisher-theme.corporate-workspace-v3 .reports-filter-grid select {
+  border-color: #e0cfce;
+  background: #fffefa;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .reports-filter-grid select:focus {
+  border-color: var(--pub-burgundy);
+  box-shadow: 0 0 0 3px #76273e1a;
+}
+.publisher-theme.corporate-workspace-v3 .report-kpi strong,
+.publisher-theme.corporate-workspace-v3 .reports-project-row strong {
+  color: var(--pub-dark);
+}
+.publisher-theme.corporate-workspace-v3 .report-kpi-icon.teal,
+.publisher-theme.corporate-workspace-v3 .report-kpi-icon.purple {
+  background: #f3e6eb;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .report-bar-row > i {
+  background: #f2e9e7;
+}
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+1)>i>b { background: #822c49; }
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+2)>i>b { background: #b6758e; }
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+3)>i>b { background: #bc9564; }
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+4)>i>b { background: #76617d; }
+.publisher-theme.corporate-workspace-v3 .report-bar-row:nth-child(5n+5)>i>b { background: #577d85; }
+.publisher-theme.corporate-workspace-v3 .report-project-code {
+  color: var(--pub-burgundy);
+}
+
+/* Publishing rights, pricing and payment dashboards. */
+.publisher-theme.corporate-workspace-v3 .payment-module-tabs,
+.publisher-theme.corporate-workspace-v3 .payment-filter-tabs {
+  background: #f7eeed;
+  border-color: #e5d5d7;
+  border-radius: 5px;
+}
+.publisher-theme.corporate-workspace-v3 .payment-module-tabs button:hover,
+.publisher-theme.corporate-workspace-v3 .payment-filter-tabs button:hover {
+  color: var(--pub-burgundy);
+  background: #f3e3e8;
+}
+.publisher-theme.corporate-workspace-v3 .payment-module-tabs button.active,
+.publisher-theme.corporate-workspace-v3 .payment-filter-tabs button.active {
+  background: #fffefa;
+  color: var(--pub-burgundy);
+  box-shadow: inset 0 -2px 0 var(--pub-gold);
+}
+.publisher-theme.corporate-workspace-v3 .compensation-policy-card,
+.publisher-theme.corporate-workspace-v3 .compensation-rule-editor,
+.publisher-theme.corporate-workspace-v3 .compensation-rule-list,
+.publisher-theme.corporate-workspace-v3 .compensation-history,
+.publisher-theme.corporate-workspace-v3 .compensation-entry-workbench,
+.publisher-theme.corporate-workspace-v3 .payment-period-panel {
+  border-color: #e7dad8;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form {
+  background: #faf5f3;
+  border-color: #e8dada;
+}
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form label,
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form select {
+  color: #6a535d;
+}
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form select,
+.publisher-theme.corporate-workspace-v3 .compensation-money-input,
+.publisher-theme.corporate-workspace-v3 .compensation-entry-search {
+  border-color: #decdcf;
+  background: #fffefa;
+}
+.publisher-theme.corporate-workspace-v3 .compensation-rule-form select:focus,
+.publisher-theme.corporate-workspace-v3 .compensation-money-input:focus-within,
+.publisher-theme.corporate-workspace-v3 .compensation-entry-search:focus-within {
+  border-color: #aa7186;
+  box-shadow: 0 0 0 3px #76273e19;
+}
+.publisher-theme.corporate-workspace-v3 .comp-entry-icon.total,
+.publisher-theme.corporate-workspace-v3 .comp-entry-icon.editor {
+  background: #f2e4e9;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .compensation-price,
+.publisher-theme.corporate-workspace-v3 .compensation-entry-kpis strong {
+  color: var(--pub-dark);
+}
+/* Preserve numeric amounts and financial state badges. */
+
+/* User administration & permissions — selectors are cosmetic, no role logic. */
+.publisher-theme.corporate-workspace-v3 .member-form-card,
+.publisher-theme.corporate-workspace-v3 .member-control,
+.publisher-theme.corporate-workspace-v3 .member-branch-options,
+.publisher-theme.corporate-workspace-v3 .roles-intro,
+.publisher-theme.corporate-workspace-v3 .matrix-panel {
+  background-color: #fffefa;
+  border-color: #e5d8d7;
+}
+.publisher-theme.corporate-workspace-v3 .member-form-icon,
+.publisher-theme.corporate-workspace-v3 .roles-intro-icon {
+  background: #f0e1e7;
+  color: var(--pub-burgundy);
+}
+.publisher-theme.corporate-workspace-v3 .member-control:focus-within {
+  border-color: #b78496;
+  box-shadow: 0 0 0 3px #76273e13;
+}
+.publisher-theme.corporate-workspace-v3 .matrix .current-role {
+  background: #faf0f2;
+}
+.publisher-theme.corporate-workspace-v3 .member-form-heading h2 {
+  color: var(--pub-dark);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+@media (max-width: 600px) {
+  .publisher-theme.corporate-workspace-v3 .editor-review-modal,
+  .publisher-theme.corporate-workspace-v3 .project-management-modal,
+  .publisher-theme.corporate-workspace-v3 .task-form-modal {
+    border-radius: 6px;
+  }
+  .publisher-theme.corporate-workspace-v3 .message-center-shell .panel {
+    border-radius: 5px;
+  }
+}
