@@ -32,7 +32,7 @@ describe('P2 guided explicit answer-key selection — no API or database writes'
     expect(() => buildQuestionCreateInput(draft))
       .toThrowError(new QuestionFormValidationError('Geçerli doğru cevabı seçin.'));
     const payload = buildQuestionCreateInput({ ...draft, correctAnswer: 'A' });
-    expect(validateQuestionAnswerStructure(payload as Record<string, unknown>, true)).toBeNull();
+    expect(validateQuestionAnswerStructure(payload as unknown as Record<string, unknown>, true)).toBeNull();
   });
 
   it('retains five-choice E answers on eligible grades and rejects middle-school five-choice', () => {
@@ -40,7 +40,7 @@ describe('P2 guided explicit answer-key selection — no API or database writes'
     const valid = buildQuestionCreateInput(draft);
     expect(valid.correctAnswer).toBe('E');
     expect(valid.options).toHaveLength(5);
-    expect(validateQuestionAnswerStructure(valid as Record<string, unknown>, true)).toBeNull();
+    expect(validateQuestionAnswerStructure(valid as unknown as Record<string, unknown>, true)).toBeNull();
     expect(guidedQuestionIssues({ ...draft, grade: '8. Sınıf' }).some(x => x.step === 1)).toBe(true);
     expect(() => buildQuestionCreateInput({ ...draft, grade: '8. Sınıf' })).toThrow('Beş seçenek yalnızca lise');
   });
@@ -51,15 +51,15 @@ describe('P2 guided explicit answer-key selection — no API or database writes'
     const booleanPayload = buildQuestionCreateInput(dy);
     expect(booleanPayload.correctAnswer).toBeNull();
     expect(booleanPayload.booleanAnswer).toBe(false);
-    expect(validateQuestionAnswerStructure(booleanPayload as Record<string, unknown>, true)).toBeNull();
+    expect(validateQuestionAnswerStructure(booleanPayload as unknown as Record<string, unknown>, true)).toBeNull();
 
     const open = { ...switchQuestionType(base, 'OPEN_ENDED'), modelAnswer: 'Gerekçeli örnek cevap' };
     const openPayload = buildQuestionCreateInput(open);
     expect(openPayload.options).toEqual([]);
     expect(openPayload.correctAnswer).toBeNull();
-    expect(validateQuestionAnswerStructure(openPayload as Record<string, unknown>, true)).toBeNull();
+    expect(validateQuestionAnswerStructure(openPayload as unknown as Record<string, unknown>, true)).toBeNull();
     const missing = buildQuestionCreateInput({ ...open, modelAnswer: '' });
-    expect(validateQuestionAnswerStructure(missing as Record<string, unknown>, false)).toBeNull();
-    expect(validateQuestionAnswerStructure(missing as Record<string, unknown>, true)).toMatch(/model cevabı/);
+    expect(validateQuestionAnswerStructure(missing as unknown as Record<string, unknown>, false)).toBeNull();
+    expect(validateQuestionAnswerStructure(missing as unknown as Record<string, unknown>, true)).toMatch(/model cevabı/);
   });
 });
