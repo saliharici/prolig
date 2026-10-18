@@ -12,7 +12,8 @@ describe('Corporate reports and royalties phase 3C', () => {
     expect(app).toContain('paymentsLoading={paymentsLoading}');
     expect(app).toContain('paymentsError={paymentsError}');
     expect(reports).toContain('const tasksUnavailable = canSeeTasks && (tasksLoading || Boolean(tasksError));');
-    expect(reports).toContain('const financeUnavailable = canSeeFinance && (paymentsLoading || Boolean(paymentsError));');
+    expect(reports).toContain('{paymentsLoading && <p className="reports-finance-message">Ödeme kayıtları yükleniyor...</p>}');
+    expect(reports).toContain('{!paymentsLoading && paymentsError && <p className="reports-finance-message" role="alert">{paymentsError}</p>}');
   });
 
   it('never presents inaccessible tasks as zero or exports missing counts as zero', () => {
@@ -33,7 +34,8 @@ describe('Corporate reports and royalties phase 3C', () => {
     expect(entries).toContain('{!loading && !error && <div className="compensation-entry-kpis">');
     expect(entries).toContain('Bu durum, kazanımlarınızın sıfır olduğu anlamına gelmez.');
     expect(entries).toContain('onClick={() => loadEntries()}');
-    expect(reports).toContain('financeUnavailable ? <div className="reports-state-empty">');
+    expect(reports).toContain('{!paymentsLoading && !paymentsError && <div className="reports-finance-metrics">');
+    expect(reports).toContain('{!compensationLoading && !compensationError && compensationSummary && <div className="reports-finance-metrics">');
   });
 
   it('keeps native CSV/print and existing auth/action flows, with scoped responsive styling', () => {
