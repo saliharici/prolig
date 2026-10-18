@@ -28,7 +28,7 @@ function BookImages({ question, placement }: { question: ApiQuestion; placement:
   return <>{[...images, ...legacyImage].map(image => {
     const url = safeImageSource(image.url);
     return url ? <figure key={image.id} className="publishing-image">
-      <img src={url} alt={image.altText || image.title || 'Soruya ait görsel'} loading="lazy" />
+      <img src={url} alt={image.altText || image.title || 'Soruya ait görsel'} loading="eager" />
       {image.title && <figcaption>{image.title}</figcaption>}
     </figure> : <p key={image.id} className="publishing-image-warning">Bu görsel adresi baskıda gösterilemiyor; kaynağını kontrol edin.</p>;
   })}</>;
@@ -136,8 +136,8 @@ export function PublishingWorkbench({ questions, loading, error, onRefresh }: Pr
         {bookQuestions.length > 0 && <button type="button" className="secondary-button" onClick={() => setSelectedIds([])}><RotateCcw size={14} /> Seçimi temizle</button>}
         <ol>{bookQuestions.map((question, index) => <li key={question.id}><span><strong>{index + 1}. Soru · #{question.id}</strong>
           <small>{question.grade || 'Sınıf yok'} · {question.project?.code || 'Projesiz'}</small></span>
-          <div><button type="button" disabled={index === 0} onClick={() => setSelectedIds(ids => moveBookQuestion(ids, question.id, -1))} aria-label={'Soru ' + question.id + ' yukarı'}><ArrowUp size={15}/></button>
-          <button type="button" disabled={index === bookQuestions.length - 1} onClick={() => setSelectedIds(ids => moveBookQuestion(ids, question.id, 1))} aria-label={'Soru ' + question.id + ' aşağı'}><ArrowDown size={15}/></button>
+          <div><button type="button" disabled={index === 0} onClick={() => setSelectedIds(moveBookQuestion(bookQuestions.map(item => item.id), question.id, -1))} aria-label={'Soru ' + question.id + ' yukarı'}><ArrowUp size={15}/></button>
+          <button type="button" disabled={index === bookQuestions.length - 1} onClick={() => setSelectedIds(moveBookQuestion(bookQuestions.map(item => item.id), question.id, 1))} aria-label={'Soru ' + question.id + ' aşağı'}><ArrowDown size={15}/></button>
           <button type="button" onClick={() => toggle(question.id)} aria-label={'Soru ' + question.id + ' çıkar'}>Çıkar</button></div>
         </li>)}</ol>
       </section>
