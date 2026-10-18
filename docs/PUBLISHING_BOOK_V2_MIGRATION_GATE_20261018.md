@@ -58,3 +58,16 @@ Bu dosya GitHub'a yazılmasıyla **Neon üzerinde çalışmaz**.
 | Eski Book kayıtlarının değişmesi | Yalnız ek kolonlar için varsayılan değer; migrasyon sonrası satır/alan karşılaştırması |
 | Öğrenciye cevap anahtarı sızması | Gelecekte sunucu DTO'su ve rol bazlı kırpma; public erişim yok |
 | 1. baskı içeriğinin sonradan değiştirilmesi | V2'de yalnız taslak yazma; sürüm dondurma ve `BookEdition` ayrı faz |
+
+## 6. V2-API geliştirme dalı (ayrı, Production'a kapalı)
+
+- Stacked dal: `feat/publishing-book-api-v2-preview-20261018` → taban dal `feat/publishing-book-persistence-v2-draft-20261018`.
+- `GET /api/v1/books`: yalnız giriş yapan Genel Koordinatörün kendi taslaklarını listeler; en fazla 100 kayıt. `GET /api/v1/books/:id`: kendi kitabını, bölümlerini ve cevap içeren snapshot'larını döner. Diğer kullanıcının kitabı için `404`.
+- `POST /api/v1/books`: yalnız `projectId, title, layoutColumns, expectedRevision: null, chapters: [{title, questionIds}]`; sorular transaction içinde sunucudan yeniden yüklenir, onay/proje/arşiv şartları karşılanınca snapshot oluşur.
+- `PATCH /api/v1/books/:id`: aynı alanlar, `expectedRevision` zorunlu. Kayıt yalnız sahibince, hâlâ `Dizgi Aşamasında` ise güncellenir. Koşullu revizyon artırma + tek Serializable transaction ile eski bölüm/soru bağlantıları değiştirilir; eski veya yarışan sürüm `409`.
+- Her başarılı oluşturma/güncelleme bir `ActivityLog` kaydı üretir. Otomatik tekrar yok; yetki ve veri reddinde kalıcı işlem oluşmaz.
+- **Hard gate:** Production'da API doğrudan `404`. Normal Preview'da da `404`. Test olmayan preview erişimi yalnız `PROLIG_BOOKS_V2_ENABLED=true`, `PROLIG_BOOKS_V2_DB_NAME=prolig_v2_uat`, `VERCEL_ENV=preview` ve ayrı Neon `/prolig_v2_uat` veritabanı varsa açılır. Bu ayarlar **hiçbir ortamda otomatik değiştirilmez**.
+- CI `publishing-books-isolated-postgres.yml`, sadece GitHub Actions'ın `127.0.0.1:5432/prolig_book_ci` **atılabilir** PostgreSQL hizmetinde migration uygulayıp gerçek kitap oluşturma, açma, stale revision, iki eşzamanlı PATCH, arşiv reddi, soru silindiğinde snapshot saklama ve denetim kaydını kontrol eder.
+- Bu dalda tarayıcıdan **Kalıcı Kaydet** düğmesi yoktur. Production'a açılacak API ve V1 ekranıyla bağlantı, yedekleme ve tenant kapsamı ancak ayrıca onaylanmış sonraki fazdır.
+
+**İzolasyonun sınırı:** Unit testler ve CI PostgreSQL, Production veri saklama/geri yükleme provası yerine geçmez. Ayrıca `Book.revision` yalnız mevcut taslak çakışmalarını çözer; geri yüklenebilir tüm edisyonların sürüm geçmişini henüz sağlamaz.
