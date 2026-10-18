@@ -1,0 +1,112 @@
+/* PRO-LİG Publisher Edition: read-only first publishing milestone. */
+.publishing-workbench { color: #472838; }
+.publishing-heading { margin-bottom: 16px; }
+.publishing-boundary, .publishing-warning {
+  padding: 12px 16px; border: 1px solid #decbd3; background: #fffaf4;
+  border-left: 4px solid #a47948; border-radius: 8px; font-size: 12px;
+  line-height: 1.6; overflow-wrap: anywhere;
+}
+.publishing-warning { margin: 10px 0; border-left-color: #b68848; }
+.publishing-error { color: #a22a3b; font-size: 12px; }
+.publishing-controls {
+  display: grid; grid-template-columns: minmax(210px,.75fr) minmax(280px,1.5fr) minmax(225px,.9fr);
+  gap: 15px; align-items: start; margin: 22px 0;
+}
+.publishing-settings,.publishing-select,.publishing-order { padding: 20px; min-width: 0; }
+.publishing-controls h2, .publishing-preview-toolbar h2 { margin: 0 0 12px; font-size: 17px; }
+.publishing-controls p { font-size: 12px; line-height: 1.6; color: #80636e; }
+.publishing-controls label:not(.publishing-candidate):not(.publishing-check) {
+  display: grid; gap: 6px; margin-top: 13px; font-size: 12px; font-weight: 700;
+}
+.publishing-controls select,.publishing-controls input[type="text"],.publishing-controls input:not([type]) {
+  width: 100%; height: 38px; border: 1px solid #d8c4cc; background: #fff;
+  border-radius: 7px; color: #442735; padding: 6px 10px; font-size: 12px;
+}
+.publishing-check { display: flex; align-items: flex-start; gap: 8px; margin-top: 17px; font-size: 12px; line-height: 1.5; }
+.publishing-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.publishing-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.publishing-candidates { max-height: 360px; overflow-y: auto; margin-top: 12px; border: 1px solid #e9dde2; border-radius: 8px; }
+.publishing-candidate { display:flex; align-items:flex-start; gap:9px; padding:11px; border-bottom:1px solid #eee3e6; cursor:pointer; font-size:11px; }
+.publishing-candidate:last-child { border-bottom: 0; }
+.publishing-candidate:hover { background: #fff9fa; }
+.publishing-candidate input { flex: 0 0 auto; margin-top: 3px; accent-color:#71344d; }
+.publishing-candidate span { display:grid; gap:5px; min-width:0; }
+.publishing-candidate strong { color:#512938; }
+.publishing-candidate small { color:#80636e; line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
+.publishing-order ol { list-style:none; margin:16px 0 0; padding:0; display:grid; gap:8px; }
+.publishing-order li { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:7px; padding:9px; border:1px solid #eadce0; border-radius:7px; }
+.publishing-order li>span { display:grid; gap:4px; font-size:11px; }
+.publishing-order li small { color:#836d75; font-size:10px; }
+.publishing-order li>div { display:flex; gap:5px; }
+.publishing-order li button { border:1px solid #ddcbd2; border-radius:5px; background:#fff; color:#582a3e; padding:6px; font-size:11px; }
+.publishing-order li button:disabled { opacity:.4; cursor:not-allowed; }
+.publishing-preview-toolbar { display:flex; justify-content:space-between; align-items:center; gap:15px; margin:20px 0 15px; }
+.publishing-preview-toolbar p { color:#78616a; font-size:12px; margin:0; line-height:1.5; }
+.publishing-empty { padding:20px; font-size:12px; color:#896b75; }
+.publishing-selected-status { display:flex; align-items:center; gap:8px; margin:16px 0; font-size:12px; color:#704052; }
+.publishing-page {
+  max-width: 210mm; margin: 0 auto; padding: 16mm; border: 1px solid #e0cfd5;
+  box-shadow: 0 7px 26px rgba(50,26,39,.08); background: #fff; color: #252025;
+  font: 12pt/1.6 Georgia, 'Times New Roman', serif; overflow-wrap:anywhere;
+}
+.publishing-cover { min-height: 88mm; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; border-bottom:1px solid #d8bfc9; }
+.publishing-cover h2 { font:700 26pt Georgia,serif; margin:0; color:#4d2839; }
+.publishing-cover p { margin:0; font-size:13pt; }
+.publishing-cover small { font: 10pt/1.4 Georgia,serif; color:#805c6c; }
+.publishing-chapter-heading { font:700 16pt Georgia,serif; margin:20mm 0 10mm; border-bottom:1px solid #d8bfc9; padding-bottom:4mm; }
+.publishing-page-body.two-columns { column-count:2; column-gap:9mm; column-rule:1px solid #eee5e8; }
+.publishing-question { break-inside:avoid-page; margin:0 0 12mm; padding-bottom:4mm; border-bottom:1px solid #f1ebed; }
+.publishing-question-number { font-weight:700; margin-bottom:2mm; }
+.publishing-question-number span { font-size:9pt; font-weight:400; color:#6e6066; margin-left:3mm; }
+.publishing-question .formatted-question-text p { margin:0 0 5mm; }
+.publishing-question .studio-content-table { width:100%; border-collapse:collapse; }
+.publishing-question .studio-content-table th,.publishing-question .studio-content-table td { border:1px solid #777; padding:4px; }
+.publishing-question .studio-table-scroll { overflow:visible; }
+.publishing-choices { padding-left: 8mm; margin-top:6mm; }
+.publishing-choices li { margin-bottom:4mm; padding-left:1mm; }
+.publishing-choices li .formatted-question-text { display:inline; }
+.publishing-choices li p { display:inline; }
+.publishing-true-false { margin:7mm 0; letter-spacing:.05em; }
+.publishing-answer-lines { margin: 8mm 0; display:grid; gap:10mm; }
+.publishing-answer-lines i { display:block; border-bottom:1px solid #bbb; }
+.publishing-image { margin:4mm 0; text-align:center; }
+.publishing-image img { max-width:100%; max-height:75mm; object-fit:contain; }
+.publishing-image figcaption { font-size:9pt; color:#5c565a; }
+.publishing-image-warning { border:1px dashed #a87442; padding:5px; font-size:10pt; }
+.publishing-key { break-before:page; page-break-before:always; }
+.publishing-key h3 { font:700 17pt Georgia,serif; border-bottom:1px solid #ccb3bd; padding-bottom:5mm; }
+.publishing-key ol { padding-left:10mm; }
+.publishing-key li { margin-bottom:5mm; break-inside:avoid; }
+.publishing-key li>.formatted-question-text { display:inline; }
+.publishing-key li p { display:inline; }
+.publishing-footnote { font-size:8pt; color:#8f8187; margin-top:16mm; border-top:1px solid #e4d8dc; padding-top:4mm; }
+@media(max-width:1250px) { .publishing-controls { grid-template-columns:1fr 1fr; } .publishing-order { grid-column:1/-1; } }
+@media(max-width:750px) { .publishing-controls { grid-template-columns:1fr; } .publishing-order { grid-column:auto; } .publishing-filters { grid-template-columns:1fr; } .publishing-preview-toolbar { flex-wrap:wrap; } .publishing-page { padding:8mm; font-size:10pt; } }
+@media print {
+  .demo-shell:has(.publishing-workbench) { display:block!important; background:#fff!important; }
+  .demo-shell:has(.publishing-workbench) .demo-sidebar,
+  .demo-shell:has(.publishing-workbench) .topbar,
+  .demo-shell:has(.publishing-workbench) .workspace-skip-link,
+  .demo-shell:has(.publishing-workbench) .publishing-heading,
+  .demo-shell:has(.publishing-workbench) .publishing-boundary,
+  .demo-shell:has(.publishing-workbench) .publishing-controls,
+  .demo-shell:has(.publishing-workbench) .publishing-preview-toolbar,
+  .demo-shell:has(.publishing-workbench) .publishing-warning,
+  .demo-shell:has(.publishing-workbench) .publishing-selected-status,
+  .demo-shell:has(.publishing-workbench) .publishing-empty,
+  .demo-shell:has(.publishing-workbench) .toast { display:none!important; }
+  .demo-shell:has(.publishing-workbench) .demo-main,
+  .demo-shell:has(.publishing-workbench) #workspace-content,
+  .demo-shell:has(.publishing-workbench) .publishing-workbench {
+    width:100%!important; max-width:none!important; margin:0!important; padding:0!important;
+    background:#fff!important; display:block!important; overflow:visible!important;
+  }
+  .demo-shell:has(.publishing-workbench) .publishing-page {
+    padding:0!important; border:0!important; box-shadow:none!important;
+    max-width:none!important; width:100%!important; font-size:11pt; overflow:visible!important;
+  }
+  .publishing-cover { break-after:page; page-break-after:always; }
+  .publishing-page-body.two-columns { column-count:2!important; }
+  .publishing-question,.publishing-key li { break-inside:avoid-page; }
+  .publishing-footnote { break-inside:avoid-page; }
+}
