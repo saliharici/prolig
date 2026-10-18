@@ -75,7 +75,7 @@ const bookInclude = {
       }
     } }
   }
-} as const;
+};
 
 function bookDto(book: any) {
   return {
