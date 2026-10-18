@@ -46,3 +46,41 @@ jobs:
           npx playwright install --with-deps chromium
           npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/prolig-navigation-preview.log 2>&1 &
           node scripts/verify-navigation.mjs
+
+  native-financial-concurrency:
+    # Runs only for a PR into the P2 feature branch. The database exists ONLY
+    # inside this ephemeral GitHub Actions job; never connect to Neon or DATABASE_URL.
+    if: github.event_name == 'pull_request' && github.base_ref == 'feat/p2-professional-question-editor-20261012'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: prolig_ci
+          POSTGRES_PASSWORD: ephemeral_ci_only
+          POSTGRES_DB: prolig_finance_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U prolig_ci -d prolig_finance_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      SETTLEMENT_TEST_DATABASE_URL: postgresql://prolig_ci:ephemeral_ci_only@127.0.0.1:5432/prolig_finance_ci
+      PROLIG_SETTLEMENT_TEST_DB_CONFIRMED: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Generate Prisma Client (no DB access)
+        run: npx prisma generate
+      - name: Native 8-connection PostgreSQL settlement and concurrency contracts
+        run: npx vitest run tests/integration/settlement-db.test.ts
