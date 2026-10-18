@@ -124,7 +124,7 @@ describe('Final UX Stabilization', () => {
     const demoAppPath = path.resolve(__dirname, '../src/DemoApp.tsx');
     const demoAppCode = fs.readFileSync(demoAppPath, 'utf8');
 
-    expect(modelCode).toContain("GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments', 'members', 'roles', 'audit']");
+    expect(modelCode).toContain("GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'publishing', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments', 'members', 'roles', 'audit']");
     expect(modelCode).toContain("BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members', 'payments']");
     expect(modelCode).toContain("IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members', 'payments']");
     expect(modelCode).toContain("EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments']");
