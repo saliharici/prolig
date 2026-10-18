@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { canReadAuthorPerformanceReport } from '../api/v1/_lib/author-performance-report.js';
+
+// The role gate is pure; unit acceptance must never connect to Neon.
+vi.mock('../api/v1/_lib/prisma.js', () => ({ prisma: {} }));
 
 const center = readFileSync(new URL('../src/reports/ReportsCenter.tsx', import.meta.url), 'utf8');
 const comparison = readFileSync(new URL('../src/reports/AuthorComparisonPanel.tsx', import.meta.url), 'utf8');
