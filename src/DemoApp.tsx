@@ -844,6 +844,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [questionAssetAltText, setQuestionAssetAltText] = useState('');
       const [editorNote, setEditorNote] = useState('');
   const [reviewAction, setReviewAction] = useState<QuestionWorkflowAction | ''>('');
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewSaveError, setReviewSaveError] = useState('');
+  const reviewSavingRef = useRef(false);
   const [editingQuestion, setEditingQuestion] = useState<ApiQuestion | null>(null);
   const [reviewingQuestion, setReviewingQuestion] = useState<ApiQuestion | null>(null);
   const [toast, setToast] = useState('');
@@ -1584,26 +1587,40 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     </article>;
   };
   const openEditorReview = (question: ApiQuestion) => {
+    if (reviewSavingRef.current) return;
     if (['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && question.status === 'INCELEMEDE') {
       setReviewingQuestion(question);
       setEditorNote('');
       setReviewAction('');
+      setReviewSaveError('');
     }
   };
-  
+
   const saveEditorReview = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!reviewingQuestion || !reviewAction) return;
+    // A synchronous ref protects against rapid double clicks before React renders
+    // the disabled state. Server authorization and idempotency remain authoritative.
+    if (!reviewingQuestion || !reviewAction || reviewSavingRef.current) return;
+    reviewSavingRef.current = true;
+    setReviewSaving(true);
+    setReviewSaveError('');
     try {
-      await runQuestionWorkflow(reviewingQuestion.id, reviewAction as QuestionWorkflowAction, editorNote.trim() || undefined);
+      await runQuestionWorkflow(reviewingQuestion.id, reviewAction, editorNote.trim() || undefined);
       setToast('İşlem başarıyla tamamlandı.');
       setReviewingQuestion(null);
       setReviewAction('');
       setEditorNote('');
-      loadApiQuestions();
+      void loadApiQuestions();
     } catch (e: any) {
-      setToast(e.message || 'Hata oluştu.');
-      if (e.status === 409) loadApiQuestions();
+      const message = e instanceof Error ? e.message : 'Karar kaydedilemedi. Tekrar deneyin.';
+      setReviewSaveError(e?.status === 409
+        ? 'Soru durumu başka bir işlemde değişmiş olabilir. Listeyi güncelleyip tekrar inceleyin.'
+        : message);
+      // Keep the editor's selected decision and note; do not close on failure.
+      if (e?.status === 409) void loadApiQuestions();
+    } finally {
+      reviewSavingRef.current = false;
+      setReviewSaving(false);
     }
   };
   
@@ -2409,14 +2426,16 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           <div className="modal-actions"><button type="button" className="secondary-button" disabled={questionSaving || durableDraftBusy} onClick={closeQuestionForm}>{hasUnsavedQuestionChanges ? 'Ara ver' : 'Vazgeç'}</button>{(!guidedStudioOn || questionStep === 5) && <button type="submit" className="primary-button" disabled={questionSaving || durableDraftBusy || durableDraftConflict || (guardedLegacyQuestionWrite && questionTypeExtras.questionType !== 'MULTIPLE_CHOICE')}><Plus size={17} /> {questionSaving ? 'Kaydediliyor…' : 'Taslağı kaydet'}</button>}</div>
         </form>
       </div>}
-      {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview}>
-        <div className="modal-head"><div><span className="panel-kicker">EDİTÖR DEĞERLENDİRMESİ</span><h2>Soruyu İncele</h2></div><button type="button" aria-label="Kapat" onClick={() => setReviewingQuestion(null)}><X size={20} /></button></div>
+      {reviewingQuestion && ['EDITOR', 'GENEL_KOORDINATOR'].includes(currentUser.role) && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget && !reviewSavingRef.current) setReviewingQuestion(null); }}><form className="question-modal editor-review-modal" onSubmit={saveEditorReview} aria-busy={reviewSaving}>
+        <div className="modal-head"><div><span className="panel-kicker">EDİTÖR DEĞERLENDİRMESİ</span><h2>Soruyu İncele</h2></div><button type="button" aria-label="Kapat" disabled={reviewSaving} onClick={() => { if (!reviewSavingRef.current) setReviewingQuestion(null); }}><X size={20} /></button></div>
         <p>Bu soru için değerlendirme kararınızı ve yazar için varsa notunuzu girin.</p>
+        {reviewSaveError && <p className="studio-save-error" role="alert">{reviewSaveError}</p>}
+        {reviewSaving && <p className="editor-review-saving" role="status">Editör kararı kaydediliyor; lütfen bekleyin.</p>}
         <div className="editor-review-context" style={{marginBottom: '1rem'}}><span>{reviewingQuestion.grade}</span><span>{reviewingQuestion.author?.fullName}</span></div>
         {renderQuestionReviewPreview(reviewingQuestion)}
-        <label>Aksiyon<select required value={reviewAction} onChange={e => { const val = e.target.value as QuestionWorkflowAction | ''; setReviewAction(val); if (val === 'approve') setEditorNote(''); }}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
-        {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setReviewingQuestion(null)}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction}><Check size={17} /> Kararı Kaydet</button></div>
+        <label>Aksiyon<select required value={reviewAction} disabled={reviewSaving} onChange={e => { const val = e.target.value as QuestionWorkflowAction | ''; setReviewAction(val); if (val === 'approve') setEditorNote(''); }}><option value="">Seçiniz...</option><option value="approve">Onayla</option><option value="request_revision">Revizyon İste</option><option value="reject">Reddet</option></select></label>
+        {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} disabled={reviewSaving} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
+        <div className="modal-actions"><button type="button" className="secondary-button" disabled={reviewSaving} onClick={() => { if (!reviewSavingRef.current) setReviewingQuestion(null); }}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction || reviewSaving}><Check size={17} /> {reviewSaving ? 'Kaydediliyor…' : 'Kararı Kaydet'}</button></div>
       </form></div>}
       {showProjectManager && <ProjectManagementModal project={editingProject} authors={apiAuthors} onClose={()=>{setShowProjectManager(false);setEditingProject(null)}} onChanged={refreshProjectManagementData} />}
       {showProfile && <ProfileModal user={currentUser} onClose={() => setShowProfile(false)} onSaved={async () => { await onProfileUpdated(); setToast('Profil bilgileriniz güncellendi.'); }} />}
