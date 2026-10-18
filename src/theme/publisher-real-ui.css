@@ -1029,3 +1029,48 @@
     border-radius: 5px;
   }
 }
+
+
+/* Persistent navigation — retained while scrolling long workspaces and public pages.
+   Scope is limited to the active Publisher Edition theme. */
+.publisher-theme.corporate-workspace-v3 .topbar.topbar-command {
+  position: sticky;
+  top: 0;
+  z-index: 60; /* Below the mobile navigation drawer and modal overlays. */
+  box-shadow: 0 2px 12px rgba(49, 21, 36, .07);
+}
+.publisher-theme.corporate-workspace-v3 #workspace-content {
+  scroll-margin-top: 90px;
+}
+
+/* overflow:hidden on the legacy public shell would disable position:sticky.
+   overflow:clip preserves horizontal clipping without creating a scroll container. */
+.publisher-theme.public-editorial-v2.public-shell {
+  overflow: clip;
+  --prolig-public-header-height: 85px;
+}
+.publisher-theme.public-editorial-v2 .public-header {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  box-shadow: 0 2px 12px rgba(49, 21, 36, .06);
+}
+@media (max-width: 850px) {
+  .publisher-theme.public-editorial-v2.public-shell {
+    --prolig-public-header-height: 75px;
+  }
+  .publisher-theme.public-editorial-v2 .public-mobile-nav {
+    position: sticky;
+    top: var(--prolig-public-header-height);
+    z-index: 79;
+    background: #fffdfa;
+  }
+  .publisher-theme.public-editorial-v2 .public-major-section {
+    scroll-margin-top: calc(var(--prolig-public-header-height) + 58px);
+  }
+}
+@media (max-width: 600px) {
+  .publisher-theme.public-editorial-v2.public-shell {
+    --prolig-public-header-height: 70px;
+  }
+}
