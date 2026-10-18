@@ -236,7 +236,12 @@ async function createRule(req: VercelRequest, res: VercelResponse, user: any) {
   const mapping = roleRuleMap[roleCode as CompensationRole];
   const now = new Date();
 
-  const created = await prisma.$transaction(async (tx: any) => {
+  // Replacement of an active rate is a read–deactivate–insert sequence.
+  // Serializable isolation prevents two concurrent requests from publishing
+  // overlapping active versions for the same role/project scope.
+  let created;
+  try {
+    created = await prisma.$transaction(async (tx: any) => {
     const previous = await tx.compensationRule.findFirst({
       where: {
         roleCode,
@@ -288,7 +293,14 @@ async function createRule(req: VercelRequest, res: VercelResponse, user: any) {
     });
 
     return rule;
-  });
+    }, { isolationLevel: 'Serializable', timeout: 30000 });
+  } catch (error: unknown) {
+    const code = (error as { code?: string })?.code;
+    if (code && ['P2034', 'P2002', 'P2025'].includes(code)) {
+      return res.status(409).json({ error: 'Ücret tarifesi başka bir işlemde değişti. Tarifeleri yenileyip tekrar deneyin.' });
+    }
+    throw error;
+  }
 
   return res.status(201).json({ rule: ruleDto(created) });
 }
