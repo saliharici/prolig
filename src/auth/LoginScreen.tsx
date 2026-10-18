@@ -35,7 +35,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   };
 
   return (
-    <div className="soft-login-shell prolig-access-v1">
+    <div className="soft-login-shell prolig-access-v1 publisher-theme">
 
       <button onClick={onCancel} className="soft-login-back">
         <ArrowLeft size={16} /> Ana sayfaya dön
