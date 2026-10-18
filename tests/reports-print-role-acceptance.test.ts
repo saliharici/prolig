@@ -42,7 +42,7 @@ describe('Reports print/PDF acceptance structure', () => {
     expect(reportCss).toContain('.demo-shell:has(.reports-center) #workspace-content');
     expect(reportCss).not.toContain('@media print{.sidebar,.topbar');
     expect(reportCss).toContain('.reports-print-scope { display: none; }');
-    expect(reportCss).toContain('Rapor kapsamı');
+    expect(center).toContain('Rapor kapsamı:');
     expect(center).toContain('roleLabels[role]');
   });
 
