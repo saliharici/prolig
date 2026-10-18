@@ -1,0 +1,200 @@
+import type { ApiQuestion } from '../questions/types';
+import type { BookDraftInput, FrozenBookQuestionV1 } from './book-draft-contract';
+import { approvedForPublishing } from './book-assembly';
+
+export interface SavedBookSummary {
+  id: number;
+  projectId: number;
+  title: string;
+  status: string;
+  revision: number;
+  layoutColumns: 1 | 2;
+  updatedAt: string;
+}
+export interface SavedBookQuestion {
+  id: number;
+  questionId: number | null;
+  sortOrder: number;
+  sourceQuestionUpdatedAt: string;
+  snapshot: FrozenBookQuestionV1;
+}
+export interface SavedBookChapter {
+  id: number;
+  title: string;
+  sortOrder: number;
+  questions: SavedBookQuestion[];
+}
+export interface SavedBook extends SavedBookSummary {
+  project: { id: number; code: string; title: string };
+  chapters: SavedBookChapter[];
+}
+
+export class PublishingApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = 'PublishingApiError';
+  }
+}
+
+/** Exposing buttons does not grant server permission: the Book API independently denies Production. */
+export function publishingV2PreviewEnabled(env: {
+  VITE_PUBLISHING_V2_PREVIEW?: string;
+  VITE_VERCEL_ENV?: string;
+}): boolean {
+  return env.VITE_PUBLISHING_V2_PREVIEW === 'true' && env.VITE_VERCEL_ENV === 'preview';
+}
+
+async function decode<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    let message = 'Kitap taslağı işlemi başarısız.';
+    try {
+      const body = await res.json();
+      if (typeof body.error === 'string' && body.error.trim()) message = body.error;
+    } catch { /* A non-JSON response never becomes a successful operation. */ }
+    if (res.status === 404) message = 'Kitap bulunamadı veya V2 önizleme API erişimi kapalı.';
+    if (res.status === 401) message = 'Oturum süresi doldu. Tekrar giriş yapın.';
+    if (res.status === 403) message = 'Bu kitap için yetkiniz bulunmuyor.';
+    if (res.status === 409) message = 'Kitap başka bir işlemde değişmiş olabilir. Kayıtlı taslağı yeniden açıp farkları kontrol edin.';
+    throw new PublishingApiError(res.status, message);
+  }
+  return (await res.json()) as T;
+}
+
+export async function listBookDrafts(): Promise<SavedBookSummary[]> {
+  const res = await fetch('/api/v1/books', { credentials: 'include', cache: 'no-store' });
+  return (await decode<{ books: SavedBookSummary[] }>(res)).books;
+}
+
+export async function loadBookDraft(id: number): Promise<SavedBook> {
+  const res = await fetch('/api/v1/books/' + id, { credentials: 'include', cache: 'no-store' });
+  return (await decode<{ book: SavedBook }>(res)).book;
+}
+
+export async function saveBookDraft(input: BookDraftInput, bookId: number | null): Promise<{ id: number; revision: number }> {
+  const res = await fetch(bookId == null ? '/api/v1/books' : '/api/v1/books/' + bookId, {
+    method: bookId == null ? 'POST' : 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    cache: 'no-store',
+    body: JSON.stringify(input)
+  });
+  return (await decode<{ book: { id: number; revision: number } }>(res)).book;
+}
+
+/** The V2 preview UI intentionally supports a SINGLE chapter until multi-chapter editing is implemented. */
+export function flattenSingleChapter(book: SavedBook): { chapter: string; questionIds: number[] } {
+  if (book.chapters.length !== 1) {
+    throw new PublishingApiError(422, 'Bu kitap birden fazla bölüm içeriyor; V2 ilk ekranında güvenle düzenlenemez.');
+  }
+  const chapter = book.chapters[0];
+  return {
+    chapter: chapter.title,
+    questionIds: [...chapter.questions].sort((a, b) => a.sortOrder - b.sortOrder)
+      .map(row => row.snapshot.sourceQuestionId)
+  };
+}
+
+/** Preview the FROZEN source, never accidentally replace a stored answer with a newer source. */
+export function frozenBookQuestions(book: SavedBook): ApiQuestion[] {
+  return [...book.chapters].sort((a,b) => a.sortOrder - b.sortOrder)
+    .flatMap(chapter => [...chapter.questions].sort((a,b) => a.sortOrder - b.sortOrder))
+    .map(row => {
+      const s = row.snapshot;
+      return {
+        id: s.sourceQuestionId,
+        content: s.content,
+        imageUrl: s.imageUrl ?? null,
+        objectiveCode: s.objectiveCode,
+        grade: s.grade,
+        difficulty: s.difficulty,
+        questionType: s.questionType,
+        optionCount: s.questionType === 'MULTIPLE_CHOICE' ? s.options.length as 4 | 5 : null,
+        options: [...s.options],
+        correctAnswer: s.correctAnswer,
+        booleanAnswer: s.booleanAnswer,
+        modelAnswer: s.modelAnswer,
+        scoringRubric: s.scoringRubric,
+        evaluationCriteria: s.evaluationCriteria,
+        explanation: s.explanation,
+        status: 'ONAYLANDI' as const,
+        editorNote: null,
+        projectId: book.projectId,
+        project: book.project,
+        author: s.authorName ? { id: 0, fullName: s.authorName } : null,
+        isArchived: false,
+        assets: s.assets.map((a, i) => ({
+          id: i + 1,
+          placement: a.placement as 'STEM' | 'OPTION_A' | 'OPTION_B' | 'OPTION_C' | 'OPTION_D' | 'OPTION_E' | 'EXPLANATION',
+          assetType: a.assetType as 'IMAGE' | 'VIDEO_URL' | 'LINK',
+          url: a.url,
+          title: a.title,
+          altText: a.altText,
+          sortOrder: a.sortOrder
+        })),
+        createdAt: s.sourceQuestionUpdatedAt,
+        updatedAt: s.sourceQuestionUpdatedAt
+      } as ApiQuestion;
+    });
+}
+
+export interface BookWorkbenchInput {
+  projectFilter: string;
+  title: string;
+  chapter: string;
+  columns: 1 | 2;
+  selectedIds: number[];
+}
+
+/**
+ * Fail closed before saving: all selected questions must still be current,
+ * approved, unarchived and in the same project. A stale source cannot silently
+ * overwrite a frozen book snapshot when the user changes the ordering.
+ */
+export function prepareBookSave(
+  view: BookWorkbenchInput,
+  source: ReadonlyArray<ApiQuestion>,
+  saved: SavedBook | null
+): BookDraftInput {
+  const projectId = Number(view.projectFilter);
+  if (!Number.isSafeInteger(projectId) || projectId <= 0 ||
+      view.projectFilter === 'all') {
+    throw new PublishingApiError(400, 'Kaydetmeden önce tek bir kitap projesi seçin.');
+  }
+  if (saved && saved.projectId !== projectId) {
+    throw new PublishingApiError(409, 'Kayıtlı kitabın projesi değiştirilemez.');
+  }
+  if (saved && saved.status !== 'Dizgi Aşamasında') {
+    throw new PublishingApiError(409, 'Yayınlanmış kitap bu ekrandan düzenlenemez.');
+  }
+  if (view.title.trim().length < 3 || view.title.trim().length > 120 ||
+      view.chapter.trim().length < 1 || view.chapter.trim().length > 120) {
+    throw new PublishingApiError(400, 'Kitap adı 3–120, bölüm başlığı 1–120 karakter olmalı.');
+  }
+  if (view.columns !== 1 && view.columns !== 2) {
+    throw new PublishingApiError(400, 'Yalnız tek veya çift sütun seçin.');
+  }
+  if (!view.selectedIds.length || view.selectedIds.length > 300 ||
+      new Set(view.selectedIds).size !== view.selectedIds.length) {
+    throw new PublishingApiError(400, 'Kitapta 1–300 benzersiz soru bulunmalı.');
+  }
+  const available = new Map(approvedForPublishing(source).map(q => [q.id, q]));
+  const frozen = new Map(saved?.chapters.flatMap(c => c.questions)
+    .map(row => [row.snapshot.sourceQuestionId, row.sourceQuestionUpdatedAt] as const) ?? []);
+  for (const id of view.selectedIds) {
+    const q = available.get(id);
+    if (!q || q.projectId !== projectId) {
+      throw new PublishingApiError(409, 'Seçilen sorulardan biri artık onaylı, aktif veya bu projede değil. Soruları yenileyin.');
+    }
+    const updated = frozen.get(id);
+    if (updated && new Date(updated).getTime() !== new Date(q.updatedAt).getTime()) {
+      throw new PublishingApiError(409, 'Kayıtlı kitaptaki bir soru sonradan güncellenmiş. Kaynağı incelemeden üstüne yazmayın.');
+    }
+  }
+  return {
+    projectId,
+    title: view.title.trim(),
+    layoutColumns: view.columns,
+    expectedRevision: saved?.revision ?? null,
+    chapters: [{ title: view.chapter.trim(), questionIds: [...view.selectedIds] }]
+  };
+}
