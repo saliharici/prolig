@@ -847,6 +847,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [reviewSaving, setReviewSaving] = useState(false);
   const [reviewSaveError, setReviewSaveError] = useState('');
   const reviewSavingRef = useRef(false);
+  // Track each question synchronously to guard rapid repeated author submissions.
+  const authorSubmitPendingRef = useRef(new Set<number>());
+  const [authorSubmittingIds, setAuthorSubmittingIds] = useState<number[]>([]);
+  const [authorSubmitError, setAuthorSubmitError] = useState<{ questionId: number; message: string } | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<ApiQuestion | null>(null);
   const [reviewingQuestion, setReviewingQuestion] = useState<ApiQuestion | null>(null);
   const [toast, setToast] = useState('');
@@ -1625,13 +1629,27 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   };
   
   const handleYazarSubmit = async (question: ApiQuestion) => {
+    if (currentUser.role !== 'YAZAR' || question.isArchived ||
+        !['TASLAK', 'REVIZYON'].includes(question.status) ||
+        authorSubmitPendingRef.current.has(question.id)) return;
+    authorSubmitPendingRef.current.add(question.id);
+    setAuthorSubmittingIds(Array.from(authorSubmitPendingRef.current));
+    setAuthorSubmitError(null);
     try {
       await runQuestionWorkflow(question.id, 'submit');
-      setToast('Soru incelemeye gönderildi.');
-      loadApiQuestions();
+      setToast(question.status === 'REVIZYON'
+        ? 'Düzeltilen soru yeniden editör incelemesine gönderildi.'
+        : 'Soru incelemeye gönderildi.');
+      await loadApiQuestions();
     } catch (e: any) {
-      setToast(e.message || 'Hata oluştu.');
-      if (e.status === 409) loadApiQuestions();
+      const message = e?.status === 409
+        ? 'Soru durumu değişmiş olabilir. Güncel soruyu kontrol edip tekrar deneyin.'
+        : e instanceof Error ? e.message : 'Soru gönderilemedi. Tekrar deneyin.';
+      setAuthorSubmitError({ questionId: question.id, message });
+      if (e?.status === 409) await loadApiQuestions();
+    } finally {
+      authorSubmitPendingRef.current.delete(question.id);
+      setAuthorSubmittingIds(Array.from(authorSubmitPendingRef.current));
     }
   };
   
@@ -2012,7 +2030,16 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const canArchive = q.isArchived ? canRestoreQuestionUi(q) : canArchiveQuestionUi(q);
   const canDelete = canDeleteQuestionUi(q);
   const hasAction = canEdit || canReview || canArchive || canDelete;
-  return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}</small>{q.editorNote && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.editorNote}</small>}</td><td>{q.author?.fullName}</td><td>{q.author?.branchName || '-'}</td><td>{q.project?.title || 'Genel Soru Havuzu'}</td><td><Status value={statusDisplay(q.status)} /></td><td>{new Date(q.updatedAt).toLocaleDateString('tr-TR')}</td><td><div className="row-actions">{canEdit && <><button onClick={() => openYazarEdit(q)} title="Düzenle"><PencilLine size={15} /></button><button onClick={() => handleYazarSubmit(q)}>İncelemeye gönder <ArrowRight size={14} /></button></>}{canReview && <button onClick={() => openEditorReview(q)} title="Değerlendir"><CheckCircle2 size={15} /> İncele</button>}{canArchive && <button onClick={() => handleQuestionArchive(q)} title={q.isArchived?'Arşivden çıkar':'Arşivle'}>{q.isArchived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {q.isArchived?'Geri al':'Arşivle'}</button>}{canDelete && <button className="danger-action" onClick={() => handleQuestionDelete(q)} title="Kalıcı sil"><Trash2 size={15}/> Sil</button>}{!hasAction && <span className="no-action">—</span>}</div></td></tr>;
+  const authorSubmitting = authorSubmittingIds.includes(q.id);
+  const authorSubmissionError = authorSubmitError?.questionId === q.id ? authorSubmitError.message : null;
+  return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}</small>{q.status === 'REVIZYON' && currentUser.role === 'YAZAR'
+    ? <div className="question-revision-feedback" role="note" aria-label="Editör revizyon geri bildirimi">
+        <strong><MessageSquareText size={15} aria-hidden="true" /> Editörden revizyon isteği</strong>
+        <p>{q.editorNote?.trim() || 'Revizyon gerekçesi görüntülenemiyor; editörle iletişime geçin.'}</p>
+        <small>Notu inceleyin, düzenlemelerinizi kaydedin ve soruyu yeniden gönderin.</small>
+      </div>
+    : q.editorNote && <small className="review-note"><MessageSquareText size={12} /> Editör notu: {q.editorNote}</small>}
+  {authorSubmissionError && <p className="question-submit-error" role="alert">{authorSubmissionError}</p></td><td>{q.author?.fullName}</td><td>{q.author?.branchName || '-'}</td><td>{q.project?.title || 'Genel Soru Havuzu'}</td><td><Status value={statusDisplay(q.status)} /></td><td>{new Date(q.updatedAt).toLocaleDateString('tr-TR')}</td><td><div className="row-actions">{canEdit && <><button type="button" disabled={authorSubmitting} onClick={() => openYazarEdit(q)} title={q.status === 'REVIZYON' ? 'Revizyonu düzenle' : 'Düzenle'} aria-label={q.status === 'REVIZYON' ? 'Revizyonu düzenle' : 'Soruyu düzenle'}><PencilLine size={15} /></button><button type="button" disabled={authorSubmitting} aria-busy={authorSubmitting} onClick={() => void handleYazarSubmit(q)}>{authorSubmitting ? 'Gönderiliyor…' : q.status === 'REVIZYON' ? 'Yeniden incelemeye gönder' : 'İncelemeye gönder'} <ArrowRight size={14} /></button></>}{canReview && <button onClick={() => openEditorReview(q)} title="Değerlendir"><CheckCircle2 size={15} /> İncele</button>}{canArchive && <button onClick={() => handleQuestionArchive(q)} title={q.isArchived?'Arşivden çıkar':'Arşivle'}>{q.isArchived?<ArchiveRestore size={15}/>:<Archive size={15}/>} {q.isArchived?'Geri al':'Arşivle'}</button>}{canDelete && <button className="danger-action" onClick={() => handleQuestionDelete(q)} title="Kalıcı sil"><Trash2 size={15}/> Sil</button>}{!hasAction && <span className="no-action">—</span>}</div></td></tr>;
 })}</tbody></table>}{filteredQuestions.length === 0 && <div className="empty-state workspace-question-empty"><FileQuestion size={26} aria-hidden="true" /><strong>{questionView === 'archived' ? 'Arşivde soru bulunmuyor' : apiQuestions.length === 0 ? 'Soru havuzu henüz boş' : 'Bu ölçütlere uygun soru bulunamadı'}</strong><p>{questionView === 'archived' ? 'Arşivlenmiş bir soru kaydı yok.' : apiQuestions.length === 0 ? 'İlk soru hazırlandığında kayıtlar burada listelenecek.' : 'Arama veya durum filtresini değiştirerek yeniden deneyin.'}</p>{currentUser.role === 'YAZAR' && questionView === 'active' && apiQuestions.length === 0 && <button type="button" className="primary-button" onClick={() => { setEditingQuestion(null); openQuestionForm(); }}><Plus size={16} /> İlk soru taslağını oluştur</button>}</div>}</div>}</div></>}
           {section === 'projects' && <>
             <div className="page-heading">
