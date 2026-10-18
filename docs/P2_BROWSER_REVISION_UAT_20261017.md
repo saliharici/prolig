@@ -1,4 +1,17 @@
-# P2-E — Izole tarayıcı revizyon döngüsü: HAZIRLIK / HENÜZ CANLI PASS DEĞİL
+# P2-E — İzole tarayıcı yazar–editör revizyon kabulü: PASS (18.10.2026)
+
+## Tamamlanan kabul ve temizlik
+
+- Kullanıcı, yerel pilot YAZAR / EDİTÖR tarayıcısında sunucu işaretli **#93** yapay sorunun oluşturulmasını, `TASLAK → INCELEMEDE → REVIZYON → INCELEMEDE` durumlarını, editörün gerekçeli revizyon talebini ve düzeltilmiş çözümün editörde görünmesini **PASS** bildirdi.
+- Tek kimlikli `scripts/p2-browser-revision-cleanup.mjs --question-id 93` salt-okunur DRY-RUN: **PASS** — 5 audit, sıfır medya/muhasebe, son durum INCELEMEDE.
+- Ayrı kullanıcı onayıyla `--apply`: **REVISION CLEANUP PASS** — yalnız #93 ve ona ait 5 `ActivityLog` silindi; script kendi son durum kontrolünü yaptı.
+- Bağımsız Neon kabul dalı **salt-okunur** doğrulama: `originals=5`, `synthetic=0`, `audit=0`, `assets=0`, `compensation=0`, `historical=1`; **FINAL READ-ONLY CHECK: PASS**. Eski `ActivityLog #529` korundu.
+- Bu kabul yalnızca **izole test dalı** içindir. Özgün soru içerikleri için yeni bir main↔acceptance digest karşılaştırması yapılmadı. Canlı editör ONAYLA/REDDET, ücret/telif, ana Neon, gerçek kullanıcı giriş akışı ve Production kapsam dışıdır.
+- PR #32, güvenlik kod incelemesi ve PASS CI ardından 18 Ekim'de **yalnızca P2 geliştirme dalına** birleştirildi (`d65e739`). PR #36 da o hedefe yönlendirildi; `main` ve Production'a dokunulmadı.
+
+## Önceki kabul planı (tarihsel notlar)
+
+Aşağıdaki plan ilk hazırlık aşamasında yazılmıştır. İçindeki “henüz PASS değil”, “PR #32 açık” ve “önceki PR #36 hedefi” ifadeleri yukarıdaki **tamamlanan kabul kaydından önceki durumu** anlatır.
 
 ## Kapsam
 
