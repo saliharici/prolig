@@ -163,7 +163,7 @@ export function PublishingWorkbench({ questions, loading, error, onRefresh }: Pr
         </div>
         <p>Yalnızca oturum yetkinizle erişilen, onaylanmış ve arşivlenmemiş sorular. Görünen liste, tüm sistem için eksiksiz soru sayımı değildir.</p>
         <div className="publishing-filters">
-          <label>Proje<select value={projectFilter} disabled={publishingPreview && Boolean(activeBook)} onChange={e => setProjectFilter(e.target.value}>
+          <label>Proje<select value={projectFilter} disabled={publishingPreview && Boolean(activeBook)} onChange={e => setProjectFilter(e.target.value)}>
             <option value="all">Tüm erişilebilir projeler</option>
             {projectOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
           </select></label>
