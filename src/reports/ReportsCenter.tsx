@@ -18,6 +18,8 @@ import type { ApiPayment } from '../payments/types';
 import type { Role } from '../demo/model';
 import { roleLabels } from '../demo/model';
 import { toKurus } from '../payments/money';
+import { paymentTotalsForReport } from './finance-scope';
+import { safeCsvCell } from './author-performance';
 import { fetchCompensationSummary } from '../compensation/api';
 import type { CompensationSummary } from '../compensation/types';
 import { AuthorComparisonPanel } from './AuthorComparisonPanel';
@@ -72,11 +74,6 @@ const taskStatusMeta = [
   { key: 'Tamamlandi', label: 'Tamamlanan' },
   { key: 'Gecikti', label: 'Geciken' }
 ] as const;
-
-function csvCell(value: string | number) {
-  const text = String(value ?? '');
-  return `"${text.replaceAll('"', '""')}"`;
-}
 
 export function ReportsCenter({
   projects,
@@ -185,12 +182,6 @@ export function ReportsCenter({
     return true;
   }), [authors, canSeeAuthors, selectedProjectAuthorIds, branchFilter, gradeFilter]);
 
-  const filteredPayments = useMemo(() => payments.filter(payment => {
-    if (!canSeeFinance) return false;
-    if (!hasProjectScopedFilter) return true;
-    return payment.project?.id ? filteredProjectIds.has(payment.project.id) : false;
-  }), [payments, canSeeFinance, hasProjectScopedFilter, filteredProjectIds]);
-
   const activeProjects = filteredProjects.filter(project => !['Tamamlandi', 'Arsiv'].includes(project.status));
   const averageProgress = filteredProjects.length
     ? Math.round(filteredProjects.reduce((sum, project) => sum + project.progress, 0) / filteredProjects.length)
@@ -223,11 +214,13 @@ export function ReportsCenter({
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
   }, [filteredAuthors]);
 
-  const financeTotals = useMemo(() => ({
-    pending: filteredPayments.filter(payment => payment.status === 'Bekliyor').reduce((sum, payment) => sum + toKurus(payment.amount), 0),
-    approved: filteredPayments.filter(payment => payment.status === 'Onaylandi').reduce((sum, payment) => sum + toKurus(payment.amount), 0),
-    paid: filteredPayments.filter(payment => payment.status === 'Odendi').reduce((sum, payment) => sum + toKurus(payment.amount), 0)
-  }), [filteredPayments]);
+  const financeTotals = useMemo(
+    () => paymentTotalsForReport(
+      canSeeFinance ? payments : [],
+      hasProjectScopedFilter ? filteredProjectIds : null
+    ),
+    [payments, canSeeFinance, hasProjectScopedFilter, filteredProjectIds]
+  );
 
   const exportCsv = () => {
     const header = ['Proje Kodu', 'Proje', 'Branş', 'Kademe/Sınıf', 'İlerleme %', 'Yazar', 'Soru', 'Onaylı Soru', 'Görev', 'Geciken Görev', 'Son Teslim', 'Durum'];
@@ -245,7 +238,7 @@ export function ReportsCenter({
       shortDate(project.deadline),
       project.status
     ]);
-    const csv = '\uFEFF' + [header, ...rows].map(row => row.map(csvCell).join(';')).join('\n');
+    const csv = '\uFEFF' + [header, ...rows].map(row => row.map(safeCsvCell).join(';')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -296,7 +289,7 @@ export function ReportsCenter({
           </label>
           <div className="reports-filter-actions">
             <button className="secondary-button" onClick={resetFilters}>Filtreleri Temizle</button>
-            <button className="secondary-button" onClick={exportCsv}><Download size={15}/> CSV</button>
+            <button className="secondary-button" onClick={exportCsv}><Download size={15}/> Proje CSV</button>
             <button className="primary-button" onClick={() => window.print()}><Printer size={15}/> Yazdır / PDF</button>
           </div>
         </div>
@@ -395,7 +388,7 @@ export function ReportsCenter({
             <div><span>Ödenen</span><strong>{money(financeTotals.paid)}</strong></div>
             <div className="total"><span>Toplam ödeme kaydı</span><strong>{money(financeTotals.pending + financeTotals.approved + financeTotals.paid)}</strong></div>
           </div>}
-          <p className="reports-finance-note">Tahakkuk ve ödeme kayıtları farklı aşamalardır; toplamları birbirine eklenmez. Proje/branş/sınıf filtrelerinde genel havuza bağlı olmayan kayıtlar kapsam dışındadır.</p>
+          <p className="reports-finance-note">Tahakkuk ve ödeme kayıtları farklı aşamalardır; toplamları birbirine eklenmez. Proje/branş/sınıf filtrelerinde ödeme döneminin tamamı değil, yalnızca eşleşen proje hakedişleri esas alınır. Genel havuz kayıtları bu filtrelere dahil değildir.</p>
 
         </section>}
       </div>
