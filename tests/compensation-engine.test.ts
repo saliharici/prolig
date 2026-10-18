@@ -139,6 +139,31 @@ describe('compensation calculation engine', () => {
     expect(entries).toHaveLength(0);
   });
 
+  it('does not generate duplicate author/editor earnings or overwrite unit-price snapshots for the same question', async () => {
+    const { tx, entries, logs } = buildTx({
+      defaultRules: {
+        QUESTION_AUTHOR: { id: 1, unitPrice: decimal('100.00') },
+        QUESTION_EDITOR: { id: 2, unitPrice: decimal('25.00') }
+      }
+    });
+    const question = { id: 72, authorUserId: 7, projectId: 3 };
+    const reviewer = { id: 9, role: { code: 'EDITOR' } };
+    const first = await accrueQuestionApproval(tx, question, reviewer, new Date('2026-10-10T12:00:00Z'));
+    expect(first.every(result => result.created)).toBe(true);
+    expect(entries.map(entry => entry.sourceKey)).toEqual(['QUESTION_AUTHOR:72', 'QUESTION_EDITOR:72']);
+    const amounts = entries.map(entry => entry.amount.toFixed(2));
+    const originalAuditCount = logs.length;
+    // A new tariff or a retried approval may not change historical earnings.
+    tx.compensationRule.findFirst.mockImplementation(async ({ where }: any) => ({
+      id: 100, unitPrice: decimal(where.earningType === 'QUESTION_AUTHOR' ? '900.00' : '300.00')
+    }));
+    const repeated = await accrueQuestionApproval(tx, question, reviewer, new Date('2026-10-11T12:00:00Z'));
+    expect(repeated.every(result => !result.created)).toBe(true);
+    expect(entries).toHaveLength(2);
+    expect(entries.map(entry => entry.amount.toFixed(2))).toEqual(amounts);
+    expect(logs).toHaveLength(originalAuditCount);
+  });
+
   it('records a missing-rate audit instead of inventing a fee', async () => {
     const { tx, entries, logs } = buildTx();
 
