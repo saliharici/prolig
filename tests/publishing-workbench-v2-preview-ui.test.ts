@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import type { ApiQuestion } from '../src/questions/types';
 import {
   flattenSingleChapter, frozenBookQuestions, listBookDrafts, loadBookDraft,
-  prepareBookSave, publishingV2PreviewEnabled, PublishingApiError, saveBookDraft,
+  prepareBookSave, publishingV2PreviewEnabled, saveBookDraft,
   type SavedBook
 } from '../src/publishing/book-persistence-client';
 
@@ -134,7 +134,10 @@ describe('V2 persistence client gate and immutable preview', () => {
       .rejects.toMatchObject({ status: 409, name: 'PublishingApiError' });
     expect(panel).toContain('if (busyRef.current) return');
     expect(panel).toContain('const payload = prepareBookSave(view, questions, activeBook)');
-    expect(panel).toContain('const reopened = await loadBookDraft(result.id)');
+    expect(panel).toContain('reopened = await loadBookDraft(result.id)');
+    expect(panel).toContain('setCommittedPendingId(result.id)');
+    expect(panel).toContain('if (busyRef.current || committedPendingId !== null) return');
+    expect(panel).toContain('Kaydı Geri Getir');
     expect(panel).toContain('onOpen(reopened)');
     expect(panel).not.toContain('window.localStorage');
   });
