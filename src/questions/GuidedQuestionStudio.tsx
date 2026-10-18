@@ -81,6 +81,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
       <div className="p2-stage"><div className="p2-stage-heading"><div><small>AŞAMA {step} / 5</small><h3 ref={heading} tabIndex={-1}>{steps[step - 1]}</h3></div>{step < 5 && <button type="button" className="secondary-button" aria-expanded={preview} onClick={() => setPreview(x => !x)}>{preview ? 'Önizlemeyi gizle' : 'Önizlemeyi aç'}</button>}</div>
         {step === 1 && <>
           <label>Soru türü<select value={type} disabled={editing} onChange={e => changeType(e.target.value as QuestionType)}>{Object.entries(questionTypeLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+          {sandbox && type !== 'MULTIPLE_CHOICE' && <p className="p2-notice" role="status">Bu soru türünü beş aşamada önizleyebilirsiniz. Korumalı sandbox kayıt modunda yalnızca dört seçenekli çoktan seçmeli sorular kaydedilebilir.</p>}
           {editing && <p className="field-help">Kaydedilmiş sorunun türü ve seçenek sayısı sabittir. Farklı tür için yeni taslak açın.</p>}
           <div className="p2-field-grid">
             <label>Proje<select value={v.projectId ?? ''} disabled={projectsLoading} onChange={e => onProject(e.target.value)}><option value="">Genel Soru Havuzu</option>{editing && originalProjectId !== null && !projects.some(p => p.id === originalProjectId) && <option value={originalProjectId} disabled>Mevcut proje erişim kapsamında değil</option>}{projects.map(p => <option key={p.id} value={p.id}>{p.code} · {p.title}</option>)}</select></label>
@@ -89,15 +90,15 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
             <label>Sınıf<select value={v.grade} disabled={v.projectId !== null} onChange={e => onGrade(e.target.value)}>{grades.map(x => <option key={x}>{x}</option>)}</select></label>
             <label>Kazanım kodu<input maxLength={sandbox ? 90 : 100} value={v.objectiveCode || ''} onChange={e => change({ objectiveCode: e.target.value })} /></label>
             <label>Zorluk düzeyi<select value={v.difficulty || ''} onChange={e => change({ difficulty: e.target.value })}><option value="">Belirtilmedi</option>{['Kolay', 'Orta', 'Zor'].map(x => <option key={x}>{x}</option>)}{v.difficulty && !['Kolay', 'Orta', 'Zor'].includes(v.difficulty) && <option>{v.difficulty}</option>}</select></label>
-            {type === 'MULTIPLE_CHOICE' && <label>Seçenek sayısı<select value={count} disabled={editing} onChange={e => {
+            {type === 'MULTIPLE_CHOICE' && <label>Seçenek sayısı<select value={count} disabled={editing || sandbox} onChange={e => {
               const next = Number(e.target.value);
               if (next < count && v.options[4]?.trim() && !window.confirm('E seçeneği yerel taslakta korunacak; dört seçenekli kayda dahil edilmeyecek. Devam edilsin mi?')) return;
               change({ optionCount: next, options: Array.from({ length: Math.max(next, v.options.length) }, (_, i) => v.options[i] || '') });
-            }}><option value={4}>4 seçenek · A–D</option><option value={5} disabled={!allowsFiveOptions(v.grade)}>5 seçenek · A–E (Lise / Mezun)</option></select></label>}
+            }}><option value={4}>4 seçenek · A–D</option>{!sandbox && <option value={5} disabled={!allowsFiveOptions(v.grade)}>5 seçenek · A–E (Lise / Mezun)</option>}</select></label>}
           </div>
           {v.projectId !== null && <p className="field-help">Sınıf seçilen projenin hedef sınıfına kilitlidir.</p>}
           {projectsError && <p role="alert">Atanmış projeler yüklenemedi: {projectsError}</p>}
-          {sandbox && <p className="p2-notice">Yerel sandbox: yalnızca PILOT-MAT-8-001 projesi kabul edilir. Yeni kayda P2-UAT sahiplik işareti eklenir; kayıtlı işareti koruyun.</p>}
+          {sandbox && <p className="p2-notice">Korumalı sandbox kaydı: yalnızca PILOT-MAT-8-001 projesinde dört seçenekli çoktan seçmeli sorular. P2-UAT işareti korunur; diğer soru türleri şimdilik salt okunur önizlemededir.</p>}
         </>}
         {step === 2 && <>{editor('content', 'Soru kökü', 1200)}{media('STEM')}</>}
         {step === 3 && <>

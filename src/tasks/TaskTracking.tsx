@@ -132,6 +132,8 @@ export function TaskTracking({
     });
   }, [tasks, quickFilter, query, currentUser.id]);
 
+  const previewApiUnavailable = error.includes('API not available in isolated P1-D browser preview');
+
   const summary = useMemo(() => ({
     open: tasks.filter(task => task.status !== 'Tamamlandi').length,
     review: tasks.filter(task => task.status === 'Kontrol_Bekliyor').length,
@@ -179,19 +181,19 @@ export function TaskTracking({
         <p>Proje işlerini, sorumluları ve termin durumlarını gerçek görev kayıtları üzerinden yönetin.</p>
       </div>
       <div className="page-heading-actions">
-        <span className="heading-chip"><ClipboardList size={16}/> {tasks.length} görev</span>
+        <span className="heading-chip"><ClipboardList size={16}/> {loading || error ? '—' : tasks.length} görev</span>
         {canCreate && <button className="primary-button" onClick={openNew}><Plus size={16}/> Yeni Görev</button>}
       </div>
     </div>
 
-    <div className="task-summary-grid">
+    {!loading && !error && <div className="task-summary-grid">
       <div className="panel task-summary-card"><span><CircleDashed size={17}/></span><div><strong>{summary.open}</strong><small>Açık Görev</small></div></div>
       <div className="panel task-summary-card"><span><Clock3 size={17}/></span><div><strong>{summary.review}</strong><small>Kontrol Bekleyen</small></div></div>
       <div className="panel task-summary-card overdue"><span><AlertTriangle size={17}/></span><div><strong>{summary.overdue}</strong><small>Geciken</small></div></div>
       <div className="panel task-summary-card"><span><CheckCircle2 size={17}/></span><div><strong>{summary.done}</strong><small>Tamamlanan</small></div></div>
-    </div>
+    </div>}
 
-    <div className="task-toolbar">
+    {!loading && !error && <div className="task-toolbar">
       <div className="search-box"><Search size={17}/><input aria-label="Görevlerde ara" placeholder="Görev, proje veya kişi ara..." value={query} onChange={event=>setQuery(event.target.value)}/></div>
       <select aria-label="Görev proje filtresi" value={projectFilter ?? ''} onChange={event=>setProject(event.target.value)}>
         <option value="">Tüm projeler</option>
@@ -209,12 +211,19 @@ export function TaskTracking({
         <button className={view==='kanban'?'active':''} onClick={()=>setView('kanban')} title="Kanban"><Columns3 size={15}/></button>
         <button className={view==='list'?'active':''} onClick={()=>setView('list')} title="Liste"><List size={15}/></button>
       </div>
-    </div>
+    </div>}
 
     {loading && <div className="panel empty-state">Görevler yükleniyor...</div>}
-    {error && !loading && <div className="panel task-error-state"><span>{error}</span><button className="secondary-button" onClick={()=>void load()}><RotateCcw size={14}/> Tekrar Dene</button></div>}
+    {error && !loading && (previewApiUnavailable
+      ? <section className="panel corporate-task-preview-note" role="status">
+          <div className="corporate-task-preview-symbol"><ClipboardList size={24} aria-hidden="true" /></div>
+          <div><span className="corporate-task-preview-label">SALT OKUNUR ÖNİZLEME</span><h2>Görev kayıtları bu ortamda görüntülenemiyor</h2><p>İzole P1-D önizlemesinde Görev Takibi API erişimi kapalıdır. Bu, görev sayısının sıfır olduğu anlamına gelmez. Gerçek kayıtları yetkili çalışma ortamında inceleyebilirsiniz.</p></div>
+        </section>
+      : <div className="panel task-error-state" role="alert"><span>{error}</span><button className="secondary-button" onClick={()=>void load()}><RotateCcw size={14}/> Tekrar Dene</button></div>)}
 
-    {!loading && !error && view === 'kanban' && <div className="task-kanban">
+    {!loading && !error && tasks.length === 0 && <section className="panel corporate-task-empty"><ClipboardList size={27} aria-hidden="true" /><h2>Henüz görev kaydı bulunmuyor</h2><p>{canCreate ? 'Bu çalışma alanında ilk görev oluşturulduğunda iş akışı burada görünecek.' : 'Size görev atandığında, sorumluluklarınız ve teslim tarihleri burada listelenecek.'}</p>{canCreate && <button className="primary-button" onClick={openNew}><Plus size={15}/> İlk görevi oluştur</button>}</section>}
+
+    {!loading && !error && tasks.length > 0 && view === 'kanban' && <div className="task-kanban">
       {statusColumns.map(column=>{
         const columnTasks=visibleTasks.filter(task=>workflowColumn(task.status)===column.status);
         return <section key={column.status} className="task-kanban-column">
@@ -227,7 +236,7 @@ export function TaskTracking({
       })}
     </div>}
 
-    {!loading && !error && view === 'list' && <div className="panel table-panel task-list-panel">
+    {!loading && !error && tasks.length > 0 && view === 'list' && <div className="panel table-panel task-list-panel">
       <div className="table-wrap"><table><thead><tr><th>GÖREV</th><th>PROJE</th><th>SORUMLU</th><th>ÖNCELİK</th><th>TERMİN</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>
         {visibleTasks.map(task=><tr key={task.id} className={task.isOverdue?'task-overdue-row':''}>
           <td><strong>{task.title}</strong>{task.description&&<small className="task-table-note">{task.description}</small>}</td>

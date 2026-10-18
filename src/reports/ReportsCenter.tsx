@@ -90,7 +90,7 @@ export function ReportsCenter({
   userId,
   tasksLoading,
   tasksError,
-  authorsError
+  authorsError,
 }: ReportsCenterProps) {
   const [projectFilter, setProjectFilter] = useState<FilterValue>('all');
   const [branchFilter, setBranchFilter] = useState<FilterValue>('all');
@@ -103,6 +103,7 @@ export function ReportsCenter({
   const canSeeTasks = role !== 'MUHASEBE';
   const canSeeAuthors = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(role);
   const canSeeFinance = ['GENEL_KOORDINATOR', 'MUHASEBE'].includes(role);
+  const tasksUnavailable = canSeeTasks && (tasksLoading || Boolean(tasksError));
 
   const branches = useMemo(
     () => [...new Set(projects.map(project => project.branch.name))].sort((a, b) => a.localeCompare(b, 'tr-TR')),
@@ -239,8 +240,8 @@ export function ReportsCenter({
       project.authors.length,
       project.questionCount,
       project.approvedQuestionCount,
-      project.taskCountActual,
-      project.overdueTaskCount,
+      tasksUnavailable ? '' : project.taskCountActual,
+      tasksUnavailable ? '' : project.overdueTaskCount,
       shortDate(project.deadline),
       project.status
     ]);
@@ -301,29 +302,32 @@ export function ReportsCenter({
         </div>
       </section>
 
+      {canSeeTasks && tasksError && <div className="reports-data-notice" role="status"><ClipboardList size={19} aria-hidden="true"/><div><strong>Görev verileri bu ortamda görüntülenemiyor.</strong><p>Görev sayılarını sıfır kabul etmiyoruz. Görevle ilgili alanlar “—” olarak gösterilir; proje ve soru raporları kullanılabilir.</p></div></div>}
+      {canSeeFinance && paymentsError && <div className="reports-data-notice" role="status"><Wallet size={19} aria-hidden="true"/><div><strong>Telif verileri şu anda alınamadı.</strong><p>Finans özetleri erişim sağlanana kadar görüntülenmez. Bu durum, bakiyenin sıfır olduğunu göstermez.</p></div></div>}
+
       <div className="reports-kpi-grid">
         <article className="panel report-kpi"><span className="report-kpi-icon teal"><BookOpen size={18}/></span><div><small>AKTİF PROJE</small><strong>{activeProjects.length}</strong><span>{filteredProjects.length} proje kapsamda</span></div></article>
         {canSeeAuthors && <article className="panel report-kpi"><span className="report-kpi-icon blue"><Users size={18}/></span><div><small>YAZAR</small><strong>{authorsError ? '—' : filteredAuthors.length}</strong><span>{authorsError ? 'Yazar verisi erişilemedi' : 'yetki kapsamındaki yazar'}</span></div></article>}
         {canSeeContent && <article className="panel report-kpi"><span className="report-kpi-icon purple"><FileQuestion size={18}/></span><div><small>SORU ÜRETİMİ</small><strong>{filteredQuestions.length}</strong><span>{filteredQuestions.filter(question => question.status === 'ONAYLANDI').length} onaylandı</span></div></article>}
-        {canSeeTasks && <article className="panel report-kpi"><span className="report-kpi-icon amber"><ClipboardList size={18}/></span><div><small>TAMAMLANAN GÖREV</small><strong>{tasksLoading ? '…' : completedTasks}</strong><span>{tasksError ? 'Görev verisi erişilemedi' : `%${completedTaskRate} tamamlanma`}</span></div></article>}
+        {canSeeTasks && <article className="panel report-kpi"><span className="report-kpi-icon amber"><ClipboardList size={18}/></span><div><small>TAMAMLANAN GÖREV</small><strong>{tasksUnavailable ? (tasksLoading && !tasksError ? '…' : '—') : completedTasks}</strong><span>{tasksError ? 'Görev verisi erişilemedi' : tasksLoading ? 'Veriler yükleniyor' : `%${completedTaskRate} tamamlanma`}</span></div></article>}
         <article className="panel report-kpi"><span className="report-kpi-icon green"><CheckCircle2 size={18}/></span><div><small>GENEL İLERLEME</small><strong>%{averageProgress}</strong><span>proje ilerleme ortalaması</span></div></article>
       </div>
 
       <div className="reports-main-grid">
         {canSeeContent && <section className="panel report-chart-card">
           <div className="panel-head"><div><span className="panel-kicker">İÇERİK ÜRETİMİ</span><h2>Soru durumları</h2></div><span>{filteredQuestions.length} soru</span></div>
-          <div className="report-bars">
+          {filteredQuestions.length === 0 ? <div className="reports-state-empty"><FileQuestion size={23} aria-hidden="true"/><strong>Bu kapsamda henüz soru kaydı yok</strong><p>İlk soru oluşturulduğunda durum dağılımı burada görüntülenir.</p></div> : <div className="report-bars">
             {questionStatusMeta.map(item => {
               const count = filteredQuestions.filter(question => question.status === item.key).length;
               const pct = filteredQuestions.length ? Math.round((count / filteredQuestions.length) * 100) : 0;
               return <div className="report-bar-row" key={item.key}><span>{item.label}</span><i><b style={{width: `${pct}%`}} /></i><strong>{count}</strong><small>%{pct}</small></div>;
             })}
-          </div>
+          </div>}
         </section>}
 
         {canSeeTasks && <section className="panel report-chart-card">
-          <div className="panel-head"><div><span className="panel-kicker">GÖREV PERFORMANSI</span><h2>Görev durumları</h2></div><span>{tasksLoading ? 'Yükleniyor' : `${filteredTasks.length} görev`}</span></div>
-          {tasksError ? <div className="reports-inline-error">{tasksError}</div> : <div className="report-bars task-report-bars">
+          <div className="panel-head"><div><span className="panel-kicker">GÖREV PERFORMANSI</span><h2>Görev durumları</h2></div><span>{tasksLoading && !tasksError ? 'Yükleniyor' : tasksError ? 'Veri alınamadı' : `${filteredTasks.length} görev`}</span></div>
+          {tasksError ? <div className="reports-state-empty" role="status"><ClipboardList size={23} aria-hidden="true"/><strong>Görev durumu erişilemiyor</strong><p>Bu önizlemede görev API erişimi kapalı olabilir. Sayılar sıfır olarak yorumlanmamalıdır.</p></div> : tasksLoading ? <div className="reports-state-empty">Görev verileri yükleniyor...</div> : filteredTasks.length === 0 ? <div className="reports-state-empty"><ClipboardList size={23} aria-hidden="true"/><strong>Henüz görev kaydı yok</strong><p>Görevler oluşturulduğunda durum dağılımı burada görünecek.</p></div> : <div className="report-bars task-report-bars">
             {taskStatusMeta.map(item => {
               const count = item.key === 'Gecikti'
                 ? filteredTasks.filter(task => task.status !== 'Tamamlandi' && (task.status === 'Gecikti' || task.isOverdue)).length
@@ -348,7 +352,7 @@ export function ReportsCenter({
                 <div><strong>{project.title}</strong><small>{project.branch.name} · {project.targetGrade}</small></div>
               </div>
               <div className="report-project-progress"><span><b style={{width: `${project.progress}%`}} /></span><strong>%{project.progress}</strong></div>
-              <div className="report-project-metrics"><span><strong>{project.authors.length}</strong><small>Yazar</small></span><span><strong>{project.questionCount}</strong><small>Soru</small></span><span><strong>{project.taskCountActual}</strong><small>Görev</small></span></div>
+              <div className="report-project-metrics"><span><strong>{project.authors.length}</strong><small>Yazar</small></span><span><strong>{project.questionCount}</strong><small>Soru</small></span><span><strong>{tasksUnavailable ? '—' : project.taskCountActual}</strong><small>Görev</small></span></div>
               <div className={`report-project-deadline ${late ? 'late' : ''}`}><strong>{shortDate(project.deadline)}</strong><small>{project.status === 'Tamamlandi' ? 'Tamamlandı' : late ? `${Math.abs(daysLeft)} gün gecikti` : `${daysLeft} gün kaldı`}</small></div>
             </article>;
           })}
@@ -392,6 +396,7 @@ export function ReportsCenter({
             <div className="total"><span>Toplam ödeme kaydı</span><strong>{money(financeTotals.pending + financeTotals.approved + financeTotals.paid)}</strong></div>
           </div>}
           <p className="reports-finance-note">Tahakkuk ve ödeme kayıtları farklı aşamalardır; toplamları birbirine eklenmez. Proje/branş/sınıf filtrelerinde genel havuza bağlı olmayan kayıtlar kapsam dışındadır.</p>
+
         </section>}
       </div>
     </div>
