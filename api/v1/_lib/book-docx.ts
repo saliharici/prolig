@@ -66,6 +66,17 @@ function blocksToXml(blocks: StudioBlock[]): string {
 function contentXml(value: string): string {
   return blocksToXml(parseStudioBlocks(value));
 }
+function optionXml(value: string, index: number): string {
+  const label = String.fromCharCode(65 + index) + ') ';
+  const blocks = parseStudioBlocks(value);
+  // Keep the option label in the same editable paragraph as its first text run.
+  if (blocks[0]?.kind === 'paragraph') {
+    const [first, ...rest] = blocks;
+    return paragraphRuns([{ kind: 'text', text: label }, ...first.children]) + blocksToXml(rest);
+  }
+  // Tables cannot share a paragraph with text; retain the label before the table.
+  return p(label) + blocksToXml(blocks);
+}
 function pageBreak(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
 
 function validate(book: DocxBook): void {
@@ -129,7 +140,7 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
       body.push(contentXml(question.content));
       if (question.questionType === 'MULTIPLE_CHOICE') {
         question.options.forEach((option, idx) => {
-          body.push(p(String.fromCharCode(65 + idx) + ') ') + contentXml(option));
+          body.push(optionXml(option, idx));
         });
         answerRows.push(String(count) + '. ' + question.correctAnswer);
       } else if (question.questionType === 'TRUE_FALSE') {
