@@ -74,6 +74,26 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     expect(xml).not.toContain('x = 4'); // Model answer stays out of student copy
   });
 
+  it('keeps styled option labels and text together in one Word paragraph', () => {
+    const testBook = book();
+    testBook.chapters[0].questions[0].snapshot.options = [
+      '**Kalın** seçenek', '*İtalik* seçenek', '<u>Altı çizili</u> seçenek', 'Düz seçenek'
+    ];
+    const xml = unzipStored(exportBookDocx(testBook, true)).get('word/document.xml')!;
+    for (const [label, value] of [['A) ', 'Kalın'], ['B) ', 'İtalik'], ['C) ', 'Altı çizili'], ['D) ', 'Düz']]) {
+      const prefix = '<w:t xml:space="preserve">' + label + '</w:t>';
+      const start = xml.indexOf(prefix);
+      expect(start).toBeGreaterThan(0);
+      const end = xml.indexOf('</w:p>', start);
+      expect(xml.slice(start, end)).toContain(value);
+    }
+    expect(xml).toContain('<w:b/>');
+    expect(xml).toContain('<w:i/>');
+    expect(xml).toContain('1. C');
+    expect(xml.indexOf('1. C')).toBeLessThan(xml.indexOf('2. x = 4'));
+    expect(xml.indexOf('2. x = 4')).toBeLessThan(xml.indexOf('3. Yanlış'));
+  });
+
   it('keeps the answer key in the answer-key edition only', () => {
     const answerDocument = unzipStored(exportBookDocx(book(), true)).get('word/document.xml')!;
     const studentDocument = unzipStored(exportBookDocx(book(), false)).get('word/document.xml')!;
