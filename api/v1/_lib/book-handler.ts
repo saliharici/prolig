@@ -10,13 +10,27 @@ import {
 export type BookAction = 'books' | 'book' | 'bookDocx';
 
 /**
- * Explicitly disabled for Production, even if an env flag is accidentally set.
- * Staging must use a dedicated *named* non-production database.
- * NODE_ENV=test only enables mocked, isolated test execution.
+ * Fail-closed release gate. Preview remains isolated. Production requires
+ * separately configured approval plus an exact database host/name match.
+ * Enabling this gate does not run migrations or create database objects.
  */
 export function bookApiPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  if (env.VERCEL_ENV === 'production') return false;
   if (env.PROLIG_BOOKS_V2_ENABLED !== 'true') return false;
+  if (env.VERCEL_ENV === 'production') {
+    if (env.PROLIG_BOOKS_V2_PRODUCTION_ENABLED !== 'true' ||
+        env.PROLIG_BOOKS_V2_RELEASE_APPROVED !== 'true') return false;
+    try {
+      const db = new URL(env.DATABASE_URL || '');
+      const expectedHost = env.PROLIG_BOOKS_V2_PRODUCTION_DB_HOST;
+      const expectedName = env.PROLIG_BOOKS_V2_PRODUCTION_DB_NAME;
+      return db.protocol === 'postgresql:' &&
+        typeof expectedHost === 'string' && expectedHost.length > 0 &&
+        typeof expectedName === 'string' && expectedName.length > 0 &&
+        db.hostname === expectedHost &&
+        db.pathname === '/' + expectedName &&
+        db.hostname.endsWith('.neon.tech');
+    } catch { return false; }
+  }
   if (env.NODE_ENV === 'test') return true;
   if (env.VERCEL_ENV !== 'preview') return false;
   try {
