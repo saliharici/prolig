@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import type { ApiQuestion } from '../src/questions/types';
 import {
   flattenSingleChapter, frozenBookQuestions, listBookDrafts, loadBookDraft,
-  prepareBookSave, publishingV2PreviewEnabled, saveBookDraft,
+  formatQuestionOrder, prepareBookSave, publishingV2PreviewEnabled, sameQuestionOrder, saveBookDraft,
   type SavedBook
 } from '../src/publishing/book-persistence-client';
 
@@ -101,6 +101,32 @@ describe('V2 persistence client gate and immutable preview', () => {
     expect(() => prepareBookSave({ ...view, selectedIds: [2, 2] }, [source(1), source(2)], null))
       .toThrow('benzersiz');
     expect(() => prepareBookSave(view, [source(1), source(2)], saved({ status: 'Basıldı' }))).toThrow('Yayınlanmış');
+  });
+
+  it('detects a saved revision with the wrong order and never treats it as an order PASS', () => {
+    // Reproduces V2 UAT #1: user saw 77→79→78, but revision 3 persisted 77→78→79.
+    const intended = [77, 79, 78];
+    const persisted = [77, 78, 79];
+    expect(sameQuestionOrder(intended, persisted)).toBe(false);
+    expect(sameQuestionOrder(intended, [...intended])).toBe(true);
+    expect(sameQuestionOrder(intended, [77, 79])).toBe(false);
+    expect(formatQuestionOrder(intended)).toBe('#77 → #79 → #78');
+    expect(formatQuestionOrder(persisted)).toBe('#77 → #78 → #79');
+    expect(formatQuestionOrder([])).toBe('Henüz soru seçilmedi');
+    const book = saved({ chapters: [{
+      id: 44, title: 'Bir', sortOrder: 0,
+      questions: persisted.map((id, index) => ({
+        id: id + 100, questionId: id, sortOrder: index,
+        sourceQuestionUpdatedAt: '2026-10-17T12:00:00.000Z',
+        snapshot: { ...saved().chapters[0].questions[0].snapshot, sourceQuestionId: id }
+      }))
+    }] });
+    const returnedOrder = flattenSingleChapter(book).questionIds;
+    expect(returnedOrder).toEqual(persisted);
+    expect(sameQuestionOrder(intended, returnedOrder)).toBe(false);
+    expect(panel).toContain('if (!sameQuestionOrder(requestedOrder, storedOrder))');
+    expect(panel).toContain('Mevcut seçimler korundu');
+    expect(panel).toContain('setCommittedPendingId(result.id)');
   });
 
   it('uses authenticated no-cache GET, POST and revision-dependent PATCH', async () => {
