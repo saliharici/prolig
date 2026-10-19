@@ -58,6 +58,8 @@ describe('V2 persistence client gate and immutable preview', () => {
     expect(publishingV2PreviewEnabled({})).toBe(false);
     expect(publishingV2PreviewEnabled({ VITE_PUBLISHING_V2_PREVIEW: 'true' })).toBe(false);
     expect(publishingV2PreviewEnabled({ VITE_PUBLISHING_V2_PREVIEW: 'true', VITE_VERCEL_ENV: 'production' })).toBe(false);
+    expect(publishingV2PreviewEnabled({ VITE_PUBLISHING_V2_PRODUCTION_ENABLED: 'true', VITE_VERCEL_ENV: 'production' })).toBe(true);
+    expect(publishingV2PreviewEnabled({ VITE_PUBLISHING_V2_PRODUCTION_ENABLED: 'true', VITE_VERCEL_ENV: 'preview' })).toBe(false);
     expect(publishingV2PreviewEnabled({ VITE_PUBLISHING_V2_PREVIEW: 'true', VITE_VERCEL_ENV: 'preview' })).toBe(true);
     expect(screen).toContain('publishingPreview && <PublishingPersistencePanel');
     expect(screen).toContain('publishingV2PreviewEnabled(import.meta.env as unknown as');
