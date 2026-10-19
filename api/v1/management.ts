@@ -212,7 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    if (action === 'books' || action === 'book') {
+    if (action === 'books' || action === 'book' || action === 'bookDocx') {
       return handleBookAction(req, res, user, action);
     }
     if (action === 'tasks' || action === 'task') {

@@ -53,6 +53,10 @@
       "destination": "/api/v1/projects/[id]"
     },
     {
+      "source": "/api/v1/books/:id/docx",
+      "destination": "/api/v1/management?action=bookDocx&id=:id"
+    },
+    {
       "source": "/api/v1/books/:id",
       "destination": "/api/v1/management?action=book&id=:id"
     },

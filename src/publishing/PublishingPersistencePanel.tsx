@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BookOpen, RefreshCw, Save } from 'lucide-react';
+import { BookOpen, Download, RefreshCw, Save } from 'lucide-react';
 import type { ApiQuestion } from '../questions/types';
 import {
-  formatQuestionOrder, flattenSingleChapter, listBookDrafts, loadBookDraft,
+  fetchSavedBookDocx, formatQuestionOrder, flattenSingleChapter, listBookDrafts, loadBookDraft,
   prepareBookSave, PublishingApiError, sameQuestionOrder, saveBookDraft,
   type BookWorkbenchInput, type SavedBook, type SavedBookSummary
 } from './book-persistence-client';
@@ -122,6 +122,30 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
     }
   }
 
+  async function downloadWord(includeAnswers: boolean) {
+    if (busyRef.current || !activeBook || committedPendingId !== null) return;
+    busyRef.current = true; setBusy(true); setError(''); setNotice('');
+    try {
+      const file = await fetchSavedBookDocx(activeBook.id, includeAnswers);
+      const address = URL.createObjectURL(file);
+      try {
+        const link = document.createElement('a');
+        link.href = address;
+        link.download = 'prolig-kitap-' + activeBook.id + (includeAnswers ? '-cevapli' : '-ogrenci') + '.docx';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } finally {
+        URL.revokeObjectURL(address);
+      }
+      setNotice('Word taslağı hazırlandı. Nihai dizgi ve baskı kabulü yapılmamıştır.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Word belgesi oluşturulamadı.');
+    } finally {
+      busyRef.current = false; setBusy(false);
+    }
+  }
+
   function newDraft() {
     if (busyRef.current || committedPendingId !== null) return;
     if (view.selectedIds.length &&
@@ -147,8 +171,19 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
       <button type="button" className="secondary-button" disabled={busy || committedPendingId !== null} onClick={newDraft}>Yeni kitap taslağı</button>
       {committedPendingId !== null && <button type="button" className="secondary-button" disabled={busy}
         onClick={() => void recoverCommitted()}>Kayıtlı Sürümü İncele #{committedPendingId}</button>}
-      {activeBook && <span className="publishing-revision">#{activeBook.id} · Revizyon {activeBook.revision} · {activeBook.status}</span>}
+      {activeBook && <>
+        <button type="button" className="secondary-button"
+          disabled={busy || committedPendingId !== null || activeBook.layoutColumns !== 1}
+          title={activeBook.layoutColumns !== 1 ? 'Word V1 yalnız tek sütunlu kitapları destekler.' : 'Kayıtlı öğrenci nüshasını Word olarak al'}
+          onClick={() => void downloadWord(false)}><Download size={15}/> Öğrenci Word</button>
+        <button type="button" className="secondary-button"
+          disabled={busy || committedPendingId !== null || activeBook.layoutColumns !== 1}
+          title={activeBook.layoutColumns !== 1 ? 'Word V1 yalnız tek sütunlu kitapları destekler.' : 'Kayıtlı cevap anahtarlı nüshayı Word olarak al'}
+          onClick={() => void downloadWord(true)}><Download size={15}/> Cevap Anahtarlı Word</button>
+        <span className="publishing-revision">#{activeBook.id} · Revizyon {activeBook.revision} · {activeBook.status}</span>
+      </>}
     </div>
+    {activeBook && <p className="publishing-word-note" role="note">Word V1 yalnızca kayıtlı, tek sütunlu ve medya/matematik dizgisi gerektirmeyen kitapları destekler. Dosya, ekrandaki kaydedilmemiş değişiklikleri içermez.</p>}
     {listing && <p role="status">Kayıtlı kitaplar yükleniyor…</p>}
     {error && <p role="alert" className="publishing-error">{error}</p>}
     {notice && <p role="status" className="publishing-success">{notice}</p>}
