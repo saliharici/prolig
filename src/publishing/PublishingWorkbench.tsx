@@ -3,6 +3,8 @@ import { ArrowDown, ArrowUp, BookOpen, Check, FileDown, RefreshCw, RotateCcw } f
 import type { ApiQuestion, QuestionAssetPlacement } from '../questions/types';
 import { StudioMarkup } from '../questions/StudioDocumentPreview';
 import { approvedForPublishing, bookAnswer, bookMediaWarnings, moveBookQuestion, resolveBookOrder } from './book-assembly';
+import { PublishingPersistencePanel } from './PublishingPersistencePanel';
+import { flattenSingleChapter, frozenBookQuestions, publishingV2PreviewEnabled, type SavedBook } from './book-persistence-client';
 import './publishing.css';
 
 type Props = {
@@ -59,15 +61,44 @@ export function PublishingWorkbench({ questions, loading, error, onRefresh }: Pr
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [columns, setColumns] = useState<1 | 2>(1);
   const [withAnswerKey, setWithAnswerKey] = useState(false);
+  // Both environment markers are required: V1 remains fully read-only everywhere else.
+  const publishingPreview = publishingV2PreviewEnabled(import.meta.env as unknown as {
+    VITE_PUBLISHING_V2_PREVIEW?: string; VITE_VERCEL_ENV?: string;
+  });
+  const [activeBook, setActiveBook] = useState<SavedBook | null>(null);
+
+  function openSavedBook(book: SavedBook) {
+    const single = flattenSingleChapter(book);
+    setActiveBook(book);
+    setTitle(book.title);
+    setChapter(single.chapter);
+    setSelectedIds(single.questionIds);
+    setProjectFilter(String(book.projectId));
+    setColumns(book.layoutColumns === 2 ? 2 : 1);
+    setWithAnswerKey(false);
+    setSearch('');
+  }
+
+  function startNewBook() {
+    setActiveBook(null);
+    setTitle('Yeni Soru Kitabı');
+    setChapter('Bölüm 1 · Sorular');
+    setSelectedIds([]);
+    setProjectFilter('all');
+    setColumns(1);
+    setWithAnswerKey(false);
+    setSearch('');
+  }
 
   const eligible = useMemo(() => approvedForPublishing(questions), [questions]);
   const projectOptions = useMemo(() => {
     const options = new Map<number, string>();
+    if (activeBook?.project) options.set(activeBook.projectId, activeBook.project.code + ' · ' + activeBook.project.title);
     eligible.forEach(question => {
       if (question.projectId && question.project) options.set(question.projectId, question.project.code + ' · ' + question.project.title);
     });
     return [...options.entries()].sort((a, b) => a[1].localeCompare(b[1], 'tr-TR'));
-  }, [eligible]);
+  }, [eligible, activeBook]);
   const candidates = useMemo(() => eligible.filter(question => {
     if (projectFilter !== 'all' && question.projectId !== Number(projectFilter)) return false;
     const query = search.trim().toLocaleLowerCase('tr-TR');
@@ -75,7 +106,16 @@ export function PublishingWorkbench({ questions, loading, error, onRefresh }: Pr
     return (question.content + ' ' + (question.grade || '') + ' ' + (question.project?.code || '')).toLocaleLowerCase('tr-TR').includes(query);
   }), [eligible, projectFilter, search]);
 
-  const bookQuestions = useMemo(() => resolveBookOrder(eligible, selectedIds), [eligible, selectedIds]);
+  const bookQuestions = useMemo(() => {
+    // Newly selected questions use current approved sources. A reopened book
+    // displays its frozen snapshot even if the live question was later removed.
+    const live = resolveBookOrder(eligible, selectedIds);
+    if (!activeBook) return live;
+    const snapshots = new Map(frozenBookQuestions(activeBook).map(question => [question.id, question]));
+    const liveMap = new Map(live.map(question => [question.id, question]));
+    return selectedIds.map(id => snapshots.get(id) ?? liveMap.get(id))
+      .filter((question): question is ApiQuestion => question !== undefined);
+  }, [eligible, selectedIds, activeBook]);
   const warnings = useMemo(() => bookMediaWarnings(bookQuestions), [bookQuestions]);
   const printable = bookQuestions.length > 0 && title.trim().length > 0 && !error && !loading;
 
@@ -90,10 +130,22 @@ export function PublishingWorkbench({ questions, loading, error, onRefresh }: Pr
       <span className="heading-chip"><BookOpen size={16} /> Önizleme sürümü</span>
     </div>
     <p className="publishing-boundary" role="note">
-      Bu aşamada kitap ve soru seçimleri yalnızca bu tarayıcı oturumundadır; sunucuya kaydedilmez.
+      {publishingPreview
+        ? 'Kalıcı taslak kaydı yalnız izole V2 önizleme veritabanında açıktır; canlı Production kapalıdır.'
+        : 'Bu aşamada kitap ve soru seçimleri yalnızca bu tarayıcı oturumundadır; sunucuya kaydedilmez.'}
       PDF için Yazdır → PDF olarak kaydet seçeneğini kullanın. Gerçek Word (.docx), kalıcı kitap kayıtları,
       ISBN ve matbaa dizgisi henüz hazır değildir. Görsel ve formülleri baskıdan önce kontrol edin.
     </p>
+
+    {publishingPreview && <PublishingPersistencePanel
+      questions={questions}
+      loading={loading}
+      sourceError={error}
+      view={{ title, chapter, columns, projectFilter, selectedIds }}
+      activeBook={activeBook}
+      onOpen={openSavedBook}
+      onNew={startNewBook}
+    />}
 
     <div className="publishing-controls">
       <section className="panel publishing-settings" aria-label="Kitap düzeni">
@@ -113,7 +165,7 @@ export function PublishingWorkbench({ questions, loading, error, onRefresh }: Pr
         </div>
         <p>Yalnızca oturum yetkinizle erişilen, onaylanmış ve arşivlenmemiş sorular. Görünen liste, tüm sistem için eksiksiz soru sayımı değildir.</p>
         <div className="publishing-filters">
-          <label>Proje<select value={projectFilter} onChange={e => setProjectFilter(e.target.value)}>
+          <label>Proje<select value={projectFilter} disabled={publishingPreview && Boolean(activeBook)} onChange={e => setProjectFilter(e.target.value)}>
             <option value="all">Tüm erişilebilir projeler</option>
             {projectOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
           </select></label>

@@ -71,3 +71,19 @@ Bu dosya GitHub'a yazılmasıyla **Neon üzerinde çalışmaz**.
 - Bu dalda tarayıcıdan **Kalıcı Kaydet** düğmesi yoktur. Production'a açılacak API ve V1 ekranıyla bağlantı, yedekleme ve tenant kapsamı ancak ayrıca onaylanmış sonraki fazdır.
 
 **İzolasyonun sınırı:** Unit testler ve CI PostgreSQL, Production veri saklama/geri yükleme provası yerine geçmez. Ayrıca `Book.revision` yalnız mevcut taslak çakışmalarını çözer; geri yüklenebilir tüm edisyonların sürüm geçmişini henüz sağlamaz.
+
+
+## 7. V2 önizleme kullanıcı arayüzü: kaydet / kayıtlı kitaplar / yeniden aç
+
+Dal: `feat/publishing-workbench-v2-preview-ui-20261018` → V2 API geliştirme dalının üzerine kuruludur. Burada uygulanan arayüz hâlâ **PR taslağıdır, Production yayını yoktur**.
+
+- **İki bağımsız görünürlük şartı:** `VITE_PUBLISHING_V2_PREVIEW=true` ve `VITE_VERCEL_ENV=preview`. Bunlar yoksa V1 Yayın Hazırlık Atölyesi salt-okunur kalır. Bu Vite değişkenleri **yalnız tarayıcı arayüzünü** açar; sunucunun zorunlu `PROLIG_BOOKS_V2_ENABLED`, `VERCEL_ENV=preview`, ayrı `prolig_v2_uat` Neon hedefi kontrolleri bağımsızdır.
+- **Yeni kitap:** Kullanıcı tek bir proje seçer, kitap/bölüm başlığını ve sıralanmış 1–300 onaylı soruyu belirler; `Kitabı Kaydet` sunucuya sadece kitap alanları ve soru ID'lerini gönderir. Cevap anahtarı veya snapshot'lar istemciden gönderilemez.
+- **Kayıtlı Kitaplarım:** Oturum sahibinin kendi kitaplarını listeler. `Taslağı Düzenle` GET ile kayıtlı başlık, proje, sütun, sıralama ve kitap sürümünü yükler; kitap sahibi olmayan veya erişim bayrakları eksik istemciler için sunucu yanıtı reddedilir.
+- **Snapshot sadakati:** Önizleme, yeniden açılan kaydın dondurulmuş soru içeriklerini gösterir. Arşivlenmiş, değiştirilmiş veya silinmiş kaynak soru baskı önizlemesinden silinmez; ancak eski kitaba güvenli biçimde yeniden **kaydetmek engellenir**.
+- **Optimistic concurrency:** Mevcut `revision` ile PATCH çağrılır. 409 alınırsa ekranda açık hata gösterilir ve kullanıcının çalışması silinmez; otomatik tekrar yoktur.
+- **Sınırlama:** İlk atölye **yalnız bir bölüm** düzenleyebilir. Çok bölümlü kayıtlar 422 benzeri kullanıcı mesajıyla korumalı reddedilir; başka bölümleri sessizce silip kaydetmez. İleride bağımsız bölüm sıralama editörü geliştirilecektir.
+- **Erişim:** Menünün kendisi yalnız Genel Koordinatör rolündedir. Kaydetme API'si sunucu tarafında da ayrı oturum ve kapsam denetimi yapar.
+- **Kabul:** `tests/publishing-workbench-v2-preview-ui.test.ts`, V1 regresyonu, UI/API TypeScript, test derlemesi ve izole PostgreSQL kabulü. Gerçek Chrome/Edge kullanıcı önizlemesi ve tarayıcı belge çıktısı ayrıca kabul edilmelidir.
+
+**Kesin yayın engeli:** Birleştirme, Neon main migration, Production Vercel ayarları ve kalıcı Production kitap yazma hakkı için kullanıcıdan tekrar açık onay alınacak. Bu geliştirme, doktoraya ayrılan bağımsız ikinci sistemin ortam veya veritabanına kesinlikle dokunmaz.
