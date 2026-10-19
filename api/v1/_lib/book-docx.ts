@@ -99,7 +99,8 @@ function validate(book: DocxBook): void {
         throw new DocxExportError('Matematik veya bağlantı içeren soru için Word dönüştürme henüz desteklenmiyor.');
     }
     if (q.questionType === 'MULTIPLE_CHOICE') {
-      if (![4,5].includes(q.options.length) || !'ABCDE'.slice(0, q.options.length).includes(q.correctAnswer || ''))
+      if (![4,5].includes(q.options.length) || typeof q.correctAnswer !== 'string' ||
+          q.correctAnswer.length !== 1 || !'ABCDE'.slice(0, q.options.length).includes(q.correctAnswer))
         throw new DocxExportError('Çoktan seçmeli sorunun seçenek/cevap anahtarı eksik.');
     } else if (q.questionType === 'TRUE_FALSE') {
       if (typeof q.booleanAnswer !== 'boolean') throw new DocxExportError('Doğru/Yanlış cevabı eksik.');
