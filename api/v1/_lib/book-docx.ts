@@ -68,18 +68,26 @@ function contentXml(value: string): string {
 function pageBreak(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
 
 function validate(book: DocxBook): void {
-  if (!Number.isSafeInteger(book.id) || book.id < 1 || !book.title.trim() || book.title.length > 120)
+  if (!Number.isSafeInteger(book.id) || book.id < 1 || typeof book.title !== 'string' ||
+      !book.title.trim() || book.title.length > 120)
     throw new DocxExportError('Kitap başlığı veya kimliği geçersiz.');
   if (book.layoutColumns !== 1)
     throw new DocxExportError('İlk Word sürümünde yalnız tek sütun desteklenir. Kitap düzenini tek sütuna getirip kaydedin.');
   const chapters = book.chapters;
+  if (!Array.isArray(chapters) || chapters.some(c => !c || typeof c.title !== 'string' ||
+      !Array.isArray(c.questions) || !Number.isSafeInteger(c.sortOrder))) {
+    throw new DocxExportError('Kitap bölümlerinin kayıt biçimi geçersiz.');
+  }
   const items = chapters.flatMap(c => c.questions);
   if (!chapters.length || chapters.length > 30 || !items.length || items.length > 300)
     throw new DocxExportError('Word için 1–30 bölüm ve 1–300 soru gereklidir.');
   for (const item of items) {
     const q = item.snapshot;
-    if (q.schemaVersion !== 1 || !q.content.trim())
+    if (!q || q.schemaVersion !== 1 || typeof q.content !== 'string' || !q.content.trim() ||
+        !Array.isArray(q.assets) || !Array.isArray(q.options) ||
+        typeof q.questionType !== 'string') {
       throw new DocxExportError('Kaydedilmiş sorunun sürüm biçimi desteklenmiyor.');
+    }
     if (q.imageUrl || q.assets.length)
       throw new DocxExportError('Görsel veya medya içeren sorular bu Word sürümünde desteklenmiyor. Eksik çıktı verilmedi.');
     for (const value of [q.content, ...q.options, q.explanation ?? '', q.modelAnswer ?? '']) {
@@ -233,7 +241,12 @@ function packageZip(files: Array<[string, string]>): Buffer {
   return output;
 }
 
-export function exportBookDocx(book: DocxBook, includeAnswers: boolean): Buffer {
+export function exportBookDocx(value: unknown, includeAnswers: boolean): Buffer {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new DocxExportError('Kitap kaydı geçersiz.');
+  }
+  // Prisma JsonValue is intentionally validated at the DOCX boundary.
+  const book = value as DocxBook;
   validate(book);
   return packageZip([
     ['[Content_Types].xml', types],
