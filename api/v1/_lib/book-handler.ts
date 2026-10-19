@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from './prisma.js';
 import { formatQuestionDto } from './question-dto.js';
+import { DocxExportError, exportBookDocx } from './book-docx.js';
 import {
   BookDraftValidationError, canEditBookDraft, prepareBookDraft,
   type BookDraftInput, type PreparedBookDraft
 } from '../../../src/publishing/book-draft-contract.js';
 
-export type BookAction = 'books' | 'book';
+export type BookAction = 'books' | 'book' | 'bookDocx';
 
 /**
  * Explicitly disabled for Production, even if an env flag is accidentally set.
@@ -156,16 +157,35 @@ export async function handleBookAction(req: VercelRequest, res: VercelResponse, 
   if (!bookApiPreviewEnabled()) return res.status(404).json({ error: 'Not found' });
   if (!canEditBookDraft(user?.role?.code)) return res.status(403).json({ error: 'Forbidden' });
 
-  const isDetail = action === 'book';
+  const isDocx = action === 'bookDocx';
+  const isDetail = action === 'book' || isDocx;
   const id = isDetail ? positiveId(req.query.id) : null;
   if (isDetail && !id) return res.status(400).json({ error: 'Geçersiz kitap ID.' });
 
   if (!['GET', 'POST', 'PATCH'].includes(req.method || '') ||
+      (isDocx && req.method !== 'GET') ||
       (isDetail && req.method === 'POST') || (!isDetail && req.method === 'PATCH')) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    if (isDocx) {
+      // Export never accepts a caller-supplied snapshot: load owner-scoped
+      // immutable question content directly from the same read-only Book query.
+      const book = await prisma.book.findFirst({
+        where: { id: id!, createdByUserId: user.id }, include: bookInclude
+      });
+      if (!book) return res.status(404).json({ error: 'Kitap taslağı bulunamadı.' });
+      const answers = req.query.answers;
+      if (answers !== undefined && answers !== '0' && answers !== '1') {
+        return res.status(400).json({ error: 'Word çıktı türü geçersiz.' });
+      }
+      const buffer = exportBookDocx(book, answers === '1');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', 'attachment; filename="prolig-book-' + id + (answers === '1' ? '-cevapli' : '-ogrenci') + '.docx"');
+      res.setHeader('Content-Length', String(buffer.length));
+      return res.status(200).send(buffer);
+    }
     if (req.method === 'GET' && !isDetail) {
       const books = await prisma.book.findMany({
         where: { createdByUserId: user.id },
@@ -229,6 +249,7 @@ export async function handleBookAction(req: VercelRequest, res: VercelResponse, 
   } catch (error: any) {
     if (error instanceof BookApiError) return res.status(error.status).json({ error: error.message });
     if (error instanceof BookDraftValidationError) return res.status(400).json({ error: error.message });
+    if (error instanceof DocxExportError) return res.status(422).json({ error: error.message });
     if (['P2034', 'P2002', 'P2025'].includes(error?.code)) {
       return res.status(409).json({ error: 'Kitap veya soru başka bir işlemde değişti. Listeyi yenileyin.' });
     }
