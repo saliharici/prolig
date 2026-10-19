@@ -137,7 +137,11 @@ describe('V2 persistence client gate and immutable preview', () => {
     expect(panel).toContain('reopened = await loadBookDraft(result.id)');
     expect(panel).toContain('setCommittedPendingId(result.id)');
     expect(panel).toContain('if (busyRef.current || committedPendingId !== null) return');
-    expect(panel).toContain('Kaydı Geri Getir');
+    expect(panel).toContain('Kayıtlı Sürümü İncele');
+    expect(panel).toContain('sameQuestionOrder(requestedOrder, storedOrder)');
+    expect(panel).toContain('Kaydedilecek soru sırası');
+    expect(panel).toContain('setCommittedPendingId(result.id)');
+    expect(panel).toContain('Mevcut seçimler korundu');
     expect(panel).toContain('onOpen(reopened)');
     expect(panel).not.toContain('window.localStorage');
   });
