@@ -59,7 +59,8 @@ function blocksToXml(blocks: StudioBlock[]): string {
     const border = '<w:tblPr><w:tblBorders><w:bottom w:val="single" w:sz="4"/><w:top w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>';
     const header = '<w:tr>' + block.columns.map(x => cell(x, true)).join('') + '</w:tr>';
     const rows = block.rows.map(row => '<w:tr>' + row.map(x => cell(x)).join('') + '</w:tr>').join('');
-    return '<w:tbl>' + border + header + rows + '</w:tbl>';
+    const grid = '<w:tblGrid>' + block.columns.map(() => '<w:gridCol w:w="1800"/>').join('') + '</w:tblGrid>';
+    return '<w:tbl>' + border + grid + header + rows + '</w:tbl>';
   }).join('');
 }
 function contentXml(value: string): string {
@@ -211,6 +212,7 @@ function packageZip(files: Array<[string, string]>): Buffer {
     local.writeUInt16LE(20, 4);
     local.writeUInt16LE(0x0800, 6); // UTF-8 names
     local.writeUInt16LE(0, 8); // STORE
+    local.writeUInt16LE(0x21, 12); // 1980-01-01 (DOS ZIP date)
     local.writeUInt32LE(checksum, 14);
     local.writeUInt32LE(data.length, 18);
     local.writeUInt32LE(data.length, 22);
@@ -221,6 +223,7 @@ function packageZip(files: Array<[string, string]>): Buffer {
     central.writeUInt16LE(20, 4);
     central.writeUInt16LE(20, 6);
     central.writeUInt16LE(0x0800, 8);
+    central.writeUInt16LE(0x21, 14); // 1980-01-01
     central.writeUInt32LE(checksum, 16);
     central.writeUInt32LE(data.length, 20);
     central.writeUInt32LE(data.length, 24);
