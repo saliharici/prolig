@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, RefreshCw, Save } from 'lucide-react';
 import type { ApiQuestion } from '../questions/types';
 import {
-  listBookDrafts, loadBookDraft, prepareBookSave, PublishingApiError, saveBookDraft,
+  formatQuestionOrder, flattenSingleChapter, listBookDrafts, loadBookDraft,
+  prepareBookSave, PublishingApiError, sameQuestionOrder, saveBookDraft,
   type BookWorkbenchInput, type SavedBook, type SavedBookSummary
 } from './book-persistence-client';
 
@@ -82,9 +83,21 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
         setError('Kitap sunucuya kaydedildi (#' + result.id + '), ancak yeniden açma isteği başarısız. Tekrar Kaydet düğmesine basmayın; Kaydı Geri Getir seçeneğini kullanın.');
         return;
       }
+      const storedOrder = flattenSingleChapter(reopened).questionIds;
+      const requestedOrder = payload.chapters[0].questionIds;
+      if (!sameQuestionOrder(requestedOrder, storedOrder)) {
+        // Preserve the visible selection instead of silently replacing it
+        // with the wrong server order. The write already committed: no retry.
+        setError('Revizyon ' + result.revision + ' sunucuya kaydedildi, ancak soru sırası uyuşmuyor. '
+          + 'İstenen: ' + formatQuestionOrder(requestedOrder) + '. Kaydedilen: '
+          + formatQuestionOrder(storedOrder)
+          + '. Mevcut seçimler korundu. Yeniden Kaydet düğmesini kullanmayın; kayıtlı sürümü inceleyin.');
+        return;
+      }
       onOpen(reopened);
       setCommittedPendingId(null);
-      setNotice('Kitap taslağı kaydedildi. Güncel sürüm: ' + result.revision + '.');
+      setNotice('Kitap taslağı kaydedildi. Güncel sürüm: ' + result.revision
+        + '. Kaydedilen soru sırası doğrulandı: ' + formatQuestionOrder(storedOrder) + '.');
       await refreshRecords();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Kitap kaydedilemedi. Yeniden deneyin.');
@@ -124,12 +137,16 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
         onClick={() => void refreshRecords()}><RefreshCw size={15}/> Listeyi yenile</button>
     </div>
     <p className="publishing-panel-explanation">Bu alan yalnızca özel test önizlemesinde açılır. Kaydetme işlemleri sadece bu önizlemenin ayrı test veritabanında yapılabilir. Yayınlanmış kitaplar düzenlenemez.</p>
+    <p className="publishing-order-intent" role="status">Kaydedilecek soru sırası: <strong>{formatQuestionOrder(view.selectedIds)}</strong>
+      {activeBook && <span> · {sameQuestionOrder(view.selectedIds, flattenSingleChapter(activeBook).questionIds)
+        ? 'Kayıtlı sırayla aynı' : 'Kayıtlı sıradan farklı'}</span>}
+    </p>
     <div className="publishing-persistence-actions">
       <button type="button" className="primary-button" disabled={busy || listing || loading || Boolean(sourceError) || committedPendingId !== null}
         onClick={() => void save()}><Save size={16}/>{activeBook ? 'Değişiklikleri Kaydet' : 'Kitabı Kaydet'}</button>
       <button type="button" className="secondary-button" disabled={busy || committedPendingId !== null} onClick={newDraft}>Yeni kitap taslağı</button>
       {committedPendingId !== null && <button type="button" className="secondary-button" disabled={busy}
-        onClick={() => void recoverCommitted()}>Kaydı Geri Getir #{committedPendingId}</button>}
+        onClick={() => void recoverCommitted()}>Kayıtlı Sürümü İncele #{committedPendingId}</button>}
       {activeBook && <span className="publishing-revision">#{activeBook.id} · Revizyon {activeBook.revision} · {activeBook.status}</span>}
     </div>
     {listing && <p role="status">Kayıtlı kitaplar yükleniyor…</p>}
