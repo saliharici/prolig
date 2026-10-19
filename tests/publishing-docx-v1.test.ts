@@ -77,7 +77,7 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
   it('keeps styled option labels and text together in one Word paragraph', () => {
     const testBook = book();
     testBook.chapters[0].questions[0].snapshot.options = [
-      '**Kalın** seçenek', '*İtalik* seçenek', '<u>Altı çizili</u> seçenek', 'Düz seçenek'
+      '**Kalın** seçenek', '_İtalik_ seçenek', '<u>Altı çizili</u> seçenek', 'Düz seçenek'
     ];
     const xml = unzipStored(exportBookDocx(testBook, true)).get('word/document.xml')!;
     for (const [label, value] of [['A) ', 'Kalın'], ['B) ', 'İtalik'], ['C) ', 'Altı çizili'], ['D) ', 'Düz']]) {
