@@ -36,12 +36,17 @@ export class PublishingApiError extends Error {
   }
 }
 
-/** Exposing buttons does not grant server permission: the Book API independently denies Production. */
+/** UI visibility is not authorization: the server has its own release and role gates. */
 export function publishingV2PreviewEnabled(env: {
   VITE_PUBLISHING_V2_PREVIEW?: string;
+  VITE_PUBLISHING_V2_PRODUCTION_ENABLED?: string;
   VITE_VERCEL_ENV?: string;
 }): boolean {
-  return env.VITE_PUBLISHING_V2_PREVIEW === 'true' && env.VITE_VERCEL_ENV === 'preview';
+  if (env.VITE_VERCEL_ENV === 'preview')
+    return env.VITE_PUBLISHING_V2_PREVIEW === 'true';
+  if (env.VITE_VERCEL_ENV === 'production')
+    return env.VITE_PUBLISHING_V2_PRODUCTION_ENABLED === 'true';
+  return false;
 }
 
 async function decode<T>(res: Response): Promise<T> {
