@@ -94,6 +94,15 @@ export function flattenSingleChapter(book: SavedBook): { chapter: string; questi
   };
 }
 
+/** Verify the order returned by the server, not only the revision number. */
+export function sameQuestionOrder(expected: ReadonlyArray<number>, actual: ReadonlyArray<number>): boolean {
+  return expected.length === actual.length && expected.every((id, index) => id === actual[index]);
+}
+
+export function formatQuestionOrder(ids: ReadonlyArray<number>): string {
+  return ids.length ? ids.map(id => '#' + id).join(' → ') : 'Henüz soru seçilmedi';
+}
+
 /** Preview the FROZEN source, never accidentally replace a stored answer with a newer source. */
 export function frozenBookQuestions(book: SavedBook): ApiQuestion[] {
   return [...book.chapters].sort((a,b) => a.sortOrder - b.sortOrder)
