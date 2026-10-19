@@ -1,0 +1,73 @@
+name: Publishing V2 Isolated PostgreSQL Acceptance
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feat/publishing-book-persistence-v2-draft-20261018
+      - feat/publishing-book-api-v2-preview-20261018
+      - feat/publishing-workbench-v2-preview-ui-20261018
+      - review/publishing-v2-production-gate-20261020
+    paths:
+      - '.github/workflows/publishing-books-isolated-postgres.yml'
+      - 'api/v1/_lib/book-handler.ts'
+      - 'api/v1/_lib/book-docx.ts'
+      - 'api/v1/management.ts'
+      - 'src/publishing/**'
+      - 'tests/integration/publishing-books-db.test.ts'
+      - 'tests/publishing-workbench-v2-preview-ui.test.ts'
+      - 'tests/publishing-docx-v1.test.ts'
+      - 'tests/publishing-docx-handler.test.ts'
+      - 'prisma/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  book-real-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: book_ci
+          POSTGRES_PASSWORD: book_ci_only
+          POSTGRES_DB: prolig_book_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U book_ci -d prolig_book_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      # Strict ephemeral, local PostgreSQL — not Neon, Vercel or Production.
+      DIRECT_URL: postgresql://book_ci:book_ci_only@127.0.0.1:5432/prolig_book_ci?sslmode=disable
+      DATABASE_URL: postgresql://book_ci:book_ci_only@127.0.0.1:5432/prolig_book_ci?sslmode=disable
+      AUTH_SECRET: book-ci-test-only-not-a-real-secret
+      PROLIG_BOOKS_V2_CI_ISOLATED_DB: 'true'
+      PROLIG_BOOKS_V2_ENABLED: 'true'
+      NODE_ENV: test
+      VERCEL_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Generate Prisma Client
+        run: npx prisma generate
+      - name: Compile UI and API (Prisma generated from V2 schema)
+        run: npm run lint
+      - name: Unit and contract tests (no Neon connections)
+        run: npx vitest run tests/publishing-book-api-v2.test.ts tests/publishing-book-persistence-v2-contract.test.ts tests/publishing-workbench-v2-preview-ui.test.ts tests/publishing-workbench-v1.test.ts tests/publishing-docx-v1.test.ts tests/publishing-docx-handler.test.ts
+      - name: Production-bundle build on isolated runner (no deployment)
+        run: npm run build
+      - name: Apply migrations ONLY to local disposable PostgreSQL
+        run: npx prisma migrate deploy
+      - name: Execute real book draft / concurrency / snapshot acceptance
+        run: npx vitest run tests/integration/publishing-books-db.test.ts

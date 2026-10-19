@@ -142,6 +142,7 @@ model User {
   AuthorProfile     AuthorProfile?
   Payment           Payment[]
   Question          Question[]
+  booksCreated      Book[] @relation("BookCreatedBy")
   branchAssignments UserBranchAssignment[]
   compensationRulesCreated CompensationRule[] @relation("CompensationRuleCreatedBy")
   compensationEntries CompensationEntry[] @relation("CompensationEntryUser")
@@ -300,12 +301,53 @@ model Project {
 model Book {
   id              Int       @id @default(autoincrement())
   projectId       Int
+  // Project removal must not silently destroy already laid-out chapters.
   project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title           String
   isbn            String?
   pageCount       Int       @default(240)
   status          String    @default("Dizgi Aşamasında")
   publicationDate DateTime?
+  // Additive V2 metadata. Existing book rows retain their original identity.
+  revision        Int       @default(1)
+  layoutColumns   Int       @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+  createdByUserId Int?
+  createdByUser   User?     @relation("BookCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  chapters        BookChapter[]
+
+  @@index([projectId])
+}
+
+model BookChapter {
+  id        Int      @id @default(autoincrement())
+  bookId    Int
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Restrict)
+  title     String
+  sortOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  questions BookQuestion[]
+
+  @@unique([bookId, sortOrder])
+  @@index([bookId])
+}
+
+model BookQuestion {
+  id                      Int      @id @default(autoincrement())
+  chapterId               Int
+  chapter                 BookChapter @relation(fields: [chapterId], references: [id], onDelete: Restrict)
+  questionId              Int?
+  // An edited or deleted live question must never erase the frozen book text.
+  question                Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  sortOrder               Int
+  sourceQuestionUpdatedAt DateTime
+  snapshot                Json
+  createdAt               DateTime @default(now())
+
+  @@unique([chapterId, sortOrder])
+  @@index([questionId])
 }
 
 model ProjectAuthor {
@@ -554,6 +596,7 @@ model Question {
   updatedAt  DateTime       @updatedAt
   compensationEntries CompensationEntry[]
   assets QuestionAsset[]
+  bookQuestions BookQuestion[]
 
   @@index([authorUserId])
   @@index([projectId])

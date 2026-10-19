@@ -1,4 +1,4 @@
-/* PRO-LİG Publisher Edition: read-only first publishing milestone. */
+/* PRO-LİG Publisher Edition: V1 read-only; V2 save controls are isolated preview-only. */
 .publishing-workbench { color: #472838; }
 .publishing-heading { margin-bottom: 16px; }
 .publishing-boundary, .publishing-warning {
@@ -89,6 +89,7 @@
   .demo-shell:has(.publishing-workbench) .workspace-skip-link,
   .demo-shell:has(.publishing-workbench) .publishing-heading,
   .demo-shell:has(.publishing-workbench) .publishing-boundary,
+  .demo-shell:has(.publishing-workbench) .publishing-persistence,
   .demo-shell:has(.publishing-workbench) .publishing-controls,
   .demo-shell:has(.publishing-workbench) .publishing-preview-toolbar,
   .demo-shell:has(.publishing-workbench) .publishing-warning,
@@ -110,3 +111,21 @@
   .publishing-question,.publishing-key li { break-inside:avoid-page; }
   .publishing-footnote { break-inside:avoid-page; }
 }
+
+
+/* V2 save/load panel: visible only with BOTH preview build markers. */
+.publishing-persistence { padding: 20px; margin: 18px 0; border: 1px solid #dcc8d0; }
+.publishing-persistence h2 { margin: 0; font-size: 17px; }
+.publishing-persistence .eyebrow { color: #87526a; font-size: 10px; }
+.publishing-panel-explanation { font-size: 12px; color: #795f6b; line-height: 1.6; }
+.publishing-persistence-actions { display:flex; align-items:center; flex-wrap:wrap; gap: 10px; margin: 16px 0 14px; }
+.publishing-order-intent { font-size: 12px; line-height: 1.5; color: #673c4d; overflow-wrap: anywhere; }
+.publishing-order-intent strong { color: #512b3d; }
+.publishing-revision { font-size: 11px; padding: 5px 9px; border-radius: 7px; background: #f7e9ee; color: #653247; }
+.publishing-success { color: #276541; font-weight: 600; font-size: 12px; }
+.publishing-saved-list { display:grid; gap:8px; max-height:260px; overflow-y:auto; }
+.publishing-saved-book { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap: 10px; padding: 9px 12px; border: 1px solid #e8dbe0; border-radius: 7px; }
+.publishing-saved-book > div { display:grid; gap:5px; min-width:180px; }
+.publishing-saved-book strong { font-size:12px; overflow-wrap:anywhere; }
+.publishing-saved-book small { font-size:10px; color:#82646f; }
+.publishing-controls select:disabled { background: #f0e9ec; cursor:not-allowed; }
