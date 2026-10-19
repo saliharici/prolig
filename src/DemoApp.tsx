@@ -2194,6 +2194,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           </>}
         </>}
         {section === 'publishing' && currentUser.role === 'GENEL_KOORDINATOR' && <PublishingWorkbench
+          projects={apiProjects}
           questions={apiQuestions}
           loading={apiLoading}
           error={apiError}
