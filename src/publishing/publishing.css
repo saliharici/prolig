@@ -119,6 +119,8 @@
 .publishing-persistence .eyebrow { color: #87526a; font-size: 10px; }
 .publishing-panel-explanation { font-size: 12px; color: #795f6b; line-height: 1.6; }
 .publishing-persistence-actions { display:flex; align-items:center; flex-wrap:wrap; gap: 10px; margin: 16px 0 14px; }
+.publishing-order-intent { font-size: 12px; line-height: 1.5; color: #673c4d; overflow-wrap: anywhere; }
+.publishing-order-intent strong { color: #512b3d; }
 .publishing-revision { font-size: 11px; padding: 5px 9px; border-radius: 7px; background: #f7e9ee; color: #653247; }
 .publishing-success { color: #276541; font-weight: 600; font-size: 12px; }
 .publishing-saved-list { display:grid; gap:8px; max-height:260px; overflow-y:auto; }
