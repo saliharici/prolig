@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, BookOpen, Check, FileDown, RefreshCw, RotateCcw } from 'lucide-react';
 import type { ApiQuestion, QuestionAssetPlacement } from '../questions/types';
+import type { ApiProject } from '../projects/types';
 import { StudioMarkup } from '../questions/StudioDocumentPreview';
 import { approvedForPublishing, bookAnswer, bookMediaWarnings, moveBookQuestion, resolveBookOrder } from './book-assembly';
 import { PublishingPersistencePanel } from './PublishingPersistencePanel';
@@ -9,6 +10,7 @@ import './publishing.css';
 
 type Props = {
   questions: ApiQuestion[];
+  projects: ApiProject[];
   loading: boolean;
   error: string;
   onRefresh: () => Promise<ApiQuestion[]>;
@@ -53,7 +55,7 @@ function QuestionForBook({ question, ordinal }: { question: ApiQuestion; ordinal
   </article>;
 }
 
-export function PublishingWorkbench({ questions, loading, error, onRefresh }: Props) {
+export function PublishingWorkbench({ questions, projects, loading, error, onRefresh }: Props) {
   const [title, setTitle] = useState('Yeni Soru Kitabı');
   const [chapter, setChapter] = useState('Bölüm 1 · Sorular');
   const [projectFilter, setProjectFilter] = useState('all');
@@ -94,11 +96,11 @@ export function PublishingWorkbench({ questions, loading, error, onRefresh }: Pr
   const projectOptions = useMemo(() => {
     const options = new Map<number, string>();
     if (activeBook?.project) options.set(activeBook.projectId, activeBook.project.code + ' · ' + activeBook.project.title);
-    eligible.forEach(question => {
-      if (question.projectId && question.project) options.set(question.projectId, question.project.code + ' · ' + question.project.title);
+    projects.filter(project => project.status !== 'Arsiv').forEach(project => {
+      options.set(project.id, project.code + ' · ' + project.title);
     });
     return [...options.entries()].sort((a, b) => a[1].localeCompare(b[1], 'tr-TR'));
-  }, [eligible, activeBook]);
+  }, [projects, activeBook]);
   const candidates = useMemo(() => eligible.filter(question => {
     if (projectFilter !== 'all' && question.projectId !== Number(projectFilter)) return false;
     const query = search.trim().toLocaleLowerCase('tr-TR');
