@@ -41,6 +41,37 @@ function source(id: number, extra: Record<string, unknown> = {}) {
   };
 }
 
+describe('Books V2 production release gate, default closed', () => {
+  const env = {
+    VERCEL_ENV: 'production',
+    NODE_ENV: 'production',
+    PROLIG_BOOKS_V2_ENABLED: 'true',
+    DATABASE_URL: 'postgresql://u:p@ep-production.neon.tech/prolig_pilot'
+  };
+  it('stays off without both explicit release switches', () => {
+    expect(bookApiPreviewEnabled(env)).toBe(false);
+    expect(bookApiPreviewEnabled({ ...env, PROLIG_BOOKS_V2_PRODUCTION_ENABLED: 'true' })).toBe(false);
+    expect(bookApiPreviewEnabled({ ...env, PROLIG_BOOKS_V2_RELEASE_APPROVED: 'true' })).toBe(false);
+  });
+  it('rejects a mismatched host, database or non-Neon server', () => {
+    const approved = { ...env, PROLIG_BOOKS_V2_PRODUCTION_ENABLED: 'true',
+      PROLIG_BOOKS_V2_RELEASE_APPROVED: 'true',
+      PROLIG_BOOKS_V2_PRODUCTION_DB_HOST: 'ep-production.neon.tech',
+      PROLIG_BOOKS_V2_PRODUCTION_DB_NAME: 'prolig_pilot' };
+    expect(bookApiPreviewEnabled({ ...approved, PROLIG_BOOKS_V2_PRODUCTION_DB_HOST: 'ep-other.neon.tech' })).toBe(false);
+    expect(bookApiPreviewEnabled({ ...approved, PROLIG_BOOKS_V2_PRODUCTION_DB_NAME: 'wrong_db' })).toBe(false);
+    expect(bookApiPreviewEnabled({ ...approved, DATABASE_URL: 'postgresql://u:p@server.example.com/prolig_pilot',
+      PROLIG_BOOKS_V2_PRODUCTION_DB_HOST: 'server.example.com' })).toBe(false);
+    expect(bookApiPreviewEnabled({ ...approved, DATABASE_URL: 'invalid' })).toBe(false);
+  });
+  it('allows the production gate only with complete exact matching config', () => {
+    expect(bookApiPreviewEnabled({ ...env, PROLIG_BOOKS_V2_PRODUCTION_ENABLED: 'true',
+      PROLIG_BOOKS_V2_RELEASE_APPROVED: 'true',
+      PROLIG_BOOKS_V2_PRODUCTION_DB_HOST: 'ep-production.neon.tech',
+      PROLIG_BOOKS_V2_PRODUCTION_DB_NAME: 'prolig_pilot' })).toBe(true);
+  });
+});
+
 describe('Books V2 preview gate, no external DB', () => {
   const savedFlag = process.env.PROLIG_BOOKS_V2_ENABLED;
   beforeEach(() => {
