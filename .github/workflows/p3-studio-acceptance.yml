@@ -9,6 +9,7 @@ on:
       - 'feat/p3h-visual-fraction-composer-*'
       - 'feat/p3i-visual-math-builders-*'
       - 'feat/p3j-edit-math-source-*'
+      - 'feat/p3k-safe-table-composer-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
