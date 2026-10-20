@@ -44,6 +44,8 @@ export function QuestionStemWysiwygEditor({
   const [equationTemplatesOpen, setEquationTemplatesOpen] = useState(false);
   const [equationSource, setEquationSource] = useState('');
   const [tableOpen, setTableOpen] = useState(false);
+  const [shapeOpen, setShapeOpen] = useState(false);
+  const [shapeType, setShapeType] = useState<'triangle' | 'circle' | 'square'>('triangle');
   const [tableRows, setTableRows] = useState<string[][]>([['Başlık 1', 'Başlık 2'], ['', '']]);
   const [equationEditRange, setEquationEditRange] = useState<{ from: number; to: number } | null>(null);
   const [fractionNumerator, setFractionNumerator] = useState('a');
@@ -390,6 +392,26 @@ export function QuestionStemWysiwygEditor({
               lines.splice(1, 0, '| ' + tableRows[0].map(() => '---').join(' | ') + ' |');
               editor.chain().focus().insertContent(lines.map(line => ({ type: 'paragraph', content: [{ type: 'text', text: line }] }))).run();
             }}>Metin tablosunu soru köküne ekle</button>
+        </div>}
+      </section>}
+      {variant === 'stem' && <section className="p3-shape-composer" aria-label="Geometrik şekil hazırlama">
+        <button type="button" disabled={disabled} aria-expanded={shapeOpen} onClick={() => setShapeOpen(open => !open)}>Geometri araçları</button>
+        {shapeOpen && <div className="p3-shape-panel">
+          <p>Şekli önizleyin ve soru metnine sembolik gösterimini ekleyin.</p>
+          <div className="p3-shape-types" role="group" aria-label="Şekil türü">
+            {([['triangle', 'Üçgen'], ['circle', 'Çember'], ['square', 'Kare']] as const).map(([kind, label]) =>
+              <button type="button" key={kind} disabled={disabled} aria-pressed={shapeType === kind} onClick={() => setShapeType(kind)}>{label}</button>)}
+          </div>
+          <svg className="p3-shape-preview" viewBox="0 0 180 130" role="img" aria-label={shapeType === 'triangle' ? 'ABC üçgeni önizlemesi' : shapeType === 'circle' ? 'O merkezli çember önizlemesi' : 'ABCD karesi önizlemesi'}>
+            {shapeType === 'triangle' ? <><polygon points="90,12 24,110 156,110" fill="none" stroke="currentColor" strokeWidth="2"/><text x="86" y="10">A</text><text x="9" y="122">B</text><text x="159" y="122">C</text></>
+            : shapeType === 'circle' ? <><circle cx="90" cy="65" r="46" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="90" cy="65" r="2" fill="currentColor"/><text x="97" y="62">O</text></>
+            : <><rect x="44" y="19" width="91" height="91" fill="none" stroke="currentColor" strokeWidth="2"/><text x="34" y="16">A</text><text x="141" y="16">B</text><text x="141" y="121">C</text><text x="34" y="121">D</text></>}
+          </svg>
+          <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
+            onClick={() => editor.chain().focus().insertContent(shapeType === 'triangle' ? '△ABC' : shapeType === 'circle' ? '◯O' : '□ABCD').run()}>
+            Şekil gösterimini ekle
+          </button>
+          <small>Bu işlem yalnızca sembolik metin ekler. SVG önizleme soru kaydına veya Word belgesine aktarılmaz.</small>
         </div>}
       </section>}
       {showLinkInput && (

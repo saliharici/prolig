@@ -269,3 +269,14 @@
 .p3-table-scroll td{border:1px solid #e4dce0;padding:6px}
 .p3-table-scroll input{min-width:65px;width:100%;border:0;padding:6px;background:transparent;color:#283e33}
 .p3-table-scroll input:focus-visible{outline:2px solid #945777}
+
+
+/* P3-L geometry preview is instructional only: persisted content is a text symbol. */
+.p3-shape-composer{padding:10px 12px;border-bottom:1px solid #e9e1e5;background:#fcfafb}
+.p3-shape-composer button{border:1px solid #e2d5dd;border-radius:8px;background:white;padding:8px 11px;color:#642d49;cursor:pointer;font-size:12px}
+.p3-shape-panel{display:grid;gap:10px;margin-top:12px}
+.p3-shape-panel p,.p3-shape-panel small{margin:0;color:#607069;font-size:12px;line-height:1.5}
+.p3-shape-types{display:flex;flex-wrap:wrap;gap:6px}
+.p3-shape-types button[aria-pressed=true]{background:#f1e2e9;border-color:#a66b89}
+.p3-shape-preview{max-width:240px;width:100%;height:155px;border:1px solid #e7dde2;border-radius:9px;color:#503249;background:#fff;padding:6px}
+.p3-shape-preview text{font-size:12px;fill:currentColor}
