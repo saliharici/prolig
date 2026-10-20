@@ -163,11 +163,12 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
     answerRows.forEach(answer => body.push(p(answer)));
   }
   body.push(p('PRO-LİG taslak Word çıktısı · Matbaa yayını değildir.', 'Footnote'));
-  const sect = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>' +
+  const sect = '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/>' +
+    '<w:footerReference w:type="default" r:id="rId3"/><w:pgSz w:w="11906" w:h="16838"/>' +
     '<w:pgMar w:top="1250" w:right="1200" w:bottom="1250" w:left="1200" w:header="500" w:footer="500" w:gutter="0"/>' +
     '<w:cols w:num="1"/></w:sectPr>';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
     '<w:body>' + body.join('') + sect + '</w:body></w:document>';
 }
 
@@ -177,6 +178,8 @@ const types = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<Default Extension="xml" ContentType="application/xml"/>' +
   '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
   '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
+  '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' +
+  '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' +
   '</Types>';
 const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
@@ -185,7 +188,20 @@ const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
 const docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
   '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+  '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>' +
+  '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>' +
   '</Relationships>';
+const header = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+  '<w:p><w:pPr><w:jc w:val="right"/></w:pPr>' + run('PRO-LİG  |  YAYIN HAZIRLIK') + '</w:p></w:hdr>';
+const footer = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+  '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>' +
+  run('PRO-LİG · Taslak belge  |  Sayfa ') +
+  '<w:r><w:fldChar w:fldCharType="begin"/></w:r>' +
+  '<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>' +
+  '<w:r><w:fldChar w:fldCharType="end"/></w:r>' +
+  '</w:p></w:ftr>';
 const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
   '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos"/>' +
@@ -274,6 +290,8 @@ export function exportBookDocx(value: unknown, includeAnswers: boolean): Buffer 
     ['_rels/.rels', rels],
     ['word/document.xml', buildDocument(book, includeAnswers)],
     ['word/_rels/document.xml.rels', docRels],
-    ['word/styles.xml', styles]
+    ['word/styles.xml', styles],
+    ['word/header1.xml', header],
+    ['word/footer1.xml', footer]
   ]);
 }
