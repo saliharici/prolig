@@ -11,6 +11,7 @@ on:
       - 'feat/p3j-edit-math-source-*'
       - 'feat/p3k-safe-table-composer-*'
       - 'feat/p3l-safe-geometry-builder-*'
+      - 'feat/p3m-geometry-svg-export-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
