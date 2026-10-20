@@ -6,6 +6,7 @@ on:
       - 'feat/p3d-revision-workflow-*'
       - 'feat/p3f-equation-entry-*'
       - 'feat/p3g-equation-composer-*'
+      - 'feat/p3h-visual-fraction-composer-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
