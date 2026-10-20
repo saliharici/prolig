@@ -2354,6 +2354,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             onProject={changeQuestionProject} onLevel={changeQuestionLevel} onGrade={changeQuestionGrade}
             branchName={currentUser.role === 'YAZAR' ? currentUser.authorProfile?.branch?.name || '' : ''}
             editing={Boolean(editingQuestion)} disabled={questionSaving || durableDraftBusy}
+            privateGeometryEnabled={import.meta.env.VITE_P3_PRIVATE_GEOMETRY_ENABLED === 'true'}
             privateGeometryQuestionId={editingQuestion?.id ?? null}
             privateGeometryUpdatedAt={editingQuestion?.updatedAt ?? undefined}
             onPrivateGeometryRevision={updatedAt => {
