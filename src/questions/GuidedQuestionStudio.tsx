@@ -6,6 +6,7 @@ import type { QuestionStudioFormValues } from './studio-state';
 import { switchQuestionType } from './question-type-state';
 import { QuestionStemWysiwygEditor } from './QuestionStemWysiwygEditor';
 import { QuestionTypePreview } from './QuestionTypePreview';
+import { PrivateGeometryWorkspace } from './PrivateGeometryWorkspace';
 import './guided-question-studio.css';
 
 const steps = ['Tür ve bilgiler', 'Soru ve seçenekler', 'Cevap anahtarı', 'Çözüm ve değerlendirme', 'Önizleme ve kayıt'];
@@ -34,7 +35,7 @@ export function guidedQuestionIssues(v: QuestionStudioFormValues) {
 
 export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, projects, projectsLoading, projectsError,
   originalProjectId, levels, grades, onProject, onLevel, onGrade, branchName, editing, disabled, sandbox,
-  onAddAsset, onRemoveAsset, renderAssets
+  onAddAsset, onRemoveAsset, renderAssets, privateGeometryQuestionId, privateGeometryUpdatedAt, onPrivateGeometryRevision
 }: {
   values: QuestionStudioFormValues; onChange: (values: QuestionStudioFormValues) => void;
   step: number; onStepChange: (step: number) => void;
@@ -44,6 +45,9 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   branchName: string; editing: boolean; disabled: boolean; sandbox: boolean;
   onAddAsset: (placement: QuestionAssetPlacement) => void; onRemoveAsset: (index: number) => void;
   renderAssets: (placement: QuestionAssetPlacement) => ReactNode;
+  privateGeometryQuestionId?: number | null;
+  privateGeometryUpdatedAt?: string;
+  onPrivateGeometryRevision?: (updatedAt: string) => void;
 }) {
   const [activeOption, setActiveOption] = useState(0);
   const [preview, setPreview] = useState(true);
@@ -118,6 +122,11 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
         </>}
         {step === 2 && <>
           {editor('content', 'Soru kökü', 1200)}{media('STEM')}
+           {editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision &&
+             <PrivateGeometryWorkspace questionId={privateGeometryQuestionId}
+               expectedUpdatedAt={privateGeometryUpdatedAt} disabled={disabled}
+               onRevisionChange={onPrivateGeometryRevision} />}
+
           {type === 'MULTIPLE_CHOICE' && <section className="p3-integrated-options" aria-label="Soru tasarımı cevap seçenekleri">
             <div className="p3-integrated-options-heading"><h4>Cevap seçenekleri</h4><p>Soru kökünü hazırlarken seçeneklerini aynı çalışma alanında düzenleyin.</p></div>
             <div role="tablist" aria-label="Cevap seçenekleri" className="p2-option-tabs">{letters.map((letter, i) => <button type="button" role="tab" id={`p2-option-${letter}`} aria-controls="p2-option-panel" aria-selected={selectedOption === i} tabIndex={selectedOption === i ? 0 : -1} key={letter} onClick={() => setActiveOption(i)} onKeyDown={e => {
