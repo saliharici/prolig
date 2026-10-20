@@ -146,6 +146,15 @@ function validate(book: DocxBook): void {
     }
     if (q.imageUrl || q.assets.length)
       throw new DocxExportError('Görsel veya medya içeren sorular bu Word sürümünde desteklenmiyor. Eksik çıktı verilmedi.');
+    // These snapshot fields are not drawn in the current question pages.
+    // Never silently accept diagram data in a field that the DOCX skips.
+    if ([q.explanation, q.modelAnswer, q.scoringRubric, q.evaluationCriteria].some(
+      value => typeof value === 'string' && containsGeometryMarkup(value)
+    )) throw new DocxExportError('Word nüshasına yazılmayan çözüm veya ölçüt alanlarında geometrik şekil bulunuyor.');
+    if (q.questionType !== 'MULTIPLE_CHOICE' && q.options.some(value => containsGeometryMarkup(value))) {
+      throw new DocxExportError('Word nüshasına yazılmayan cevap seçeneğinde geometrik şekil bulunuyor.');
+    }
+
     for (const value of [q.content, ...q.options, q.explanation ?? '', q.modelAnswer ?? '']) {
       if (!knownGeometryOnly(value))
         throw new DocxExportError('Bilinmeyen geometrik şekil sürümü Word belgesine aktarılmadı.');
