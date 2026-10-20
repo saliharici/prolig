@@ -221,3 +221,9 @@
 .question-p3-equation-templates{display:flex;gap:7px;flex-wrap:wrap;padding-top:10px}
 .question-p3-equation-templates small{flex-basis:100%;color:#68756f;line-height:1.5}
 .question-p3-equation-controls button:focus-visible{outline:2px solid #9b617f;outline-offset:2px}
+
+
+.question-p3-equation-compose-label{display:block;flex-basis:100%;font-weight:650;color:#58344a;font-size:12px}
+.question-p3-equation-compose-input{flex:1 1 230px;min-width:0;padding:9px 11px;border:1px solid #d9cfd5;border-radius:8px;font:13px ui-monospace,monospace;background:#fff;color:#263c34}
+.question-p3-equation-compose-input:focus-visible{outline:2px solid #95627d;outline-offset:2px}
+.question-p3-equation-templates button:disabled{opacity:.48;cursor:not-allowed}

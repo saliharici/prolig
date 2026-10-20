@@ -42,6 +42,7 @@ export function QuestionStemWysiwygEditor({
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [symbolPalette, setSymbolPalette] = useState<'math' | 'science' | null>(null);
   const [equationTemplatesOpen, setEquationTemplatesOpen] = useState(false);
+  const [equationSource, setEquationSource] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   // A Tiptap edit must not be re-imported as external content on the next React render.
   // A timer-based guard races with React scheduling and can drop active marks/caret.
@@ -283,6 +284,17 @@ export function QuestionStemWysiwygEditor({
             <button type="button" key={label} disabled={disabled} title={template}
               onMouseDown={event => event.preventDefault()}
               onClick={() => editor.chain().focus().insertContent('$' + template + '$').run()}>{label}</button>)}
+          <label className="question-p3-equation-compose-label" htmlFor="p3-equation-source">Denklem kaynağı (LaTeX)</label>
+          <input id="p3-equation-source" className="question-p3-equation-compose-input" type="text" value={equationSource}
+            disabled={disabled} maxLength={150} placeholder="\\frac{a}{b}"
+            onChange={event => setEquationSource(event.target.value)}
+            onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} />
+          <button type="button" disabled={disabled || !equationSource.trim() || equationSource.includes('$') || /[<>]/.test(equationSource)}
+            onMouseDown={event => event.preventDefault()}
+            onClick={() => { editor.chain().focus().insertContent('$' + equationSource.trim() + '$').run(); setEquationSource(''); }}>
+            Denklemi metne ekle
+          </button>
+          <small>Kaynağı düzenleyip ekleyebilirsiniz. Bu alan henüz görsel denklem oluşturmaz; çıktı doğrulaması gereklidir.</small>
           <small>Şablonlar LaTeX metni olarak eklenir; Word çıktısında ayrıca doğrulanmalıdır.</small>
         </div>}
       </div>}
