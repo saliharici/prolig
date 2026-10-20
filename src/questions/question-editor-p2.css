@@ -280,3 +280,7 @@
 .p3-shape-types button[aria-pressed=true]{background:#f1e2e9;border-color:#a66b89}
 .p3-shape-preview{max-width:240px;width:100%;height:155px;border:1px solid #e7dde2;border-radius:9px;color:#503249;background:#fff;padding:6px}
 .p3-shape-preview text{font-size:12px;fill:currentColor}
+
+/* P3-R: explicit safe edit controls for persisted versioned geometric shapes. */
+.p3-geometry-revision-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-block:6px;padding:10px;border:1px dashed #d6c6cf;border-radius:9px}
+.p3-geometry-revision-controls small{flex-basis:100%;color:#4c685c;line-height:1.5}
