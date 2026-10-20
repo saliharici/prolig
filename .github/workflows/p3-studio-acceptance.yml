@@ -18,6 +18,7 @@ on:
       - 'feat/p3q-persistent-geometry-markup-*'
       - 'feat/p3r-edit-persisted-geometry-*'
       - 'feat/p3s-geometry-list-editor-*'
+      - 'feat/p3t-word-native-geometry-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
