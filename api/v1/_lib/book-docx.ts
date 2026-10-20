@@ -1,4 +1,5 @@
 import { parseStudioBlocks, type StudioBlock, type StudioInline } from '../../../src/questions/studio-document.js';
+import { containsGeometryMarkup } from '../../../src/questions/geometry-markup.js';
 import type { FrozenBookQuestionV1 } from '../../../src/publishing/book-draft-contract.js';
 
 /**
@@ -142,6 +143,8 @@ function validate(book: DocxBook): void {
     if (q.imageUrl || q.assets.length)
       throw new DocxExportError('Görsel veya medya içeren sorular bu Word sürümünde desteklenmiyor. Eksik çıktı verilmedi.');
     for (const value of [q.content, ...q.options, q.explanation ?? '', q.modelAnswer ?? '']) {
+      if (containsGeometryMarkup(value))
+        throw new DocxExportError('Geometrik şekillerin Word çizim aktarımı henüz desteklenmiyor. Eksik çıktı oluşturulmadı.');
       // Math expressions must not silently become source TeX in a publishing document.
       if (['\\(', '\\['].some(token => value.includes(token)))
         throw new DocxExportError('Matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
