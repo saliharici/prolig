@@ -4,8 +4,9 @@ import { htmlToLegacyMarkup, legacyMarkupToHtml } from '../src/questions/questio
 
 describe('P3-L symbolic geometry', () => {
   const source = readFileSync('src/questions/QuestionStemWysiwygEditor.tsx', 'utf8');
-  it('labels the preview as non-persistent and only inserts text', () => {
-    expect(source).toContain('SVG önizleme soru kaydına veya Word belgesine aktarılmaz.');
+  it('distinguishes text-only symbols from the later persistent-shape option', () => {
+    expect(source).toContain('Sembolik gösterim ekleme yalnızca karakter yazar');
+    expect(source).toContain('geometryMarker(shapeType)');
     expect(source).toContain("shapeType === 'triangle' ? '△ABC'");
     expect(source).toContain('p3-shape-preview');
   });
