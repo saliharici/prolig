@@ -10,6 +10,7 @@ on:
       - 'feat/p3i-visual-math-builders-*'
       - 'feat/p3j-edit-math-source-*'
       - 'feat/p3k-safe-table-composer-*'
+      - 'feat/p3l-safe-geometry-builder-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
