@@ -163,4 +163,15 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     expect(xml).not.toContain('Cevap Anahtarı');
   });
 
+  it('produces editable OMML for safe inline algebra and rejects unsupported TeX', () => {
+    const simple = book();
+    simple.chapters[0].questions[0].snapshot.content = 'Çözünüz: $x + 2 = 5$';
+    const xml = unzipStored(exportBookDocx(simple, false)).get('word/document.xml')!;
+    expect(xml).toContain('<m:oMath><m:r><m:t xml:space="preserve">x + 2 = 5</m:t></m:r></m:oMath>');
+    expect(xml).toContain('xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"');
+    const unsupported = book();
+    unsupported.chapters[0].questions[0].snapshot.content = 'Hesap $x^2$';
+    expect(() => exportBookDocx(unsupported, false)).toThrow('matematik ifadesinin Word denklem dizgisi');
+  });
+
 });
