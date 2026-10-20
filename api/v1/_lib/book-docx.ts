@@ -36,12 +36,19 @@ function p(text: string, style = ''): string {
   return '<w:p>' + (style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '') +
     run(text) + '</w:p>';
 }
+// Phase 1 OMML: plain inline algebra only. Never emit raw TeX as an equation.
+function inlineMathXml(value: string): string {
+  if (!/^[\\p{L}\\p{N}\\s+\\-=×÷·.,()]+$/u.test(value) || !value.trim())
+    throw new DocxExportError('Bu matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
+  return '<m:oMath><m:r><m:t xml:space="preserve">' + safeText(value) + '</m:t></m:r></m:oMath>';
+}
 function paragraphRuns(nodes: StudioInline[], style = ''): string {
   const text = nodes.map(node => {
     let flags = '';
     if (node.kind === 'bold') flags = '<w:b/>';
     if (node.kind === 'italic') flags = '<w:i/>';
     if (node.kind === 'underline') flags = '<w:u w:val="single"/>';
+    if (node.kind === 'math') return inlineMathXml(node.text);
     return run(node.text, flags);
   }).join('');
   return '<w:p>' + (style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '') +
@@ -116,9 +123,9 @@ function validate(book: DocxBook): void {
       throw new DocxExportError('Görsel veya medya içeren sorular bu Word sürümünde desteklenmiyor. Eksik çıktı verilmedi.');
     for (const value of [q.content, ...q.options, q.explanation ?? '', q.modelAnswer ?? '']) {
       // Math expressions must not silently become source TeX in a publishing document.
-      if (/\$[^$\n]+\$|\\frac\b|\\sqrt\b|\\\(|\\\[/.test(value))
+      if (/\\\\frac\\b|\\\\sqrt\\b|\\\\\\(|\\\\\\[/.test(value))
         throw new DocxExportError('Matematik dizgisi içeren soru için Word dönüştürme henüz desteklenmiyor.');
-      if (parseStudioBlocks(value).some(b => b.kind === 'paragraph' && b.children.some(n => n.kind === 'math' || n.kind === 'link')))
+      if (parseStudioBlocks(value).some(b => b.kind === 'paragraph' && b.children.some(n => n.kind === 'link')))
         throw new DocxExportError('Matematik veya bağlantı içeren soru için Word dönüştürme henüz desteklenmiyor.');
     }
     if (q.questionType === 'MULTIPLE_CHOICE') {
@@ -178,7 +185,7 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
     '<w:pgMar w:top="1250" w:right="1200" w:bottom="1250" w:left="1200" w:header="500" w:footer="500" w:gutter="0"/>' +
     '<w:cols w:num="' + book.layoutColumns + '" w:space="420"/></w:sectPr>';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">' +
     '<w:body>' + body.join('') + sect + '</w:body></w:document>';
 }
 
