@@ -65,7 +65,7 @@ function inlineMathXml(value: string): string {
   return '<m:oMath>' + expression + '</m:oMath>';
 }
 type DrawingSequence = { nextId: number };
-function paragraphRuns(nodes: StudioInline[], style = '', drawings: DrawingSequence): string {
+function paragraphRuns(nodes: StudioInline[], drawings: DrawingSequence, style = ''): string {
   const text = nodes.map(node => {
     let flags = '';
     if (node.kind === 'bold') flags = '<w:b/>';
@@ -85,9 +85,9 @@ function cell(text: string, header = false): string {
 }
 function blocksToXml(blocks: StudioBlock[], drawings: DrawingSequence): string {
   return blocks.map(block => {
-    if (block.kind === 'paragraph') return paragraphRuns(block.children, '', drawings);
+    if (block.kind === 'paragraph') return paragraphRuns(block.children, drawings);
     if (block.kind === 'list') return block.items.map((item, i) =>
-      paragraphRuns([{ kind: 'text', text: (block.ordered ? String(i + 1) + '. ' : '• ') }, ...item], 'ListParagraph', drawings)).join('');
+      paragraphRuns([{ kind: 'text', text: (block.ordered ? String(i + 1) + '. ' : '• ') }, ...item], drawings, 'ListParagraph')).join('');
     const border = '<w:tblPr><w:tblBorders><w:bottom w:val="single" w:sz="4"/><w:top w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>';
     const header = '<w:tr>' + block.columns.map(x => cell(x, true)).join('') + '</w:tr>';
     const rows = block.rows.map(row => '<w:tr>' + row.map(x => cell(x)).join('') + '</w:tr>').join('');
@@ -104,7 +104,7 @@ function optionXml(value: string, index: number, drawings: DrawingSequence): str
   // Keep the option label in the same editable paragraph as its first text run.
   if (blocks[0]?.kind === 'paragraph') {
     const [first, ...rest] = blocks;
-    return paragraphRuns([{ kind: 'text', text: label }, ...first.children], '', drawings) + blocksToXml(rest, drawings);
+    return paragraphRuns([{ kind: 'text', text: label }, ...first.children], drawings) + blocksToXml(rest, drawings);
   }
   // Tables cannot share a paragraph with text; retain the label before the table.
   return p(label) + blocksToXml(blocks, drawings);
