@@ -388,7 +388,7 @@ export function QuestionStemWysiwygEditor({
             onMouseDown={event => event.preventDefault()} onClick={() => {
               const lines = tableRows.map(row => '| ' + row.map(cell => cell.trim()).join(' | ') + ' |');
               lines.splice(1, 0, '| ' + tableRows[0].map(() => '---').join(' | ') + ' |');
-              editor.chain().focus().insertContent(lines.join('\\n')).run();
+              editor.chain().focus().insertContent(lines.map(line => ({ type: 'paragraph', content: [{ type: 'text', text: line }] }))).run();
             }}>Metin tablosunu soru köküne ekle</button>
         </div>}
       </section>}
