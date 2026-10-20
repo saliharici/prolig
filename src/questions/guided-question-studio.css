@@ -104,3 +104,17 @@
 .p3-media-count { font-size:11px; font-weight:600; color:#6a4559; background:#f4eaf0; padding:5px 9px; border-radius:999px; }
 .p3-media-workspace .p2-media-item { border:1px solid #e8e4e6; padding:10px 12px; border-radius:8px; }
 @media(max-width:680px) { .p3-media-workspace summary { align-items:flex-start; } }
+
+
+/* P3-C: three evidence-based, read-only preview perspectives. */
+.p3-preview-modes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; margin:0 0 16px; padding:5px; border:1px solid #eee4e9; border-radius:10px; background:#f8f5f7; }
+.p3-preview-modes button { border:1px solid transparent; border-radius:7px; padding:10px 5px; font-size:12px; font-weight:650; background:transparent; color:#654d5a; cursor:pointer; }
+.p3-preview-modes button[aria-pressed=true] { color:#632943; border-color:#e2cfda; background:white; box-shadow:0 1px 5px #28111d12; }
+.p3-preview-modes button:focus-visible,.p3-review-summary button:focus-visible { outline:2px solid #985a7a; outline-offset:2px; }
+.p3-review-summary { padding:16px; border:1px solid #ece5e9; background:#fff; border-radius:11px; font-size:13px; line-height:1.65; color:#374740; }
+.p3-review-summary strong { color:#5f2d46; font-size:14px; }
+.p3-review-summary p { margin:8px 0; }
+.p3-review-summary ul { padding-left:18px; margin:10px 0; }
+.p3-review-summary li { margin-bottom:7px; }
+.p3-review-summary button { text-align:left; padding:0; background:none; border:0; color:#6e3650; text-decoration:underline; cursor:pointer; }
+.p3-review-summary small { display:block; border-top:1px solid #ece5e9; padding-top:11px; margin-top:13px; color:#68726f; }
