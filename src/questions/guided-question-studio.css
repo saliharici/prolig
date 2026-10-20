@@ -82,3 +82,13 @@
 .p3-studio-shell .p2-live-preview-heading strong { color:#6d2948; font-size:14px; }
 .p3-studio-shell .p2-step-actions { position:sticky; bottom:0; z-index:2; background:rgba(255,255,255,.96); backdrop-filter:blur(8px); padding:16px 0 4px; }
 @media(max-width:1079px) { .p3-studio-shell .p2-guided-body.with-preview { grid-template-columns:1fr; } .p3-studio-shell .p2-live-preview { position:static; max-height:none; border:1px solid #e6dce1; border-radius:12px; padding:16px; } }
+
+
+/* P3-B1: one continuous authoring surface for stem and answer options. */
+.p3-integrated-options { margin-top:25px; padding-top:22px; border-top:1px solid #e9e2e5; }
+.p3-integrated-options-heading { margin-bottom:16px; }
+.p3-integrated-options-heading h4 { margin:0 0 6px; color:#54283f; font-size:17px; font-weight:700; }
+.p3-integrated-options-heading p { margin:0; color:#64736e; font-size:12px; line-height:1.6; }
+.p3-integrated-options .p2-option-tabs { flex-wrap:wrap; }
+.p3-integrated-options .p2-option-tabs button { flex:1; min-width:54px; }
+.p3-integrated-options [role="tabpanel"] { min-width:0; }
