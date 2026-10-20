@@ -24,8 +24,12 @@ describe('P2 guided authoring readiness UX', () => {
 
   it('labels the optional live preview and keeps the Publisher Edition styling scoped', () => {
     expect(studio).toContain('aria-label="İsteğe bağlı önizleme"');
-    expect(studio).toContain('Canlı soru önizlemesi');
-    expect(studio).toContain('Yalnız görüntüleme; kayıt işlemi yapılmaz.');
+    expect(studio).toContain('Soru inceleme paneli');
+    expect(studio).toContain('İnceleme görünümünü seç');
+    expect(studio).toContain("['student','Öğrenci']");
+    expect(studio).toContain("['editor','Editör']");
+    expect(studio).toContain("['publish','Yayın']");
+    expect(studio).toContain('sadece görüntüleme');
     expect(baseCss).toContain('.p2-progress-summary');
     expect(baseCss).toContain('.p2-live-preview-heading');
     expect(publisherCss).toContain('.publisher-theme.corporate-workspace-v3 .p2-active-checklist');
