@@ -128,13 +128,18 @@ async function ensureProject(tx: any, projectId: number) {
 async function prepareServerDraft(tx: any, body: BookDraftInput, user: any): Promise<PreparedBookDraft> {
   await ensureProject(tx, body.projectId);
   const questionIds = [...new Set(body.chapters.flatMap(chapter => chapter.questionIds))];
+  const isolatedGeometry = isP3IsolatedPngUploadEnvironment(process.env) &&
+    process.env.PROLIG_P3_BOOK_EXPORT_ENABLED === 'true';
   // Source content and answer keys are ALWAYS re-fetched from the database.
   const questions = await tx.question.findMany({
     where: { id: { in: questionIds }, projectId: body.projectId, status: 'ONAYLANDI' },
     include: {
       authorUser: { select: { id: true, fullName: true } },
       project: { select: { id: true, code: true, title: true } },
-      assets: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] }
+      assets: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] },
+      ...(isolatedGeometry ? { privateGeometryAssets: { select: {
+        id: true, sha256: true, width: true, height: true, placement: true
+      } } } : {})
     }
   });
   const logs = await tx.activityLog.findMany({
@@ -149,7 +154,27 @@ async function prepareServerDraft(tx: any, body: BookDraftInput, user: any): Pro
     }
   }
   const dtoQuestions = questions.map((q: any) => formatQuestionDto(q, archiveState.get(q.id) === true));
-  return prepareBookDraft(user.role.code, body, dtoQuestions);
+  const draft = prepareBookDraft(user.role.code, body, dtoQuestions);
+  if (isolatedGeometry) {
+    const byQuestion = new Map<number, any[]>(questions.map((question: any) =>
+      [question.id, question.privateGeometryAssets ?? []]));
+    let imageCount = 0;
+    for (const chapter of draft.chapters) for (const item of chapter.questions) {
+      const images = byQuestion.get(item.questionId) ?? [];
+      if (images.some((image: any) => image.placement !== 'STEM')) {
+        throw new BookDraftValidationError('Word yalnız soru kökündeki özel çizimleri destekliyor.');
+      }
+      imageCount += images.length;
+      if (images.length) {
+        item.snapshot.privateGeometryAssets = images.map((image: any) => ({
+          assetId: image.id, sha256: image.sha256, width: image.width,
+          height: image.height, placement: 'STEM' as const
+        }));
+      }
+    }
+    if (imageCount > 30) throw new BookDraftValidationError('Word için en fazla 30 özel çizim kullanılabilir.');
+  }
+  return draft;
 }
 
 async function writeChapters(tx: any, bookId: number, draft: PreparedBookDraft) {
