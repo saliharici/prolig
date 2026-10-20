@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import type { QuestionAssetPlacement } from './types';
 import type { StudioBlock, StudioDocumentV1, StudioInline } from './studio-document';
 import { parseStudioInline, parseStudioBlocks } from './studio-document';
+import { splitGeometryMarkup } from './geometry-markup';
+import { GeometryDiagram } from './GeometryDiagram';
 
 /**
  * Non-editable, React-escaped proof of concept. Never uses dangerouslySetInnerHTML.
@@ -17,7 +19,16 @@ function renderInline(nodes: StudioInline[]): ReactNode {
       case 'underline': return <u key={key}>{renderInline(parseStudioInline(node.text))}</u>;
       case 'math': return <code key={key} className="studio-math-source" aria-label={`Matematik ifadesi: ${node.text}`}>{node.text}</code>;
       case 'link': return <a key={key} href={node.href} target="_blank" rel="noopener noreferrer">{renderInline(parseStudioInline(node.text))}</a>;
-      default: return <span key={key}>{node.text}</span>;
+      default: {
+        // Preserve the exact pre-P3 HTML tree for ordinary text formatting.
+        // Only geometry-bearing nodes require a mixed text / SVG tree.
+        if (!node.text.includes('[[prolig-geometry:')) return <span key={key}>{node.text}</span>;
+        return <span key={key}>{splitGeometryMarkup(node.text).map((piece, j) =>
+          piece.kind === 'geometry'
+            ? <GeometryDiagram key={j} shape={piece.shape} />
+            : <span key={j}>{piece.value}</span>
+        )}</span>;
+      }
     }
   });
 }

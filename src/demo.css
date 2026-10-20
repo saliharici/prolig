@@ -1433,3 +1433,7 @@ html:has(.public-shell){scroll-behavior:smooth;scroll-snap-type:y proximity;scro
 .editor-question-options li>span{display:block}
 .editor-question-solution{margin-top:14px;padding:11px;border:1px dashed #cadfda;border-radius:10px;background:#fff}
 .editor-question-missing{margin:0;color:#a05b23;font-size:9px}
+
+/* P3-Q: accessible, vector geometry rebuilt from versioned question text. */
+.studio-geometry-diagram{display:inline-block;width:180px;height:130px;max-width:100%;vertical-align:middle;margin:4px 10px 4px 0;color:#263b34;background:#fff;border:1px solid #e4e9e5;border-radius:8px;padding:5px}
+.studio-geometry-diagram text{font-size:12px;fill:currentColor}
