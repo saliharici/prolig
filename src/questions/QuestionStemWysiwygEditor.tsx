@@ -41,6 +41,7 @@ export function QuestionStemWysiwygEditor({
 }: QuestionStemWysiwygEditorProps) {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [symbolPalette, setSymbolPalette] = useState<'math' | 'science' | null>(null);
+  const [equationTemplatesOpen, setEquationTemplatesOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   // A Tiptap edit must not be re-imported as external content on the next React render.
   // A timer-based guard races with React scheduling and can drop active marks/caret.
@@ -275,6 +276,16 @@ export function QuestionStemWysiwygEditor({
           <span className="question-p2-symbol-note">Semboller metin olarak eklenir; denklem nesnesi değildir.</span>
         </div>
       )}
+      {variant !== 'option' && <div className="question-p3-equation-controls">
+        <button type="button" disabled={disabled} aria-expanded={equationTemplatesOpen} onClick={() => setEquationTemplatesOpen(open => !open)}>ƒ(x) Denklem şablonları</button>
+        {equationTemplatesOpen && <div className="question-p3-equation-templates" role="group" aria-label="Denklem şablonları">
+          {([['Kesir', '\\frac{a}{b}'], ['Karekök', '\\sqrt{x}'], ['Üs', 'x^{2}'], ['Alt indis', 'x_{1}']] as const).map(([label, template]) =>
+            <button type="button" key={label} disabled={disabled} title={template}
+              onMouseDown={event => event.preventDefault()}
+              onClick={() => editor.chain().focus().insertContent('$' + template + '$').run()}>{label}</button>)}
+          <small>Şablonlar LaTeX metni olarak eklenir; Word çıktısında ayrıca doğrulanmalıdır.</small>
+        </div>}
+      </div>}
       {showLinkInput && (
         <div className="question-p2-link-dialog">
           <input

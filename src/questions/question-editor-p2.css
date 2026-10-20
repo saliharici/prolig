@@ -213,3 +213,11 @@
 .question-p2-symbol-palette button:hover { border-color:#9b617f; background:#f7eef3; }
 .question-p2-symbol-note { flex-basis:100%; color:#6c7672; font-size:11px; line-height:1.5; }
 .question-p2-symbol-controls button:focus-visible,.question-p2-symbol-palette button:focus-visible { outline:2px solid #9b617f; outline-offset:2px; }
+
+
+/* P3-F equation template entry: textual TeX, not yet a visual formula node. */
+.question-p3-equation-controls{border-bottom:1px solid #e6e2e5;padding:9px 12px;background:#fcfafb}
+.question-p3-equation-controls>button,.question-p3-equation-templates button{padding:8px 11px;border:1px solid #e4d8df;border-radius:8px;background:white;color:#68364e;cursor:pointer;font-size:12px}
+.question-p3-equation-templates{display:flex;gap:7px;flex-wrap:wrap;padding-top:10px}
+.question-p3-equation-templates small{flex-basis:100%;color:#68756f;line-height:1.5}
+.question-p3-equation-controls button:focus-visible{outline:2px solid #9b617f;outline-offset:2px}
