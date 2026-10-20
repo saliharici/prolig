@@ -69,3 +69,16 @@
 .p3-studio-shell .p2-stage input:not([type=radio]):focus,.p3-studio-shell .p2-stage select:focus { border-color:#8b5672; }
 .p3-studio-shell .p2-option-tabs button[aria-selected=true] { background:#6d2948; border-color:#6d2948; }
 @media(max-width:800px) { .p3-studio-identity { align-items:flex-start; } .p3-studio-status { white-space:normal; } }
+
+
+/* P3-A workbench: readable authoring canvas with a sticky, inspectable preview. */
+@media(min-width:1080px) {
+  .p3-studio-shell .p2-guided-body.with-preview { grid-template-columns:minmax(0,1.55fr) minmax(315px,.85fr); align-items:start; gap:20px; }
+  .p3-studio-shell .p3-writing-step .p2-stage { min-height:540px; }
+  .p3-studio-shell .p3-writing-step .p2-rich-field { margin-bottom:30px; }
+  .p3-studio-shell .p2-live-preview { top:96px; max-height:calc(100dvh - 120px); border:1px solid #e6dce1; background:#fff; border-radius:16px; padding:20px; box-shadow:0 5px 26px #2c233008; }
+}
+.p3-studio-shell .p2-live-preview-heading { border-bottom-color:#ece2e7; }
+.p3-studio-shell .p2-live-preview-heading strong { color:#6d2948; font-size:14px; }
+.p3-studio-shell .p2-step-actions { position:sticky; bottom:0; z-index:2; background:rgba(255,255,255,.96); backdrop-filter:blur(8px); padding:16px 0 4px; }
+@media(max-width:1079px) { .p3-studio-shell .p2-guided-body.with-preview { grid-template-columns:1fr; } .p3-studio-shell .p2-live-preview { position:static; max-height:none; border:1px solid #e6dce1; border-radius:12px; padding:16px; } }
