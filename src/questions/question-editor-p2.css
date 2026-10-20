@@ -241,3 +241,17 @@
 .question-p3-fraction-live span:first-child{border-bottom:2px solid currentColor}
 .question-p3-fraction-builder button{justify-self:start}
 .question-p3-fraction-builder small{color:#69746f;line-height:1.5}
+
+
+/* P3-I: visual input for root, exponent and subscript; persistent form remains TeX text. */
+.question-p3-math-builder{flex-basis:100%;display:grid;gap:11px;padding:13px;border:1px solid #e7dce2;border-radius:11px;background:#fbf9fa}
+.question-p3-math-builder>strong{font-size:13px;color:#5b2f46}
+.question-p3-math-builder-types{display:flex;flex-wrap:wrap;gap:6px}
+.question-p3-math-builder-types button[aria-pressed=true]{background:#f1e2e9;border-color:#a66b89;color:#5b2943}
+.question-p3-math-builder-fields{display:flex;gap:12px;flex-wrap:wrap}
+.question-p3-math-builder-fields label{display:grid;gap:5px;font-size:12px;color:#52625c;flex:1 1 115px}
+.question-p3-math-builder-fields input{padding:9px;border:1px solid #dcd1d7;border-radius:8px;background:white;min-width:0;width:100%}
+.question-p3-math-builder-preview{display:flex;align-items:center;min-height:65px;padding:14px;background:#fff;border:1px solid #e8e0e4;border-radius:8px;font-size:26px;color:#283b33;overflow-wrap:anywhere}
+.question-p3-math-builder-preview sup,.question-p3-math-builder-preview sub{font-size:.62em}
+.question-p3-radicand{display:inline-block;border-top:2px solid currentColor;padding:3px 8px}
+.question-p3-math-builder small{color:#68756f;font-size:11px;line-height:1.5}
