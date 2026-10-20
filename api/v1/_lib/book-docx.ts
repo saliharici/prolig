@@ -123,7 +123,7 @@ function validate(book: DocxBook): void {
       throw new DocxExportError('Görsel veya medya içeren sorular bu Word sürümünde desteklenmiyor. Eksik çıktı verilmedi.');
     for (const value of [q.content, ...q.options, q.explanation ?? '', q.modelAnswer ?? '']) {
       // Math expressions must not silently become source TeX in a publishing document.
-      if (/\\\\frac\\b|\\\\sqrt\\b|\\\\\\(|\\\\\\[/.test(value))
+      if (['\\frac', '\\sqrt', '\\(', '\\['].some(token => value.includes(token)))
         throw new DocxExportError('Matematik dizgisi içeren soru için Word dönüştürme henüz desteklenmiyor.');
       if (parseStudioBlocks(value).some(b => b.kind === 'paragraph' && b.children.some(n => n.kind === 'link')))
         throw new DocxExportError('Matematik veya bağlantı içeren soru için Word dönüştürme henüz desteklenmiyor.');
