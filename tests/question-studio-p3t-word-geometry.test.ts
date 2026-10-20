@@ -50,6 +50,9 @@ describe('P3-T editable Word-native geometric drawings', () => {
     expect(() => exportBookDocx(book('Şekil [[prolig-geometry:v9:triangle]]'), false)).toThrow(DocxExportError);
     expect(() => exportBookDocx(book('| A | B |\n| --- | --- |\n| ' + geometryMarker('square') + ' | X |'), false)).toThrow(DocxExportError);
     expect(() => exportBookDocx(book('Şekil $' + geometryMarker('triangle') + '$'), false)).toThrow(DocxExportError);
+    const withExplanation = book('Sorunun kökü');
+    withExplanation.chapters[0].questions[0].snapshot.explanation = geometryMarker('triangle');
+    expect(() => exportBookDocx(withExplanation, false)).toThrow(DocxExportError);
     expect(() => wordGeometryDrawing('octagon' as never, 1)).toThrow();
   });
 
