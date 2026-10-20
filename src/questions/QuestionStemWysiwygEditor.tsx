@@ -43,6 +43,8 @@ export function QuestionStemWysiwygEditor({
   const [symbolPalette, setSymbolPalette] = useState<'math' | 'science' | null>(null);
   const [equationTemplatesOpen, setEquationTemplatesOpen] = useState(false);
   const [equationSource, setEquationSource] = useState('');
+  const [fractionNumerator, setFractionNumerator] = useState('a');
+  const [fractionDenominator, setFractionDenominator] = useState('b');
   const [linkUrl, setLinkUrl] = useState('');
   // A Tiptap edit must not be re-imported as external content on the next React render.
   // A timer-based guard races with React scheduling and can drop active marks/caret.
@@ -284,6 +286,29 @@ export function QuestionStemWysiwygEditor({
             <button type="button" key={label} disabled={disabled} title={template}
               onMouseDown={event => event.preventDefault()}
               onClick={() => editor.chain().focus().insertContent('$' + template + '$').run()}>{label}</button>)}
+          <div className="question-p3-fraction-builder" aria-label="Görsel kesir oluşturucu">
+            <strong>Kesir oluştur</strong>
+            <div className="question-p3-fraction-layout">
+              <div className="question-p3-fraction-fields">
+                <label htmlFor="p3-fraction-numerator">Pay</label>
+                <input id="p3-fraction-numerator" value={fractionNumerator} maxLength={30} disabled={disabled}
+                  onChange={event => setFractionNumerator(event.target.value)} />
+                <label htmlFor="p3-fraction-denominator">Payda</label>
+                <input id="p3-fraction-denominator" value={fractionDenominator} maxLength={30} disabled={disabled}
+                  onChange={event => setFractionDenominator(event.target.value)} />
+              </div>
+              <div className="question-p3-fraction-live" aria-label="Kesir görünümü">
+                <span>{fractionNumerator || '□'}</span><span>{fractionDenominator || '□'}</span>
+              </div>
+            </div>
+            <button type="button"
+              disabled={disabled || !fractionNumerator.trim() || !fractionDenominator.trim() || !/^[a-zA-Z0-9+*/(). -]+$/.test(fractionNumerator) || !/^[a-zA-Z0-9+*/(). -]+$/.test(fractionDenominator)}
+              onMouseDown={event => event.preventDefault()}
+              onClick={() => editor.chain().focus().insertContent('$\\frac{' + fractionNumerator.trim() + '}{' + fractionDenominator.trim() + '}$').run()}>
+              Kesri soru metnine ekle
+            </button>
+            <small>Görünüm, oluşturma önizlemesidir. Soru metninde LaTeX olarak saklanır; Word çıktısı ayrıca kontrol edilmelidir.</small>
+          </div>
           <label className="question-p3-equation-compose-label" htmlFor="p3-equation-source">Denklem kaynağı (LaTeX)</label>
           <input id="p3-equation-source" className="question-p3-equation-compose-input" type="text" value={equationSource}
             disabled={disabled} maxLength={150} placeholder="\\frac{a}{b}"
