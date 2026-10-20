@@ -78,6 +78,14 @@ function optionXml(value: string, index: number): string {
   return p(label) + blocksToXml(blocks);
 }
 function pageBreak(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
+function coverSectionBreak(): string {
+  // The paragraph-level section properties belong to the preceding cover.
+  // The document-level sectPr configures the subsequent question pages.
+  return '<w:p><w:pPr><w:sectPr><w:type w:val="nextPage"/>' +
+    '<w:pgSz w:w="11906" w:h="16838"/>' +
+    '<w:pgMar w:top="1250" w:right="1200" w:bottom="1250" w:left="1200" w:header="500" w:footer="500" w:gutter="0"/>' +
+    '<w:cols w:num="1"/></w:sectPr></w:pPr></w:p>';
+}
 // Keep a numbered question label together with the opening line of its stem.
 function questionLabel(number: number): string {
   return '<w:p><w:pPr><w:pStyle w:val="QuestionLabel"/><w:keepNext/></w:pPr>' + run(String(number) + '. Soru') + '</w:p>';
@@ -135,7 +143,7 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
     p(book.title.trim(), 'Title'),
     p('ÖĞRENCİ ÇALIŞMA KİTABI  •  ' + (includeAnswers ? 'CEVAP ANAHTARLI' : 'ÖĞRENCİ NÜSHASI'), 'CoverDetail'),
     p('Kitap #' + book.id + '  |  A4  |  ' + (book.layoutColumns === 2 ? 'Çift sütun' : 'Tek sütun'), 'Subtitle'),
-    pageBreak()
+    coverSectionBreak()
   ];
   for (const chapter of ordered) {
     body.push(p(chapter.title, 'Heading1'));
