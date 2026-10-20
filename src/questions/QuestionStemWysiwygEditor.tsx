@@ -19,7 +19,7 @@ import { legacyMarkupToHtml, htmlToLegacyMarkup } from './question-editor-conver
 import { safeStudioHref } from './studio-document';
 import { geometrySvg, geometryFileName } from './geometry-svg';
 import { geometryMarker } from './geometry-markup';
-import { parseSelectedGeometry, canReplaceSelectedGeometry, type GeometryEditorSelection } from './geometry-revision';
+import { parseSelectedGeometry, canReplaceSelectedGeometry, listEditableGeometry, type GeometryLocation, type GeometryEditorSelection } from './geometry-revision';
 import './question-editor-p2.css';
 
 interface QuestionStemWysiwygEditorProps {
@@ -50,6 +50,7 @@ export function QuestionStemWysiwygEditor({
   const [shapeOpen, setShapeOpen] = useState(false);
   const [shapeType, setShapeType] = useState<'triangle' | 'circle' | 'square'>('triangle');
   const [geometrySelection, setGeometrySelection] = useState<GeometryEditorSelection | null>(null);
+  const [savedGeometry, setSavedGeometry] = useState<GeometryLocation[]>([]);
   const [geometryRevisionMessage, setGeometryRevisionMessage] = useState('');
   const [tableRows, setTableRows] = useState<string[][]>([['Başlık 1', 'Başlık 2'], ['', '']]);
   const [equationEditRange, setEquationEditRange] = useState<{ from: number; to: number } | null>(null);
@@ -120,6 +121,14 @@ export function QuestionStemWysiwygEditor({
   useEffect(() => {
     editor?.setEditable(!disabled);
   }, [editor, disabled]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const refreshSavedGeometry = () => setSavedGeometry(listEditableGeometry(editor.state.doc));
+    refreshSavedGeometry();
+    editor.on('update', refreshSavedGeometry);
+    return () => { editor.off('update', refreshSavedGeometry); };
+  }, [editor]);
 
   if (!editor) {
     return null;
@@ -432,6 +441,28 @@ export function QuestionStemWysiwygEditor({
             onClick={() => editor.chain().focus().insertContent(geometryMarker(shapeType)).run()}>
             Şekli soruya kalıcı ekle
           </button>
+          <div className="p3-geometry-saved-list" role="group" aria-label="Soruya kaydedilen şekiller">
+            <strong>Kayıtlı şekiller ({savedGeometry.length})</strong>
+            {savedGeometry.length ? savedGeometry.map((entry, index) =>
+              <button type="button" disabled={disabled} key={`${entry.from}-${entry.to}-${entry.shape}`}
+                onMouseDown={event => event.preventDefault()}
+                onClick={() => {
+                  const current = listEditableGeometry(editor.state.doc).find(
+                    item => item.from === entry.from && item.to === entry.to && item.original === entry.original
+                  );
+                  if (!current) {
+                    setGeometrySelection(null);
+                    setGeometryRevisionMessage('Şekil konumu değişti. Listedeki şekli yeniden seçin.');
+                    return;
+                  }
+                  setShapeType(current.shape);
+                  setGeometrySelection({ from: current.from, to: current.to, original: current.original, document: editor.state.doc });
+                  setGeometryRevisionMessage('Kayıtlı şekil seçildi. Yeni türü belirleyip Güncelle düğmesine basın.');
+                }}>
+                {index + 1}. {entry.shape === 'triangle' ? 'Üçgen ABC' : entry.shape === 'circle' ? 'Çember O' : 'Kare ABCD'} · Düzenle
+              </button>)
+              : <small>Bu soru kökünde henüz kaydedilmiş şekil bulunmuyor.</small>}
+          </div>
           <div className="p3-geometry-revision-controls" role="group" aria-label="Kaydedilmiş şekli düzenle">
             <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
               onClick={() => {

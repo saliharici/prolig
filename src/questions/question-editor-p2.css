@@ -284,3 +284,9 @@
 /* P3-R: explicit safe edit controls for persisted versioned geometric shapes. */
 .p3-geometry-revision-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-block:6px;padding:10px;border:1px dashed #d6c6cf;border-radius:9px}
 .p3-geometry-revision-controls small{flex-basis:100%;color:#4c685c;line-height:1.5}
+
+/* P3-S: select saved diagrams directly, without manually highlighting versioned text tokens. */
+.p3-geometry-saved-list{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid #e5dce0;border-radius:9px;background:#fff}
+.p3-geometry-saved-list strong{font-size:12px;color:#4b6056;flex-basis:100%}
+.p3-geometry-saved-list small{font-size:12px;color:#64766e}
+.p3-geometry-saved-list button{font-size:12px}
