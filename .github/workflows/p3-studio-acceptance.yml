@@ -22,6 +22,7 @@ on:
       - 'feat/p3u-safe-png-validation-*'
       - 'feat/p3v-isolated-png-upload-*'
       - 'feat/p3w-private-image-binding-*'
+      - 'feat/p3x-private-image-reading-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
