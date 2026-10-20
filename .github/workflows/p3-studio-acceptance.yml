@@ -20,6 +20,7 @@ on:
       - 'feat/p3s-geometry-list-editor-*'
       - 'feat/p3t-word-native-geometry-*'
       - 'feat/p3u-safe-png-validation-*'
+      - 'feat/p3v-isolated-png-upload-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
