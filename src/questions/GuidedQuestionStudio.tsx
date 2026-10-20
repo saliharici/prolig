@@ -8,7 +8,7 @@ import { QuestionStemWysiwygEditor } from './QuestionStemWysiwygEditor';
 import { QuestionTypePreview } from './QuestionTypePreview';
 import './guided-question-studio.css';
 
-const steps = ['Tür ve bilgiler', 'Soru kökü', 'Cevap yapısı', 'Çözüm ve değerlendirme', 'Önizleme ve kayıt'];
+const steps = ['Tür ve bilgiler', 'Soru ve seçenekler', 'Cevap anahtarı', 'Çözüm ve değerlendirme', 'Önizleme ve kayıt'];
 const editorHints = {
   content: 'Sorunun yönergesini ve içeriğini yazın...',
   explanation: 'Cevabın gerekçesini ve çözüm adımlarını yazın...',
@@ -115,9 +115,10 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
           {projectsError && <p role="alert">Atanmış projeler yüklenemedi: {projectsError}</p>}
           {sandbox && <p className="p2-notice">Korumalı sandbox kaydı: yalnızca PILOT-MAT-8-001 projesinde dört seçenekli çoktan seçmeli sorular. P2-UAT işareti korunur; diğer soru türleri şimdilik salt okunur önizlemededir.</p>}
         </>}
-        {step === 2 && <>{editor('content', 'Soru kökü', 1200)}{media('STEM')}</>}
-        {step === 3 && <>
-          {type === 'MULTIPLE_CHOICE' ? <>
+        {step === 2 && <>
+          {editor('content', 'Soru kökü', 1200)}{media('STEM')}
+          {type === 'MULTIPLE_CHOICE' && <section className="p3-integrated-options" aria-label="Soru tasarımı cevap seçenekleri">
+            <div className="p3-integrated-options-heading"><h4>Cevap seçenekleri</h4><p>Soru kökünü hazırlarken seçeneklerini aynı çalışma alanında düzenleyin.</p></div>
             <div role="tablist" aria-label="Cevap seçenekleri" className="p2-option-tabs">{letters.map((letter, i) => <button type="button" role="tab" id={`p2-option-${letter}`} aria-controls="p2-option-panel" aria-selected={selectedOption === i} tabIndex={selectedOption === i ? 0 : -1} key={letter} onClick={() => setActiveOption(i)} onKeyDown={e => {
               if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
               e.preventDefault();
@@ -125,6 +126,10 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
               setActiveOption(next); document.getElementById(`p2-option-${letters[next]}`)?.focus();
             }}>{letter}<small>{v.options[i]?.trim() ? 'Dolu' : 'Boş'}</small></button>)}</div>
             <div role="tabpanel" id="p2-option-panel" aria-labelledby={`p2-option-${letters[selectedOption]}`}><QuestionStemWysiwygEditor key={selectedOption} value={v.options[selectedOption] || ''} onChange={value => change({ options: v.options.map((x, i) => i === selectedOption ? value : x) })} variant="option" ariaLabel={`${letters[selectedOption]} seçeneği`} maxLength={500} disabled={disabled} />{media(`OPTION_${letters[selectedOption]}` as QuestionAssetPlacement)}</div>
+          </section>}
+        </>}
+        {step === 3 && <>
+          {type === 'MULTIPLE_CHOICE' ? <>
             <label>Doğru cevap<select value={letters.includes(v.correctAnswer) ? v.correctAnswer : ''} onChange={e => change({ correctAnswer: e.target.value })}><option value="">Seçin</option>{letters.map(x => <option key={x}>{x}</option>)}</select></label>
           </> : type === 'TRUE_FALSE' ? <fieldset className="p2-boolean"><legend>Önermenin doğru cevabı</legend>{[true, false].map(value => <label key={String(value)}><input type="radio" name="p2-boolean-answer" checked={v.booleanAnswer === value} onChange={() => change({ booleanAnswer: value })} />{value ? 'Doğru' : 'Yanlış'}</label>)}</fieldset> : <p className="p2-notice">Klasik soruda seçenek veya otomatik cevap anahtarı kullanılmaz. Bir sonraki aşamada model cevabı ve insan editörün kullanacağı değerlendirme ölçütlerini hazırlayın.</p>}
         </>}
