@@ -45,6 +45,9 @@ export function QuestionStemWysiwygEditor({
   const [equationSource, setEquationSource] = useState('');
   const [fractionNumerator, setFractionNumerator] = useState('a');
   const [fractionDenominator, setFractionDenominator] = useState('b');
+  const [mathBase, setMathBase] = useState('x');
+  const [mathArgument, setMathArgument] = useState('2');
+  const [mathBuilderType, setMathBuilderType] = useState<'root' | 'power' | 'subscript'>('root');
   const [linkUrl, setLinkUrl] = useState('');
   // A Tiptap edit must not be re-imported as external content on the next React render.
   // A timer-based guard races with React scheduling and can drop active marks/caret.
@@ -308,6 +311,36 @@ export function QuestionStemWysiwygEditor({
               Kesri soru metnine ekle
             </button>
             <small>Görünüm, oluşturma önizlemesidir. Soru metninde LaTeX olarak saklanır; Word çıktısı ayrıca kontrol edilmelidir.</small>
+          </div>
+          <div className="question-p3-math-builder" aria-label="Kök üs ve alt indis oluşturucu">
+            <strong>Matematiksel ifade oluştur</strong>
+            <div className="question-p3-math-builder-types" role="group" aria-label="İfade türü">
+              {([['root', 'Karekök'], ['power', 'Üs'], ['subscript', 'Alt indis']] as const).map(([kind, label]) =>
+                <button type="button" key={kind} disabled={disabled} aria-pressed={mathBuilderType === kind}
+                  onClick={() => setMathBuilderType(kind)}>{label}</button>)}
+            </div>
+            <div className="question-p3-math-builder-fields">
+              {mathBuilderType !== 'root' && <label htmlFor="p3-math-base">Taban
+                <input id="p3-math-base" value={mathBase} maxLength={30} disabled={disabled} onChange={event => setMathBase(event.target.value)} />
+              </label>}
+              <label htmlFor="p3-math-argument">{mathBuilderType === 'root' ? 'Kök içi' : mathBuilderType === 'power' ? 'Üs değeri' : 'Alt indis'}
+                <input id="p3-math-argument" value={mathArgument} maxLength={30} disabled={disabled} onChange={event => setMathArgument(event.target.value)} />
+              </label>
+            </div>
+            <div className="question-p3-math-builder-preview" aria-label="Matematiksel ifade önizlemesi">
+              {mathBuilderType === 'root' ? <span>√<span className="question-p3-radicand">{mathArgument || '□'}</span></span>
+                : mathBuilderType === 'power' ? <span>{mathBase || '□'}<sup>{mathArgument || '□'}</sup></span>
+                : <span>{mathBase || '□'}<sub>{mathArgument || '□'}</sub></span>}
+            </div>
+            <button type="button" disabled={disabled || !mathArgument.trim() || (mathBuilderType !== 'root' && !mathBase.trim()) ||
+              !/^[a-zA-Z0-9+*/(). -]+$/.test(mathArgument) || (mathBuilderType !== 'root' && !/^[a-zA-Z0-9+*/(). -]+$/.test(mathBase))}
+              onMouseDown={event => event.preventDefault()}
+              onClick={() => {
+                const value = mathBuilderType === 'root' ? '\\sqrt{' + mathArgument.trim() + '}' :
+                  mathBase.trim() + (mathBuilderType === 'power' ? '^{' : '_{') + mathArgument.trim() + '}';
+                editor.chain().focus().insertContent('$' + value + '$').run();
+              }}>İfadeyi soru metnine ekle</button>
+            <small>Görsel oluşturma önizlemesi. Kayıt LaTeX metnidir; tam görsel denklem nesnesi değildir.</small>
           </div>
           <label className="question-p3-equation-compose-label" htmlFor="p3-equation-source">Denklem kaynağı (LaTeX)</label>
           <input id="p3-equation-source" className="question-p3-equation-compose-input" type="text" value={equationSource}

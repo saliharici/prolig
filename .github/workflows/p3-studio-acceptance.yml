@@ -7,6 +7,7 @@ on:
       - 'feat/p3f-equation-entry-*'
       - 'feat/p3g-equation-composer-*'
       - 'feat/p3h-visual-fraction-composer-*'
+      - 'feat/p3i-visual-math-builders-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
