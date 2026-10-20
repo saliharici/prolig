@@ -19,6 +19,7 @@ on:
       - 'feat/p3r-edit-persisted-geometry-*'
       - 'feat/p3s-geometry-list-editor-*'
       - 'feat/p3t-word-native-geometry-*'
+      - 'feat/p3u-safe-png-validation-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
