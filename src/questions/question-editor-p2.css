@@ -255,3 +255,17 @@
 .question-p3-math-builder-preview sup,.question-p3-math-builder-preview sub{font-size:.62em}
 .question-p3-radicand{display:inline-block;border-top:2px solid currentColor;padding:3px 8px}
 .question-p3-math-builder small{color:#68756f;font-size:11px;line-height:1.5}
+
+
+/* P3-K bounded plain-text table composition, no persisted HTML table claims. */
+.p3-table-composer{padding:10px 12px;background:#fcfafb;border-bottom:1px solid #e9e1e5}
+.p3-table-composer button{border:1px solid #e2d5dd;border-radius:8px;background:white;padding:8px 11px;color:#642d49;cursor:pointer;font-size:12px}
+.p3-table-composer button:disabled{opacity:.5;cursor:not-allowed}
+.p3-table-panel{display:grid;gap:12px;margin-top:10px}
+.p3-table-panel p{margin:0;font-size:12px;color:#607069;line-height:1.6}
+.p3-table-toolbar{display:flex;flex-wrap:wrap;gap:6px}
+.p3-table-scroll{overflow-x:auto;max-width:100%}
+.p3-table-scroll table{border-collapse:collapse;min-width:360px;width:100%}
+.p3-table-scroll td{border:1px solid #e4dce0;padding:6px}
+.p3-table-scroll input{min-width:65px;width:100%;border:0;padding:6px;background:transparent;color:#283e33}
+.p3-table-scroll input:focus-visible{outline:2px solid #945777}
