@@ -70,7 +70,7 @@ export function privatePngWordDrawing(
   drawingId: number
 ): string {
   if (!validId(drawingId) || !validId(image.assetId) ||
-      !/^rId[4-9]\d*$/.test(image.relationshipId)) {
+      !/^rId(?:[4-9]|[1-9]\d+)$/.test(image.relationshipId)) {
     throw new Error('Invalid document image identity');
   }
   const max = 1_800_000;
