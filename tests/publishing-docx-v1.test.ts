@@ -131,4 +131,19 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     malformed.chapters[0].questions[0].snapshot.correctAnswer = null;
     expect(() => exportBookDocx(malformed,false)).toThrow('cevap anahtarı');
   });
+  it('adds professional Word typography and keeps question labels with their stems', () => {
+    const files = unzipStored(exportBookDocx(book(), false));
+    const xml = files.get('word/document.xml')!;
+    const stylesXml = files.get('word/styles.xml')!;
+    expect(stylesXml).toContain('w:styleId="QuestionLabel"');
+    expect(stylesXml).toContain('w:ascii="Aptos"');
+    expect(stylesXml).toContain('w:keepNext');
+    expect(stylesXml).toContain('w:lineRule="auto"');
+    expect(xml).toContain('<w:pStyle w:val="QuestionLabel"/><w:keepNext/>');
+    expect(xml).toContain('1. Soru');
+    expect(xml).toContain('2. Soru');
+    expect(xml).toContain('3. Soru');
+    expect(xml).not.toContain('Cevap Anahtarı');
+  });
+
 });
