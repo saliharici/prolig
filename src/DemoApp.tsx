@@ -2354,6 +2354,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             onProject={changeQuestionProject} onLevel={changeQuestionLevel} onGrade={changeQuestionGrade}
             branchName={currentUser.role === 'YAZAR' ? currentUser.authorProfile?.branch?.name || '' : ''}
             editing={Boolean(editingQuestion)} disabled={questionSaving || durableDraftBusy}
+            privateGeometryQuestionId={editingQuestion?.id ?? null}
+            privateGeometryUpdatedAt={editingQuestion?.updatedAt ?? undefined}
+            onPrivateGeometryRevision={updatedAt => {
+              setEditingQuestion(previous => previous ? { ...previous, updatedAt } : previous);
+            }}
             sandbox={questionStudioReleaseFlags.localGuardedWrites}
             onAddAsset={placement => { setQuestionAssetPlacement(placement); addQuestionAssetAt(placement); }}
             onRemoveAsset={removeQuestionAsset}
