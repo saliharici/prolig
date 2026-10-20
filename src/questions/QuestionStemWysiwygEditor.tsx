@@ -18,6 +18,7 @@ import {
 import { legacyMarkupToHtml, htmlToLegacyMarkup } from './question-editor-converter';
 import { safeStudioHref } from './studio-document';
 import { geometrySvg, geometryFileName } from './geometry-svg';
+import { geometryMarker } from './geometry-markup';
 import './question-editor-p2.css';
 
 interface QuestionStemWysiwygEditorProps {
@@ -424,6 +425,11 @@ export function QuestionStemWysiwygEditor({
             URL.revokeObjectURL(url);
           }}>SVG dosyasını indir</button>
           <small>SVG dosyası yalnızca bilgisayarınıza indirilir. Soruya eklenmesi ve Word aktarımı henüz desteklenmiyor.</small>
+          <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
+            onClick={() => editor.chain().focus().insertContent(geometryMarker(shapeType)).run()}>
+            Şekli soruya kalıcı ekle
+          </button>
+          <small>Hazır şeklin türü soru metniyle birlikte kaydedilir ve önizlemede tekrar çizilir. Düzenlemek için kayıt işaretini seçip yeni şekli ekleyin. Word'e şekil aktarımı henüz desteklenmez.</small>
           <small>Bu işlem yalnızca sembolik metin ekler. SVG önizleme soru kaydına veya Word belgesine aktarılmaz.</small>
         </div>}
       </section>}
