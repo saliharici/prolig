@@ -161,7 +161,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
         {previewMode === 'publish' && <section className="p3-review-summary" aria-label="Yayın teknik ön kontrolü">
           <strong>Word çıktısı ön kontrolü</strong>
           <p>{v.assets.length ? `${v.assets.length} medya öğesi: Word çıktısında destek kontrolü gerekir.` : 'Harici medya öğesi bulunmuyor.'}</p>
-          <p>{[v.content, ...v.options, v.explanation || '', v.modelAnswer || ''].some(x => x.includes(' ? 'Matematik ifadeleri için DOCX motorunda birebir çıktı doğrulaması gerekir.' : 'Belirgin LaTeX işareti bulunmadı; bu bir yayın onayı değildir.'}</p>) || x.includes('\\\\frac') || x.includes('\\\\sqrt') || x.includes('\\\\begin')) ? 'Matematik ifadeleri için DOCX motorunda birebir çıktı doğrulaması gerekir.' : 'Belirgin LaTeX işareti bulunmadı; bu bir yayın onayı değildir.'}</p>
+          <p>{[v.content, ...v.options, v.explanation || '', v.modelAnswer || ''].some(x => x.includes('$') || x.includes('\\frac') || x.includes('\\sqrt') || x.includes('\\begin')) ? 'Matematik ifadeleri için DOCX motorunda birebir çıktı doğrulaması gerekir.' : 'Belirgin LaTeX işareti bulunmadı; bu bir yayın onayı değildir.'}</p>
           <small>Sayfa taşması, görsel çözünürlüğü ve dizgi uygunluğu yalnız gerçek Word çıktısıyla doğrulanabilir.</small>
         </section>}
       </aside>}
