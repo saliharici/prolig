@@ -596,11 +596,29 @@ model Question {
   updatedAt  DateTime       @updatedAt
   compensationEntries CompensationEntry[]
   assets QuestionAsset[]
+  privateGeometryAssets PrivateGeometryAsset[]
   bookQuestions BookQuestion[]
 
   @@index([authorUserId])
   @@index([projectId])
   @@index([status])
+}
+
+/** Private P3 PNGs; no public URL or foreign user-owned object key. */
+model PrivateGeometryAsset {
+  id          Int      @id @default(autoincrement())
+  questionId  Int
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  ownerUserId Int
+  sha256      String
+  objectKey   String   @unique
+  width       Int
+  height      Int
+  placement   String   @default("STEM")
+  createdAt   DateTime @default(now())
+
+  @@unique([questionId, sha256])
+  @@index([ownerUserId, questionId])
 }
 
 model QuestionAsset {
