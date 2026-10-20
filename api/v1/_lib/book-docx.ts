@@ -87,8 +87,8 @@ function validate(book: DocxBook): void {
   if (!Number.isSafeInteger(book.id) || book.id < 1 || typeof book.title !== 'string' ||
       !book.title.trim() || book.title.length > 120)
     throw new DocxExportError('Kitap başlığı veya kimliği geçersiz.');
-  if (book.layoutColumns !== 1)
-    throw new DocxExportError('İlk Word sürümünde yalnız tek sütun desteklenir. Kitap düzenini tek sütuna getirip kaydedin.');
+  if (book.layoutColumns !== 1 && book.layoutColumns !== 2)
+    throw new DocxExportError('Word düzeni yalnız tek veya çift sütun olabilir.');
   const chapters = book.chapters;
   if (!Array.isArray(chapters) || chapters.some(c => !c || typeof c.title !== 'string' ||
       !Array.isArray(c.questions) || !Number.isSafeInteger(c.sortOrder))) {
@@ -130,9 +130,11 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
   let count = 0;
   const answerRows: string[] = [];
   const body: string[] = [
-    p('PRO-LİG · YAYIN HAZIRLIK ÖNİZLEMESİ', 'Subtitle'),
+    p('PRO-LİG  /  YAYIN HAZIRLIK', 'Subtitle'),
+    p('SORU KİTABI', 'CoverEyebrow'),
     p(book.title.trim(), 'Title'),
-    p('Kitap #' + book.id + ' · Word taslak çıktısı', 'Subtitle'),
+    p('ÖĞRENCİ ÇALIŞMA KİTABI  •  ' + (includeAnswers ? 'CEVAP ANAHTARLI' : 'ÖĞRENCİ NÜSHASI'), 'CoverDetail'),
+    p('Kitap #' + book.id + '  |  A4  |  ' + (book.layoutColumns === 2 ? 'Çift sütun' : 'Tek sütun'), 'Subtitle'),
     pageBreak()
   ];
   for (const chapter of ordered) {
@@ -166,7 +168,7 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
   const sect = '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/>' +
     '<w:footerReference w:type="default" r:id="rId3"/><w:pgSz w:w="11906" w:h="16838"/>' +
     '<w:pgMar w:top="1250" w:right="1200" w:bottom="1250" w:left="1200" w:header="500" w:footer="500" w:gutter="0"/>' +
-    '<w:cols w:num="1"/></w:sectPr>';
+    '<w:cols w:num="' + book.layoutColumns + '" w:space="420"/></w:sectPr>';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
     '<w:body>' + body.join('') + sect + '</w:body></w:document>';
@@ -217,6 +219,12 @@ const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="340" w:after="200"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="30"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/>' +
   '<w:pPr><w:keepNext/><w:spacing w:before="160" w:after="90"/></w:pPr><w:rPr><w:b/><w:sz w:val="23"/></w:rPr></w:style>' +
+  '<w:style w:type="paragraph" w:styleId="CoverEyebrow"><w:name w:val="Cover Eyebrow"/>' +
+  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="1300" w:after="380"/><w:keepNext/></w:pPr>' +
+  '<w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="30"/></w:rPr></w:style>' +
+  '<w:style w:type="paragraph" w:styleId="CoverDetail"><w:name w:val="Cover Detail"/>' +
+  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="280" w:after="480"/></w:pPr>' +
+  '<w:rPr><w:color w:val="886777"/><w:sz w:val="20"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="QuestionLabel"><w:name w:val="Question Label"/>' +
   '<w:pPr><w:keepNext/><w:spacing w:before="220" w:after="90"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="23"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/></w:style>' +
