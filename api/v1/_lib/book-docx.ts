@@ -1,6 +1,7 @@
 import { parseStudioBlocks, type StudioBlock, type StudioInline } from '../../../src/questions/studio-document.js';
 import { containsGeometryMarkup, splitGeometryMarkup } from '../../../src/questions/geometry-markup.js';
 import { knownGeometryOnly, wordGeometryCaption, wordGeometryDrawing } from './docx-geometry.js';
+import { prepareTrustedDocxPngs, privatePngWordDrawing, privatePngRelationshipEntries, type TrustedDocxPrivatePng, type PreparedPrivateDocxPng } from './docx-private-png.js';
 import type { FrozenBookQuestionV1 } from '../../../src/publishing/book-draft-contract.js';
 
 /**
@@ -190,7 +191,7 @@ function validate(book: DocxBook): void {
   }
 }
 
-function buildDocument(book: DocxBook, includeAnswers: boolean): string {
+function buildDocument(book: DocxBook, includeAnswers: boolean, images: PreparedPrivateDocxPng[] = []): string {
   const ordered = [...book.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
   const drawings: DrawingSequence = { nextId: 1 };
   let count = 0;
@@ -210,6 +211,12 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
       count++;
       body.push(questionLabel(count));
       body.push(contentXml(question.content, drawings));
+      for (const frozenImage of question.privateGeometryAssets ?? []) {
+        const image = images.find(item => item.sourceQuestionId === question.sourceQuestionId &&
+          item.assetId === frozenImage.assetId);
+        if (!image) throw new DocxExportError('Kitapta dondurulmuş özel geometri görseli bulunamadı.');
+        body.push(privatePngWordDrawing(image, drawings.nextId++));
+      }
       if (question.questionType === 'MULTIPLE_CHOICE') {
         question.options.forEach((option, idx) => {
           body.push(optionXml(option, idx, drawings));
@@ -236,7 +243,7 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
     '<w:pgMar w:top="1250" w:right="1200" w:bottom="1250" w:left="1200" w:header="500" w:footer="500" w:gutter="0"/>' +
     '<w:cols w:num="' + book.layoutColumns + '" w:space="420"/></w:sectPr>';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
     '<w:body>' + body.join('') + sect + '</w:body></w:document>';
 }
 
@@ -308,12 +315,12 @@ function crc32(buffer: Buffer): number {
   }
   return (crc ^ 0xffffffff) >>> 0;
 }
-function packageZip(files: Array<[string, string]>): Buffer {
+function packageZip(files: Array<[string, string | Buffer]>): Buffer {
   const locals: Buffer[] = [], centrals: Buffer[] = [];
   let offset = 0;
   for (const [path, text] of files) {
     const filename = Buffer.from(path, 'utf8');
-    const data = Buffer.from(text, 'utf8');
+    const data = Buffer.isBuffer(text) ? text : Buffer.from(text, 'utf8');
     const checksum = crc32(data);
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
@@ -353,19 +360,60 @@ function packageZip(files: Array<[string, string]>): Buffer {
 }
 
 export function exportBookDocx(value: unknown, includeAnswers: boolean): Buffer {
+  return exportBookDocxWithVerifiedPrivateGeometry(value, includeAnswers, []);
+}
+
+/**
+ * Only verified server-fetched bytes may be embedded. Every byte payload must
+ * match an immutable frozen reference in its BookQuestion snapshot.
+ * Existing exportBookDocx remains backward-compatible and fails closed
+ * if private media was frozen but the caller did not provide its bytes.
+ */
+export function exportBookDocxWithVerifiedPrivateGeometry(
+  value: unknown,
+  includeAnswers: boolean,
+  supplied: ReadonlyArray<TrustedDocxPrivatePng>
+): Buffer {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new DocxExportError('Kitap kaydı geçersiz.');
   }
-  // Prisma JsonValue is intentionally validated at the DOCX boundary.
   const book = value as DocxBook;
   validate(book);
+  let images: PreparedPrivateDocxPng[];
+  try {
+    images = prepareTrustedDocxPngs(supplied);
+  } catch {
+    throw new DocxExportError('Özel geometri görselleri Word aktarımı için doğrulanamadı.');
+  }
+  const references = book.chapters.flatMap(c => c.questions.flatMap(q =>
+    (q.snapshot.privateGeometryAssets ?? []).map(ref => ({
+      sourceQuestionId: q.snapshot.sourceQuestionId, ...ref
+    }))
+  ));
+  if (references.length !== images.length ||
+      references.some(ref => !images.some(image =>
+        image.sourceQuestionId === ref.sourceQuestionId &&
+        image.assetId === ref.assetId && image.sha256 === ref.sha256 &&
+        image.width === ref.width && image.height === ref.height &&
+        ref.placement === 'STEM'
+      ))) {
+    throw new DocxExportError('Kitap anlık görüntüsündeki özel çizimler ile dosyalar eşleşmiyor.');
+  }
+
+  const relations = images.length
+    ? docRels.replace('</Relationships>', privatePngRelationshipEntries(images) + '</Relationships>')
+    : docRels;
+  const contents = images.length
+    ? types.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>')
+    : types;
   return packageZip([
-    ['[Content_Types].xml', types],
+    ['[Content_Types].xml', contents],
     ['_rels/.rels', rels],
-    ['word/document.xml', buildDocument(book, includeAnswers)],
-    ['word/_rels/document.xml.rels', docRels],
+    ['word/document.xml', buildDocument(book, includeAnswers, images)],
+    ['word/_rels/document.xml.rels', relations],
     ['word/styles.xml', styles],
     ['word/header1.xml', header],
-    ['word/footer1.xml', footer]
+    ['word/footer1.xml', footer],
+    ...images.map(image => [image.filename, image.bytes] as [string, Buffer])
   ]);
 }
