@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from './prisma.js';
 import { formatQuestionDto } from './question-dto.js';
-import { DocxExportError, exportBookDocx } from './book-docx.js';
+import { DocxExportError, exportBookDocxWithVerifiedPrivateGeometry } from './book-docx.js';
+import { isP3IsolatedPngUploadEnvironment } from './p3-png-upload-environment.js';
+import { privateGeometryPngKey, readVerifiedPrivatePng } from './p3-png-s3.js';
 import {
   BookDraftValidationError, canEditBookDraft, prepareBookDraft,
   type BookDraftInput, type PreparedBookDraft
@@ -32,6 +34,8 @@ export function bookApiPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boo
     } catch { return false; }
   }
   if (env.NODE_ENV === 'test') return true;
+  // P3 private geometry books may run only on the dedicated isolated Preview DB.
+  if (env.PROLIG_P3_BOOK_EXPORT_ENABLED === 'true' && isP3IsolatedPngUploadEnvironment(env)) return true;
   if (env.VERCEL_ENV !== 'preview') return false;
   try {
     const db = new URL(env.DATABASE_URL || '');
