@@ -78,6 +78,10 @@ function optionXml(value: string, index: number): string {
   return p(label) + blocksToXml(blocks);
 }
 function pageBreak(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
+// Keep a numbered question label together with the opening line of its stem.
+function questionLabel(number: number): string {
+  return '<w:p><w:pPr><w:pStyle w:val="QuestionLabel"/><w:keepNext/></w:pPr>' + run(String(number) + '. Soru') + '</w:p>';
+}
 
 function validate(book: DocxBook): void {
   if (!Number.isSafeInteger(book.id) || book.id < 1 || typeof book.title !== 'string' ||
@@ -136,7 +140,7 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
     for (const item of [...chapter.questions].sort((a, b) => a.sortOrder - b.sortOrder)) {
       const question = item.snapshot;
       count++;
-      body.push(p(String(count) + '. Soru', 'Heading2'));
+      body.push(questionLabel(count));
       body.push(contentXml(question.content));
       if (question.questionType === 'MULTIPLE_CHOICE') {
         question.options.forEach((option, idx) => {
@@ -184,19 +188,21 @@ const docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '</Relationships>';
 const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
-  '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri"/>' +
+  '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos"/>' +
   '<w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>' +
   '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/>' +
-  '<w:pPr><w:spacing w:after="140"/></w:pPr></w:style>' +
+  '<w:pPr><w:spacing w:after="120" w:line="300" w:lineRule="auto"/></w:pPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/>' +
-  '<w:pPr><w:jc w:val="center"/><w:spacing w:after="300"/></w:pPr>' +
+  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="600" w:after="360"/><w:keepNext/></w:pPr>' +
   '<w:rPr><w:b/><w:sz w:val="48"/><w:color w:val="6D2948"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Subtitle"><w:name w:val="Subtitle"/>' +
   '<w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:sz w:val="22"/><w:color w:val="886777"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/>' +
-  '<w:pPr><w:keepNext/><w:spacing w:before="300" w:after="180"/></w:pPr><w:rPr><w:b/><w:sz w:val="32"/></w:rPr></w:style>' +
+  '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="340" w:after="200"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="30"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/>' +
   '<w:pPr><w:keepNext/><w:spacing w:before="160" w:after="90"/></w:pPr><w:rPr><w:b/><w:sz w:val="23"/></w:rPr></w:style>' +
+  '<w:style w:type="paragraph" w:styleId="QuestionLabel"><w:name w:val="Question Label"/>' +
+  '<w:pPr><w:keepNext/><w:spacing w:before="220" w:after="90"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="23"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/></w:style>' +
   '<w:style w:type="paragraph" w:styleId="TableHead"><w:name w:val="TableHead"/><w:rPr><w:b/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Footnote"><w:name w:val="Footnote"/><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/></w:rPr></w:style>' +
