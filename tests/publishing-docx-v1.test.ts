@@ -123,7 +123,8 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     expect(() => exportBookDocx(withImage,false)).toThrow('Görsel');
     const withMath = book();
     withMath.chapters[0].questions[0].snapshot.content = 'Hesap $x^2$';
-    expect(() => exportBookDocx(withMath,false)).toThrow('Matematik');
+    const powerXml = unzipStored(exportBookDocx(withMath,false)).get('word/document.xml')!;
+    expect(powerXml).toContain('<m:sSup>');
     const columns = book();
     columns.layoutColumns = 2;
     const twoColumnXml = unzipStored(exportBookDocx(columns, false)).get('word/document.xml')!;
@@ -170,8 +171,26 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     expect(xml).toContain('<m:oMath><m:r><m:t xml:space="preserve">x + 2 = 5</m:t></m:r></m:oMath>');
     expect(xml).toContain('xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"');
     const unsupported = book();
-    unsupported.chapters[0].questions[0].snapshot.content = 'Hesap $x^2$';
+    unsupported.chapters[0].questions[0].snapshot.content = 'Hesap $\\int_0^1
     expect(() => exportBookDocx(unsupported, false)).toThrow('Matematik ifadesinin Word denklem dizgisi');
+  });
+
+});
+;
+    expect(() => exportBookDocx(unsupported, false)).toThrow('Matematik ifadesinin Word denklem dizgisi');
+  });
+
+  it('serializes simple fractions, square roots and superscripts as editable OMML', () => {
+    for (const [input, expected] of [
+      ['$\\\\frac{1}{2}$', '<m:f>'],
+      ['$\\\\sqrt{9}$', '<m:rad>'],
+      ['$x^2$', '<m:sSup>']
+    ]) {
+      const fixture = book();
+      fixture.chapters[0].questions[0].snapshot.content = 'Çözünüz: ' + input;
+      const xml = unzipStored(exportBookDocx(fixture, false)).get('word/document.xml')!;
+      expect(xml).toContain(expected);
+    }
   });
 
 });
