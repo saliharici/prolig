@@ -53,12 +53,12 @@ function unzipStored(buffer: Buffer): Map<string, string> {
 }
 
 describe('Publishing DOCX V1, editable real OOXML package', () => {
-  it('creates the 5 required ZIP parts and preserves the frozen #77→#79→#78 order', () => {
+  it('creates the 7 required ZIP parts and preserves the frozen #77→#79→#78 order', () => {
     const packageBytes = exportBookDocx(book(), false);
     expect(packageBytes.subarray(0,4).toString('hex')).toBe('504b0304');
     const files = unzipStored(packageBytes);
     expect([...files.keys()].sort()).toEqual(
-      ['[Content_Types].xml','_rels/.rels','word/_rels/document.xml.rels','word/document.xml','word/styles.xml'].sort()
+      ['[Content_Types].xml','_rels/.rels','word/_rels/document.xml.rels','word/document.xml','word/styles.xml','word/header1.xml','word/footer1.xml'].sort()
     );
     const xml = files.get('word/document.xml')!;
     expect(xml).toContain('PRO-LİG V2 Test Kitabı');
@@ -123,12 +123,68 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     expect(() => exportBookDocx(withImage,false)).toThrow('Görsel');
     const withMath = book();
     withMath.chapters[0].questions[0].snapshot.content = 'Hesap $x^2$';
-    expect(() => exportBookDocx(withMath,false)).toThrow('Matematik');
+    const powerXml = unzipStored(exportBookDocx(withMath,false)).get('word/document.xml')!;
+    expect(powerXml).toContain('<m:sSup>');
     const columns = book();
     columns.layoutColumns = 2;
-    expect(() => exportBookDocx(columns,false)).toThrow('tek sütun');
+    const twoColumnXml = unzipStored(exportBookDocx(columns, false)).get('word/document.xml')!;
+    expect(twoColumnXml).toContain('<w:cols w:num="2" w:space="420"/>');
+    expect(twoColumnXml).toContain('<w:type w:val="nextPage"/>');
+    expect(twoColumnXml).toContain('<w:cols w:num="1"/></w:sectPr></w:pPr></w:p>');
+    expect(twoColumnXml.indexOf('<w:cols w:num="1"/></w:sectPr>'))
+      .toBeLessThan(twoColumnXml.indexOf('<w:cols w:num="2" w:space="420"/>'));
+
+    columns.layoutColumns = 3;
+    expect(() => exportBookDocx(columns, false)).toThrow('tek veya çift sütun');
     const malformed = book();
     malformed.chapters[0].questions[0].snapshot.correctAnswer = null;
     expect(() => exportBookDocx(malformed,false)).toThrow('cevap anahtarı');
+  });
+  it('adds professional Word typography and keeps question labels with their stems', () => {
+    const files = unzipStored(exportBookDocx(book(), false));
+    const xml = files.get('word/document.xml')!;
+    const stylesXml = files.get('word/styles.xml')!;
+    expect(stylesXml).toContain('w:styleId="QuestionLabel"');
+    expect(stylesXml).toContain('w:styleId="CoverEyebrow"');
+    expect(stylesXml).toContain('w:styleId="CoverDetail"');
+    expect(xml).toContain('SORU KİTABI');
+    expect(xml).toContain('ÖĞRENCİ NÜSHASI');
+    expect(stylesXml).toContain('w:ascii="Aptos"');
+    expect(stylesXml).toContain('w:keepNext');
+    expect(stylesXml).toContain('w:lineRule="auto"');
+    expect(xml).toContain('<w:pStyle w:val="QuestionLabel"/><w:keepNext/>');
+    expect(xml).toContain('<w:headerReference w:type="default" r:id="rId2"/>');
+    expect(xml).toContain('<w:footerReference w:type="default" r:id="rId3"/>');
+    expect(files.get('word/header1.xml')).toContain('YAYIN HAZIRLIK');
+    expect(files.get('word/footer1.xml')).toContain(' PAGE ');
+    expect(files.get('word/_rels/document.xml.rels')).toContain('Target="footer1.xml"');
+    expect(xml).toContain('1. Soru');
+    expect(xml).toContain('2. Soru');
+    expect(xml).toContain('3. Soru');
+    expect(xml).not.toContain('Cevap Anahtarı');
+  });
+
+  it('produces editable OMML for safe inline algebra and rejects unsupported TeX', () => {
+    const simple = book();
+    simple.chapters[0].questions[0].snapshot.content = 'Çözünüz: $x + 2 = 5$';
+    const xml = unzipStored(exportBookDocx(simple, false)).get('word/document.xml')!;
+    expect(xml).toContain('<m:oMath><m:r><m:t xml:space="preserve">x + 2 = 5</m:t></m:r></m:oMath>');
+    expect(xml).toContain('xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"');
+    const unsupported = book();
+    unsupported.chapters[0].questions[0].snapshot.content = 'Hesap $\\int_0^1$';
+    expect(() => exportBookDocx(unsupported, false)).toThrow('Matematik ifadesinin Word denklem dizgisi');
+  });
+
+  it('serializes simple fractions, square roots and superscripts as editable OMML', () => {
+    for (const [input, expected] of [
+      ['$\\frac{1}{2}$', '<m:f>'],
+      ['$\\sqrt{9}$', '<m:rad>'],
+      ['$x^2$', '<m:sSup>']
+    ]) {
+      const fixture = book();
+      fixture.chapters[0].questions[0].snapshot.content = 'Çözünüz: ' + input;
+      const xml = unzipStored(exportBookDocx(fixture, false)).get('word/document.xml')!;
+      expect(xml).toContain(expected);
+    }
   });
 });

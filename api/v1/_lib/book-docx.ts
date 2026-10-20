@@ -36,12 +36,39 @@ function p(text: string, style = ''): string {
   return '<w:p>' + (style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '') +
     run(text) + '</w:p>';
 }
+// Conservative editable OMML subset: plain algebra, one-level superscripts,
+// fractions and square roots. Unsupported expressions fail rather than flatten.
+function mathAtom(value: string): string {
+  const source = value.trim();
+  if (!source || !/^[\p{L}\p{N}\s+\-=×÷·.,()]+$/u.test(source))
+    throw new DocxExportError('Matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
+  return '<m:r><m:t xml:space="preserve">' + safeText(source) + '</m:t></m:r>';
+}
+function inlineMathXml(value: string): string {
+  const source = value.trim();
+  const fraction = /^\\frac\{([^{}]+)\}\{([^{}]+)\}$/.exec(source);
+  const root = /^\\sqrt\{([^{}]+)\}$/.exec(source);
+  const power = /^([\p{L}\p{N}]+)\^\{?([\p{L}\p{N}]+)\}?$/u.exec(source);
+  let expression: string;
+  if (fraction) {
+    expression = '<m:f><m:num>' + mathAtom(fraction[1]) + '</m:num><m:den>' +
+      mathAtom(fraction[2]) + '</m:den></m:f>';
+  } else if (root) {
+    expression = '<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/>' +
+      '<m:e>' + mathAtom(root[1]) + '</m:e></m:rad>';
+  } else if (power) {
+    expression = '<m:sSup><m:e>' + mathAtom(power[1]) + '</m:e><m:sup>' +
+      mathAtom(power[2]) + '</m:sup></m:sSup>';
+  } else expression = mathAtom(source);
+  return '<m:oMath>' + expression + '</m:oMath>';
+}
 function paragraphRuns(nodes: StudioInline[], style = ''): string {
   const text = nodes.map(node => {
     let flags = '';
     if (node.kind === 'bold') flags = '<w:b/>';
     if (node.kind === 'italic') flags = '<w:i/>';
     if (node.kind === 'underline') flags = '<w:u w:val="single"/>';
+    if (node.kind === 'math') return inlineMathXml(node.text);
     return run(node.text, flags);
   }).join('');
   return '<w:p>' + (style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '') +
@@ -78,13 +105,25 @@ function optionXml(value: string, index: number): string {
   return p(label) + blocksToXml(blocks);
 }
 function pageBreak(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
+function coverSectionBreak(): string {
+  // The paragraph-level section properties belong to the preceding cover.
+  // The document-level sectPr configures the subsequent question pages.
+  return '<w:p><w:pPr><w:sectPr><w:type w:val="nextPage"/>' +
+    '<w:pgSz w:w="11906" w:h="16838"/>' +
+    '<w:pgMar w:top="1250" w:right="1200" w:bottom="1250" w:left="1200" w:header="500" w:footer="500" w:gutter="0"/>' +
+    '<w:cols w:num="1"/></w:sectPr></w:pPr></w:p>';
+}
+// Keep a numbered question label together with the opening line of its stem.
+function questionLabel(number: number): string {
+  return '<w:p><w:pPr><w:pStyle w:val="QuestionLabel"/><w:keepNext/></w:pPr>' + run(String(number) + '. Soru') + '</w:p>';
+}
 
 function validate(book: DocxBook): void {
   if (!Number.isSafeInteger(book.id) || book.id < 1 || typeof book.title !== 'string' ||
       !book.title.trim() || book.title.length > 120)
     throw new DocxExportError('Kitap başlığı veya kimliği geçersiz.');
-  if (book.layoutColumns !== 1)
-    throw new DocxExportError('İlk Word sürümünde yalnız tek sütun desteklenir. Kitap düzenini tek sütuna getirip kaydedin.');
+  if (book.layoutColumns !== 1 && book.layoutColumns !== 2)
+    throw new DocxExportError('Word düzeni yalnız tek veya çift sütun olabilir.');
   const chapters = book.chapters;
   if (!Array.isArray(chapters) || chapters.some(c => !c || typeof c.title !== 'string' ||
       !Array.isArray(c.questions) || !Number.isSafeInteger(c.sortOrder))) {
@@ -104,10 +143,24 @@ function validate(book: DocxBook): void {
       throw new DocxExportError('Görsel veya medya içeren sorular bu Word sürümünde desteklenmiyor. Eksik çıktı verilmedi.');
     for (const value of [q.content, ...q.options, q.explanation ?? '', q.modelAnswer ?? '']) {
       // Math expressions must not silently become source TeX in a publishing document.
-      if (/\$[^$\n]+\$|\\frac\b|\\sqrt\b|\\\(|\\\[/.test(value))
-        throw new DocxExportError('Matematik dizgisi içeren soru için Word dönüştürme henüz desteklenmiyor.');
-      if (parseStudioBlocks(value).some(b => b.kind === 'paragraph' && b.children.some(n => n.kind === 'math' || n.kind === 'link')))
-        throw new DocxExportError('Matematik veya bağlantı içeren soru için Word dönüştürme henüz desteklenmiyor.');
+      if (['\\(', '\\['].some(token => value.includes(token)))
+        throw new DocxExportError('Matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
+      const blocks = parseStudioBlocks(value);
+      for (const block of blocks) {
+        if (block.kind === 'table' &&
+            [...block.columns, ...block.rows.flat()].some(x => x.includes('$') || x.includes('\\')))
+          throw new DocxExportError('Tablo içindeki matematik dizgisi henüz desteklenmiyor.');
+        const inlineGroups = block.kind === 'paragraph' ? [block.children] :
+          block.kind === 'list' ? block.items : [];
+        for (const nodes of inlineGroups) for (const node of nodes) {
+          if (node.kind === 'link') throw new DocxExportError('Word dönüştürmede bağlantı desteklenmiyor.');
+          if (node.kind === 'math') inlineMathXml(node.text);
+        }
+      }
+      if (value.includes('$') && !blocks.some(block =>
+        (block.kind === 'paragraph' ? block.children : block.kind === 'list' ? block.items.flat() : [])
+          .some(node => node.kind === 'math')))
+        throw new DocxExportError('Matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
     }
     if (q.questionType === 'MULTIPLE_CHOICE') {
       if (![4,5].includes(q.options.length) || typeof q.correctAnswer !== 'string' ||
@@ -126,17 +179,19 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
   let count = 0;
   const answerRows: string[] = [];
   const body: string[] = [
-    p('PRO-LİG · YAYIN HAZIRLIK ÖNİZLEMESİ', 'Subtitle'),
+    p('PRO-LİG  /  YAYIN HAZIRLIK', 'Subtitle'),
+    p('SORU KİTABI', 'CoverEyebrow'),
     p(book.title.trim(), 'Title'),
-    p('Kitap #' + book.id + ' · Word taslak çıktısı', 'Subtitle'),
-    pageBreak()
+    p('ÖĞRENCİ ÇALIŞMA KİTABI  •  ' + (includeAnswers ? 'CEVAP ANAHTARLI' : 'ÖĞRENCİ NÜSHASI'), 'CoverDetail'),
+    p('Kitap #' + book.id + '  |  A4  |  ' + (book.layoutColumns === 2 ? 'Çift sütun' : 'Tek sütun'), 'Subtitle'),
+    coverSectionBreak()
   ];
   for (const chapter of ordered) {
     body.push(p(chapter.title, 'Heading1'));
     for (const item of [...chapter.questions].sort((a, b) => a.sortOrder - b.sortOrder)) {
       const question = item.snapshot;
       count++;
-      body.push(p(String(count) + '. Soru', 'Heading2'));
+      body.push(questionLabel(count));
       body.push(contentXml(question.content));
       if (question.questionType === 'MULTIPLE_CHOICE') {
         question.options.forEach((option, idx) => {
@@ -159,11 +214,12 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
     answerRows.forEach(answer => body.push(p(answer)));
   }
   body.push(p('PRO-LİG taslak Word çıktısı · Matbaa yayını değildir.', 'Footnote'));
-  const sect = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>' +
+  const sect = '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/>' +
+    '<w:footerReference w:type="default" r:id="rId3"/><w:pgSz w:w="11906" w:h="16838"/>' +
     '<w:pgMar w:top="1250" w:right="1200" w:bottom="1250" w:left="1200" w:header="500" w:footer="500" w:gutter="0"/>' +
-    '<w:cols w:num="1"/></w:sectPr>';
+    '<w:cols w:num="' + book.layoutColumns + '" w:space="420"/></w:sectPr>';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">' +
     '<w:body>' + body.join('') + sect + '</w:body></w:document>';
 }
 
@@ -173,6 +229,8 @@ const types = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<Default Extension="xml" ContentType="application/xml"/>' +
   '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
   '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
+  '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' +
+  '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' +
   '</Types>';
 const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
@@ -181,22 +239,43 @@ const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
 const docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
   '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+  '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>' +
+  '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>' +
   '</Relationships>';
+const header = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+  '<w:p><w:pPr><w:jc w:val="right"/></w:pPr>' + run('PRO-LİG  |  YAYIN HAZIRLIK') + '</w:p></w:hdr>';
+const footer = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+  '<w:p><w:pPr><w:jc w:val="center"/></w:pPr>' +
+  run('PRO-LİG · Taslak belge  |  Sayfa ') +
+  '<w:r><w:fldChar w:fldCharType="begin"/></w:r>' +
+  '<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>' +
+  '<w:r><w:fldChar w:fldCharType="end"/></w:r>' +
+  '</w:p></w:ftr>';
 const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
-  '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri"/>' +
+  '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos"/>' +
   '<w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>' +
   '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/>' +
-  '<w:pPr><w:spacing w:after="140"/></w:pPr></w:style>' +
+  '<w:pPr><w:spacing w:after="120" w:line="300" w:lineRule="auto"/></w:pPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/>' +
-  '<w:pPr><w:jc w:val="center"/><w:spacing w:after="300"/></w:pPr>' +
+  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="600" w:after="360"/><w:keepNext/></w:pPr>' +
   '<w:rPr><w:b/><w:sz w:val="48"/><w:color w:val="6D2948"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Subtitle"><w:name w:val="Subtitle"/>' +
   '<w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:sz w:val="22"/><w:color w:val="886777"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/>' +
-  '<w:pPr><w:keepNext/><w:spacing w:before="300" w:after="180"/></w:pPr><w:rPr><w:b/><w:sz w:val="32"/></w:rPr></w:style>' +
+  '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="340" w:after="200"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="30"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/>' +
   '<w:pPr><w:keepNext/><w:spacing w:before="160" w:after="90"/></w:pPr><w:rPr><w:b/><w:sz w:val="23"/></w:rPr></w:style>' +
+  '<w:style w:type="paragraph" w:styleId="CoverEyebrow"><w:name w:val="Cover Eyebrow"/>' +
+  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="1300" w:after="380"/><w:keepNext/></w:pPr>' +
+  '<w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="30"/></w:rPr></w:style>' +
+  '<w:style w:type="paragraph" w:styleId="CoverDetail"><w:name w:val="Cover Detail"/>' +
+  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="280" w:after="480"/></w:pPr>' +
+  '<w:rPr><w:color w:val="886777"/><w:sz w:val="20"/></w:rPr></w:style>' +
+  '<w:style w:type="paragraph" w:styleId="QuestionLabel"><w:name w:val="Question Label"/>' +
+  '<w:pPr><w:keepNext/><w:spacing w:before="220" w:after="90"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="23"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/></w:style>' +
   '<w:style w:type="paragraph" w:styleId="TableHead"><w:name w:val="TableHead"/><w:rPr><w:b/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Footnote"><w:name w:val="Footnote"/><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/></w:rPr></w:style>' +
@@ -268,6 +347,8 @@ export function exportBookDocx(value: unknown, includeAnswers: boolean): Buffer 
     ['_rels/.rels', rels],
     ['word/document.xml', buildDocument(book, includeAnswers)],
     ['word/_rels/document.xml.rels', docRels],
-    ['word/styles.xml', styles]
+    ['word/styles.xml', styles],
+    ['word/header1.xml', header],
+    ['word/footer1.xml', footer]
   ]);
 }
