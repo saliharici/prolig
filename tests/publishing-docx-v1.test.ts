@@ -171,7 +171,7 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     expect(xml).toContain('xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"');
     const unsupported = book();
     unsupported.chapters[0].questions[0].snapshot.content = 'Hesap $x^2$';
-    expect(() => exportBookDocx(unsupported, false)).toThrow('matematik ifadesinin Word denklem dizgisi');
+    expect(() => exportBookDocx(unsupported, false)).toThrow('Matematik ifadesinin Word denklem dizgisi');
   });
 
 });
