@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import type { GeometryShape } from '../../src/questions/geometry-svg.js';
-import { geometrySvg } from '../../src/questions/geometry-svg.js';
+import type { GeometryShape } from '../../../src/questions/geometry-svg.js';
+import { geometrySvg } from '../../../src/questions/geometry-svg.js';
 
 /**
  * Private-object-storage contract for P3 geometry diagrams.
