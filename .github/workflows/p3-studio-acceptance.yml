@@ -15,6 +15,7 @@ on:
       - 'feat/p3n-isolated-geometry-storage-*'
       - 'feat/p3o-geometry-authorization-*'
       - 'feat/p3p-geometry-db-authorization-*'
+      - 'feat/p3q-persistent-geometry-markup-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'
