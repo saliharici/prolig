@@ -139,7 +139,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
         </>}
         <div className="p2-step-actions"><button type="button" className="secondary-button" disabled={step === 1} onClick={() => onStepChange(step - 1)}>Önceki aşama</button>{step < 5 && <button type="button" className="primary-button" onClick={() => onStepChange(step + 1)}>Sonraki aşama →</button>}</div>
       </div>
-      {preview && step < 5 && <aside className="p2-live-preview" aria-label="Canlı soru önizlemesi"><div className="p2-live-preview-heading"><strong>Canlı soru önizlemesi</strong><small>Yalnız görüntüleme; kayıt işlemi yapılmaz.</small></div><QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} /></aside>}
+      {preview && step < 5 && <aside className="p2-live-preview" aria-label="İsteğe bağlı önizleme"><div className="p2-live-preview-heading"><strong>Canlı soru önizlemesi</strong><small>Yalnız görüntüleme; kayıt işlemi yapılmaz.</small></div><QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} /></aside>}
     </div>
   </section>;
 }
