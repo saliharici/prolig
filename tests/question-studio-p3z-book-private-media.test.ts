@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
+// Prevent the application Prisma singleton from requiring a real DATABASE_URL.
+vi.mock('../api/v1/_lib/prisma', () => ({ prisma: {} }));
 import { bookApiPreviewEnabled } from '../api/v1/_lib/book-handler';
 import { P3_ISOLATED_DB_HOST, P3_ISOLATED_STORAGE_URL } from '../api/v1/_lib/p3-png-upload-environment';
 
