@@ -1,0 +1,31 @@
+name: Word V2 Real Engine Visual QA
+
+on:
+  pull_request:
+    paths:
+      - 'api/v1/_lib/book-docx.ts'
+      - 'scripts/word-v2-qa-fixture.ts'
+      - '.github/workflows/word-v2-visual-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-docx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Generate real DOCX samples
+        run: npx tsx scripts/word-v2-qa-fixture.ts
+      - name: Upload real engine files
+        uses: actions/upload-artifact@v4
+        with:
+          name: word-v2-real-engine-qa
+          path: artifacts/word-v2-qa/*.docx
+          retention-days: 14
