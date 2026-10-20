@@ -17,7 +17,7 @@ export async function verifyGeometryWriteAccess(req: VercelRequest, questionId: 
   if (user.role.code !== 'YAZAR') return { allowed: false as const, reason: 'NOT_AUTHOR' as const };
   const question = await prisma.question.findFirst({
     where: { id: questionId, authorUserId: user.id },
-    select: { id: true, authorUserId: true, status: true }
+    select: { id: true, authorUserId: true, status: true, updatedAt: true }
   });
   if (!question || !canModifyQuestionGeometry(user, question)) {
     return { allowed: false as const, reason: 'NOT_EDITABLE' as const };
@@ -25,6 +25,8 @@ export async function verifyGeometryWriteAccess(req: VercelRequest, questionId: 
   return {
     allowed: true as const,
     ownerUserId: user.id,
-    questionId: question.id
+    questionId: question.id,
+    questionStatus: question.status,
+    questionUpdatedAt: question.updatedAt.toISOString()
   };
 }
