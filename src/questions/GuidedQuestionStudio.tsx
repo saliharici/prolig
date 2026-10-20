@@ -35,7 +35,7 @@ export function guidedQuestionIssues(v: QuestionStudioFormValues) {
 
 export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, projects, projectsLoading, projectsError,
   originalProjectId, levels, grades, onProject, onLevel, onGrade, branchName, editing, disabled, sandbox,
-  onAddAsset, onRemoveAsset, renderAssets, privateGeometryQuestionId, privateGeometryUpdatedAt, onPrivateGeometryRevision
+  onAddAsset, onRemoveAsset, renderAssets, privateGeometryQuestionId, privateGeometryUpdatedAt, onPrivateGeometryRevision, privateGeometryEnabled
 }: {
   values: QuestionStudioFormValues; onChange: (values: QuestionStudioFormValues) => void;
   step: number; onStepChange: (step: number) => void;
@@ -46,6 +46,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   onAddAsset: (placement: QuestionAssetPlacement) => void; onRemoveAsset: (index: number) => void;
   renderAssets: (placement: QuestionAssetPlacement) => ReactNode;
   privateGeometryQuestionId?: number | null;
+  privateGeometryEnabled?: boolean;
   privateGeometryUpdatedAt?: string;
   onPrivateGeometryRevision?: (updatedAt: string) => void;
 }) {
@@ -122,7 +123,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
         </>}
         {step === 2 && <>
           {editor('content', 'Soru kökü', 1200)}{media('STEM')}
-           {editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision &&
+           {privateGeometryEnabled && editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision &&
              <PrivateGeometryWorkspace questionId={privateGeometryQuestionId}
                expectedUpdatedAt={privateGeometryUpdatedAt} disabled={disabled}
                onRevisionChange={onPrivateGeometryRevision} />}
