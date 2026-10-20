@@ -126,7 +126,10 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     expect(() => exportBookDocx(withMath,false)).toThrow('Matematik');
     const columns = book();
     columns.layoutColumns = 2;
-    expect(() => exportBookDocx(columns,false)).toThrow('tek sütun');
+    const twoColumnXml = unzipStored(exportBookDocx(columns, false)).get('word/document.xml')!;
+    expect(twoColumnXml).toContain('<w:cols w:num="2" w:space="420"/>');
+    columns.layoutColumns = 3;
+    expect(() => exportBookDocx(columns, false)).toThrow('tek veya çift sütun');
     const malformed = book();
     malformed.chapters[0].questions[0].snapshot.correctAnswer = null;
     expect(() => exportBookDocx(malformed,false)).toThrow('cevap anahtarı');
@@ -136,6 +139,10 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     const xml = files.get('word/document.xml')!;
     const stylesXml = files.get('word/styles.xml')!;
     expect(stylesXml).toContain('w:styleId="QuestionLabel"');
+    expect(stylesXml).toContain('w:styleId="CoverEyebrow"');
+    expect(stylesXml).toContain('w:styleId="CoverDetail"');
+    expect(xml).toContain('SORU KİTABI');
+    expect(xml).toContain('ÖĞRENCİ NÜSHASI');
     expect(stylesXml).toContain('w:ascii="Aptos"');
     expect(stylesXml).toContain('w:keepNext');
     expect(stylesXml).toContain('w:lineRule="auto"');
