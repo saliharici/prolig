@@ -1,4 +1,5 @@
 import type { GeometryShape } from './geometry-svg';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 
 const canonicalMarker = /^\[\[prolig-geometry:v1:(triangle|circle|square)\]\]$/;
 
@@ -36,7 +37,7 @@ export interface GeometryLocation {
   shape: GeometryShape;
 }
 
-import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+
 
 const geometryTokenPattern = /\[\[prolig-geometry:v1:(triangle|circle|square)\]\]/g;
 
