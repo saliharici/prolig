@@ -140,6 +140,15 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
           {type === 'OPEN_ENDED' && <>{editor('scoringRubric', 'Puanlama anahtarı (isteğe bağlı)', 2000)}{editor('evaluationCriteria', 'Değerlendirme ölçütleri (isteğe bağlı)', 2000)}</>}
         </>}
         {step === 5 && <>
+          <section className="p3-revision-workflow" aria-label="Soru revizyon ve kayıt süreci">
+            <h4>{editing ? 'Düzenlenen soru · kayıt kontrolü' : 'Yeni soru · taslak kontrolü'}</h4>
+            <ol>
+              <li><strong>İçerik kontrolü</strong><span>{issues.length ? `${issues.length} zorunlu madde tamamlanmalı.` : 'Zorunlu alan kontrolleri tamamlandı.'}</span></li>
+              <li><strong>Değişiklik güvenliği</strong><span>Kaydetmeden önce taslağı kontrol edin. Sunucu sürümü değişmişse sistem üzerine yazmayı engeller.</span></li>
+              <li><strong>Editör değerlendirmesi</strong><span>Taslak kaydı editör onayı değildir; soru ayrıca incelemeye gönderilmelidir.</span></li>
+              <li><strong>Sürüm geçmişi</strong><span>Bu panel geçmiş sürüm arşivi sunmaz. Kalıcı geçmiş ve geri alma, ayrı veri modeli doğrulaması gerektirir.</span></li>
+            </ol>
+          </section>
           <QuestionTypePreview question={{ ...v, options: v.options, questionType: type }} renderAssets={renderAssets} />
           <section className="p2-completion" aria-label="Kayıt öncesi kontrol"><h4>İncelemeye hazırlık</h4>{issues.length ? <ul>{issues.map(x => <li key={x.message}><button type="button" onClick={() => onStepChange(x.step)}>{x.message} → Aşama {x.step}</button></li>)}</ul> : <p>Tüm zorunlu alanlar hazır.</p>}<p>Taslak kaydı incelemeye göndermez. Boş seçenekler ve model cevap taslakta tamamlanabilir; incelemeye gönderimde zorunludur. Cevap anahtarı gerektiren türlerde anahtar seçilmelidir.</p><p>Yalnızca etkin soru türünün cevap alanları kaydedilir. Diğer türlerdeki girişler bu yerel taslakta korunur.</p></section>
         </>}
