@@ -25,6 +25,7 @@ on:
       - 'feat/p3x-private-image-reading-*'
       - 'feat/p3y-verified-png-docx-*'
       - 'feat/p3z-private-png-book-integration-*'
+      - 'feat/p3aa-private-png-studio-ui-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'

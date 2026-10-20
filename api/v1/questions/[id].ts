@@ -8,6 +8,7 @@ import { isQuestionArchived } from '../_lib/question-archive.js';
 import { handleP3IsolatedGeometryUpload } from '../_lib/p3-png-upload-handler.js';
 import { handleP3PrivateGeometryBind } from '../_lib/p3-png-bind-handler.js';
 import { handleP3PrivateGeometryRead } from '../_lib/p3-png-read-handler.js';
+import { handleP3PrivateGeometryList } from '../_lib/p3-png-list-handler.js';
 import {
   buildQuestionReadScope,
   canArchiveQuestion,
@@ -63,6 +64,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (req.method === 'POST' && req.body?.action === 'geometryRead') {
       return await handleP3PrivateGeometryRead(req, res);
+    }
+    if (req.method === 'POST' && req.body?.action === 'geometryList') {
+      return await handleP3PrivateGeometryList(req, res);
     }
     return await handleLifecycle(req, res);
   } catch (error: any) {
