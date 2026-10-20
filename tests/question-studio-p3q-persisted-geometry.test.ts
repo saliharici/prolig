@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { geometryMarker, splitGeometryMarkup, containsGeometryMarkup } from '../src/questions/geometry-markup';
 import { htmlToLegacyMarkup, legacyMarkupToHtml } from '../src/questions/question-editor-converter';
 import { parseStudioBlocks } from '../src/questions/studio-document';
-import { exportBookDocx, DocxExportError } from '../api/v1/_lib/book-docx';
+import { exportBookDocx } from '../api/v1/_lib/book-docx';
 import type { FrozenBookQuestionV1 } from '../src/publishing/book-draft-contract';
 
 describe('P3-Q persistent geometry without a database migration', () => {
@@ -25,7 +25,7 @@ describe('P3-Q persistent geometry without a database migration', () => {
     expect(containsGeometryMarkup(source)).toBe(true);
     expect(() => geometryMarker('script' as never)).toThrow();
   });
-  it('refuses Word output rather than leaking a hidden geometry marker', () => {
+  it('converts supported persisted geometry to a Word-native shape without exposing raw markers', () => {
     const question: FrozenBookQuestionV1 = {
       schemaVersion: 1, sourceQuestionId: 1, sourceQuestionUpdatedAt: '2026-10-21T00:00:00Z',
       content: 'ABC: ' + geometryMarker('triangle'), imageUrl: null, grade: '8',
@@ -34,9 +34,11 @@ describe('P3-Q persistent geometry without a database migration', () => {
       modelAnswer: null, explanation: null, scoringRubric: null,
       evaluationCriteria: null, authorName: null, assets: []
     };
-    expect(() => exportBookDocx({
+    const bytes = exportBookDocx({
       id: 1, title: 'Geometri deneme kitabı', layoutColumns: 1,
       chapters: [{ title: 'Geometri', sortOrder: 0, questions: [{ sortOrder: 0, snapshot: question }] }]
-    }, false)).toThrow(DocxExportError);
+    }, false);
+    expect(bytes.toString('utf8')).toContain('<a:prstGeom prst="triangle">');
+    expect(bytes.toString('utf8')).not.toContain('[[prolig-geometry:v1:');
   });
 });
