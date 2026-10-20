@@ -53,12 +53,12 @@ function unzipStored(buffer: Buffer): Map<string, string> {
 }
 
 describe('Publishing DOCX V1, editable real OOXML package', () => {
-  it('creates the 5 required ZIP parts and preserves the frozen #77→#79→#78 order', () => {
+  it('creates the 7 required ZIP parts and preserves the frozen #77→#79→#78 order', () => {
     const packageBytes = exportBookDocx(book(), false);
     expect(packageBytes.subarray(0,4).toString('hex')).toBe('504b0304');
     const files = unzipStored(packageBytes);
     expect([...files.keys()].sort()).toEqual(
-      ['[Content_Types].xml','_rels/.rels','word/_rels/document.xml.rels','word/document.xml','word/styles.xml'].sort()
+      ['[Content_Types].xml','_rels/.rels','word/_rels/document.xml.rels','word/document.xml','word/styles.xml','word/header1.xml','word/footer1.xml'].sort()
     );
     const xml = files.get('word/document.xml')!;
     expect(xml).toContain('PRO-LİG V2 Test Kitabı');
@@ -140,6 +140,11 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     expect(stylesXml).toContain('w:keepNext');
     expect(stylesXml).toContain('w:lineRule="auto"');
     expect(xml).toContain('<w:pStyle w:val="QuestionLabel"/><w:keepNext/>');
+    expect(xml).toContain('<w:headerReference w:type="default" r:id="rId2"/>');
+    expect(xml).toContain('<w:footerReference w:type="default" r:id="rId3"/>');
+    expect(files.get('word/header1.xml')).toContain('YAYIN HAZIRLIK');
+    expect(files.get('word/footer1.xml')).toContain(' PAGE ');
+    expect(files.get('word/_rels/document.xml.rels')).toContain('Target="footer1.xml"');
     expect(xml).toContain('1. Soru');
     expect(xml).toContain('2. Soru');
     expect(xml).toContain('3. Soru');
