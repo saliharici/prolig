@@ -46,7 +46,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   renderAssets: (placement: QuestionAssetPlacement) => ReactNode;
 }) {
   const [activeOption, setActiveOption] = useState(0);
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState(true);
   const heading = useRef<HTMLHeadingElement>(null);
   const previousStep = useRef(step);
   const count = v.optionCount ?? 4;
@@ -77,7 +77,8 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
     {v.assets.map((a, i) => a.placement === placement && <div className="p2-media-item" key={`${a.url}-${i}`}><span>{a.title || a.url}</span><button type="button" onClick={() => onRemoveAsset(i)} aria-label={`${a.title || 'Medya'} kaldır`}>Kaldır</button></div>)}
   </details>;
   const editor = (field: 'content' | 'explanation' | 'modelAnswer' | 'scoringRubric' | 'evaluationCriteria', label: string, maxLength: number) => <div className="p2-rich-field"><label>{label}</label><QuestionStemWysiwygEditor key={field} value={v[field] || ''} onChange={value => change({ [field]: value })} ariaLabel={label} placeholder={editorHints[field]} maxLength={maxLength} disabled={disabled} variant={field === 'content' ? 'stem' : 'explanation'} /></div>;
-  return <section className="p2-guided" aria-label="Beş aşamalı soru hazırlama" inert={disabled}>
+  return <section className="p2-guided p3-studio-shell" aria-label="Beş aşamalı soru hazırlama" inert={disabled}>
+    <header className="p3-studio-identity"><div><span className="p3-studio-eyebrow">PRO-LIG / YAZAR ÇALIŞMA ALANI</span><h2>Profesyonel Soru Stüdyosu</h2><p>Soru bilgilerini tamamlayın, içeriği hazırlayın ve editör incelemesine hazır hâle getirin.</p></div><span className="p3-studio-status" role="status">{editing ? "Soruyu düzenliyorsunuz" : "Yeni soru taslağı"}</span></header>
     <nav aria-label="Soru hazırlama aşamaları" className="p2-steps">{steps.map((label, i) => <button type="button" key={label} aria-current={step === i + 1 ? 'step' : undefined} onClick={() => onStepChange(i + 1)}><span>{i + 1}</span><strong>{label}</strong><small>{issues.some(x => x.step === i + 1) ? 'Eksik alan' : i < 4 ? 'Hazır' : 'Kontrol et'}</small></button>)}</nav>
     <div className="p2-progress-summary" role="status" aria-live="polite">
       <div>
@@ -86,7 +87,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
       </div>
       <progress max={4} value={readyStageCount} aria-label="İnceleme hazırlığı" />
     </div>
-    <div className={`p2-guided-body ${preview && step < 5 ? 'with-preview' : ''}`}>
+    <div className={`p2-guided-body ${preview && step < 5 ? 'with-preview' : ''} ${step === 2 ? 'p3-writing-step' : ''}`}>
       <div className="p2-stage"><div className="p2-stage-heading"><div><small>AŞAMA {step} / 5</small><h3 ref={heading} tabIndex={-1}>{steps[step - 1]}</h3></div>{step < 5 && <button type="button" className="secondary-button" aria-expanded={preview} onClick={() => setPreview(x => !x)}>{preview ? 'Önizlemeyi gizle' : 'Önizlemeyi aç'}</button>}</div>
         {step < 5 && <div className={activeIssues.length ? 'p2-active-checklist has-issues' : 'p2-active-checklist'} aria-label="Bu aşamanın kontrol listesi">
           <strong>{activeIssues.length ? `Bu aşamada ${activeIssues.length} eksik nokta` : 'Bu aşamada zorunlu eksik yok'}</strong>
