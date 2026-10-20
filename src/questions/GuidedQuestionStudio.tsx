@@ -47,6 +47,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
 }) {
   const [activeOption, setActiveOption] = useState(0);
   const [preview, setPreview] = useState(true);
+  const [previewMode, setPreviewMode] = useState<'student' | 'editor' | 'publish'>('student');
   const heading = useRef<HTMLHeadingElement>(null);
   const previousStep = useRef(step);
   const count = v.optionCount ?? 4;
@@ -144,7 +145,26 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
         </>}
         <div className="p2-step-actions"><button type="button" className="secondary-button" disabled={step === 1} onClick={() => onStepChange(step - 1)}>Önceki aşama</button>{step < 5 && <button type="button" className="primary-button" onClick={() => onStepChange(step + 1)}>Sonraki aşama →</button>}</div>
       </div>
-      {preview && step < 5 && <aside className="p2-live-preview" aria-label="İsteğe bağlı önizleme"><div className="p2-live-preview-heading"><strong>Canlı soru önizlemesi</strong><small>Yalnız görüntüleme; kayıt işlemi yapılmaz.</small></div><QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} /></aside>}
+      {preview && step < 5 && <aside className="p2-live-preview" aria-label="İsteğe bağlı önizleme">
+        <div className="p2-live-preview-heading"><strong>Soru inceleme paneli</strong><small>Öğrenci, editör ve yayın görünümü · sadece görüntüleme</small></div>
+        <div className="p3-preview-modes" role="group" aria-label="İnceleme görünümünü seç">
+          {([['student','Öğrenci'],['editor','Editör'],['publish','Yayın']] as const).map(([mode,label]) =>
+            <button type="button" key={mode} aria-pressed={previewMode === mode} onClick={() => setPreviewMode(mode)}>{label}</button>)}
+        </div>
+        {previewMode === 'student' && <QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} />}
+        {previewMode === 'editor' && <section className="p3-review-summary" aria-label="Editör ön kontrolü">
+          <strong>İnceleme hazırlığı</strong>
+          <p>{issues.length === 0 ? 'Zorunlu alanlar tamamlandı; pedagojik onay ayrıca gereklidir.' : `${issues.length} zorunlu kontrol maddesi bulunuyor.`}</p>
+          {issues.length > 0 && <ul>{issues.map(issue => <li key={issue.message}><button type="button" onClick={() => onStepChange(issue.step)}>{issue.message} → Aşama {issue.step}</button></li>)}</ul>}
+          <small>Bu otomatik kontrol kazanım uyumunu, çeldirici kalitesini veya bilimsel doğruluğu onaylamaz.</small>
+        </section>}
+        {previewMode === 'publish' && <section className="p3-review-summary" aria-label="Yayın teknik ön kontrolü">
+          <strong>Word çıktısı ön kontrolü</strong>
+          <p>{v.assets.length ? `${v.assets.length} medya öğesi: Word çıktısında destek kontrolü gerekir.` : 'Harici medya öğesi bulunmuyor.'}</p>
+          <p>{[v.content, ...v.options, v.explanation || '', v.modelAnswer || ''].some(x => /\\\\(?:frac|sqrt|begin)|\\$/.test(x)) ? 'Matematik ifadeleri için DOCX motorunda birebir çıktı doğrulaması gerekir.' : 'Belirgin LaTeX işareti bulunmadı; bu bir yayın onayı değildir.'}</p>
+          <small>Sayfa taşması, görsel çözünürlüğü ve dizgi uygunluğu yalnız gerçek Word çıktısıyla doğrulanabilir.</small>
+        </section>}
+      </aside>}
     </div>
   </section>;
 }
