@@ -4,6 +4,11 @@
  * unknown previews, local environments, or missing secrets.
  */
 export const P3_PNG_PREVIEW_BRANCH = 'feat/p3v-isolated-png-upload-20261021';
+export const P3_PNG_APPROVED_PREVIEW_BRANCHES = [
+  P3_PNG_PREVIEW_BRANCH,
+  'feat/p3w-private-image-binding-20261021',
+  'feat/p3x-private-image-reading-20261021'
+] as const;
 export const P3_ISOLATED_DB_HOST = 'ep-ancient-art-bap633lq.c-8.eu-central-1.aws.neon.tech';
 export const P3_ISOLATED_STORAGE_URL =
   'https://br-misty-base-bac3oqzr.storage.c-8.eu-central-1.aws.neon.tech';
@@ -22,7 +27,7 @@ export interface P3StorageEnvironment {
 
 export function isP3IsolatedPngUploadEnvironment(env: P3StorageEnvironment): boolean {
   if (env.VERCEL_ENV !== 'preview' ||
-      env.VERCEL_GIT_COMMIT_REF !== P3_PNG_PREVIEW_BRANCH ||
+      !P3_PNG_APPROVED_PREVIEW_BRANCHES.some(name => name === env.VERCEL_GIT_COMMIT_REF) ||
       env.PROLIG_P3_PNG_UPLOAD_ENABLED !== 'true' ||
       env.AWS_REGION !== 'eu-central-1' ||
       env.AWS_ENDPOINT_URL_S3 !== P3_ISOLATED_STORAGE_URL ||
