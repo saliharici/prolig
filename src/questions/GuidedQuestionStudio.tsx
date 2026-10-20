@@ -46,7 +46,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   renderAssets: (placement: QuestionAssetPlacement) => ReactNode;
 }) {
   const [activeOption, setActiveOption] = useState(0);
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState(true);
   const heading = useRef<HTMLHeadingElement>(null);
   const previousStep = useRef(step);
   const count = v.optionCount ?? 4;
@@ -87,7 +87,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
       </div>
       <progress max={4} value={readyStageCount} aria-label="İnceleme hazırlığı" />
     </div>
-    <div className={`p2-guided-body ${preview && step < 5 ? 'with-preview' : ''}`}>
+    <div className={`p2-guided-body ${preview && step < 5 ? 'with-preview' : ''} ${step === 2 ? 'p3-writing-step' : ''}`}>
       <div className="p2-stage"><div className="p2-stage-heading"><div><small>AŞAMA {step} / 5</small><h3 ref={heading} tabIndex={-1}>{steps[step - 1]}</h3></div>{step < 5 && <button type="button" className="secondary-button" aria-expanded={preview} onClick={() => setPreview(x => !x)}>{preview ? 'Önizlemeyi gizle' : 'Önizlemeyi aç'}</button>}</div>
         {step < 5 && <div className={activeIssues.length ? 'p2-active-checklist has-issues' : 'p2-active-checklist'} aria-label="Bu aşamanın kontrol listesi">
           <strong>{activeIssues.length ? `Bu aşamada ${activeIssues.length} eksik nokta` : 'Bu aşamada zorunlu eksik yok'}</strong>
@@ -139,7 +139,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
         </>}
         <div className="p2-step-actions"><button type="button" className="secondary-button" disabled={step === 1} onClick={() => onStepChange(step - 1)}>Önceki aşama</button>{step < 5 && <button type="button" className="primary-button" onClick={() => onStepChange(step + 1)}>Sonraki aşama →</button>}</div>
       </div>
-      {preview && step < 5 && <aside className="p2-live-preview" aria-label="İsteğe bağlı önizleme"><div className="p2-live-preview-heading"><strong>Canlı soru önizlemesi</strong><small>Yalnız görüntüleme; kayıt işlemi yapılmaz.</small></div><QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} /></aside>}
+      {preview && step < 5 && <aside className="p2-live-preview" aria-label="Canlı soru önizlemesi"><div className="p2-live-preview-heading"><strong>Canlı soru önizlemesi</strong><small>Yalnız görüntüleme; kayıt işlemi yapılmaz.</small></div><QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} /></aside>}
     </div>
   </section>;
 }
