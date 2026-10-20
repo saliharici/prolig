@@ -40,6 +40,7 @@ export function QuestionStemWysiwygEditor({
   ariaLabel
 }: QuestionStemWysiwygEditorProps) {
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const [symbolPalette, setSymbolPalette] = useState<'math' | 'science' | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
   // A Tiptap edit must not be re-imported as external content on the next React render.
   // A timer-based guard races with React scheduling and can drop active marks/caret.
@@ -257,6 +258,23 @@ export function QuestionStemWysiwygEditor({
         </button>
       </div>
 
+      {variant !== 'option' && (
+        <div className="question-p2-symbol-controls" aria-label="Soru sembolleri">
+          <button type="button" aria-expanded={symbolPalette === 'math'} disabled={disabled} onClick={() => setSymbolPalette(x => x === 'math' ? null : 'math')}>∑ Matematik</button>
+          <button type="button" aria-expanded={symbolPalette === 'science'} disabled={disabled} onClick={() => setSymbolPalette(x => x === 'science' ? null : 'science')}>⚗ Fen sembolleri</button>
+        </div>
+      )}
+      {symbolPalette && variant !== 'option' && (
+        <div className="question-p2-symbol-palette" role="group" aria-label={symbolPalette === 'math' ? 'Matematik sembolleri' : 'Fen sembolleri'}>
+          {(symbolPalette === 'math'
+            ? ['π', '√', '∑', '∞', '≤', '≥', '≠', '±', '×', '÷', '²', '³', '₁', '₂', 'α', 'β', 'θ', 'Δ']
+            : ['°', '℃', 'Ω', 'μ', 'λ', 'ν', '→', '⇌', '↑', '↓', '₀', '₁', '₂', '₃', '²', '³', 'Δ', '·']
+          ).map(symbol => <button key={symbol} type="button" disabled={disabled} aria-label={symbol + ' ekle'}
+            onMouseDown={event => event.preventDefault()}
+            onClick={() => editor.chain().focus().insertContent(symbol).run()}>{symbol}</button>)}
+          <span className="question-p2-symbol-note">Semboller metin olarak eklenir; denklem nesnesi değildir.</span>
+        </div>
+      )}
       {showLinkInput && (
         <div className="question-p2-link-dialog">
           <input

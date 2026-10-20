@@ -202,3 +202,14 @@
   font-style: italic !important;
   font-synthesis: style !important;
 }
+
+
+/* P3-B2 — safe inline symbol picker; preserves Tiptap selection. */
+.question-p2-symbol-controls { display:flex; flex-wrap:wrap; gap:8px; padding:8px 12px; border-bottom:1px solid #e4e6e8; background:#fbfafb; }
+.question-p2-symbol-controls button { padding:7px 12px; border:1px solid #e4dbe1; border-radius:8px; color:#69314d; background:white; font-size:12px; cursor:pointer; }
+.question-p2-symbol-controls button[aria-expanded=true] { background:#f6eaf0; border-color:#b7819b; }
+.question-p2-symbol-palette { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:11px 12px; border-bottom:1px solid #e4e6e8; background:#fff; }
+.question-p2-symbol-palette button { min-width:34px; min-height:34px; padding:5px; border:1px solid #e2dde0; border-radius:7px; background:#fbfafb; color:#2f3e3a; font-size:17px; cursor:pointer; }
+.question-p2-symbol-palette button:hover { border-color:#9b617f; background:#f7eef3; }
+.question-p2-symbol-note { flex-basis:100%; color:#6c7672; font-size:11px; line-height:1.5; }
+.question-p2-symbol-controls button:focus-visible,.question-p2-symbol-palette button:focus-visible { outline:2px solid #9b617f; outline-offset:2px; }
