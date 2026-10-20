@@ -171,19 +171,14 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     expect(xml).toContain('<m:oMath><m:r><m:t xml:space="preserve">x + 2 = 5</m:t></m:r></m:oMath>');
     expect(xml).toContain('xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"');
     const unsupported = book();
-    unsupported.chapters[0].questions[0].snapshot.content = 'Hesap $\\int_0^1
-    expect(() => exportBookDocx(unsupported, false)).toThrow('Matematik ifadesinin Word denklem dizgisi');
-  });
-
-});
-;
+    unsupported.chapters[0].questions[0].snapshot.content = 'Hesap $\\int_0^1$';
     expect(() => exportBookDocx(unsupported, false)).toThrow('Matematik ifadesinin Word denklem dizgisi');
   });
 
   it('serializes simple fractions, square roots and superscripts as editable OMML', () => {
     for (const [input, expected] of [
-      ['$\\\\frac{1}{2}$', '<m:f>'],
-      ['$\\\\sqrt{9}$', '<m:rad>'],
+      ['$\\frac{1}{2}$', '<m:f>'],
+      ['$\\sqrt{9}$', '<m:rad>'],
       ['$x^2$', '<m:sSup>']
     ]) {
       const fixture = book();
@@ -192,5 +187,4 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
       expect(xml).toContain(expected);
     }
   });
-
 });
