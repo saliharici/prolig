@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { legacyMarkupToHtml, htmlToLegacyMarkup } from './question-editor-converter';
 import { safeStudioHref } from './studio-document';
+import { geometrySvg, geometryFileName } from './geometry-svg';
 import './question-editor-p2.css';
 
 interface QuestionStemWysiwygEditorProps {
@@ -411,6 +412,18 @@ export function QuestionStemWysiwygEditor({
             onClick={() => editor.chain().focus().insertContent(shapeType === 'triangle' ? '△ABC' : shapeType === 'circle' ? '◯O' : '□ABCD').run()}>
             Şekil gösterimini ekle
           </button>
+          <button type="button" disabled={disabled} onClick={() => {
+            const blob = new Blob([geometrySvg(shapeType)], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = geometryFileName(shapeType);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+          }}>SVG dosyasını indir</button>
+          <small>SVG dosyası yalnızca bilgisayarınıza indirilir. Soruya eklenmesi ve Word aktarımı henüz desteklenmiyor.</small>
           <small>Bu işlem yalnızca sembolik metin ekler. SVG önizleme soru kaydına veya Word belgesine aktarılmaz.</small>
         </div>}
       </section>}
