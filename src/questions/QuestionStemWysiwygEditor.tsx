@@ -43,6 +43,7 @@ export function QuestionStemWysiwygEditor({
   const [symbolPalette, setSymbolPalette] = useState<'math' | 'science' | null>(null);
   const [equationTemplatesOpen, setEquationTemplatesOpen] = useState(false);
   const [equationSource, setEquationSource] = useState('');
+  const [equationEditRange, setEquationEditRange] = useState<{ from: number; to: number } | null>(null);
   const [fractionNumerator, setFractionNumerator] = useState('a');
   const [fractionDenominator, setFractionDenominator] = useState('b');
   const [mathBase, setMathBase] = useState('x');
@@ -342,6 +343,18 @@ export function QuestionStemWysiwygEditor({
               }}>İfadeyi soru metnine ekle</button>
             <small>Görsel oluşturma önizlemesi. Kayıt LaTeX metnidir; tam görsel denklem nesnesi değildir.</small>
           </div>
+          <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
+            onClick={() => {
+              const { from, to } = editor.state.selection;
+              const selected = editor.state.doc.textBetween(from, to, '');
+              if (selected.length >= 3 && selected.startsWith('$') && selected.endsWith('$') && !selected.slice(1, -1).includes('$')) {
+                setEquationSource(selected.slice(1, -1));
+                setEquationEditRange({ from, to });
+              } else {
+                setEquationEditRange(null);
+              }
+            }}>Seçili LaTeX ifadesini düzenle</button>
+          {equationEditRange && <small role="status">Seçili ifade yüklendi. Yeni metin, aynı konumda değiştirilecek.</small>}
           <label className="question-p3-equation-compose-label" htmlFor="p3-equation-source">Denklem kaynağı (LaTeX)</label>
           <input id="p3-equation-source" className="question-p3-equation-compose-input" type="text" value={equationSource}
             disabled={disabled} maxLength={150} placeholder="\\frac{a}{b}"
@@ -349,7 +362,101 @@ export function QuestionStemWysiwygEditor({
             onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} />
           <button type="button" disabled={disabled || !equationSource.trim() || equationSource.includes('$') || /[<>]/.test(equationSource)}
             onMouseDown={event => event.preventDefault()}
-            onClick={() => { editor.chain().focus().insertContent('$' + equationSource.trim() + '$').run(); setEquationSource(''); }}>
+            onClick={() => { const markup = '>
+            Denklemi metne ekle
+          </button>
+          <small>Kaynağı düzenleyip ekleyebilirsiniz. Bu alan henüz görsel denklem oluşturmaz; çıktı doğrulaması gereklidir.</small>
+          <small>Şablonlar LaTeX metni olarak eklenir; Word çıktısında ayrıca doğrulanmalıdır.</small>
+        </div>}
+      </div>}
+      {showLinkInput && (
+        <div className="question-p2-link-dialog">
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={e => setLinkUrl(e.target.value)}
+            placeholder="https://meb.gov.tr/..."
+            autoFocus
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSetLink();
+              } else if (e.key === 'Escape') {
+                setShowLinkInput(false);
+              }
+            }}
+          />
+          <button type="button" className="primary-button" onClick={handleSetLink}>
+            Ekle
+          </button>
+          <button type="button" className="secondary-button" onClick={() => setShowLinkInput(false)}>
+            Vazgeç
+          </button>
+        </div>
+      )}
+
+      <div className="question-p2-content-area" onClick={() => editor.chain().focus().run()}>
+        <EditorContent editor={editor} />
+        {!value.trim() && <span className="question-p2-placeholder" aria-hidden="true">{placeholder}</span>}
+      </div>
+
+      <div className="question-p2-footer" role="status" aria-live="polite">
+        <span>{isOverLimit ? 'Kayıt sınırı aşıldı. İçerik kesilmez; kaydetmeden önce kısaltın.' : 'Biçimlendirme güvenli kayıt biçimine aktarılır.'}</span>
+        <strong className={isOverLimit ? 'question-p2-limit-error' : ''}>
+          {currentLength} / {maxLength}
+        </strong>
+      </div>
+    </div>
+  );
+}
+ + equationSource.trim() + '>
+            Denklemi metne ekle
+          </button>
+          <small>Kaynağı düzenleyip ekleyebilirsiniz. Bu alan henüz görsel denklem oluşturmaz; çıktı doğrulaması gereklidir.</small>
+          <small>Şablonlar LaTeX metni olarak eklenir; Word çıktısında ayrıca doğrulanmalıdır.</small>
+        </div>}
+      </div>}
+      {showLinkInput && (
+        <div className="question-p2-link-dialog">
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={e => setLinkUrl(e.target.value)}
+            placeholder="https://meb.gov.tr/..."
+            autoFocus
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSetLink();
+              } else if (e.key === 'Escape') {
+                setShowLinkInput(false);
+              }
+            }}
+          />
+          <button type="button" className="primary-button" onClick={handleSetLink}>
+            Ekle
+          </button>
+          <button type="button" className="secondary-button" onClick={() => setShowLinkInput(false)}>
+            Vazgeç
+          </button>
+        </div>
+      )}
+
+      <div className="question-p2-content-area" onClick={() => editor.chain().focus().run()}>
+        <EditorContent editor={editor} />
+        {!value.trim() && <span className="question-p2-placeholder" aria-hidden="true">{placeholder}</span>}
+      </div>
+
+      <div className="question-p2-footer" role="status" aria-live="polite">
+        <span>{isOverLimit ? 'Kayıt sınırı aşıldı. İçerik kesilmez; kaydetmeden önce kısaltın.' : 'Biçimlendirme güvenli kayıt biçimine aktarılır.'}</span>
+        <strong className={isOverLimit ? 'question-p2-limit-error' : ''}>
+          {currentLength} / {maxLength}
+        </strong>
+      </div>
+    </div>
+  );
+}
+; if (equationEditRange) { editor.chain().focus().insertContentAt(equationEditRange, markup).run(); setEquationEditRange(null); } else { editor.chain().focus().insertContent(markup).run(); } setEquationSource(''); }}>
             Denklemi metne ekle
           </button>
           <small>Kaynağı düzenleyip ekleyebilirsiniz. Bu alan henüz görsel denklem oluşturmaz; çıktı doğrulaması gereklidir.</small>
