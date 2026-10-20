@@ -39,7 +39,7 @@ function p(text: string, style = ''): string {
 // Phase 1 OMML: plain inline algebra only. Never emit raw TeX as an equation.
 function inlineMathXml(value: string): string {
   if (!/^[\\p{L}\\p{N}\\s+\\-=×÷·.,()]+$/u.test(value) || !value.trim())
-    throw new DocxExportError('Bu matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
+    throw new DocxExportError('Matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
   return '<m:oMath><m:r><m:t xml:space="preserve">' + safeText(value) + '</m:t></m:r></m:oMath>';
 }
 function paragraphRuns(nodes: StudioInline[], style = ''): string {
