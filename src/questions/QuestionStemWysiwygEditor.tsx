@@ -43,6 +43,8 @@ export function QuestionStemWysiwygEditor({
   const [symbolPalette, setSymbolPalette] = useState<'math' | 'science' | null>(null);
   const [equationTemplatesOpen, setEquationTemplatesOpen] = useState(false);
   const [equationSource, setEquationSource] = useState('');
+  const [tableOpen, setTableOpen] = useState(false);
+  const [tableRows, setTableRows] = useState<string[][]>([['Başlık 1', 'Başlık 2'], ['', '']]);
   const [equationEditRange, setEquationEditRange] = useState<{ from: number; to: number } | null>(null);
   const [fractionNumerator, setFractionNumerator] = useState('a');
   const [fractionDenominator, setFractionDenominator] = useState('b');
@@ -369,6 +371,27 @@ export function QuestionStemWysiwygEditor({
           <small>Şablonlar LaTeX metni olarak eklenir; Word çıktısında ayrıca doğrulanmalıdır.</small>
         </div>}
       </div>}
+      {variant === 'stem' && <section className="p3-table-composer" aria-label="Tablo taslağı oluştur">
+        <button type="button" disabled={disabled} aria-expanded={tableOpen} onClick={() => setTableOpen(open => !open)}>Tablo oluştur</button>
+        {tableOpen && <div className="p3-table-panel">
+          <p>Hücreleri doldurun. Metin tablosu oluşturulur; Word'de düzenlenebilir tablo desteği henüz yoktur.</p>
+          <div className="p3-table-toolbar">
+            <button type="button" disabled={disabled || tableRows.length >= 8} onClick={() => setTableRows(rows => [...rows, rows[0].map(() => '')])}>Satır ekle</button>
+            <button type="button" disabled={disabled || tableRows.length <= 2} onClick={() => setTableRows(rows => rows.slice(0, -1))}>Satır sil</button>
+            <button type="button" disabled={disabled || tableRows[0].length >= 5} onClick={() => setTableRows(rows => rows.map(row => [...row, '']))}>Sütun ekle</button>
+            <button type="button" disabled={disabled || tableRows[0].length <= 2} onClick={() => setTableRows(rows => rows.map(row => row.slice(0, -1)))}>Sütun sil</button>
+          </div>
+          <div className="p3-table-scroll"><table><tbody>{tableRows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, columnIndex) =>
+            <td key={columnIndex}><input aria-label={`Satır ${rowIndex + 1}, sütun ${columnIndex + 1}`} disabled={disabled} maxLength={80} value={cell}
+              onChange={event => setTableRows(rows => rows.map((r, ri) => ri === rowIndex ? r.map((v, ci) => ci === columnIndex ? event.target.value : v) : r))}/></td>)}</tr>)}</tbody></table></div>
+          <button type="button" disabled={disabled || tableRows.some(row => row.some(cell => cell.includes('|') || cell.includes('\\n')))}
+            onMouseDown={event => event.preventDefault()} onClick={() => {
+              const lines = tableRows.map(row => '| ' + row.map(cell => cell.trim()).join(' | ') + ' |');
+              lines.splice(1, 0, '| ' + tableRows[0].map(() => '---').join(' | ') + ' |');
+              editor.chain().focus().insertContent(lines.join('\\n')).run();
+            }}>Metin tablosunu soru köküne ekle</button>
+        </div>}
+      </section>}
       {showLinkInput && (
         <div className="question-p2-link-dialog">
           <input
