@@ -67,7 +67,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
         !window.confirm('Tür değiştirilsin mi? Önceki cevap alanları bu yerel taslakta korunur; geri dönerek erişebilirsiniz. Sunucuya yalnızca seçilen türün cevap alanları kaydedilir.')) return;
     onChange(switchQuestionType(v, next));
   };
-  const media = (placement: QuestionAssetPlacement) => <details className="p2-media"><summary>Bu alana medya ekle</summary>
+  const media = (placement: QuestionAssetPlacement) => <details className="p2-media p3-media-workspace"><summary>Görsel ve medya araçları <span className="p3-media-count">{v.assets.filter(a => a.placement === placement).length} içerik</span></summary><p className="p3-media-help">Görsel bağlantısını, açıklamasını ve yerleşimini tanımlayın. Yayın çıktısı uyumluluğu ayrıca kontrol edilir.</p>
     <div className="p2-field-grid">
       <label>Medya türü<select value={v.assetType} onChange={e => change({ assetType: e.target.value as QuestionAssetType })}><option value="IMAGE">Görsel</option><option value="VIDEO_URL">Video</option><option value="LINK">Bağlantı</option></select></label>
       <label>Bağlantı<input type="url" value={v.assetUrl} onChange={e => change({ assetUrl: e.target.value })} placeholder="https://…" /></label>
