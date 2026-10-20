@@ -11,9 +11,10 @@ describe('P3-P database-backed geometry authorization preflight', () => {
     expect(source).toContain('canModifyQuestionGeometry(user, question)');
   });
   it('keeps the preflight read-only and deny-by-default', () => {
-    expect(source).not.toContain('presign');
-    expect(source).not.toContain('prisma.question.update');
-    expect(source).not.toContain('prisma.questionAsset.create');
+    // Verify actual calls, not documentation such as 'does not create a presigned URL'.
+    const executableSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
+    expect(executableSource).not.toMatch(/\b(?:presign|getSignedUrl|createPresignedPost)\s*\(/);
+    expect(executableSource).not.toMatch(/\bprisma\.(?:question|questionAsset)\.(?:create|update|upsert|delete|updateMany|deleteMany)\s*\(/);
     expect(canModifyQuestionGeometry(null, null)).toBe(false);
   });
 });
