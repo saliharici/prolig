@@ -128,6 +128,11 @@ describe('Publishing DOCX V1, editable real OOXML package', () => {
     columns.layoutColumns = 2;
     const twoColumnXml = unzipStored(exportBookDocx(columns, false)).get('word/document.xml')!;
     expect(twoColumnXml).toContain('<w:cols w:num="2" w:space="420"/>');
+    expect(twoColumnXml).toContain('<w:type w:val="nextPage"/>');
+    expect(twoColumnXml).toContain('<w:cols w:num="1"/></w:sectPr></w:pPr></w:p>');
+    expect(twoColumnXml.indexOf('<w:cols w:num="1"/></w:sectPr>'))
+      .toBeLessThan(twoColumnXml.indexOf('<w:cols w:num="2" w:space="420"/>'));
+
     columns.layoutColumns = 3;
     expect(() => exportBookDocx(columns, false)).toThrow('tek veya çift sütun');
     const malformed = book();
