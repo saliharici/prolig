@@ -16,6 +16,7 @@ on:
       - 'feat/p3o-geometry-authorization-*'
       - 'feat/p3p-geometry-db-authorization-*'
       - 'feat/p3q-persistent-geometry-markup-*'
+      - 'feat/p3r-edit-persisted-geometry-*'
   pull_request:
     branches:
       - 'feat/p3c-three-mode-preview-*'

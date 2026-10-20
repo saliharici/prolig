@@ -19,6 +19,7 @@ import { legacyMarkupToHtml, htmlToLegacyMarkup } from './question-editor-conver
 import { safeStudioHref } from './studio-document';
 import { geometrySvg, geometryFileName } from './geometry-svg';
 import { geometryMarker } from './geometry-markup';
+import { parseSelectedGeometry, canReplaceSelectedGeometry, type GeometryEditorSelection } from './geometry-revision';
 import './question-editor-p2.css';
 
 interface QuestionStemWysiwygEditorProps {
@@ -48,6 +49,8 @@ export function QuestionStemWysiwygEditor({
   const [tableOpen, setTableOpen] = useState(false);
   const [shapeOpen, setShapeOpen] = useState(false);
   const [shapeType, setShapeType] = useState<'triangle' | 'circle' | 'square'>('triangle');
+  const [geometrySelection, setGeometrySelection] = useState<GeometryEditorSelection | null>(null);
+  const [geometryRevisionMessage, setGeometryRevisionMessage] = useState('');
   const [tableRows, setTableRows] = useState<string[][]>([['Başlık 1', 'Başlık 2'], ['', '']]);
   const [equationEditRange, setEquationEditRange] = useState<{ from: number; to: number } | null>(null);
   const [fractionNumerator, setFractionNumerator] = useState('a');
@@ -429,8 +432,39 @@ export function QuestionStemWysiwygEditor({
             onClick={() => editor.chain().focus().insertContent(geometryMarker(shapeType)).run()}>
             Şekli soruya kalıcı ekle
           </button>
-          <small>Hazır şeklin türü soru metniyle birlikte kaydedilir ve önizlemede tekrar çizilir. Düzenlemek için kayıt işaretini seçip yeni şekli ekleyin. Word'e şekil aktarımı henüz desteklenmez.</small>
-          <small>Bu işlem yalnızca sembolik metin ekler. SVG önizleme soru kaydına veya Word belgesine aktarılmaz.</small>
+          <div className="p3-geometry-revision-controls" role="group" aria-label="Kaydedilmiş şekli düzenle">
+            <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
+              onClick={() => {
+                const { from, to } = editor.state.selection;
+                const original = editor.state.doc.textBetween(from, to, '');
+                const existing = parseSelectedGeometry(original);
+                if (!existing) {
+                  setGeometrySelection(null);
+                  setGeometryRevisionMessage('Önce soru metnindeki tam [[prolig-geometry:v1:...]] işaretini seçin.');
+                  return;
+                }
+                setShapeType(existing);
+                setGeometrySelection({ from, to, original, document: editor.state.doc });
+                setGeometryRevisionMessage('Şekil yüklendi. Türü seçip Güncelle düğmesine basabilirsiniz.');
+              }}>Seçili kayıtlı şekli yükle</button>
+            <button type="button" disabled={disabled || !geometrySelection} onMouseDown={event => event.preventDefault()}
+              onClick={() => {
+                if (!canReplaceSelectedGeometry(geometrySelection, editor.state.doc)) {
+                  setGeometrySelection(null);
+                  setGeometryRevisionMessage('Soru metni değişti; şekli yeniden seçmeniz gerekiyor.');
+                  return;
+                }
+                const didReplace = editor.chain().focus().insertContentAt(
+                  { from: geometrySelection!.from, to: geometrySelection!.to },
+                  geometryMarker(shapeType)
+                ).run();
+                setGeometrySelection(null);
+                setGeometryRevisionMessage(didReplace ? 'Şekil değiştirildi. Kaydetme işlemini tamamlayın.' : 'Şekil değiştirilemedi.');
+              }}>Seçili şekli güncelle</button>
+            {geometryRevisionMessage && <small role="status" aria-live="polite">{geometryRevisionMessage}</small>}
+          </div>
+          <small>Hazır şekil mevcut soru metninde saklanır ve önizlemede yeniden çizilir. Word çizimi desteklenene kadar eksik Word çıktısı engellenir.</small>
+          <small>Sembolik gösterim ekleme yalnızca karakter yazar; kalıcı şekil düğmesi ise sürümlü çizim bilgisini kaydeder.</small>
         </div>}
       </section>}
       {showLinkInput && (
