@@ -83,6 +83,23 @@ describe('P3-AA private PNG studio listing', () => {
     expect(prod.code).toBe(404);
   });
 
+  it('rehydrates the private PNG under the question stem in author preview', () => {
+    const workspace = readFileSync('src/questions/PrivateGeometryWorkspace.tsx', 'utf8');
+    const studio = readFileSync('src/questions/GuidedQuestionStudio.tsx', 'utf8');
+    const docx = readFileSync('api/v1/_lib/book-docx.ts', 'utf8');
+    expect(workspace).toContain("const first = result.images[0]");
+    expect(workspace).toContain("'geometryRead', { assetId: first.assetId }");
+    expect(workspace).toContain('onPreviewChange?.({');
+    expect(workspace).toContain('safePrivatePngDataUrl');
+    expect(studio).toContain('privateStemImage?.questionId === privateGeometryQuestionId');
+    expect(studio).toContain('renderAssets={renderPreviewAssets}');
+    expect(studio).toContain('onPreviewChange={image =>');
+    expect(docx).toContain('body.push(privatePngWordDrawing(image, drawings.nextId++))');
+    // Private credentials and storage object keys never cross to the React view.
+    expect(studio).not.toContain('AWS_SECRET_ACCESS_KEY');
+    expect(studio).not.toContain('objectKey');
+  });
+
   it('has browser upload, signed receipt bind, scoped read and revision callback', () => {
     const client = readFileSync('src/questions/PrivateGeometryWorkspace.tsx','utf8');
     const guide = readFileSync('src/questions/GuidedQuestionStudio.tsx','utf8');
