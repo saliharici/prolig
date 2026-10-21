@@ -86,8 +86,9 @@ describe('P3-AA private PNG studio listing', () => {
   it('shows custom shape controls on new questions without bypassing save-first security', () => {
     const source = readFileSync('src/questions/GuidedQuestionStudio.tsx', 'utf8');
     expect(source).toContain('Özel şekil ekle');
-    expect(source).toContain('Özel PNG yüklemesi için önce soru taslağını kaydedin.');
-    expect(source).toContain("onClick={() => onStepChange(5)}");
+    expect(source).toContain('PNG ekleyebilmek için sorunun önce bir taslak numarası alması gerekir.');
+    expect(source).toContain('Taslağı oluştur ve PNG eklemeye devam et');
+    expect(source).toContain('onSaveForPrivateImage ? void onSaveForPrivateImage()');
     expect(source).toContain('editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision');
     expect(source).toContain('<PrivateGeometryWorkspace questionId={privateGeometryQuestionId}');
     expect(source).toContain('onPreviewChange={image =>');
