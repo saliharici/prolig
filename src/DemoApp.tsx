@@ -2359,6 +2359,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             privateGeometryUpdatedAt={editingQuestion?.updatedAt ?? undefined}
             onPrivateGeometryRevision={updatedAt => {
               setEditingQuestion(previous => previous ? { ...previous, updatedAt } : previous);
+              setToast('Özel PNG soruya kalıcı kaydedildi. Soru metnini değiştirmeniz veya taslağı tekrar kaydetmeniz gerekmez.');
             }}
             sandbox={questionStudioReleaseFlags.localGuardedWrites}
             onAddAsset={placement => { setQuestionAssetPlacement(placement); addQuestionAssetAt(placement); }}
