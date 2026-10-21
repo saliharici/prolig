@@ -1,0 +1,56 @@
+name: P3 Professional Question Studio Acceptance
+
+on:
+  push:
+    branches:
+      - 'feat/p3d-revision-workflow-*'
+      - 'feat/p3f-equation-entry-*'
+      - 'feat/p3g-equation-composer-*'
+      - 'feat/p3h-visual-fraction-composer-*'
+      - 'feat/p3i-visual-math-builders-*'
+      - 'feat/p3j-edit-math-source-*'
+      - 'feat/p3k-safe-table-composer-*'
+      - 'feat/p3l-safe-geometry-builder-*'
+      - 'feat/p3m-geometry-svg-export-*'
+      - 'feat/p3n-isolated-geometry-storage-*'
+      - 'feat/p3o-geometry-authorization-*'
+      - 'feat/p3p-geometry-db-authorization-*'
+      - 'feat/p3q-persistent-geometry-markup-*'
+      - 'feat/p3r-edit-persisted-geometry-*'
+      - 'feat/p3s-geometry-list-editor-*'
+      - 'feat/p3t-word-native-geometry-*'
+      - 'feat/p3u-safe-png-validation-*'
+      - 'feat/p3v-isolated-png-upload-*'
+      - 'feat/p3w-private-image-binding-*'
+      - 'feat/p3x-private-image-reading-*'
+      - 'feat/p3y-verified-png-docx-*'
+      - 'feat/p3z-private-png-book-integration-*'
+      - 'feat/p3aa-private-png-studio-ui-*'
+      - 'feat/p3ab-private-geometry-acceptance-*'
+  pull_request:
+    branches:
+      - 'feat/p3c-three-mode-preview-*'
+      - 'feat/p3d-revision-workflow-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-p3-studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install without lockfile mutation
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Typecheck UI and API
+        run: npm run lint
+      - name: Unit and contract tests (no external database)
+        run: npx vitest run --exclude 'tests/integration/**'
+      - name: Build
+        run: npm run build

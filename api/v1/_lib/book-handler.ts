@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from './prisma.js';
 import { formatQuestionDto } from './question-dto.js';
-import { DocxExportError, exportBookDocx } from './book-docx.js';
+import { DocxExportError, exportBookDocxWithVerifiedPrivateGeometry } from './book-docx.js';
+import { isP3IsolatedPngUploadEnvironment } from './p3-png-upload-environment.js';
+import { privateGeometryPngKey, readVerifiedPrivatePng } from './p3-png-s3.js';
 import {
   BookDraftValidationError, canEditBookDraft, prepareBookDraft,
   type BookDraftInput, type PreparedBookDraft
@@ -32,6 +34,8 @@ export function bookApiPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boo
     } catch { return false; }
   }
   if (env.NODE_ENV === 'test') return true;
+  // P3 private geometry books may run only on the dedicated isolated Preview DB.
+  if (env.PROLIG_P3_BOOK_EXPORT_ENABLED === 'true' && isP3IsolatedPngUploadEnvironment(env)) return true;
   if (env.VERCEL_ENV !== 'preview') return false;
   try {
     const db = new URL(env.DATABASE_URL || '');
@@ -124,13 +128,18 @@ async function ensureProject(tx: any, projectId: number) {
 async function prepareServerDraft(tx: any, body: BookDraftInput, user: any): Promise<PreparedBookDraft> {
   await ensureProject(tx, body.projectId);
   const questionIds = [...new Set(body.chapters.flatMap(chapter => chapter.questionIds))];
+  const isolatedGeometry = isP3IsolatedPngUploadEnvironment(process.env) &&
+    process.env.PROLIG_P3_BOOK_EXPORT_ENABLED === 'true';
   // Source content and answer keys are ALWAYS re-fetched from the database.
   const questions = await tx.question.findMany({
     where: { id: { in: questionIds }, projectId: body.projectId, status: 'ONAYLANDI' },
     include: {
       authorUser: { select: { id: true, fullName: true } },
       project: { select: { id: true, code: true, title: true } },
-      assets: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] }
+      assets: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] },
+      ...(isolatedGeometry ? { privateGeometryAssets: { select: {
+        id: true, sha256: true, width: true, height: true, placement: true
+      } } } : {})
     }
   });
   const logs = await tx.activityLog.findMany({
@@ -145,7 +154,99 @@ async function prepareServerDraft(tx: any, body: BookDraftInput, user: any): Pro
     }
   }
   const dtoQuestions = questions.map((q: any) => formatQuestionDto(q, archiveState.get(q.id) === true));
-  return prepareBookDraft(user.role.code, body, dtoQuestions);
+  const draft = prepareBookDraft(user.role.code, body, dtoQuestions);
+  if (isolatedGeometry) {
+    const byQuestion = new Map<number, any[]>(questions.map((question: any) =>
+      [question.id, question.privateGeometryAssets ?? []]));
+    let imageCount = 0;
+    for (const chapter of draft.chapters) for (const item of chapter.questions) {
+      const images = byQuestion.get(item.questionId) ?? [];
+      if (images.some((image: any) => image.placement !== 'STEM')) {
+        throw new BookDraftValidationError('Word yalnız soru kökündeki özel çizimleri destekliyor.');
+      }
+      imageCount += images.length;
+      if (images.length) {
+        item.snapshot.privateGeometryAssets = images.map((image: any) => ({
+          assetId: image.id, sha256: image.sha256, width: image.width,
+          height: image.height, placement: 'STEM' as const
+        }));
+      }
+    }
+    if (imageCount > 30) throw new BookDraftValidationError('Word için en fazla 30 özel çizim kullanılabilir.');
+  }
+  return draft;
+}
+
+/**
+ * Load only frozen private drawings belonging to this owner-scoped book,
+ * with a fresh approved-question version and metadata/object checksum check.
+ * Nothing in the browser request controls a storage object key.
+ */
+async function loadFrozenP3DocxImages(book: any) {
+  const references = book.chapters.flatMap((chapter: any) =>
+    chapter.questions.flatMap((entry: any) =>
+      (entry.snapshot.privateGeometryAssets ?? []).map((item: any) => ({
+        sourceQuestionId: entry.snapshot.sourceQuestionId,
+        frozenUpdatedAt: entry.snapshot.sourceQuestionUpdatedAt,
+        ...item
+      }))
+    )
+  ) as Array<{
+    sourceQuestionId: number; frozenUpdatedAt: string; assetId: number;
+    sha256: string; width: number; height: number; placement: string;
+  }>;
+  if (!references.length) return [];
+  if (!isP3IsolatedPngUploadEnvironment(process.env) ||
+      process.env.PROLIG_P3_BOOK_EXPORT_ENABLED !== 'true') {
+    throw new DocxExportError('Özel çizimler yalnızca izole P3 Word ortamında kullanılabilir.');
+  }
+  if (references.length > 30) throw new DocxExportError('Word için çok fazla özel çizim var.');
+  const ids = [...new Set(references.map(x => x.sourceQuestionId))];
+  const assetIds = [...new Set(references.map(x => x.assetId))];
+  const [questions, assets] = await Promise.all([
+    prisma.question.findMany({
+      where: { id: { in: ids }, projectId: book.projectId, status: 'ONAYLANDI' },
+      select: { id: true, authorUserId: true, updatedAt: true }
+    }),
+    prisma.privateGeometryAsset.findMany({
+      where: { id: { in: assetIds } },
+      select: {
+        id: true, questionId: true, ownerUserId: true, sha256: true,
+        objectKey: true, width: true, height: true, placement: true
+      }
+    })
+  ]);
+  const questionById = new Map(questions.map(q => [q.id, q]));
+  const assetById = new Map(assets.map(a => [a.id, a]));
+  const images = [];
+  for (const ref of references) {
+    const question = questionById.get(ref.sourceQuestionId);
+    const asset = assetById.get(ref.assetId);
+    if (!question || !asset || question.updatedAt.toISOString() !== ref.frozenUpdatedAt ||
+        asset.questionId !== ref.sourceQuestionId || asset.ownerUserId !== question.authorUserId ||
+        asset.sha256 !== ref.sha256 || asset.width !== ref.width || asset.height !== ref.height ||
+        asset.placement !== 'STEM' || ref.placement !== 'STEM' ||
+        asset.objectKey !== privateGeometryPngKey(question.authorUserId, question.id, asset.sha256)) {
+      throw new DocxExportError('Dondurulmuş özel çizim güncel onaylı soru veya özel depolamayla uyuşmuyor.');
+    }
+    let png;
+    try {
+      png = await readVerifiedPrivatePng(asset.objectKey, asset.sha256, {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+      });
+    } catch {
+      throw new BookApiError(503, 'Özel çizim doğrulanamadı. Word aktarımı durduruldu.');
+    }
+    if (png.width !== asset.width || png.height !== asset.height) {
+      throw new DocxExportError('Özel çizim boyutu kitap kaydıyla eşleşmiyor.');
+    }
+    images.push({
+      sourceQuestionId: ref.sourceQuestionId, assetId: asset.id,
+      sha256: png.sha256, width: png.width, height: png.height, bytes: png.bytes
+    });
+  }
+  return images;
 }
 
 async function writeChapters(tx: any, bookId: number, draft: PreparedBookDraft) {
@@ -194,7 +295,8 @@ export async function handleBookAction(req: VercelRequest, res: VercelResponse, 
       if (answers !== undefined && answers !== '0' && answers !== '1') {
         return res.status(400).json({ error: 'Word çıktı türü geçersiz.' });
       }
-      const buffer = exportBookDocx(book, answers === '1');
+      const privateImages = await loadFrozenP3DocxImages(book);
+      const buffer = exportBookDocxWithVerifiedPrivateGeometry(book, answers === '1', privateImages);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', 'attachment; filename="prolig-book-' + id + (answers === '1' ? '-cevapli' : '-ogrenci') + '.docx"');
       res.setHeader('Content-Length', String(buffer.length));

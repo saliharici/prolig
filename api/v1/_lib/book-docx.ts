@@ -1,4 +1,7 @@
 import { parseStudioBlocks, type StudioBlock, type StudioInline } from '../../../src/questions/studio-document.js';
+import { containsGeometryMarkup, splitGeometryMarkup } from '../../../src/questions/geometry-markup.js';
+import { knownGeometryOnly, wordGeometryCaption, wordGeometryDrawing } from './docx-geometry.js';
+import { prepareTrustedDocxPngs, privatePngWordDrawing, privatePngRelationshipEntries, type TrustedDocxPrivatePng, type PreparedPrivateDocxPng } from './docx-private-png.js';
 import type { FrozenBookQuestionV1 } from '../../../src/publishing/book-draft-contract.js';
 
 /**
@@ -62,14 +65,17 @@ function inlineMathXml(value: string): string {
   } else expression = mathAtom(source);
   return '<m:oMath>' + expression + '</m:oMath>';
 }
-function paragraphRuns(nodes: StudioInline[], style = ''): string {
+type DrawingSequence = { nextId: number };
+function paragraphRuns(nodes: StudioInline[], drawings: DrawingSequence, style = ''): string {
   const text = nodes.map(node => {
     let flags = '';
     if (node.kind === 'bold') flags = '<w:b/>';
     if (node.kind === 'italic') flags = '<w:i/>';
     if (node.kind === 'underline') flags = '<w:u w:val="single"/>';
     if (node.kind === 'math') return inlineMathXml(node.text);
-    return run(node.text, flags);
+    return splitGeometryMarkup(node.text).map(piece => piece.kind === 'geometry'
+      ? wordGeometryDrawing(piece.shape, drawings.nextId++) + run(' (' + wordGeometryCaption(piece.shape) + ')', flags)
+      : run(piece.value, flags)).join('');
   }).join('');
   return '<w:p>' + (style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '') +
     text + '</w:p>';
@@ -78,11 +84,11 @@ function cell(text: string, header = false): string {
   return '<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/></w:tcPr>' +
     p(text, header ? 'TableHead' : '') + '</w:tc>';
 }
-function blocksToXml(blocks: StudioBlock[]): string {
+function blocksToXml(blocks: StudioBlock[], drawings: DrawingSequence): string {
   return blocks.map(block => {
-    if (block.kind === 'paragraph') return paragraphRuns(block.children);
+    if (block.kind === 'paragraph') return paragraphRuns(block.children, drawings);
     if (block.kind === 'list') return block.items.map((item, i) =>
-      paragraphRuns([{ kind: 'text', text: (block.ordered ? String(i + 1) + '. ' : '• ') }, ...item], 'ListParagraph')).join('');
+      paragraphRuns([{ kind: 'text', text: (block.ordered ? String(i + 1) + '. ' : '• ') }, ...item], drawings, 'ListParagraph')).join('');
     const border = '<w:tblPr><w:tblBorders><w:bottom w:val="single" w:sz="4"/><w:top w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>';
     const header = '<w:tr>' + block.columns.map(x => cell(x, true)).join('') + '</w:tr>';
     const rows = block.rows.map(row => '<w:tr>' + row.map(x => cell(x)).join('') + '</w:tr>').join('');
@@ -90,19 +96,19 @@ function blocksToXml(blocks: StudioBlock[]): string {
     return '<w:tbl>' + border + grid + header + rows + '</w:tbl>';
   }).join('');
 }
-function contentXml(value: string): string {
-  return blocksToXml(parseStudioBlocks(value));
+function contentXml(value: string, drawings: DrawingSequence): string {
+  return blocksToXml(parseStudioBlocks(value), drawings);
 }
-function optionXml(value: string, index: number): string {
+function optionXml(value: string, index: number, drawings: DrawingSequence): string {
   const label = String.fromCharCode(65 + index) + ') ';
   const blocks = parseStudioBlocks(value);
   // Keep the option label in the same editable paragraph as its first text run.
   if (blocks[0]?.kind === 'paragraph') {
     const [first, ...rest] = blocks;
-    return paragraphRuns([{ kind: 'text', text: label }, ...first.children]) + blocksToXml(rest);
+    return paragraphRuns([{ kind: 'text', text: label }, ...first.children], drawings) + blocksToXml(rest, drawings);
   }
   // Tables cannot share a paragraph with text; retain the label before the table.
-  return p(label) + blocksToXml(blocks);
+  return p(label) + blocksToXml(blocks, drawings);
 }
 function pageBreak(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
 function coverSectionBreak(): string {
@@ -141,14 +147,25 @@ function validate(book: DocxBook): void {
     }
     if (q.imageUrl || q.assets.length)
       throw new DocxExportError('Görsel veya medya içeren sorular bu Word sürümünde desteklenmiyor. Eksik çıktı verilmedi.');
+    // These snapshot fields are not drawn in the current question pages.
+    // Never silently accept diagram data in a field that the DOCX skips.
+    if ([q.explanation, q.modelAnswer, q.scoringRubric, q.evaluationCriteria].some(
+      value => typeof value === 'string' && containsGeometryMarkup(value)
+    )) throw new DocxExportError('Word nüshasına yazılmayan çözüm veya ölçüt alanlarında geometrik şekil bulunuyor.');
+    if (q.questionType !== 'MULTIPLE_CHOICE' && q.options.some(value => containsGeometryMarkup(value))) {
+      throw new DocxExportError('Word nüshasına yazılmayan cevap seçeneğinde geometrik şekil bulunuyor.');
+    }
+
     for (const value of [q.content, ...q.options, q.explanation ?? '', q.modelAnswer ?? '']) {
+      if (!knownGeometryOnly(value))
+        throw new DocxExportError('Bilinmeyen geometrik şekil sürümü Word belgesine aktarılmadı.');
       // Math expressions must not silently become source TeX in a publishing document.
       if (['\\(', '\\['].some(token => value.includes(token)))
         throw new DocxExportError('Matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
       const blocks = parseStudioBlocks(value);
       for (const block of blocks) {
         if (block.kind === 'table' &&
-            [...block.columns, ...block.rows.flat()].some(x => x.includes('$') || x.includes('\\')))
+            [...block.columns, ...block.rows.flat()].some(x => x.includes('$') || x.includes('\\') || containsGeometryMarkup(x)))
           throw new DocxExportError('Tablo içindeki matematik dizgisi henüz desteklenmiyor.');
         const inlineGroups = block.kind === 'paragraph' ? [block.children] :
           block.kind === 'list' ? block.items : [];
@@ -174,8 +191,40 @@ function validate(book: DocxBook): void {
   }
 }
 
-function buildDocument(book: DocxBook, includeAnswers: boolean): string {
+/**
+ * Word may split one question's final answers onto a mostly empty next page,
+ * even when the entire item would fit on its own page. Keep a moderate-size,
+ * paragraph-only question together so the renderer can move it as a unit.
+ *
+ * Tables and unusually long questions use the legacy flow; attempting to
+ * keep a table / multi-page question intact can result in oversized pages.
+ * No content, image relationships or answer text is rewritten here.
+ */
+function keepQuestionOnOnePage(parts: readonly string[]): string {
+  const xml = parts.join('');
+  if (xml.includes('<w:tbl>')) return xml;
+  const paragraphs = xml.match(/<w:p>[\s\S]*?<\/w:p>/g);
+  if (!paragraphs || !paragraphs.length || paragraphs.length > 20 ||
+      paragraphs.join('') !== xml) return xml;
+  return paragraphs.map((paragraph, index) => {
+    const following = index < paragraphs.length - 1;
+    const hasProperties = paragraph.startsWith('<w:p><w:pPr>');
+    if (!hasProperties) {
+      return paragraph.replace('<w:p>', '<w:p><w:pPr>' +
+        (following ? '<w:keepNext/>' : '') + '<w:keepLines/></w:pPr>');
+    }
+    const closing = paragraph.indexOf('</w:pPr>');
+    if (closing < 0) return paragraph;
+    const properties = paragraph.slice(0, closing);
+    const flags = (following && !properties.includes('<w:keepNext') ? '<w:keepNext/>' : '') +
+      (!properties.includes('<w:keepLines') ? '<w:keepLines/>' : '');
+    return paragraph.slice(0, closing) + flags + paragraph.slice(closing);
+  }).join('');
+}
+
+function buildDocument(book: DocxBook, includeAnswers: boolean, images: PreparedPrivateDocxPng[] = []): string {
   const ordered = [...book.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
+  const drawings: DrawingSequence = { nextId: 1 };
   let count = 0;
   const answerRows: string[] = [];
   const body: string[] = [
@@ -191,21 +240,27 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
     for (const item of [...chapter.questions].sort((a, b) => a.sortOrder - b.sortOrder)) {
       const question = item.snapshot;
       count++;
-      body.push(questionLabel(count));
-      body.push(contentXml(question.content));
+      const questionParts: string[] = [questionLabel(count), contentXml(question.content, drawings)];
+      for (const frozenImage of question.privateGeometryAssets ?? []) {
+        const image = images.find(item => item.sourceQuestionId === question.sourceQuestionId &&
+          item.assetId === frozenImage.assetId);
+        if (!image) throw new DocxExportError('Kitapta dondurulmuş özel geometri görseli bulunamadı.');
+        questionParts.push(privatePngWordDrawing(image, drawings.nextId++));
+      }
       if (question.questionType === 'MULTIPLE_CHOICE') {
         question.options.forEach((option, idx) => {
-          body.push(optionXml(option, idx));
+          questionParts.push(optionXml(option, idx, drawings));
         });
         answerRows.push(String(count) + '. ' + question.correctAnswer);
       } else if (question.questionType === 'TRUE_FALSE') {
-        body.push(p('□ Doğru       □ Yanlış'));
+        questionParts.push(p('□ Doğru       □ Yanlış'));
         answerRows.push(String(count) + '. ' + (question.booleanAnswer ? 'Doğru' : 'Yanlış'));
       } else {
-        body.push(p('Cevap: ________________________________________________________'));
-        body.push(p('________________________________________________________________'));
+        questionParts.push(p('Cevap: ________________________________________________________'));
+        questionParts.push(p('________________________________________________________________'));
         answerRows.push(String(count) + '. ' + question.modelAnswer);
       }
+      body.push(keepQuestionOnOnePage(questionParts));
       body.push(p(''));
     }
   }
@@ -219,7 +274,7 @@ function buildDocument(book: DocxBook, includeAnswers: boolean): string {
     '<w:pgMar w:top="1250" w:right="1200" w:bottom="1250" w:left="1200" w:header="500" w:footer="500" w:gutter="0"/>' +
     '<w:cols w:num="' + book.layoutColumns + '" w:space="420"/></w:sectPr>';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">' +
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
     '<w:body>' + body.join('') + sect + '</w:body></w:document>';
 }
 
@@ -291,12 +346,12 @@ function crc32(buffer: Buffer): number {
   }
   return (crc ^ 0xffffffff) >>> 0;
 }
-function packageZip(files: Array<[string, string]>): Buffer {
+function packageZip(files: Array<[string, string | Buffer]>): Buffer {
   const locals: Buffer[] = [], centrals: Buffer[] = [];
   let offset = 0;
   for (const [path, text] of files) {
     const filename = Buffer.from(path, 'utf8');
-    const data = Buffer.from(text, 'utf8');
+    const data = Buffer.isBuffer(text) ? text : Buffer.from(text, 'utf8');
     const checksum = crc32(data);
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
@@ -336,19 +391,60 @@ function packageZip(files: Array<[string, string]>): Buffer {
 }
 
 export function exportBookDocx(value: unknown, includeAnswers: boolean): Buffer {
+  return exportBookDocxWithVerifiedPrivateGeometry(value, includeAnswers, []);
+}
+
+/**
+ * Only verified server-fetched bytes may be embedded. Every byte payload must
+ * match an immutable frozen reference in its BookQuestion snapshot.
+ * Existing exportBookDocx remains backward-compatible and fails closed
+ * if private media was frozen but the caller did not provide its bytes.
+ */
+export function exportBookDocxWithVerifiedPrivateGeometry(
+  value: unknown,
+  includeAnswers: boolean,
+  supplied: ReadonlyArray<TrustedDocxPrivatePng>
+): Buffer {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new DocxExportError('Kitap kaydı geçersiz.');
   }
-  // Prisma JsonValue is intentionally validated at the DOCX boundary.
   const book = value as DocxBook;
   validate(book);
+  let images: PreparedPrivateDocxPng[];
+  try {
+    images = prepareTrustedDocxPngs(supplied);
+  } catch {
+    throw new DocxExportError('Özel geometri görselleri Word aktarımı için doğrulanamadı.');
+  }
+  const references = book.chapters.flatMap(c => c.questions.flatMap(q =>
+    (q.snapshot.privateGeometryAssets ?? []).map(ref => ({
+      sourceQuestionId: q.snapshot.sourceQuestionId, ...ref
+    }))
+  ));
+  if (references.length !== images.length ||
+      references.some(ref => !images.some(image =>
+        image.sourceQuestionId === ref.sourceQuestionId &&
+        image.assetId === ref.assetId && image.sha256 === ref.sha256 &&
+        image.width === ref.width && image.height === ref.height &&
+        ref.placement === 'STEM'
+      ))) {
+    throw new DocxExportError('Kitap anlık görüntüsündeki özel çizimler ile dosyalar eşleşmiyor.');
+  }
+
+  const relations = images.length
+    ? docRels.replace('</Relationships>', privatePngRelationshipEntries(images) + '</Relationships>')
+    : docRels;
+  const contents = images.length
+    ? types.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>')
+    : types;
   return packageZip([
-    ['[Content_Types].xml', types],
+    ['[Content_Types].xml', contents],
     ['_rels/.rels', rels],
-    ['word/document.xml', buildDocument(book, includeAnswers)],
-    ['word/_rels/document.xml.rels', docRels],
+    ['word/document.xml', buildDocument(book, includeAnswers, images)],
+    ['word/_rels/document.xml.rels', relations],
     ['word/styles.xml', styles],
     ['word/header1.xml', header],
-    ['word/footer1.xml', footer]
+    ['word/footer1.xml', footer],
+    ...images.map(image => [image.filename, image.bytes] as [string, Buffer])
   ]);
 }

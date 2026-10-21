@@ -1,0 +1,38 @@
+/* P3-AA: private PNG media workspace; clear distinction from public URL assets. */
+.p3-private-geometry{display:grid;gap:10px;padding:16px;margin:12px 0;background:var(--surface,#fff);border:1px solid #d6e0db;border-radius:12px}
+.p3-private-geometry h4{font-size:15px;margin:0;color:#253c34}
+.p3-private-geometry p{margin:0;color:#53655f;font-size:13px}
+.p3-private-geometry label{display:grid;gap:5px;font-size:13px;font-weight:600}
+.p3-private-geometry input[type=file]{max-width:100%;font-weight:400}
+.p3-private-geometry button{min-height:36px;justify-self:start}
+.p3-private-message{font-size:13px;min-height:20px;color:#37584a}
+.p3-private-geometry-list{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.p3-private-geometry-list strong{flex-basis:100%;font-size:13px}
+.p3-private-geometry-list button[aria-pressed=true]{border-color:#336a59;background:#e8f5ee}
+.p3-private-geometry-preview{max-width:100%;margin:0;padding:12px;border:1px solid #dce4dd;border-radius:9px}
+.p3-private-geometry-preview img{max-width:100%;max-height:340px;display:block;object-fit:contain}
+.p3-private-geometry-preview figcaption{font-size:12px;color:#52655d;margin-top:7px}
+
+/* P3-AC: private STEM image is rendered only in the author's authenticated
+   in-memory preview. No public object URL or base64 enters question content. */
+.p3-private-stem-preview {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #d9e3de;
+  background: #fff;
+  border-radius: 10px;
+  max-width: 100%;
+}
+.p3-private-stem-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 340px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.p3-private-stem-preview figcaption {
+  font-size: 12px;
+  color: #586960;
+  margin-top: 7px;
+}

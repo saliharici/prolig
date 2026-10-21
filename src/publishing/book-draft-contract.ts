@@ -42,6 +42,14 @@ export interface FrozenBookQuestionV1 {
   scoringRubric: string | null;
   evaluationCriteria: string | null;
   authorName: string | null;
+  /** Optional frozen private geometry references (P3); old books remain readable. */
+  privateGeometryAssets?: Array<{
+    assetId: number;
+    sha256: string;
+    width: number;
+    height: number;
+    placement: 'STEM';
+  }>;
   assets: Array<{
     placement: string;
     assetType: string;

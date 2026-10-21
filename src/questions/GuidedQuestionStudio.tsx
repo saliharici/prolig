@@ -6,9 +6,10 @@ import type { QuestionStudioFormValues } from './studio-state';
 import { switchQuestionType } from './question-type-state';
 import { QuestionStemWysiwygEditor } from './QuestionStemWysiwygEditor';
 import { QuestionTypePreview } from './QuestionTypePreview';
+import { PrivateGeometryWorkspace, type PrivateGeometryPreviewImage } from './PrivateGeometryWorkspace';
 import './guided-question-studio.css';
 
-const steps = ['Tür ve bilgiler', 'Soru kökü', 'Cevap yapısı', 'Çözüm ve değerlendirme', 'Önizleme ve kayıt'];
+const steps = ['Tür ve bilgiler', 'Soru ve seçenekler', 'Cevap anahtarı', 'Çözüm ve değerlendirme', 'Önizleme ve kayıt'];
 const editorHints = {
   content: 'Sorunun yönergesini ve içeriğini yazın...',
   explanation: 'Cevabın gerekçesini ve çözüm adımlarını yazın...',
@@ -34,7 +35,7 @@ export function guidedQuestionIssues(v: QuestionStudioFormValues) {
 
 export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, projects, projectsLoading, projectsError,
   originalProjectId, levels, grades, onProject, onLevel, onGrade, branchName, editing, disabled, sandbox,
-  onAddAsset, onRemoveAsset, renderAssets
+  onAddAsset, onRemoveAsset, renderAssets, privateGeometryQuestionId, privateGeometryUpdatedAt, onPrivateGeometryRevision, privateGeometryEnabled, onSaveForPrivateImage
 }: {
   values: QuestionStudioFormValues; onChange: (values: QuestionStudioFormValues) => void;
   step: number; onStepChange: (step: number) => void;
@@ -44,9 +45,18 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   branchName: string; editing: boolean; disabled: boolean; sandbox: boolean;
   onAddAsset: (placement: QuestionAssetPlacement) => void; onRemoveAsset: (index: number) => void;
   renderAssets: (placement: QuestionAssetPlacement) => ReactNode;
+  privateGeometryQuestionId?: number | null;
+  privateGeometryEnabled?: boolean;
+  privateGeometryUpdatedAt?: string;
+  onPrivateGeometryRevision?: (updatedAt: string) => void;
+  onSaveForPrivateImage?: () => Promise<void>;
 }) {
   const [activeOption, setActiveOption] = useState(0);
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState(true);
+  const [previewMode, setPreviewMode] = useState<'student' | 'editor' | 'publish'>('student');
+  const [privateStemImage, setPrivateStemImage] = useState<{ questionId: number; image: PrivateGeometryPreviewImage } | null>(null);
+  const [privateGeometryCount, setPrivateGeometryCount] = useState<number | null>(null);
+  const [privateGeometryCheckFailed, setPrivateGeometryCheckFailed] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const previousStep = useRef(step);
   const count = v.optionCount ?? 4;
@@ -57,17 +67,57 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   const readyStageCount = [1, 2, 3, 4].filter(index => !issues.some(issue => issue.step === index)).length;
   const activeIssues = issues.filter(issue => issue.step === step);
   const change = (patch: Partial<QuestionStudioFormValues>) => onChange({ ...v, ...patch });
+  // Private image bytes live only in the authenticated author workspace.
+  // Never store a data URL or S3 key in the question payload or public media.
+  const renderPreviewAssets = (placement: QuestionAssetPlacement) => <>
+    {renderAssets(placement)}
+    {placement === 'STEM' && privateStemImage?.questionId === privateGeometryQuestionId &&
+      <figure className="p3-private-stem-preview" aria-label="Soru köküne bağlı özel PNG">
+        <img
+          src={privateStemImage.image.dataUrl}
+          width={privateStemImage.image.width}
+          height={privateStemImage.image.height}
+          alt="Soru köküne bağlı özel çizim"
+        />
+        <figcaption>Özel çizim · soru köküne bağlı</figcaption>
+      </figure>}
+  </>;
   useEffect(() => {
     if (previousStep.current !== step) heading.current?.focus();
     previousStep.current = step;
   }, [step]);
+  useEffect(() => {
+    let active = true;
+    setPrivateGeometryCount(null);
+    setPrivateGeometryCheckFailed(false);
+    if (!privateGeometryEnabled || !editing || !privateGeometryQuestionId) return;
+    // Load linked-image metadata as soon as a saved question opens, including
+    // while the author is on step 1. Never copy S3 URLs or secrets to the UI.
+    void fetch('/api/v1/questions/' + privateGeometryQuestionId, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'geometryList' })
+    }).then(async response => {
+      if (!response.ok) throw new Error('Cannot load private image list');
+      const data: unknown = await response.json();
+      if (!data || typeof data !== 'object' || !('images' in data) ||
+          !Array.isArray(data.images) || data.images.length > 30) {
+        throw new Error('Invalid private image metadata');
+      }
+      if (active) setPrivateGeometryCount(data.images.length);
+    }).catch(() => {
+      if (active) setPrivateGeometryCheckFailed(true);
+    });
+    return () => { active = false; };
+  }, [privateGeometryEnabled, editing, privateGeometryQuestionId]);
   const changeType = (next: QuestionType) => {
     if (editing || next === type) return;
     if ((v.options.some(x => x.trim()) || v.modelAnswer || v.scoringRubric || v.evaluationCriteria || v.booleanAnswer != null) &&
         !window.confirm('Tür değiştirilsin mi? Önceki cevap alanları bu yerel taslakta korunur; geri dönerek erişebilirsiniz. Sunucuya yalnızca seçilen türün cevap alanları kaydedilir.')) return;
     onChange(switchQuestionType(v, next));
   };
-  const media = (placement: QuestionAssetPlacement) => <details className="p2-media"><summary>Bu alana medya ekle</summary>
+  const media = (placement: QuestionAssetPlacement) => <details className="p2-media p3-media-workspace"><summary>Görsel ve medya araçları <span className="p3-media-count">{v.assets.filter(a => a.placement === placement).length} içerik</span></summary><p className="p3-media-help">Görsel bağlantısını, açıklamasını ve yerleşimini tanımlayın. Yayın çıktısı uyumluluğu ayrıca kontrol edilir.</p>
     <div className="p2-field-grid">
       <label>Medya türü<select value={v.assetType} onChange={e => change({ assetType: e.target.value as QuestionAssetType })}><option value="IMAGE">Görsel</option><option value="VIDEO_URL">Video</option><option value="LINK">Bağlantı</option></select></label>
       <label>Bağlantı<input type="url" value={v.assetUrl} onChange={e => change({ assetUrl: e.target.value })} placeholder="https://…" /></label>
@@ -77,8 +127,22 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
     {v.assets.map((a, i) => a.placement === placement && <div className="p2-media-item" key={`${a.url}-${i}`}><span>{a.title || a.url}</span><button type="button" onClick={() => onRemoveAsset(i)} aria-label={`${a.title || 'Medya'} kaldır`}>Kaldır</button></div>)}
   </details>;
   const editor = (field: 'content' | 'explanation' | 'modelAnswer' | 'scoringRubric' | 'evaluationCriteria', label: string, maxLength: number) => <div className="p2-rich-field"><label>{label}</label><QuestionStemWysiwygEditor key={field} value={v[field] || ''} onChange={value => change({ [field]: value })} ariaLabel={label} placeholder={editorHints[field]} maxLength={maxLength} disabled={disabled} variant={field === 'content' ? 'stem' : 'explanation'} /></div>;
-  return <section className="p2-guided" aria-label="Beş aşamalı soru hazırlama" inert={disabled}>
+  return <section className="p2-guided p3-studio-shell" aria-label="Beş aşamalı soru hazırlama" inert={disabled}>
+    <header className="p3-studio-identity"><div><span className="p3-studio-eyebrow">PRO-LIG / YAZAR ÇALIŞMA ALANI</span><h2>Profesyonel Soru Stüdyosu</h2><p>Soru bilgilerini tamamlayın, içeriği hazırlayın ve editör incelemesine hazır hâle getirin.</p></div><span className="p3-studio-status" role="status">{editing ? "Soruyu düzenliyorsunuz" : "Yeni soru taslağı"}</span></header>
     <nav aria-label="Soru hazırlama aşamaları" className="p2-steps">{steps.map((label, i) => <button type="button" key={label} aria-current={step === i + 1 ? 'step' : undefined} onClick={() => onStepChange(i + 1)}><span>{i + 1}</span><strong>{label}</strong><small>{issues.some(x => x.step === i + 1) ? 'Eksik alan' : i < 4 ? 'Hazır' : 'Kontrol et'}</small></button>)}</nav>
+    {privateGeometryEnabled && editing && privateGeometryQuestionId && <div className="p3-attached-image-summary" role="status" aria-live="polite">
+      <div>
+        <strong>{privateGeometryCheckFailed
+          ? 'Özel çizimler doğrulanamadı'
+          : privateGeometryCount === null
+            ? 'Kayıtlı özel çizimler kontrol ediliyor…'
+            : privateGeometryCount
+              ? `${privateGeometryCount} özel PNG bu soruya kalıcı kaydedilmiş`
+              : 'Bu soruya henüz özel PNG eklenmemiş'}</strong>
+        <small>PNG yüklemesi bağımsız olarak sunucuya kaydedilir. Sadece PNG eklemek için soru metninde değişiklik yapmanız veya tekrar Taslağı kaydet düğmesine basmanız gerekmez.</small>
+      </div>
+      <button type="button" className="secondary-button" onClick={() => onStepChange(2)}>Özel çizimleri görüntüle</button>
+    </div>}
     <div className="p2-progress-summary" role="status" aria-live="polite">
       <div>
         <strong>{readyStageCount}/4 içerik aşaması inceleme için hazır</strong>
@@ -86,7 +150,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
       </div>
       <progress max={4} value={readyStageCount} aria-label="İnceleme hazırlığı" />
     </div>
-    <div className={`p2-guided-body ${preview && step < 5 ? 'with-preview' : ''}`}>
+    <div className={`p2-guided-body ${preview && step < 5 ? 'with-preview' : ''} ${step === 2 ? 'p3-writing-step' : ''}`}>
       <div className="p2-stage"><div className="p2-stage-heading"><div><small>AŞAMA {step} / 5</small><h3 ref={heading} tabIndex={-1}>{steps[step - 1]}</h3></div>{step < 5 && <button type="button" className="secondary-button" aria-expanded={preview} onClick={() => setPreview(x => !x)}>{preview ? 'Önizlemeyi gizle' : 'Önizlemeyi aç'}</button>}</div>
         {step < 5 && <div className={activeIssues.length ? 'p2-active-checklist has-issues' : 'p2-active-checklist'} aria-label="Bu aşamanın kontrol listesi">
           <strong>{activeIssues.length ? `Bu aşamada ${activeIssues.length} eksik nokta` : 'Bu aşamada zorunlu eksik yok'}</strong>
@@ -114,9 +178,36 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
           {projectsError && <p role="alert">Atanmış projeler yüklenemedi: {projectsError}</p>}
           {sandbox && <p className="p2-notice">Korumalı sandbox kaydı: yalnızca PILOT-MAT-8-001 projesinde dört seçenekli çoktan seçmeli sorular. P2-UAT işareti korunur; diğer soru türleri şimdilik salt okunur önizlemededir.</p>}
         </>}
-        {step === 2 && <>{editor('content', 'Soru kökü', 1200)}{media('STEM')}</>}
-        {step === 3 && <>
-          {type === 'MULTIPLE_CHOICE' ? <>
+        {step === 2 && <>
+          {editor('content', 'Soru kökü', 1200)}
+          {privateGeometryEnabled && <section className="p3-private-shape-entry" aria-label="Özel şekil ekle">
+            <div className="p3-private-shape-heading">
+              <h4>Özel şekil ekle</h4>
+              <p>Hazır üçgen, çember ve kare için yukarıdaki <strong>Geometri araçları</strong> bölümünü; kendi çizdiğiniz PNG için aşağıdaki özel çizim alanını kullanın.</p>
+            </div>
+            {editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision
+              ? <PrivateGeometryWorkspace questionId={privateGeometryQuestionId}
+                  expectedUpdatedAt={privateGeometryUpdatedAt} disabled={disabled}
+                  onRevisionChange={onPrivateGeometryRevision}
+                  onCountChange={setPrivateGeometryCount}
+                  onPreviewChange={image => setPrivateStemImage(
+                    image && typeof privateGeometryQuestionId === 'number'
+                      ? { questionId: privateGeometryQuestionId, image } : null
+                  )} />
+              : <div className="p3-private-shape-save-first" role="note">
+                  <strong>PNG ekleyebilmek için sorunun önce bir taslak numarası alması gerekir.</strong>
+                  <p>Soru kökünü (en az 10 karakter) ve gerekli alanları doldurun, ardından <strong>Taslağı oluştur ve PNG eklemeye devam et</strong> düğmesini kullanın. Kayıt sonrası bu sayfa kapanmadan PNG seçebileceksiniz.</p>
+                  <button type="button" className="secondary-button" disabled={disabled || v.content.trim().length < 10}
+                    onClick={() => onSaveForPrivateImage ? void onSaveForPrivateImage() : onStepChange(5)}>
+                    Taslağı oluştur ve PNG eklemeye devam et
+                  </button>
+                  {v.content.trim().length < 10 && <small>Bu düğme için soru kökünde en az 10 karakter olmalıdır.</small>}
+                </div>}
+          </section>}
+          {media('STEM')}
+
+          {type === 'MULTIPLE_CHOICE' && <section className="p3-integrated-options" aria-label="Soru tasarımı cevap seçenekleri">
+            <div className="p3-integrated-options-heading"><h4>Cevap seçenekleri</h4><p>Soru kökünü hazırlarken seçeneklerini aynı çalışma alanında düzenleyin.</p></div>
             <div role="tablist" aria-label="Cevap seçenekleri" className="p2-option-tabs">{letters.map((letter, i) => <button type="button" role="tab" id={`p2-option-${letter}`} aria-controls="p2-option-panel" aria-selected={selectedOption === i} tabIndex={selectedOption === i ? 0 : -1} key={letter} onClick={() => setActiveOption(i)} onKeyDown={e => {
               if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
               e.preventDefault();
@@ -124,6 +215,10 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
               setActiveOption(next); document.getElementById(`p2-option-${letters[next]}`)?.focus();
             }}>{letter}<small>{v.options[i]?.trim() ? 'Dolu' : 'Boş'}</small></button>)}</div>
             <div role="tabpanel" id="p2-option-panel" aria-labelledby={`p2-option-${letters[selectedOption]}`}><QuestionStemWysiwygEditor key={selectedOption} value={v.options[selectedOption] || ''} onChange={value => change({ options: v.options.map((x, i) => i === selectedOption ? value : x) })} variant="option" ariaLabel={`${letters[selectedOption]} seçeneği`} maxLength={500} disabled={disabled} />{media(`OPTION_${letters[selectedOption]}` as QuestionAssetPlacement)}</div>
+          </section>}
+        </>}
+        {step === 3 && <>
+          {type === 'MULTIPLE_CHOICE' ? <>
             <label>Doğru cevap<select value={letters.includes(v.correctAnswer) ? v.correctAnswer : ''} onChange={e => change({ correctAnswer: e.target.value })}><option value="">Seçin</option>{letters.map(x => <option key={x}>{x}</option>)}</select></label>
           </> : type === 'TRUE_FALSE' ? <fieldset className="p2-boolean"><legend>Önermenin doğru cevabı</legend>{[true, false].map(value => <label key={String(value)}><input type="radio" name="p2-boolean-answer" checked={v.booleanAnswer === value} onChange={() => change({ booleanAnswer: value })} />{value ? 'Doğru' : 'Yanlış'}</label>)}</fieldset> : <p className="p2-notice">Klasik soruda seçenek veya otomatik cevap anahtarı kullanılmaz. Bir sonraki aşamada model cevabı ve insan editörün kullanacağı değerlendirme ölçütlerini hazırlayın.</p>}
         </>}
@@ -133,12 +228,40 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
           {type === 'OPEN_ENDED' && <>{editor('scoringRubric', 'Puanlama anahtarı (isteğe bağlı)', 2000)}{editor('evaluationCriteria', 'Değerlendirme ölçütleri (isteğe bağlı)', 2000)}</>}
         </>}
         {step === 5 && <>
-          <QuestionTypePreview question={{ ...v, options: v.options, questionType: type }} renderAssets={renderAssets} />
+          <section className="p3-revision-workflow" aria-label="Soru revizyon ve kayıt süreci">
+            <h4>{editing ? 'Düzenlenen soru · kayıt kontrolü' : 'Yeni soru · taslak kontrolü'}</h4>
+            <ol>
+              <li><strong>İçerik kontrolü</strong><span>{issues.length ? `${issues.length} zorunlu madde tamamlanmalı.` : 'Zorunlu alan kontrolleri tamamlandı.'}</span></li>
+              <li><strong>Değişiklik güvenliği</strong><span>Kaydetmeden önce taslağı kontrol edin. Sunucu sürümü değişmişse sistem üzerine yazmayı engeller.</span></li>
+              <li><strong>Editör değerlendirmesi</strong><span>Taslak kaydı editör onayı değildir; soru ayrıca incelemeye gönderilmelidir.</span></li>
+              <li><strong>Sürüm geçmişi</strong><span>Bu panel geçmiş sürüm arşivi sunmaz. Kalıcı geçmiş ve geri alma, ayrı veri modeli doğrulaması gerektirir.</span></li>
+            </ol>
+          </section>
+          <QuestionTypePreview question={{ ...v, options: v.options, questionType: type }} renderAssets={renderPreviewAssets} />
           <section className="p2-completion" aria-label="Kayıt öncesi kontrol"><h4>İncelemeye hazırlık</h4>{issues.length ? <ul>{issues.map(x => <li key={x.message}><button type="button" onClick={() => onStepChange(x.step)}>{x.message} → Aşama {x.step}</button></li>)}</ul> : <p>Tüm zorunlu alanlar hazır.</p>}<p>Taslak kaydı incelemeye göndermez. Boş seçenekler ve model cevap taslakta tamamlanabilir; incelemeye gönderimde zorunludur. Cevap anahtarı gerektiren türlerde anahtar seçilmelidir.</p><p>Yalnızca etkin soru türünün cevap alanları kaydedilir. Diğer türlerdeki girişler bu yerel taslakta korunur.</p></section>
         </>}
         <div className="p2-step-actions"><button type="button" className="secondary-button" disabled={step === 1} onClick={() => onStepChange(step - 1)}>Önceki aşama</button>{step < 5 && <button type="button" className="primary-button" onClick={() => onStepChange(step + 1)}>Sonraki aşama →</button>}</div>
       </div>
-      {preview && step < 5 && <aside className="p2-live-preview" aria-label="İsteğe bağlı önizleme"><div className="p2-live-preview-heading"><strong>Canlı soru önizlemesi</strong><small>Yalnız görüntüleme; kayıt işlemi yapılmaz.</small></div><QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} /></aside>}
+      {preview && step < 5 && <aside className="p2-live-preview" aria-label="İsteğe bağlı önizleme">
+        <div className="p2-live-preview-heading"><strong>Soru inceleme paneli</strong><small>Öğrenci, editör ve yayın görünümü · sadece görüntüleme</small></div>
+        <div className="p3-preview-modes" role="group" aria-label="İnceleme görünümünü seç">
+          {([['student','Öğrenci'],['editor','Editör'],['publish','Yayın']] as const).map(([mode,label]) =>
+            <button type="button" key={mode} aria-pressed={previewMode === mode} onClick={() => setPreviewMode(mode)}>{label}</button>)}
+        </div>
+        {previewMode === 'student' && <QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderPreviewAssets} />}
+        {previewMode === 'editor' && <section className="p3-review-summary" aria-label="Editör ön kontrolü">
+          <strong>İnceleme hazırlığı</strong>
+          <p>{issues.length === 0 ? 'Zorunlu alanlar tamamlandı; pedagojik onay ayrıca gereklidir.' : `${issues.length} zorunlu kontrol maddesi bulunuyor.`}</p>
+          {issues.length > 0 && <ul>{issues.map(issue => <li key={issue.message}><button type="button" onClick={() => onStepChange(issue.step)}>{issue.message} → Aşama {issue.step}</button></li>)}</ul>}
+          <small>Bu otomatik kontrol kazanım uyumunu, çeldirici kalitesini veya bilimsel doğruluğu onaylamaz.</small>
+        </section>}
+        {previewMode === 'publish' && <section className="p3-review-summary" aria-label="Yayın teknik ön kontrolü">
+          <strong>Word çıktısı ön kontrolü</strong>
+          <p>{v.assets.length ? `${v.assets.length} medya öğesi: Word çıktısında destek kontrolü gerekir.` : 'Harici medya öğesi bulunmuyor.'}</p>
+          <p>{[v.content, ...v.options, v.explanation || '', v.modelAnswer || ''].some(x => x.includes('$') || x.includes('\\frac') || x.includes('\\sqrt') || x.includes('\\begin')) ? 'Matematik ifadeleri için DOCX motorunda birebir çıktı doğrulaması gerekir.' : 'Belirgin LaTeX işareti bulunmadı; bu bir yayın onayı değildir.'}</p>
+          <small>Sayfa taşması, görsel çözünürlüğü ve dizgi uygunluğu yalnız gerçek Word çıktısıyla doğrulanabilir.</small>
+        </section>}
+      </aside>}
     </div>
   </section>;
 }
