@@ -191,6 +191,37 @@ function validate(book: DocxBook): void {
   }
 }
 
+/**
+ * Word may split one question's final answers onto a mostly empty next page,
+ * even when the entire item would fit on its own page. Keep a moderate-size,
+ * paragraph-only question together so the renderer can move it as a unit.
+ *
+ * Tables and unusually long questions use the legacy flow; attempting to
+ * keep a table / multi-page question intact can result in oversized pages.
+ * No content, image relationships or answer text is rewritten here.
+ */
+function keepQuestionOnOnePage(parts: readonly string[]): string {
+  const xml = parts.join('');
+  if (xml.includes('<w:tbl>')) return xml;
+  const paragraphs = xml.match(/<w:p>[\\s\\S]*?<\\/w:p>/g);
+  if (!paragraphs || !paragraphs.length || paragraphs.length > 20 ||
+      paragraphs.join('') !== xml) return xml;
+  return paragraphs.map((paragraph, index) => {
+    const following = index < paragraphs.length - 1;
+    const hasProperties = paragraph.startsWith('<w:p><w:pPr>');
+    if (!hasProperties) {
+      return paragraph.replace('<w:p>', '<w:p><w:pPr>' +
+        (following ? '<w:keepNext/>' : '') + '<w:keepLines/></w:pPr>');
+    }
+    const closing = paragraph.indexOf('</w:pPr>');
+    if (closing < 0) return paragraph;
+    const properties = paragraph.slice(0, closing);
+    const flags = (following && !properties.includes('<w:keepNext') ? '<w:keepNext/>' : '') +
+      (!properties.includes('<w:keepLines') ? '<w:keepLines/>' : '');
+    return paragraph.slice(0, closing) + flags + paragraph.slice(closing);
+  }).join('');
+}
+
 function buildDocument(book: DocxBook, includeAnswers: boolean, images: PreparedPrivateDocxPng[] = []): string {
   const ordered = [...book.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
   const drawings: DrawingSequence = { nextId: 1 };
@@ -209,27 +240,27 @@ function buildDocument(book: DocxBook, includeAnswers: boolean, images: Prepared
     for (const item of [...chapter.questions].sort((a, b) => a.sortOrder - b.sortOrder)) {
       const question = item.snapshot;
       count++;
-      body.push(questionLabel(count));
-      body.push(contentXml(question.content, drawings));
+      const questionParts: string[] = [questionLabel(count), contentXml(question.content, drawings)];
       for (const frozenImage of question.privateGeometryAssets ?? []) {
         const image = images.find(item => item.sourceQuestionId === question.sourceQuestionId &&
           item.assetId === frozenImage.assetId);
         if (!image) throw new DocxExportError('Kitapta dondurulmuş özel geometri görseli bulunamadı.');
-        body.push(privatePngWordDrawing(image, drawings.nextId++));
+        questionParts.push(privatePngWordDrawing(image, drawings.nextId++));
       }
       if (question.questionType === 'MULTIPLE_CHOICE') {
         question.options.forEach((option, idx) => {
-          body.push(optionXml(option, idx, drawings));
+          questionParts.push(optionXml(option, idx, drawings));
         });
         answerRows.push(String(count) + '. ' + question.correctAnswer);
       } else if (question.questionType === 'TRUE_FALSE') {
-        body.push(p('□ Doğru       □ Yanlış'));
+        questionParts.push(p('□ Doğru       □ Yanlış'));
         answerRows.push(String(count) + '. ' + (question.booleanAnswer ? 'Doğru' : 'Yanlış'));
       } else {
-        body.push(p('Cevap: ________________________________________________________'));
-        body.push(p('________________________________________________________________'));
+        questionParts.push(p('Cevap: ________________________________________________________'));
+        questionParts.push(p('________________________________________________________________'));
         answerRows.push(String(count) + '. ' + question.modelAnswer);
       }
+      body.push(keepQuestionOnOnePage(questionParts));
       body.push(p(''));
     }
   }
