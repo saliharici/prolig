@@ -203,7 +203,7 @@ function validate(book: DocxBook): void {
 function keepQuestionOnOnePage(parts: readonly string[]): string {
   const xml = parts.join('');
   if (xml.includes('<w:tbl>')) return xml;
-  const paragraphs = xml.match(/<w:p>[\\s\\S]*?<\\/w:p>/g);
+  const paragraphs = xml.match(/<w:p>[\s\S]*?<\/w:p>/g);
   if (!paragraphs || !paragraphs.length || paragraphs.length > 20 ||
       paragraphs.join('') !== xml) return xml;
   return paragraphs.map((paragraph, index) => {
