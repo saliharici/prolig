@@ -94,6 +94,32 @@ describe('P3-AA private PNG studio listing', () => {
     expect(source).not.toContain('privateGeometryEnabled && editing && privateGeometryQuestionId');
   });
 
+  it('retains PNG attachment identity after saving and reopening an author draft', () => {
+    const studio = readFileSync('src/questions/GuidedQuestionStudio.tsx','utf8');
+    const workspace = readFileSync('src/questions/PrivateGeometryWorkspace.tsx','utf8');
+    const app = readFileSync('src/DemoApp.tsx','utf8');
+    expect(studio).toContain('Özel çizimleri görüntüle');
+    expect(studio).toContain('setPrivateGeometryCount(data.images.length)');
+    expect(studio).toContain('onCountChange={setPrivateGeometryCount}');
+    expect(studio).toContain('privateGeometryCount');
+    expect(studio).toContain("body: JSON.stringify({ action: 'geometryList' })");
+    expect(workspace).toContain('onCountChange?.(result.images.length)');
+    expect(app).toContain('Özel PNG soruya kalıcı kaydedildi.');
+    expect(app).toContain('setEditingQuestion(previous => previous ? { ...previous, updatedAt } : previous)');
+  });
+
+  it('creates the first draft in place without requiring a fake content edit', () => {
+    const studio = readFileSync('src/questions/GuidedQuestionStudio.tsx','utf8');
+    const app = readFileSync('src/DemoApp.tsx','utf8');
+    expect(studio).toContain('Taslağı oluştur ve PNG eklemeye devam et');
+    expect(studio).toContain('onSaveForPrivateImage ? void onSaveForPrivateImage()');
+    expect(app).toContain('const saveNewDraftAndContinueWithPng = async () => {');
+    expect(app).toContain('const created = await createQuestion(buildQuestionCreateInput(');
+    expect(app).toContain('openYazarEdit(created);');
+    expect(app).toContain('setQuestionStep(2);');
+    expect(app).toContain('onSaveForPrivateImage={saveNewDraftAndContinueWithPng}');
+  });
+
   it('rehydrates the private PNG under the question stem in author preview', () => {
     const workspace = readFileSync('src/questions/PrivateGeometryWorkspace.tsx', 'utf8');
     const studio = readFileSync('src/questions/GuidedQuestionStudio.tsx', 'utf8');
