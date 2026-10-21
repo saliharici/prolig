@@ -138,15 +138,28 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
           {sandbox && <p className="p2-notice">Korumalı sandbox kaydı: yalnızca PILOT-MAT-8-001 projesinde dört seçenekli çoktan seçmeli sorular. P2-UAT işareti korunur; diğer soru türleri şimdilik salt okunur önizlemededir.</p>}
         </>}
         {step === 2 && <>
-          {editor('content', 'Soru kökü', 1200)}{media('STEM')}
-           {privateGeometryEnabled && editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision &&
-             <PrivateGeometryWorkspace questionId={privateGeometryQuestionId}
-               expectedUpdatedAt={privateGeometryUpdatedAt} disabled={disabled}
-               onRevisionChange={onPrivateGeometryRevision}
-               onPreviewChange={image => setPrivateStemImage(
-                 image && typeof privateGeometryQuestionId === 'number'
-                   ? { questionId: privateGeometryQuestionId, image } : null
-               )} />}
+          {editor('content', 'Soru kökü', 1200)}
+          {privateGeometryEnabled && <section className="p3-private-shape-entry" aria-label="Özel şekil ekle">
+            <div className="p3-private-shape-heading">
+              <h4>Özel şekil ekle</h4>
+              <p>Hazır üçgen, çember ve kare için yukarıdaki <strong>Geometri araçları</strong> bölümünü; kendi çizdiğiniz PNG için aşağıdaki özel çizim alanını kullanın.</p>
+            </div>
+            {editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision
+              ? <PrivateGeometryWorkspace questionId={privateGeometryQuestionId}
+                  expectedUpdatedAt={privateGeometryUpdatedAt} disabled={disabled}
+                  onRevisionChange={onPrivateGeometryRevision}
+                  onPreviewChange={image => setPrivateStemImage(
+                    image && typeof privateGeometryQuestionId === 'number'
+                      ? { questionId: privateGeometryQuestionId, image } : null
+                  )} />
+              : <div className="p3-private-shape-save-first" role="note">
+                  <strong>Özel PNG yüklemesi için önce soru taslağını kaydedin.</strong>
+                  <p>Kaydetme işleminden sonra Sorularım listesindeki Düzenle düğmesiyle soruyu yeniden açın. Bu alanda PNG seçme ve soruya bağlama seçenekleri etkinleşecektir.</p>
+                  <button type="button" className="secondary-button" disabled={disabled}
+                    onClick={() => onStepChange(5)}>Önizleme ve kayıt aşamasına geç</button>
+                </div>}
+          </section>}
+          {media('STEM')}
 
           {type === 'MULTIPLE_CHOICE' && <section className="p3-integrated-options" aria-label="Soru tasarımı cevap seçenekleri">
             <div className="p3-integrated-options-heading"><h4>Cevap seçenekleri</h4><p>Soru kökünü hazırlarken seçeneklerini aynı çalışma alanında düzenleyin.</p></div>
