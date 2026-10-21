@@ -6,7 +6,7 @@ import type { QuestionStudioFormValues } from './studio-state';
 import { switchQuestionType } from './question-type-state';
 import { QuestionStemWysiwygEditor } from './QuestionStemWysiwygEditor';
 import { QuestionTypePreview } from './QuestionTypePreview';
-import { PrivateGeometryWorkspace } from './PrivateGeometryWorkspace';
+import { PrivateGeometryWorkspace, type PrivateGeometryPreviewImage } from './PrivateGeometryWorkspace';
 import './guided-question-studio.css';
 
 const steps = ['Tür ve bilgiler', 'Soru ve seçenekler', 'Cevap anahtarı', 'Çözüm ve değerlendirme', 'Önizleme ve kayıt'];
@@ -53,6 +53,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   const [activeOption, setActiveOption] = useState(0);
   const [preview, setPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'student' | 'editor' | 'publish'>('student');
+  const [privateStemImage, setPrivateStemImage] = useState<{ questionId: number; image: PrivateGeometryPreviewImage } | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const previousStep = useRef(step);
   const count = v.optionCount ?? 4;
@@ -63,6 +64,21 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   const readyStageCount = [1, 2, 3, 4].filter(index => !issues.some(issue => issue.step === index)).length;
   const activeIssues = issues.filter(issue => issue.step === step);
   const change = (patch: Partial<QuestionStudioFormValues>) => onChange({ ...v, ...patch });
+  // Private image bytes live only in the authenticated author workspace.
+  // Never store a data URL or S3 key in the question payload or public media.
+  const renderPreviewAssets = (placement: QuestionAssetPlacement) => <>
+    {renderAssets(placement)}
+    {placement === 'STEM' && privateStemImage?.questionId === privateGeometryQuestionId &&
+      <figure className="p3-private-stem-preview" aria-label="Soru köküne bağlı özel PNG">
+        <img
+          src={privateStemImage.image.dataUrl}
+          width={privateStemImage.image.width}
+          height={privateStemImage.image.height}
+          alt="Soru köküne bağlı özel çizim"
+        />
+        <figcaption>Özel çizim · soru köküne bağlı</figcaption>
+      </figure>}
+  </>;
   useEffect(() => {
     if (previousStep.current !== step) heading.current?.focus();
     previousStep.current = step;
@@ -126,7 +142,11 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
            {privateGeometryEnabled && editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision &&
              <PrivateGeometryWorkspace questionId={privateGeometryQuestionId}
                expectedUpdatedAt={privateGeometryUpdatedAt} disabled={disabled}
-               onRevisionChange={onPrivateGeometryRevision} />}
+               onRevisionChange={onPrivateGeometryRevision}
+               onPreviewChange={image => setPrivateStemImage(
+                 image && typeof privateGeometryQuestionId === 'number'
+                   ? { questionId: privateGeometryQuestionId, image } : null
+               )} />}
 
           {type === 'MULTIPLE_CHOICE' && <section className="p3-integrated-options" aria-label="Soru tasarımı cevap seçenekleri">
             <div className="p3-integrated-options-heading"><h4>Cevap seçenekleri</h4><p>Soru kökünü hazırlarken seçeneklerini aynı çalışma alanında düzenleyin.</p></div>
@@ -159,7 +179,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
               <li><strong>Sürüm geçmişi</strong><span>Bu panel geçmiş sürüm arşivi sunmaz. Kalıcı geçmiş ve geri alma, ayrı veri modeli doğrulaması gerektirir.</span></li>
             </ol>
           </section>
-          <QuestionTypePreview question={{ ...v, options: v.options, questionType: type }} renderAssets={renderAssets} />
+          <QuestionTypePreview question={{ ...v, options: v.options, questionType: type }} renderAssets={renderPreviewAssets} />
           <section className="p2-completion" aria-label="Kayıt öncesi kontrol"><h4>İncelemeye hazırlık</h4>{issues.length ? <ul>{issues.map(x => <li key={x.message}><button type="button" onClick={() => onStepChange(x.step)}>{x.message} → Aşama {x.step}</button></li>)}</ul> : <p>Tüm zorunlu alanlar hazır.</p>}<p>Taslak kaydı incelemeye göndermez. Boş seçenekler ve model cevap taslakta tamamlanabilir; incelemeye gönderimde zorunludur. Cevap anahtarı gerektiren türlerde anahtar seçilmelidir.</p><p>Yalnızca etkin soru türünün cevap alanları kaydedilir. Diğer türlerdeki girişler bu yerel taslakta korunur.</p></section>
         </>}
         <div className="p2-step-actions"><button type="button" className="secondary-button" disabled={step === 1} onClick={() => onStepChange(step - 1)}>Önceki aşama</button>{step < 5 && <button type="button" className="primary-button" onClick={() => onStepChange(step + 1)}>Sonraki aşama →</button>}</div>
@@ -170,7 +190,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
           {([['student','Öğrenci'],['editor','Editör'],['publish','Yayın']] as const).map(([mode,label]) =>
             <button type="button" key={mode} aria-pressed={previewMode === mode} onClick={() => setPreviewMode(mode)}>{label}</button>)}
         </div>
-        {previewMode === 'student' && <QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderAssets} />}
+        {previewMode === 'student' && <QuestionTypePreview question={{ ...v, questionType: type }} renderAssets={renderPreviewAssets} />}
         {previewMode === 'editor' && <section className="p3-review-summary" aria-label="Editör ön kontrolü">
           <strong>İnceleme hazırlığı</strong>
           <p>{issues.length === 0 ? 'Zorunlu alanlar tamamlandı; pedagojik onay ayrıca gereklidir.' : `${issues.length} zorunlu kontrol maddesi bulunuyor.`}</p>
