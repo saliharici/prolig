@@ -83,6 +83,61 @@ describe('P3-AA private PNG studio listing', () => {
     expect(prod.code).toBe(404);
   });
 
+  it('shows custom shape controls on new questions without bypassing save-first security', () => {
+    const source = readFileSync('src/questions/GuidedQuestionStudio.tsx', 'utf8');
+    expect(source).toContain('Özel şekil ekle');
+    expect(source).toContain('PNG ekleyebilmek için sorunun önce bir taslak numarası alması gerekir.');
+    expect(source).toContain('Taslağı oluştur ve PNG eklemeye devam et');
+    expect(source).toContain('onSaveForPrivateImage ? void onSaveForPrivateImage()');
+    expect(source).toContain('editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision');
+    expect(source).toContain('<PrivateGeometryWorkspace questionId={privateGeometryQuestionId}');
+    expect(source).toContain('onPreviewChange={image =>');
+    expect(source).not.toContain('privateGeometryEnabled && editing && privateGeometryQuestionId');
+  });
+
+  it('retains PNG attachment identity after saving and reopening an author draft', () => {
+    const studio = readFileSync('src/questions/GuidedQuestionStudio.tsx','utf8');
+    const workspace = readFileSync('src/questions/PrivateGeometryWorkspace.tsx','utf8');
+    const app = readFileSync('src/DemoApp.tsx','utf8');
+    expect(studio).toContain('Özel çizimleri görüntüle');
+    expect(studio).toContain('setPrivateGeometryCount(data.images.length)');
+    expect(studio).toContain('onCountChange={setPrivateGeometryCount}');
+    expect(studio).toContain('privateGeometryCount');
+    expect(studio).toContain("body: JSON.stringify({ action: 'geometryList' })");
+    expect(workspace).toContain('onCountChange?.(result.images.length)');
+    expect(app).toContain('Özel PNG soruya kalıcı kaydedildi.');
+    expect(app).toContain('setEditingQuestion(previous => previous ? { ...previous, updatedAt } : previous)');
+  });
+
+  it('creates the first draft in place without requiring a fake content edit', () => {
+    const studio = readFileSync('src/questions/GuidedQuestionStudio.tsx','utf8');
+    const app = readFileSync('src/DemoApp.tsx','utf8');
+    expect(studio).toContain('Taslağı oluştur ve PNG eklemeye devam et');
+    expect(studio).toContain('onSaveForPrivateImage ? void onSaveForPrivateImage()');
+    expect(app).toContain('const saveNewDraftAndContinueWithPng = async () => {');
+    expect(app).toContain('const created = await createQuestion(buildQuestionCreateInput(');
+    expect(app).toContain('openYazarEdit(created);');
+    expect(app).toContain('setQuestionStep(2);');
+    expect(app).toContain('onSaveForPrivateImage={saveNewDraftAndContinueWithPng}');
+  });
+
+  it('rehydrates the private PNG under the question stem in author preview', () => {
+    const workspace = readFileSync('src/questions/PrivateGeometryWorkspace.tsx', 'utf8');
+    const studio = readFileSync('src/questions/GuidedQuestionStudio.tsx', 'utf8');
+    const docx = readFileSync('api/v1/_lib/book-docx.ts', 'utf8');
+    expect(workspace).toContain("const first = result.images[0]");
+    expect(workspace).toContain("'geometryRead', { assetId: first.assetId }");
+    expect(workspace).toContain('onPreviewChange?.({');
+    expect(workspace).toContain('safePrivatePngDataUrl');
+    expect(studio).toContain('privateStemImage?.questionId === privateGeometryQuestionId');
+    expect(studio).toContain('renderAssets={renderPreviewAssets}');
+    expect(studio).toContain('onPreviewChange={image =>');
+    expect(docx).toContain('body.push(privatePngWordDrawing(image, drawings.nextId++))');
+    // Private credentials and storage object keys never cross to the React view.
+    expect(studio).not.toContain('AWS_SECRET_ACCESS_KEY');
+    expect(studio).not.toContain('objectKey');
+  });
+
   it('has browser upload, signed receipt bind, scoped read and revision callback', () => {
     const client = readFileSync('src/questions/PrivateGeometryWorkspace.tsx','utf8');
     const guide = readFileSync('src/questions/GuidedQuestionStudio.tsx','utf8');

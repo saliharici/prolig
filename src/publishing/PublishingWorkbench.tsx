@@ -135,8 +135,9 @@ export function PublishingWorkbench({ questions, projects, loading, error, onRef
       {publishingPreview
         ? 'Kalıcı taslak kaydı yalnız izole V2 önizleme veritabanında açıktır; canlı Production kapalıdır.'
         : 'Bu aşamada kitap ve soru seçimleri yalnızca bu tarayıcı oturumundadır; sunucuya kaydedilmez.'}
-      PDF için Yazdır → PDF olarak kaydet seçeneğini kullanın. Gerçek Word (.docx), kalıcı kitap kayıtları,
-      ISBN ve matbaa dizgisi henüz hazır değildir. Görsel ve formülleri baskıdan önce kontrol edin.
+      {publishingPreview
+        ? 'Word (.docx) için Genel Koordinatörün kaydettiği tek sütunlu kitap taslağında onaylı sorular kullanılır. İzole P3 önizlemesindeki soruya bağlı özel PNG çizimleri Word çıktısına eklenir; harici medya ve desteklenmeyen matematik dizgisi çıktıyı engelleyebilir. ISBN ve nihai matbaa dizgisi henüz hazır değildir.'
+        : 'PDF için Yazdır → PDF olarak kaydet seçeneğini kullanın. Gerçek Word (.docx), kalıcı kitap kayıtları, ISBN ve matbaa dizgisi bu ortamda henüz hazır değildir. Görsel ve formülleri baskıdan önce kontrol edin.'}
     </p>
 
     {publishingPreview && <PublishingPersistencePanel

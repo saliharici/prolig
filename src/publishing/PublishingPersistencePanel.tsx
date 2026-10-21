@@ -183,7 +183,7 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
         <span className="publishing-revision">#{activeBook.id} · Revizyon {activeBook.revision} · {activeBook.status}</span>
       </>}
     </div>
-    {activeBook && <p className="publishing-word-note" role="note">Word V1 yalnızca kayıtlı, tek sütunlu ve medya/matematik dizgisi gerektirmeyen kitapları destekler. Dosya, ekrandaki kaydedilmemiş değişiklikleri içermez.</p>}
+    {activeBook && <p className="publishing-word-note" role="note">Word çıktısı yalnızca kaydedilmiş, tek sütunlu kitap taslağından üretilir. İzole P3 ortamında soruya bağlı özel PNG çizimleri desteklenir; harici medya ve desteklenmeyen matematik dizgisi engellenir. Dosya ekrandaki kaydedilmemiş değişiklikleri içermez.</p>}
     {listing && <p role="status">Kayıtlı kitaplar yükleniyor…</p>}
     {error && <p role="alert" className="publishing-error">{error}</p>}
     {notice && <p role="status" className="publishing-success">{notice}</p>}

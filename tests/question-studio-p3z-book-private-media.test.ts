@@ -33,6 +33,18 @@ describe('P3-Z guarded private image Word integration', () => {
     expect(code).toContain('if (imageCount > 30)');
   });
 
+  it('keeps compact Word question stems, verified PNGs and answer options together', () => {
+    const code = readFileSync('api/v1/_lib/book-docx.ts', 'utf8');
+    expect(code).toContain('function keepQuestionOnOnePage(parts: readonly string[])');
+    expect(code).toContain("if (xml.includes('<w:tbl>')) return xml");
+    expect(code).toContain("paragraphs.length > 20");
+    expect(code).toContain('<w:keepNext/>');
+    expect(code).toContain('<w:keepLines/>');
+    expect(code).toContain('questionParts.push(privatePngWordDrawing(image, drawings.nextId++))');
+    expect(code).toContain('questionParts.push(optionXml(option, idx, drawings))');
+    expect(code).toContain('body.push(keepQuestionOnOnePage(questionParts))');
+  });
+
   it('rechecks frozen question revision, ownership and object identity for Word export', () => {
     const code = readFileSync('api/v1/_lib/book-handler.ts', 'utf8');
     expect(code).toContain("status: 'ONAYLANDI'");

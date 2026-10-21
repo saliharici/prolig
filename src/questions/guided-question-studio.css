@@ -127,3 +127,77 @@
 .p3-revision-workflow li { padding-left:6px; line-height:1.6; }
 .p3-revision-workflow li strong { display:block; font-size:13px; color:#394942; }
 .p3-revision-workflow li span { display:block; font-size:12px; color:#64736e; }
+
+/* P3-AC: discoverable private-shape entry, including unsaved question drafts. */
+.p3-private-shape-entry {
+  margin: 22px 0;
+  padding: 16px;
+  border: 1px solid #d9dce0;
+  border-radius: 12px;
+  background: #fbfafb;
+}
+.p3-private-shape-heading h4 {
+  font-size: 16px;
+  margin: 0 0 7px;
+  color: #6d2948;
+}
+.p3-private-shape-heading p,
+.p3-private-shape-save-first p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #52645e;
+  margin: 0;
+}
+.p3-private-shape-entry .p3-private-geometry {
+  margin-bottom: 0;
+}
+.p3-private-shape-save-first {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px dashed #c6afb9;
+  border-radius: 10px;
+  background: #fff;
+}
+.p3-private-shape-save-first strong {
+  font-size: 13px;
+  color: #61334a;
+}
+.p3-private-shape-save-first button {
+  justify-self: start;
+}
+
+/* P3-AC: persistent attachment identity so uploaded PNGs never appear lost
+   merely because the author has reopened the form at stage one. */
+.p3-attached-image-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin: 0 0 18px;
+  background: #f6faf7;
+  border: 1px solid #cdded3;
+  border-radius: 10px;
+}
+.p3-attached-image-summary > div {
+  display: grid;
+  gap: 5px;
+}
+.p3-attached-image-summary strong {
+  font-size: 13px;
+  color: #244f41;
+}
+.p3-attached-image-summary small {
+  line-height: 1.5;
+  font-size: 12px;
+  color: #52665c;
+}
+.p3-attached-image-summary button {
+  flex-shrink: 0;
+}
+@media (max-width: 720px) {
+  .p3-attached-image-summary { flex-direction: column; align-items: stretch; }
+  .p3-attached-image-summary button { align-self: flex-start; }
+}

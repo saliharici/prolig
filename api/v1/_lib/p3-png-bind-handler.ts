@@ -67,6 +67,16 @@ export async function handleP3PrivateGeometryBind(req: VercelRequest, res: Verce
         data: { updatedAt: nextRevision }
       });
       if (updated.count !== 1) throw new Error('STALE');
+      // The CAS above serializes concurrent uploads of the same question.
+      // Enforce the server-side cap; the browser's 30-image limit is advisory.
+      const existing = await tx.privateGeometryAsset.findUnique({
+        where: { questionId_sha256: { questionId, sha256: receipt.sha256 } },
+        select: { id: true }
+      });
+      if (!existing) {
+        const imageCount = await tx.privateGeometryAsset.count({ where: { questionId } });
+        if (imageCount >= 30) throw new Error('IMAGE_LIMIT');
+      }
       return tx.privateGeometryAsset.upsert({
         where: { questionId_sha256: { questionId, sha256: receipt.sha256 } },
         create: {
@@ -87,6 +97,9 @@ export async function handleP3PrivateGeometryBind(req: VercelRequest, res: Verce
   } catch (error) {
     if (error instanceof Error && error.message === 'STALE') {
       return res.status(409).json({ error: 'Question changed while attaching image' });
+    }
+    if (error instanceof Error && error.message === 'IMAGE_LIMIT') {
+      return res.status(409).json({ error: 'Bu soruya en fazla 30 özel çizim bağlanabilir.' });
     }
     throw error;
   }
