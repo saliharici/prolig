@@ -18,6 +18,21 @@ interface PrivateGeometryReadResponse {
   height: number;
   contentType: 'image/png';
 }
+
+export interface PrivateGeometryPreviewImage {
+  assetId: number;
+  width: number;
+  height: number;
+  dataUrl: string;
+}
+
+function safePrivatePngDataUrl(result: PrivateGeometryReadResponse): string {
+  if (result.contentType !== 'image/png' ||
+      typeof result.pngBase64 !== 'string' || result.pngBase64.length > 750_000) {
+    throw new Error('Özel PNG yanıtı geçersiz.');
+  }
+  return 'data:image/png;base64,' + result.pngBase64;
+}
 interface PrivateGeometryUploadResponse {
   receipt: string;
   linkedToQuestion: false;
@@ -25,6 +40,7 @@ interface PrivateGeometryUploadResponse {
 interface PrivateGeometryBindResponse {
   linkedToQuestion: true;
   updatedAt: string;
+  asset?: { id: number };
 }
 
 async function privateAction<T>(
@@ -95,12 +111,14 @@ export function PrivateGeometryWorkspace({
   questionId,
   expectedUpdatedAt,
   disabled,
-  onRevisionChange
+  onRevisionChange,
+  onPreviewChange
 }: {
   questionId: number;
   expectedUpdatedAt: string;
   disabled: boolean;
   onRevisionChange: (updatedAt: string) => void;
+  onPreviewChange?: (image: PrivateGeometryPreviewImage | null) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [images, setImages] = useState<PrivateGeometryImage[]>([]);
@@ -115,11 +133,25 @@ export function PrivateGeometryWorkspace({
     setPreview('');
     setActive(null);
     setImages([]);
-    privateAction<PrivateGeometryListResponse>(questionId, 'geometryList').then(result => {
-      if (alive) {
-        setImages(result.images);
-        setAvailable(true);
-        setNotice(result.images.length ? 'Özel çizimler güvenli depoda kayıtlı.' : 'Henüz yüklenmiş özel çizim yok.');
+    onPreviewChange?.(null);
+    privateAction<PrivateGeometryListResponse>(questionId, 'geometryList').then(async result => {
+      if (!alive) return;
+      setImages(result.images);
+      setAvailable(true);
+      setNotice(result.images.length ? 'Özel çizimler soruya bağlı ve güvenli depoda kayıtlı.' : 'Henüz yüklenmiş özel çizim yok.');
+      // Only fetch the first image automatically. Remaining private media is
+      // deliberately on-demand to avoid pulling up to 30 full PNGs on entry.
+      const first = result.images[0];
+      if (!first) return;
+      try {
+        const picture = await privateAction<PrivateGeometryReadResponse>(questionId, 'geometryRead', { assetId: first.assetId });
+        const dataUrl = safePrivatePngDataUrl(picture);
+        if (!alive) return;
+        setActive(first.assetId);
+        setPreview(dataUrl);
+        onPreviewChange?.({ assetId: first.assetId, width: picture.width, height: picture.height, dataUrl });
+      } catch {
+        if (alive) setNotice('Görsel kayıtlı, ancak önizleme açılamadı. Görüntüle düğmesiyle yeniden deneyin.');
       }
     }).catch(err => {
       if (alive) {
@@ -128,6 +160,7 @@ export function PrivateGeometryWorkspace({
       }
     });
     return () => { alive = false; };
+    // React remounts this owner-scoped workspace when changing saved questions.
   }, [questionId]);
 
   const upload = async () => {
@@ -154,9 +187,24 @@ export function PrivateGeometryWorkspace({
       const result = await privateAction<PrivateGeometryListResponse>(questionId, 'geometryList');
       setImages(result.images);
       setFile(null);
-      setPreview('');
-      setActive(null);
-      setNotice('Görsel soruya kaydedildi. Seçerek güvenli önizlemesini açabilirsiniz.');
+      const linkedImage = result.images.find(image => image.assetId === bound.asset?.id);
+      if (linkedImage) {
+        try {
+          const picture = await privateAction<PrivateGeometryReadResponse>(questionId, 'geometryRead', { assetId: linkedImage.assetId });
+          const dataUrl = safePrivatePngDataUrl(picture);
+          setActive(linkedImage.assetId);
+          setPreview(dataUrl);
+          onPreviewChange?.({ assetId: linkedImage.assetId, width: picture.width, height: picture.height, dataUrl });
+          setNotice('Görsel soruya kaydedildi ve soru önizlemesinde gösteriliyor.');
+        } catch {
+          setNotice('Görsel soruya kaydedildi. Önizleme için Görüntüle düğmesini kullanın.');
+        }
+      } else {
+        setPreview('');
+        setActive(null);
+        onPreviewChange?.(null);
+        setNotice('Görsel soruya kaydedildi. Önizleme için Görüntüle düğmesini kullanın.');
+      }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Görsel kaydedilemedi.');
     } finally {
@@ -170,16 +218,15 @@ export function PrivateGeometryWorkspace({
     setNotice('Kayıtlı dosya yetki kontrolüyle okunuyor…');
     try {
       const result = await privateAction<PrivateGeometryReadResponse>(questionId, 'geometryRead', { assetId });
-      if (result.contentType !== 'image/png' ||
-          typeof result.pngBase64 !== 'string' || result.pngBase64.length > 750_000) {
-        throw new Error('Özel PNG yanıtı geçersiz.');
-      }
+      const dataUrl = safePrivatePngDataUrl(result);
       setActive(assetId);
-      setPreview('data:image/png;base64,' + result.pngBase64);
-      setNotice('Görsel yalnızca bu yetkili oturum üzerinden görüntüleniyor.');
+      setPreview(dataUrl);
+      onPreviewChange?.({ assetId, width: result.width, height: result.height, dataUrl });
+      setNotice('Görsel soru köküne bağlıdır; sağdaki öğrenci önizlemesinde gösteriliyor.');
     } catch (error) {
       setPreview('');
       setActive(null);
+      onPreviewChange?.(null);
       setNotice(error instanceof Error ? error.message : 'Görsel okunamadı.');
     } finally {
       setWorking(false);
@@ -188,7 +235,7 @@ export function PrivateGeometryWorkspace({
 
   return <section className="p3-private-geometry" aria-label="Özel çizim yükleme ve görüntüleme">
     <h4>Özel çizimler</h4>
-    <p>PNG çiziminizi yalnızca bu soruya, özel depolama alanında kaydedin. Dosya bağlantısı herkese açılmaz.</p>
+    <p>PNG görseliniz bu sorunun köküne güvenli biçimde bağlanır. Öğrenci önizlemesinde ve kitap Word çıktısında soru metninin altında gösterilir; görselin metin içinde imleç konumuna taşınması henüz desteklenmez.</p>
     <label>PNG dosyası seç
       <input aria-label="Özel PNG çizimi" type="file" accept="image/png" disabled={working || disabled || !available}
         onChange={event => setFile(event.target.files?.[0] ?? null)} />
@@ -200,7 +247,7 @@ export function PrivateGeometryWorkspace({
       <strong>Kayıtlı özel çizimler ({images.length})</strong>
       {images.map((image, i) => <button type="button" key={image.assetId} disabled={working || disabled}
         onClick={() => void read(image.assetId)} aria-pressed={active === image.assetId}>
-        {i + 1}. PNG · {image.width} × {image.height} · Görüntüle
+        {i + 1}. PNG · {image.width} × {image.height} · Soru önizlemesinde göster
       </button>)}
     </div>
     {preview && <figure className="p3-private-geometry-preview">
