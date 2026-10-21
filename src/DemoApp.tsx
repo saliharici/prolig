@@ -1217,6 +1217,57 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   };
     const log = (text: string, type: 'question' | 'payment', projectId: number, authorId?: number) => ({ id: Math.max(0, ...data.activities.map(item => item.id)) + 1, text, actor: currentUser.fullName, at: 'Az önce', type, projectId, authorId });
   
+  // A new question needs a server ID before owner-scoped private media can
+  // attach. Persist once and keep the editor open instead of forcing authors
+  // to exit, reopen, or change a character to trigger another save.
+  const saveNewDraftAndContinueWithPng = async () => {
+    if (editingQuestion) { setQuestionStep(2); return; }
+    if (durableDraftConflict || questionSavingRef.current || durableDraftBusy ||
+        currentUser.role !== 'YAZAR' || !guidedStudioOn || questionTitle.trim().length < 10) {
+      setQuestionSaveError('Önce soru kökünü ve zorunlu alanları tamamlayın. Taslak kaydedilmedi.');
+      return;
+    }
+    questionSavingRef.current = true;
+    setQuestionSaving(true);
+    setQuestionSaveError('');
+    try {
+      const draft = {
+        content: questionTitle,
+        grade: questionGrade,
+        options: questionOptions,
+        correctAnswer: questionCorrectAnswer,
+        explanation: questionExplanation,
+        projectId: questionProjectId,
+        assets: normalizeQuestionAssets(questionAssets),
+        ...questionTypeExtras
+      };
+      // The exact same validation, authorization and persistence contract as
+      // normal question creation. No client-side media shortcut.
+      const created = await createQuestion(buildQuestionCreateInput(
+        guardedLegacyQuestionWrite ? toP2SandboxLegacyDraft(draft) : draft,
+        guardedLegacyQuestionWrite
+      ));
+      durableDraftGenerationRef.current += 1;
+      if (durableFeatureOn) {
+        try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, null); }
+        catch { /* The question is safe on the server; stale local draft can be removed later. */ }
+      }
+      durableDraftPhraseRef.current = '';
+      setDurableDraftEnabled(false);
+      pausedQuestionDraftsRef.current.delete(pausedQuestionDraftKey(currentUser.id, null));
+      setPausedDraftsVersion(v => v + 1);
+      openYazarEdit(created);
+      setQuestionStep(2);
+      setToast('Taslak oluşturuldu. Bu ekranı kapatmadan özel PNG ekleyebilirsiniz.');
+      void loadApiQuestions();
+    } catch (error) {
+      setQuestionSaveError(error instanceof Error ? error.message : 'Taslak oluşturulamadı. Girdileriniz korundu.');
+    } finally {
+      questionSavingRef.current = false;
+      setQuestionSaving(false);
+    }
+  };
+
   const handleCreateQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
     if (durableDraftConflict) {
@@ -2355,6 +2406,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             branchName={currentUser.role === 'YAZAR' ? currentUser.authorProfile?.branch?.name || '' : ''}
             editing={Boolean(editingQuestion)} disabled={questionSaving || durableDraftBusy}
             privateGeometryEnabled={import.meta.env.VITE_P3_PRIVATE_GEOMETRY_ENABLED === 'true'}
+            onSaveForPrivateImage={saveNewDraftAndContinueWithPng}
             privateGeometryQuestionId={editingQuestion?.id ?? null}
             privateGeometryUpdatedAt={editingQuestion?.updatedAt ?? undefined}
             onPrivateGeometryRevision={updatedAt => {
