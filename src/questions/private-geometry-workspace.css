@@ -12,3 +12,27 @@
 .p3-private-geometry-preview{max-width:100%;margin:0;padding:12px;border:1px solid #dce4dd;border-radius:9px}
 .p3-private-geometry-preview img{max-width:100%;max-height:340px;display:block;object-fit:contain}
 .p3-private-geometry-preview figcaption{font-size:12px;color:#52655d;margin-top:7px}
+
+/* P3-AC: private STEM image is rendered only in the author's authenticated
+   in-memory preview. No public object URL or base64 enters question content. */
+.p3-private-stem-preview {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #d9e3de;
+  background: #fff;
+  border-radius: 10px;
+  max-width: 100%;
+}
+.p3-private-stem-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 340px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.p3-private-stem-preview figcaption {
+  font-size: 12px;
+  color: #586960;
+  margin-top: 7px;
+}
