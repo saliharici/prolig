@@ -54,6 +54,8 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   const [preview, setPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'student' | 'editor' | 'publish'>('student');
   const [privateStemImage, setPrivateStemImage] = useState<{ questionId: number; image: PrivateGeometryPreviewImage } | null>(null);
+  const [privateGeometryCount, setPrivateGeometryCount] = useState<number | null>(null);
+  const [privateGeometryCheckFailed, setPrivateGeometryCheckFailed] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const previousStep = useRef(step);
   const count = v.optionCount ?? 4;
@@ -83,6 +85,31 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
     if (previousStep.current !== step) heading.current?.focus();
     previousStep.current = step;
   }, [step]);
+  useEffect(() => {
+    let active = true;
+    setPrivateGeometryCount(null);
+    setPrivateGeometryCheckFailed(false);
+    if (!privateGeometryEnabled || !editing || !privateGeometryQuestionId) return;
+    // Load linked-image metadata as soon as a saved question opens, including
+    // while the author is on step 1. Never copy S3 URLs or secrets to the UI.
+    void fetch('/api/v1/questions/' + privateGeometryQuestionId, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'geometryList' })
+    }).then(async response => {
+      if (!response.ok) throw new Error('Cannot load private image list');
+      const data: unknown = await response.json();
+      if (!data || typeof data !== 'object' || !('images' in data) ||
+          !Array.isArray(data.images) || data.images.length > 30) {
+        throw new Error('Invalid private image metadata');
+      }
+      if (active) setPrivateGeometryCount(data.images.length);
+    }).catch(() => {
+      if (active) setPrivateGeometryCheckFailed(true);
+    });
+    return () => { active = false; };
+  }, [privateGeometryEnabled, editing, privateGeometryQuestionId]);
   const changeType = (next: QuestionType) => {
     if (editing || next === type) return;
     if ((v.options.some(x => x.trim()) || v.modelAnswer || v.scoringRubric || v.evaluationCriteria || v.booleanAnswer != null) &&
@@ -102,6 +129,19 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   return <section className="p2-guided p3-studio-shell" aria-label="Beş aşamalı soru hazırlama" inert={disabled}>
     <header className="p3-studio-identity"><div><span className="p3-studio-eyebrow">PRO-LIG / YAZAR ÇALIŞMA ALANI</span><h2>Profesyonel Soru Stüdyosu</h2><p>Soru bilgilerini tamamlayın, içeriği hazırlayın ve editör incelemesine hazır hâle getirin.</p></div><span className="p3-studio-status" role="status">{editing ? "Soruyu düzenliyorsunuz" : "Yeni soru taslağı"}</span></header>
     <nav aria-label="Soru hazırlama aşamaları" className="p2-steps">{steps.map((label, i) => <button type="button" key={label} aria-current={step === i + 1 ? 'step' : undefined} onClick={() => onStepChange(i + 1)}><span>{i + 1}</span><strong>{label}</strong><small>{issues.some(x => x.step === i + 1) ? 'Eksik alan' : i < 4 ? 'Hazır' : 'Kontrol et'}</small></button>)}</nav>
+    {privateGeometryEnabled && editing && privateGeometryQuestionId && <div className="p3-attached-image-summary" role="status" aria-live="polite">
+      <div>
+        <strong>{privateGeometryCheckFailed
+          ? 'Özel çizimler doğrulanamadı'
+          : privateGeometryCount === null
+            ? 'Kayıtlı özel çizimler kontrol ediliyor…'
+            : privateGeometryCount
+              ? `${privateGeometryCount} özel PNG bu soruya kalıcı kaydedilmiş`
+              : 'Bu soruya henüz özel PNG eklenmemiş'}</strong>
+        <small>PNG yüklemesi bağımsız olarak sunucuya kaydedilir. Sadece PNG eklemek için soru metninde değişiklik yapmanız veya tekrar Taslağı kaydet düğmesine basmanız gerekmez.</small>
+      </div>
+      <button type="button" className="secondary-button" onClick={() => onStepChange(2)}>Özel çizimleri görüntüle</button>
+    </div>}
     <div className="p2-progress-summary" role="status" aria-live="polite">
       <div>
         <strong>{readyStageCount}/4 içerik aşaması inceleme için hazır</strong>
@@ -148,6 +188,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
               ? <PrivateGeometryWorkspace questionId={privateGeometryQuestionId}
                   expectedUpdatedAt={privateGeometryUpdatedAt} disabled={disabled}
                   onRevisionChange={onPrivateGeometryRevision}
+                  onCountChange={setPrivateGeometryCount}
                   onPreviewChange={image => setPrivateStemImage(
                     image && typeof privateGeometryQuestionId === 'number'
                       ? { questionId: privateGeometryQuestionId, image } : null
