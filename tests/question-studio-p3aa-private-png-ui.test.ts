@@ -83,6 +83,17 @@ describe('P3-AA private PNG studio listing', () => {
     expect(prod.code).toBe(404);
   });
 
+  it('shows custom shape controls on new questions without bypassing save-first security', () => {
+    const source = readFileSync('src/questions/GuidedQuestionStudio.tsx', 'utf8');
+    expect(source).toContain('Özel şekil ekle');
+    expect(source).toContain('Özel PNG yüklemesi için önce soru taslağını kaydedin.');
+    expect(source).toContain("onClick={() => onStepChange(5)}");
+    expect(source).toContain('editing && privateGeometryQuestionId && privateGeometryUpdatedAt && onPrivateGeometryRevision');
+    expect(source).toContain('<PrivateGeometryWorkspace questionId={privateGeometryQuestionId}');
+    expect(source).toContain('onPreviewChange={image =>');
+    expect(source).not.toContain('privateGeometryEnabled && editing && privateGeometryQuestionId');
+  });
+
   it('rehydrates the private PNG under the question stem in author preview', () => {
     const workspace = readFileSync('src/questions/PrivateGeometryWorkspace.tsx', 'utf8');
     const studio = readFileSync('src/questions/GuidedQuestionStudio.tsx', 'utf8');
