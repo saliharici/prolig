@@ -9,7 +9,8 @@ export const P3_PNG_APPROVED_PREVIEW_BRANCHES = [
   'feat/p3w-private-image-binding-20261021',
   'feat/p3x-private-image-reading-20261021',
   'feat/p3z-private-png-book-integration-20261021',
-  'feat/p3aa-private-png-studio-ui-20261021'
+  'feat/p3aa-private-png-studio-ui-20261021',
+  'feat/p3ab-private-geometry-acceptance-20261021'
 ] as const;
 export const P3_ISOLATED_DB_HOST = 'ep-ancient-art-bap633lq.c-8.eu-central-1.aws.neon.tech';
 export const P3_ISOLATED_STORAGE_URL =
