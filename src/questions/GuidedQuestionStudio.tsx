@@ -35,7 +35,7 @@ export function guidedQuestionIssues(v: QuestionStudioFormValues) {
 
 export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, projects, projectsLoading, projectsError,
   originalProjectId, levels, grades, onProject, onLevel, onGrade, branchName, editing, disabled, sandbox,
-  onAddAsset, onRemoveAsset, renderAssets, privateGeometryQuestionId, privateGeometryUpdatedAt, onPrivateGeometryRevision, privateGeometryEnabled
+  onAddAsset, onRemoveAsset, renderAssets, privateGeometryQuestionId, privateGeometryUpdatedAt, onPrivateGeometryRevision, privateGeometryEnabled, onSaveForPrivateImage
 }: {
   values: QuestionStudioFormValues; onChange: (values: QuestionStudioFormValues) => void;
   step: number; onStepChange: (step: number) => void;
@@ -49,6 +49,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   privateGeometryEnabled?: boolean;
   privateGeometryUpdatedAt?: string;
   onPrivateGeometryRevision?: (updatedAt: string) => void;
+  onSaveForPrivateImage?: () => Promise<void>;
 }) {
   const [activeOption, setActiveOption] = useState(0);
   const [preview, setPreview] = useState(true);
@@ -194,10 +195,13 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
                       ? { questionId: privateGeometryQuestionId, image } : null
                   )} />
               : <div className="p3-private-shape-save-first" role="note">
-                  <strong>Özel PNG yüklemesi için önce soru taslağını kaydedin.</strong>
-                  <p>Kaydetme işleminden sonra Sorularım listesindeki Düzenle düğmesiyle soruyu yeniden açın. Bu alanda PNG seçme ve soruya bağlama seçenekleri etkinleşecektir.</p>
-                  <button type="button" className="secondary-button" disabled={disabled}
-                    onClick={() => onStepChange(5)}>Önizleme ve kayıt aşamasına geç</button>
+                  <strong>PNG ekleyebilmek için sorunun önce bir taslak numarası alması gerekir.</strong>
+                  <p>Soru kökünü (en az 10 karakter) ve gerekli alanları doldurun, ardından <strong>Taslağı oluştur ve PNG eklemeye devam et</strong> düğmesini kullanın. Kayıt sonrası bu sayfa kapanmadan PNG seçebileceksiniz.</p>
+                  <button type="button" className="secondary-button" disabled={disabled || v.content.trim().length < 10}
+                    onClick={() => onSaveForPrivateImage ? void onSaveForPrivateImage() : onStepChange(5)}>
+                    Taslağı oluştur ve PNG eklemeye devam et
+                  </button>
+                  {v.content.trim().length < 10 && <small>Bu düğme için soru kökünde en az 10 karakter olmalıdır.</small>}
                 </div>}
           </section>}
           {media('STEM')}
