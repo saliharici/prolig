@@ -112,13 +112,15 @@ export function PrivateGeometryWorkspace({
   expectedUpdatedAt,
   disabled,
   onRevisionChange,
-  onPreviewChange
+  onPreviewChange,
+  onCountChange
 }: {
   questionId: number;
   expectedUpdatedAt: string;
   disabled: boolean;
   onRevisionChange: (updatedAt: string) => void;
   onPreviewChange?: (image: PrivateGeometryPreviewImage | null) => void;
+  onCountChange?: (count: number | null) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [images, setImages] = useState<PrivateGeometryImage[]>([]);
@@ -137,8 +139,9 @@ export function PrivateGeometryWorkspace({
     privateAction<PrivateGeometryListResponse>(questionId, 'geometryList').then(async result => {
       if (!alive) return;
       setImages(result.images);
+      onCountChange?.(result.images.length);
       setAvailable(true);
-      setNotice(result.images.length ? 'Özel çizimler soruya bağlı ve güvenli depoda kayıtlı.' : 'Henüz yüklenmiş özel çizim yok.');
+      setNotice(result.images.length ? 'Özel çizimler soruya bağlı ve güvenli depoda kayıtlı. Soru metnini değiştirmeniz gerekmez.' : 'Henüz yüklenmiş özel çizim yok.');
       // Only fetch the first image automatically. Remaining private media is
       // deliberately on-demand to avoid pulling up to 30 full PNGs on entry.
       const first = result.images[0];
@@ -186,6 +189,7 @@ export function PrivateGeometryWorkspace({
       onRevisionChange(bound.updatedAt);
       const result = await privateAction<PrivateGeometryListResponse>(questionId, 'geometryList');
       setImages(result.images);
+      onCountChange?.(result.images.length);
       setFile(null);
       const linkedImage = result.images.find(image => image.assetId === bound.asset?.id);
       if (linkedImage) {
@@ -197,7 +201,7 @@ export function PrivateGeometryWorkspace({
           onPreviewChange?.({ assetId: linkedImage.assetId, width: picture.width, height: picture.height, dataUrl });
           setNotice('Görsel soruya kaydedildi ve soru önizlemesinde gösteriliyor.');
         } catch {
-          setNotice('Görsel soruya kaydedildi. Önizleme için Görüntüle düğmesini kullanın.');
+          setNotice('PNG kalıcı kaydedildi; taslağı yeniden kaydetmeniz gerekmez. Önizleme için Görüntüle düğmesini kullanın.');
         }
       } else {
         setPreview('');
@@ -235,7 +239,7 @@ export function PrivateGeometryWorkspace({
 
   return <section className="p3-private-geometry" aria-label="Özel çizim yükleme ve görüntüleme">
     <h4>Özel çizimler</h4>
-    <p>PNG görseliniz bu sorunun köküne güvenli biçimde bağlanır. Öğrenci önizlemesinde ve kitap Word çıktısında soru metninin altında gösterilir; görselin metin içinde imleç konumuna taşınması henüz desteklenmez.</p>
+    <p>PNG yükleme işlemi görseli doğrudan bu soruya kalıcı kaydeder. Soru metnini değiştirmeye veya ayrıca Taslağı kaydet düğmesine basmaya gerek yoktur. Özel çizim soru kökünün altında gösterilir; metin içindeki imleç konumuna yerleştirme henüz desteklenmez.</p>
     <label>PNG dosyası seç
       <input aria-label="Özel PNG çizimi" type="file" accept="image/png" disabled={working || disabled || !available}
         onChange={event => setFile(event.target.files?.[0] ?? null)} />
