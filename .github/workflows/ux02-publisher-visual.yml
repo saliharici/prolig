@@ -1,0 +1,44 @@
+name: UX-02 Publisher Visual Acceptance
+on:
+  push:
+    branches:
+      - 'feat/ux02-corporate-publisher-login-*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Run UX-02 scoped contracts
+        run: npx vitest run tests/ux02-publisher-landing-login.test.ts tests/frontend-public-landing-enterprise.test.ts tests/frontend-public-landing-v2.test.ts tests/frontend-corporate-access.test.ts
+      - name: Build exact commit for browser acceptance
+        run: npm run build
+      - name: Install headless browser
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Launch isolated static preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort >/tmp/ux02-vite.log 2>&1 &
+          for n in $(seq 1 40); do if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi; sleep 1; done
+          cat /tmp/ux02-vite.log
+          exit 1
+      - name: Browser acceptance & screenshots at 1440 / 768 / 360
+        run: node scripts/ux02-browser-acceptance.mjs
+      - name: Upload UX-02 review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ux02-review-screenshots
+          path: ux02-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 21
