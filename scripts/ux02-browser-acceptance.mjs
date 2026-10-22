@@ -38,8 +38,23 @@ try {
    assertions+=4;
    await expectNoOverflow(page,viewport.name+' public');
    await page.screenshot({path:OUTPUT+'/ux02-home-'+viewport.name+'.png',fullPage:true,animations:'disabled'});
-   await clickLogin(page,viewport.width);
+   if (viewport.width <= 650) {
+     const topLogin = page.locator('.ux02-header-actions .ux02-header-login');
+     assert.equal(await topLogin.isVisible(),true,'Mobile employee login must be visible without menu');
+     assert.equal(await page.locator('#ux02-mobile-navigation').isVisible(),false,'Mobile navigation closed by default');
+     assertions += 2;
+     await topLogin.click();
+   } else {
+     await clickLogin(page,viewport.width);
+   }
    await page.getByRole('heading',{name:'Çalışan Girişi'}).waitFor();
+   if (viewport.width <= 650) {
+     const emailBounds = await page.locator('#email').boundingBox();
+     const passwordBounds = await page.locator('#password').boundingBox();
+     assert.ok(emailBounds && emailBounds.y < viewport.height - 80,'Email input should be above the fold');
+     assert.ok(passwordBounds && passwordBounds.y + passwordBounds.height <= viewport.height,'Password input should be above the fold');
+     assertions += 2;
+   }
    await expectNoOverflow(page,viewport.name+' login');
    await page.screenshot({path:OUTPUT+'/ux02-login-'+viewport.name+'.png',fullPage:true,animations:'disabled'});
    const email=page.getByRole('textbox',{name:'E-posta adresi'});

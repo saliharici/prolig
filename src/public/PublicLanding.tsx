@@ -16,7 +16,7 @@ const navItems = [
   { href: '#yayinlar', label: 'Yayınlarımız' },
   { href: '#kurumsal', label: 'Kurumsal' },
   { href: '#editorial', label: 'Editoryal Yaklaşım' },
-  { href: '#iletisim', label: 'İletişim' }
+  { href: '#iletisim', label: 'Bizimle Çalışın' }
 ] as const;
 
 export function PublicLanding({
@@ -86,23 +86,22 @@ export function PublicLanding({
           <div className="ux02-hero-copy">
             <div className="ux02-eyebrow"><span className="ux02-eyebrow-rule"/> PRO-LİG / YAYINCILIK</div>
             <h1 id="ux02-hero-title">Nitelikli içerik, <em>güçlü bir yayın anlayışı.</em></h1>
-            <p className="ux02-hero-description">Öğrenmeye değer katan yayınlar için içerik, editoryal özen ve birlikte üretme kültürünü önemsiyoruz.</p>
+            <p className="ux02-hero-description">Eğitim yayınlarını, içerik kalitesi ve editoryal sorumluluğu temel alarak hazırlıyoruz.</p>
             <div className="ux02-hero-actions">
               <a href="#yayinlar" className="ux02-button ux02-button-primary">Yayınlarımız <ArrowRight size={17} aria-hidden="true"/></a>
               <a href="#kurumsal" className="ux02-button ux02-button-light">Bizi Tanıyın <ArrowDownRight size={17} aria-hidden="true"/></a>
             </div>
-            <div className="ux02-hero-byline"><span className="ux02-byline-rule"/><span>Yayıncılıkta nitelik ve editoryal titizlik</span></div>
+            <div className="ux02-hero-byline"><span className="ux02-byline-rule"/><span>PRO-LİG Yayınevi</span></div>
           </div>
-          <div className="ux02-hero-art" aria-label="PRO-LİG yayın portföyü için temsili tipografik alan; gerçek kitap kapağı değildir">
-            <div className="ux02-art-top"><span>PRO-LİG YAYINEVİ</span><span>YAYIN PORTFÖYÜ</span></div>
-            <div className="ux02-art-core">
-              <div className="ux02-art-monogram" aria-hidden="true">P<span>.</span></div>
-              <div className="ux02-art-wordmark">YAYIN<br/>KÜLTÜRÜ</div>
-              <div className="ux02-art-line" />
-              <p>Özenle hazırlanan içeriklerin buluşma noktası.</p>
+          <div className="ux02-hero-art" role="img" aria-label="PRO-LİG kurumsal tipografik motifi. Bu bir kitap kapağı değildir.">
+            <div className="ux02-art-heading"><span>KURUMSAL GRAFİK</span><span>PRO-LİG YAYINEVİ</span></div>
+            <div className="ux02-art-composition" aria-hidden="true">
+              <div className="ux02-art-orbit ux02-art-orbit-one" />
+              <div className="ux02-art-orbit ux02-art-orbit-two" />
+              <div className="ux02-art-orbit ux02-art-orbit-three" />
+              <span className="ux02-art-letter">P</span><span className="ux02-art-dot">.</span>
             </div>
-            <div className="ux02-art-bottom"><span>EDİTORYAL YAKLAŞIM</span><span>01 / PRO-LİG</span></div>
-            <p className="ux02-art-disclaimer">Temsili kurumsal görsel · Bir kitap kapağı veya yayımlanmış eser değildir.</p>
+            <p className="ux02-art-legend">Yayıncılık kimliğimiz için tipografik motif. Gerçek kitap kapağı veya yayımlanmış eser görseli değildir.</p>
           </div>
         </section>
 
@@ -110,20 +109,12 @@ export function PublicLanding({
           <div className="ux02-section-heading">
             <span className="ux02-section-kicker">01 / YAYINLARIMIZ</span>
             <h2 id="ux02-publications-title">İçeriğin değerine <em>inanıyoruz.</em></h2>
-            <p>Yayın portföyümüzü doğrulanmış kitap ve katalog bilgileriyle burada paylaşacağız.</p>
+            <p>PRO-LİG yayınlarını doğrulanmış bilgileriyle tanıtmayı önemsiyoruz.</p>
           </div>
-          <div className="ux02-publications-grid">
-            <div className="ux02-catalogue-empty" role="note" aria-label="Yayın kataloğu henüz eklenmedi">
-              <div className="ux02-catalogue-mark" aria-hidden="true"><BookOpen size={39} strokeWidth={1.25}/></div>
-              <div><span>YAYIN KATALOĞU</span><h3>Yayınlarımız yakında burada.</h3><p>Doğrulanmış kitap kapakları ve yayın bilgileri hazır olduğunda bu alan güncellenecek.</p></div>
-              <span className="ux02-catalogue-footnote">Henüz katalog kaydı gösterilmiyor.</span>
-            </div>
-            <aside className="ux02-publications-aside">
-              <span className="ux02-side-index">PRO-LİG / YAYINCILIK NOTLARI</span>
-              <h3>Her yayının merkezinde içerik vardır.</h3>
-              <p>Yayınlarımızı sunarken doğru, açık ve doğrulanabilir bilgi paylaşmayı önemsiyoruz.</p>
-              <a href="#editorial">Editoryal yaklaşımımız <ArrowRight size={16} aria-hidden="true"/></a>
-            </aside>
+          <div className="ux02-publications-summary">
+            <BookOpen size={28} strokeWidth={1.4} aria-hidden="true" />
+            <p><strong>Yayın seçkisi</strong><span>Doğrulanmış kitap ve katalog bilgileri eklendikçe bu alanda yer alacaktır.</span></p>
+            <a href="#editorial">Yayın anlayışımız <ArrowRight size={16} aria-hidden="true"/></a>
           </div>
         </section>
 
@@ -132,7 +123,7 @@ export function PublicLanding({
             <div className="ux02-institution-label"><span className="ux02-section-kicker">02 / KURUMSAL</span><span className="ux02-institution-sign" aria-hidden="true">PL<span>.</span></span></div>
             <div className="ux02-institution-copy">
               <h2 id="ux02-corporate-title">Yayıncılığı yalnızca basılı sayfalardan <em>ibaret görmüyoruz.</em></h2>
-              <p>Bir içeriğin hazırlanmasından editoryal değerlendirmeye kadar her aşamada özenli çalışmanın önemine inanıyoruz. PRO-LİG, yayın sürecini bu anlayışla ele alan bir yayınevidir.</p>
+              <p>PRO-LİG, içerik üretimini editoryal değerlendirmeyle birlikte ele alan bir yayınevidir.</p>
               <div className="ux02-institution-points">
                 <span><Check size={16} aria-hidden="true"/> İçeriğe saygı</span>
                 <span><Check size={16} aria-hidden="true"/> Editoryal özen</span>
@@ -146,7 +137,7 @@ export function PublicLanding({
           <div className="ux02-section-heading ux02-editorial-heading">
             <span className="ux02-section-kicker">03 / EDİTORYAL YAKLAŞIM</span>
             <h2 id="ux02-editorial-title">İyi bir yayının arkasında <em>özenli bir süreç vardır.</em></h2>
-            <p>Yazar, editör ve yayın koordinasyonu arasındaki işbirliği, tutarlı bir içerik hazırlama anlayışının temelidir.</p>
+            <p>Yazar ve editör işbirliği, yayın hazırlığının temelidir.</p>
           </div>
           <div className="ux02-editorial-steps">
             <article><span>01</span><h3>İçerik üretimi</h3><p>İçeriğin amacı, kapsamı ve anlatım biçimi gözetilerek hazırlık yapılır.</p></article>
@@ -159,14 +150,9 @@ export function PublicLanding({
           <div className="ux02-contact-copy">
             <span className="ux02-section-kicker">04 / BİZİMLE ÇALIŞIN</span>
             <h2 id="ux02-contact-title">Birlikte <em>üretelim.</em></h2>
-            <p>Yazarlık ve editörlük çalışmalarında PRO-LİG ekibine katılmak için mevcut başvuru ekranımızı kullanabilirsiniz.</p>
-            {!authenticated && <button type="button" className="ux02-button ux02-button-cream" onClick={openApplication}>Yazar ve Editör Başvurusu <ArrowRight size={17} aria-hidden="true"/></button>}
+            <p>Yazar veya editör olarak ekibimize katılmak için başvuru ekranını kullanabilirsiniz.</p>
           </div>
-          <div className="ux02-contact-detail">
-            <span>İLETİŞİM</span>
-            <h3>Kurumsal iletişim bilgileri</h3>
-            <p>Resmî iletişim kanalları doğrulandıktan sonra burada yayımlanacaktır. Bu bölümde doğrulanmamış adres veya iletişim bilgisi bulunmaz.</p>
-          </div>
+          {!authenticated && <button type="button" className="ux02-button ux02-button-cream" onClick={openApplication}>Yazar ve Editör Başvurusu <ArrowRight size={17} aria-hidden="true"/></button>}
         </section>
       </main>
       <footer className="ux02-footer">

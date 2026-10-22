@@ -18,3 +18,13 @@
 5. Gerçek oturum servisi Preview'da doğrulanmadan `login PASS` denmez.
 
 **İş kapatma:** Önizleme kullanıcı kabulüne gönderilir; merge/prod yalnız 02 CANLI tarafından açık onayla.
+
+## 22.10.2026 mimari inceleme #6338904582 — tek düzeltme paketi
+- Mobil üst çubukta giriş CTA'sı hamburger olmadan görünür; menüdeki giriş yolu korunur.
+- Mobil giriş formu kurumsal kimlik açıklamasından önce sıralanır.
+- Yayın katalog boşluğu küçültüldü; uydurma eser/ISBN yok.
+- İletişim menüsü gerçek iletişim adresi bulunmadığı için "Bizimle Çalışın" olarak yönlendirme amaçlı yeniden adlandırıldı.
+- Kurumsal+editoryal bölümlerin düşey boşlukları ve tekrarlanan mesajları azaltıldı.
+- Kahraman görseli "KURUMSAL GRAFİK" etiketi ve iç açıklamasıyla motif oldu; kapak iddiası yok.
+- `src/auth/api.ts`, server `api/v1/auth/*` ve yetki matrisi değiştirilmedi.
+- Genel CI baştan `main` 5f59de6 üzerinde aynı P3 TypeScript üç uyarısıyla zaten FAIL (GitHub 39688082974). Ayrı P3/CI sahipliği; UX-02'ye taşınmadı.

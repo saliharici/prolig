@@ -5,13 +5,13 @@ const css = readFileSync(new URL('../src/public/publisher-ux02.css', import.meta
 const legacyCss = readFileSync(new URL('../src/demo.css', import.meta.url), 'utf8');
 describe('Public Landing transition V2 → UX-02', () => {
  it('presents publishing, not internal software functions', () => {
-  for (const x of ['Yayınlarımız','Kurumsal','Editoryal Yaklaşım','İletişim','Yazar ve Editör Başvurusu','Çalışan Girişi']) expect(landing).toContain(x);
+  for (const x of ['Yayınlarımız','Kurumsal','Editoryal Yaklaşım','Bizimle Çalışın','Yazar ve Editör Başvurusu','Çalışan Girişi']) expect(landing).toContain(x);
   expect(landing).not.toContain('PRO-LİG, birbirinden kopuk araçlar');
   expect(landing).not.toContain('fetchProjects');
  });
  it('avoids inventing publisher titles, covers or figures', () => {
-  expect(landing).toContain('Yayınlarımız yakında burada.');
-  expect(landing).toContain('Temsili kurumsal görsel');
+  expect(landing).toContain('Yayın seçkisi');
+  expect(landing).toContain('kurumsal tipografik motifi');
   expect(landing).not.toContain('DOSYA NO. 001');
   expect(landing).not.toContain('8. Sınıf Matematik');
   expect(landing).not.toContain('Bir dikdörtgenin kısa kenarı');

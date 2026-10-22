@@ -18,9 +18,9 @@ describe('UX-02 · publisher homepage and employee login', () => {
    expect(landing).not.toContain('Panel Tasarımları');
  });
  it('does not fabricate a catalog, title, ISBN, or verified address', () => {
-   expect(landing).toContain('Henüz katalog kaydı gösterilmiyor.');
-   expect(landing).toContain('Temsili kurumsal görsel');
-   expect(landing).toContain('doğrulandıktan sonra');
+   expect(landing).toContain('Doğrulanmış kitap ve katalog bilgileri eklendikçe');
+   expect(landing).toContain('Gerçek kitap kapağı veya yayımlanmış eser görseli değildir.');
+   expect(landing).toContain('Yazar veya editör olarak ekibimize katılmak');
    expect(landing).not.toContain('8. Sınıf Matematik');
    expect(landing).not.toContain('ISBN');
  });
@@ -66,5 +66,10 @@ describe('UX-02 · publisher homepage and employee login', () => {
    expect(accessCss).toContain('@media(max-width:650px)');
    expect(accessCss).not.toContain('.demo-sidebar');
    expect(accessCss).not.toContain('.membership-page');
+   expect(publicCss).toContain('.ux02-header-login{display:inline-flex');
+   expect(accessCss).toContain('.ux02-login-panel{order:0');
+   expect(landing).toContain("label: 'Bizimle Çalışın'");
+   expect(landing).toContain('KURUMSAL GRAFİK');
+   expect(landing).not.toContain('YAYIN KÜLTÜRÜ');
  });
 });

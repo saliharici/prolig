@@ -66,3 +66,22 @@
 .prolig-access-v1.ux02-login-shell .ux02-login-footer{width:calc(100% - 36px);min-height:76px;font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){.prolig-access-v1.ux02-login-shell *, .prolig-access-v1.ux02-login-shell *::before,.prolig-access-v1.ux02-login-shell *::after{animation:none!important;transition:none!important}}
+
+/* UX-02 architectural acceptance: make the form the first visual destination on phones. */
+@media(max-width:650px){
+.prolig-access-v1.ux02-login-shell .ux02-login-main{display:flex;flex-direction:column;padding-top:12px}
+.prolig-access-v1.ux02-login-shell .ux02-login-panel{order:0;border:1px solid #eadedb;padding:25px 22px 24px}
+.prolig-access-v1.ux02-login-shell .ux02-login-panel h2{font-size:29px;margin-top:7px}
+.prolig-access-v1.ux02-login-shell .ux02-login-subtitle{margin:10px 0 20px}
+.prolig-access-v1.ux02-login-shell .ux02-login-form{gap:15px}
+.prolig-access-v1.ux02-login-shell .ux02-login-field{gap:6px}
+.prolig-access-v1.ux02-login-shell .ux02-login-input-wrap{min-height:47px}
+.prolig-access-v1.ux02-login-shell .ux02-login-input-wrap input{height:45px}
+.prolig-access-v1.ux02-login-shell .ux02-login-submit{height:49px;margin-top:2px}
+.prolig-access-v1.ux02-login-shell .ux02-login-trust{margin-top:19px;padding-top:14px}
+.prolig-access-v1.ux02-login-shell .ux02-login-intro{order:1;min-height:0;padding:19px 22px;margin-top:10px}
+.prolig-access-v1.ux02-login-shell .ux02-login-intro h1{font-size:22px;margin:8px 0;line-height:1.3}
+.prolig-access-v1.ux02-login-shell .ux02-login-intro>p{font-size:11px;line-height:1.5}
+.prolig-access-v1.ux02-login-shell .ux02-login-overline{font-size:9px}
+.prolig-access-v1.ux02-login-shell .ux02-login-footer{min-height:53px}
+}
