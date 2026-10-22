@@ -135,7 +135,6 @@ function StatCard({ label, value, note, icon: Icon, tone }: { label: string; val
 function FinanceOverview({ apiPayments, paymentsLoading, paymentsError, onNavigate, currentUser }: { apiPayments: Payment[]; paymentsLoading: boolean; paymentsError: string; onNavigate: (section: Section) => void; currentUser: AuthUser }) {
   const recentPayments = latestScopedPayments(apiPayments);
   return <>
-    <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>Telif ve ödeme kayıtlarını takip edin, ödeme akışını yönetin.</p></div><span className="heading-chip"><ShieldCheck size={16} /> Muhasebe görünümü</span></div>
     <div className="stats-grid">
       <StatCard label="Bekleyen ödeme" value={paymentsLoading || paymentsError ? '—' : moneyKurus(sumPayments(apiPayments, 'Bekliyor'))} note="Onay sırasındaki ödeme kaydı" icon={Clock3} tone="amber" />
       <StatCard label="Onaylanan" value={paymentsLoading || paymentsError ? '—' : moneyKurus(sumPayments(apiPayments, 'Onaylandi'))} note="Ödeme sırasındaki tutar" icon={CheckCircle2} tone="blue" />

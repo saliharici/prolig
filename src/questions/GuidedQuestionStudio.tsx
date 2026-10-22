@@ -71,7 +71,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   // Never store a data URL or S3 key in the question payload or public media.
   const renderPreviewAssets = (placement: QuestionAssetPlacement) => <>
     {renderAssets(placement)}
-    {placement === 'STEM' && privateStemImage?.questionId === privateGeometryQuestionId &&
+    {placement === 'STEM' && privateStemImage !== null && privateStemImage.questionId === privateGeometryQuestionId &&
       <figure className="p3-private-stem-preview" aria-label="Soru köküne bağlı özel PNG">
         <img
           src={privateStemImage.image.dataUrl}
