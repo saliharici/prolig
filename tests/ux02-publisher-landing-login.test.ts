@@ -39,7 +39,7 @@ describe('UX-02 · publisher homepage and employee login', () => {
    expect(gate).toContain("setAuthState({ status: 'error'");
    expect(gate).toContain('serviceNotice=');
    expect(gate).toContain('onRetryConnection={checkSession}');
-   expect(gate).toContain("authState.status === 'authenticated'");
+   expect(gate).toContain("setAuthState({ status: 'authenticated', user });");
    expect(gate).toContain('currentUser={authState.user}');
    expect(gate).not.toContain("setAuthState({ status: 'authenticated', user: ");
    expect(gate).not.toContain('PublisherDesignPreview');
