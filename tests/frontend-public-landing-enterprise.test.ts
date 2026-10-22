@@ -21,8 +21,8 @@ describe('PRO-LIG institutional publishing UX-02', () => {
   expect(css).not.toContain('.soft-login-shell');
  });
  it('has publication honesty and semantic content', () => {
-  expect(landing).toContain('Henüz katalog kaydı gösterilmiyor.');
-  expect(landing).toContain('Temsili kurumsal görsel');
+  expect(landing).toContain('Doğrulanmış kitap ve katalog bilgileri eklendikçe');
+  expect(landing).toContain('Gerçek kitap kapağı veya yayımlanmış eser görseli değildir.');
   expect(landing).toContain('Ana içeriğe geç');
   expect(landing).toContain('id="public-content"');
   expect(landing).not.toContain('Bir dikdörtgenin kısa kenarı');

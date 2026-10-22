@@ -148,7 +148,7 @@ describe('Final UX Stabilization', () => {
     const landingCode = fs.readFileSync(path.resolve(__dirname, '../src/public/PublicLanding.tsx'), 'utf8');
     expect(landingCode).toContain('Nitelikli içerik,');
     expect(landingCode).toContain('PRO-LİG YAYINEVİ');
-    expect(landingCode).toContain('Henüz katalog kaydı gösterilmiyor.');
+    expect(landingCode).toContain('Doğrulanmış kitap ve katalog bilgileri eklendikçe');
     expect(landingCode).not.toContain('8. Sınıf Matematik');
     expect(landingCode).not.toContain('Ülke Geneli');
   });
