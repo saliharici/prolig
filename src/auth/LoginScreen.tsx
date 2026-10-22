@@ -1,132 +1,95 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Loader2, LockKeyhole, LogIn, Mail } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { login } from './api';
 import './corporate-access-v1.css';
+import './publisher-access-ux02.css';
 
 export interface LoginScreenProps {
   onLoginSuccess: () => void;
   onCancel: () => void;
 }
 
+/** UX-02 visual-only surface; the existing login() endpoint and server RBAC are unchanged. */
 export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
-
+    if (!email.trim() || !password) return;
     setLoading(true);
     setError(null);
-
     try {
       await login(email, password);
       onLoginSuccess();
-    } catch (err: any) {
-      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        setError('Ağ hatası, lütfen bağlantınızı kontrol edin.');
+    } catch (err: unknown) {
+      const failure = err instanceof Error ? err : new Error('Giriş işlemi tamamlanamadı.');
+      if (failure.message === 'Failed to fetch' || failure.name === 'TypeError') {
+        setError('Bağlantı kurulamadı. İnternet bağlantınızı kontrol edip yeniden deneyin.');
       } else {
-        setError(err.message || 'Sunucu hatası, lütfen daha sonra tekrar deneyin.');
+        setError(failure.message || 'Giriş işlemi tamamlanamadı. Lütfen yeniden deneyin.');
       }
+    } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="soft-login-shell prolig-access-v1 publisher-theme">
-
-      <button onClick={onCancel} className="soft-login-back">
-        <ArrowLeft size={16} /> Ana sayfaya dön
-      </button>
-
-      <div className="soft-login-layout">
-        <aside className="soft-login-intro">
-          <div className="public-brand soft-login-brand">
-            <img
-              className="soft-login-brand-logo"
-              src="/brand/prolig-logo-primary.png"
-              alt="PRO-LİG — Yayın ve İçerik Yönetim Platformu"
-            />
-          </div>
-          <div className="soft-login-copy">
-            <span className="access-eyebrow">PRO-LİG / ÇALIŞMA ALANI</span>
-            <h1>Yayın hazırlığı,<br /><em>ortak bir çalışma.</em></h1>
-            <p>Yazarlık, editörlük ve yayın koordinasyonu. Size tanımlanan çalışma alanından sürecinize devam edin.</p>
-
-            <div className="access-dossier" aria-label="Temsili yayın çalışma dosyası">
-              <div className="access-dossier-head">
-                <span>ÇALIŞMA DÜZENİ / ÖRNEK</span>
-                <span className="access-dossier-seal">PRO-LİG</span>
-              </div>
-              <div className="access-dossier-body">
-                <p className="access-dossier-caption">Bir yayın dosyasının yolculuğu</p>
-                <div className="access-dossier-row"><span>01</span><strong>Yazarın taslağı</strong><small>İçerik üretimi</small></div>
-                <div className="access-dossier-row"><span>02</span><strong>Editör incelemesi</strong><small>Geri bildirim ve revizyon</small></div>
-                <div className="access-dossier-row"><span>03</span><strong>Yayın hazırlığı</strong><small>Onay ve teslim takibi</small></div>
-              </div>
-              <div className="access-dossier-foot">Bu görsel gerçek proje veya kullanıcı verisi içermez.</div>
+  return <div className="soft-login-shell prolig-access-v1 publisher-theme ux02-login-shell">
+    <a className="ux02-login-skip" href="#ux02-login-form">Giriş formuna geç</a>
+    <header className="ux02-login-header">
+      <a className="ux02-login-logo" href="/" onClick={(event) => { event.preventDefault(); onCancel(); }} aria-label="PRO-LİG ana sayfa">
+        <img src="/brand/prolig-logo-primary.png" alt="PRO-LİG"/><span>YAYINEVİ</span>
+      </a>
+      <button type="button" onClick={onCancel} className="ux02-login-back"><ArrowLeft size={17} aria-hidden="true"/> Ana sayfaya dön</button>
+    </header>
+    <main className="ux02-login-main">
+      <aside className="ux02-login-intro">
+        <span className="ux02-login-overline">PRO-LİG / ÇALIŞAN GİRİŞİ</span>
+        <h1>Yayın sürecine <em>kaldığınız yerden devam edin.</em></h1>
+        <p>Yazar, editör ve yayın ekibine ayrılmış çalışma alanına kurum hesabınızla erişin.</p>
+        <div className="ux02-login-intro-footer"><span>PRO-LİG YAYINEVİ</span><span>Güvenli çalışma alanı</span></div>
+      </aside>
+      <section className="ux02-login-panel" id="ux02-login-form" aria-labelledby="ux02-login-title" tabIndex={-1}>
+        <div className="ux02-login-panel-head">
+          <div><span className="ux02-login-kicker">KURUM HESABI</span><h2 id="ux02-login-title">Çalışan Girişi</h2></div>
+          <span className="ux02-login-emblem" aria-hidden="true"><ShieldCheck size={23}/></span>
+        </div>
+        <p className="ux02-login-subtitle">Size tanımlanmış e-posta adresi ve şifrenizle giriş yapın.</p>
+        {error && <div className="ux02-login-error" role="alert">{error}</div>}
+        <form onSubmit={handleSubmit} className="ux02-login-form">
+          <div className="ux02-login-field">
+            <label htmlFor="email">E-posta adresi</label>
+            <div className="ux02-login-input-wrap">
+              <Mail size={18} aria-hidden="true"/>
+              <input id="email" name="email" type="email" value={email} onChange={event => setEmail(event.target.value)}
+                autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false}
+                placeholder="E-posta adresiniz" disabled={loading} required/>
             </div>
           </div>
-        </aside>
-
-        <section className="soft-login-card">
-          <div className="access-form-heading">
-            <span className="access-eyebrow">KİŞİSEL ÇALIŞMA ALANI</span>
-            <span className="access-form-symbol" aria-hidden="true"><LogIn size={20} /></span>
+          <div className="ux02-login-field">
+            <label htmlFor="password">Şifre</label>
+            <div className="ux02-login-input-wrap">
+              <LockKeyhole size={18} aria-hidden="true"/>
+              <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={password}
+                onChange={event => setPassword(event.target.value)} autoComplete="current-password"
+                placeholder="Şifreniz" disabled={loading} required/>
+              <button type="button" className="ux02-password-toggle" aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                aria-pressed={showPassword} onClick={() => setShowPassword(current => !current)} disabled={loading}>
+                {showPassword ? <EyeOff size={19} aria-hidden="true"/> : <Eye size={19} aria-hidden="true"/>}
+              </button>
+            </div>
           </div>
-          <h2>Yeniden hoş geldiniz.</h2>
-          <p className="soft-login-subtitle">Çalışma alanınıza erişmek için kurum hesabınızla giriş yapın.</p>
-
-          {error && <div className="soft-login-error" role="alert">{error}</div>}
-
-          <form onSubmit={handleSubmit} className="soft-login-form">
-            <label htmlFor="email">
-              E-posta
-              <div className="soft-input-wrap">
-                <Mail size={17} />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                  autoComplete="email"
-                  placeholder="ornek@prolig.local"
-                />
-              </div>
-            </label>
-
-            <label htmlFor="password">
-              Şifre
-              <div className="soft-input-wrap">
-                <LockKeyhole size={17} />
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                  autoComplete="current-password"
-                  placeholder="Şifrenizi girin"
-                />
-              </div>
-            </label>
-
-            <button type="submit" className="public-primary-button soft-login-submit" disabled={loading || !email || !password}>
-              {loading ? <Loader2 className="spinner" size={17} /> : <LogIn size={17} />}
-              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-            </button>
-          </form>
-
-          <div className="soft-login-footnote">
-            Hesabınıza tanımlanan rol ve yetkilerle güvenli erişim.
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+          <button type="submit" className="ux02-login-submit" disabled={loading || !email || !password}>
+            {loading ? <Loader2 className="ux02-spin" size={17} aria-hidden="true"/> : <span>Giriş Yap</span>}
+            {loading ? 'Giriş yapılıyor...' : <ArrowRight size={18} aria-hidden="true"/>}
+          </button>
+        </form>
+        <div className="ux02-login-trust"><ShieldCheck size={17} aria-hidden="true"/><span>Yetkileriniz yalnızca doğrulanmış oturumunuza göre belirlenir.</span></div>
+      </section>
+    </main>
+    <footer className="ux02-login-footer"><span>© {new Date().getFullYear()} PRO-LİG Yayınevi</span><span>Kurumsal çalışan erişimi</span></footer>
+  </div>;
 }
