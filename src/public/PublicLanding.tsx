@@ -40,11 +40,15 @@ export function PublicLanding({
   onLoginClick,
   onApplyClick,
   onDesignPreviewClick,
+  serviceNotice,
+  onRetryConnection,
   authenticated = false
 }: {
   onLoginClick: () => void;
   onApplyClick: () => void;
   onDesignPreviewClick: () => void;
+  serviceNotice?: string;
+  onRetryConnection?: () => void;
   authenticated?: boolean;
 }) {
   return (
@@ -80,6 +84,10 @@ export function PublicLanding({
         <a href="#yayin-projesi">Yayın Akışı</a>
       </nav>
 
+      {serviceNotice && <div className="ux01-connection-note" role="status">
+        <div><strong>Bağlantı durumu</strong><span>{serviceNotice}</span></div>
+        {onRetryConnection && <button type="button" onClick={onRetryConnection}>Yeniden dene</button>}
+      </div>}
       <main className="public-main" id="public-content">
         <section className="public-hero public-major-section" id="anasayfa" aria-labelledby="public-hero-heading">
           <div className="public-hero-copy">

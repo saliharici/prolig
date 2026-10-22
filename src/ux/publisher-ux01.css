@@ -29,3 +29,11 @@
 @media(max-width:800px){.ux01-design-header{padding:12px 18px}.ux01-design-header>span{display:none}.ux01-design-header button{margin-left:auto}.ux01-design-content{padding:32px 17px 60px}.ux01-design-intro{flex-direction:column;align-items:stretch}.ux01-prototype-label{min-width:0}.ux01-example-window{grid-template-columns:1fr}.ux01-example-sidebar{display:none}.ux01-role-welcome{grid-template-columns:1fr}.ux01-role-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:18px}.ux01-role-action-heading,.ux01-role-actions small{grid-column:1/-1}.publisher-theme.public-editorial-v2 .ux01-value-strip{grid-template-columns:1fr;margin:0 18px 30px}.publisher-theme.public-editorial-v2 .ux01-value-strip>div{border-bottom:1px solid #f0e6e4}}
 @media(max-width:570px){.ux01-example-stats{grid-template-columns:1fr}.ux01-example-hero{padding:22px}.ux01-example-hero b{display:none}.ux01-example-row{gap:7px}.ux01-example-row em{font-size:9px}.ux01-role-copy{padding:26px 21px}.ux01-role-actions{grid-template-columns:1fr}.publisher-theme.public-editorial-v2 .ux01-preview-link{display:none}}
 @media(prefers-reduced-motion:reduce){.ux01-design-preview *,.ux01-role-welcome *{animation:none!important;transition:none!important}}
+
+.publisher-theme.public-editorial-v2 .ux01-connection-note{max-width:1250px;margin:18px auto 0;display:flex;align-items:center;justify-content:space-between;gap:22px;padding:16px 22px;background:#fffaf4;border:1px solid #e5d3c4;border-left:4px solid #af7a52;color:#513a33;line-height:1.55;border-radius:7px}
+.publisher-theme.public-editorial-v2 .ux01-connection-note div{display:flex;flex-direction:column;gap:4px}
+.publisher-theme.public-editorial-v2 .ux01-connection-note strong{font-size:12px}
+.publisher-theme.public-editorial-v2 .ux01-connection-note span{font-size:12px}
+.publisher-theme.public-editorial-v2 .ux01-connection-note button{border:1px solid #76273e;background:#76273e;color:#fff;border-radius:6px;white-space:nowrap;padding:10px 14px;font-size:12px;font-weight:700}
+.publisher-theme.public-editorial-v2 .ux01-connection-note button:hover{background:#562035}
+@media(max-width:800px){.publisher-theme.public-editorial-v2 .ux01-connection-note{margin:12px 16px 0;flex-direction:column;align-items:stretch}}
