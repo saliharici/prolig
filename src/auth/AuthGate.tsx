@@ -5,6 +5,7 @@ import { LoginScreen } from './LoginScreen';
 import { Loader2, AlertCircle } from 'lucide-react';
 import DemoApp from '../DemoApp';
 import { PublicLanding } from '../public/PublicLanding';
+import { PublisherDesignPreview } from '../ux/PublisherExperience';
 import { MembershipApplicationScreen } from '../membership/MembershipApplicationScreen';
 
 export function AuthGate() {
@@ -12,6 +13,7 @@ export function AuthGate() {
   const [showLogin, setShowLogin] = useState(false);
   const [showApplication, setShowApplication] = useState(false);
   const [showPublicPreview, setShowPublicPreview] = useState(false);
+  const [showDesignPreview, setShowDesignPreview] = useState(false);
 
   const checkSession = async () => {
     setAuthState({ status: 'loading' });
@@ -79,6 +81,8 @@ export function AuthGate() {
     );
   }
 
+  if (showDesignPreview) return <PublisherDesignPreview onBack={() => setShowDesignPreview(false)} />;
+
   if (authState.status === 'unauthenticated') {
     if (showApplication) {
       return <MembershipApplicationScreen onBack={() => setShowApplication(false)} />;
@@ -86,7 +90,7 @@ export function AuthGate() {
     if (showLogin) {
       return <LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }} onCancel={() => setShowLogin(false)} />;
     }
-    return <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />;
+    return <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} onDesignPreviewClick={() => setShowDesignPreview(true)} />;
   }
 
   // Authenticated
@@ -96,6 +100,7 @@ export function AuthGate() {
         authenticated
         onLoginClick={() => setShowPublicPreview(false)}
         onApplyClick={() => setShowPublicPreview(false)}
+        onDesignPreviewClick={() => setShowDesignPreview(true)}
       />
     );
   }

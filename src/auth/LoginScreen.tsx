@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Loader2, LockKeyhole, LogIn, Mail } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Loader2, LockKeyhole, LogIn, Mail, ShieldCheck } from 'lucide-react';
 import { login } from './api';
 import './corporate-access-v1.css';
 
@@ -11,6 +11,7 @@ export interface LoginScreenProps {
 export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,7 +106,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
                 <LockKeyhole size={17} />
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   disabled={loading}
@@ -113,6 +114,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
                   autoComplete="current-password"
                   placeholder="Şifrenizi girin"
                 />
+                <button type="button" className="ux01-password-toggle" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'} aria-pressed={showPassword} disabled={loading}>{showPassword ? <EyeOff size={17}/> : <Eye size={17}/>}</button>
               </div>
             </label>
 
@@ -122,9 +124,8 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
             </button>
           </form>
 
-          <div className="soft-login-footnote">
-            Hesabınıza tanımlanan rol ve yetkilerle güvenli erişim.
-          </div>
+          <div className="soft-login-footnote">Hesabınıza tanımlanan rol ve yetkilerle güvenli erişim.</div>
+          <div className="ux01-access-trust"><ShieldCheck size={15}/> Mevcut güvenli oturum ve rol yetkileri korunur.</div>
         </section>
       </div>
     </div>

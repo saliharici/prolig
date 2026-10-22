@@ -52,6 +52,7 @@ import { CompensationEntriesPanel } from './compensation/CompensationEntriesPane
 import { ReportsCenter } from './reports/ReportsCenter';
 import { PublishingWorkbench } from './publishing/PublishingWorkbench';
 import { GeneralCoordinatorDashboard } from './overview/GeneralCoordinatorDashboard';
+import { PublisherRoleWelcome } from './ux/PublisherExperience';
 import { latestAuthorizedAudit, latestScopedPayments, latestScopedQuestions } from './overview/live-activity';
 import { questionStudioReleaseFlags } from './questions/studio-runtime-flags';
 import { MemberManagement } from './membership/MemberManagement';
@@ -100,7 +101,6 @@ const moneyKurus = (kurus: number) => new Intl.NumberFormat('tr-TR', { style: 'c
 const sumPayments = (payments: Payment[], status: string) => payments.filter(p => p.status === status).reduce((sum, p) => sum + toKurus(p.amount), 0);
 const money = (value: number) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 const date = (value: string) => new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value.includes('T') ? value : `${value}T12:00:00`));
-const todayHeading = new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' }).format(new Date()).toLocaleUpperCase('tr-TR');
 
 const questionAssetPlacements: { value: QuestionAssetPlacement; label: string }[] = [
   { value: 'STEM', label: 'Soru kökü' },
@@ -2036,9 +2036,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       </header>
       <main id="workspace-content" className="content" tabIndex={-1}>
 
-        {section === 'overview' && currentUser.role === 'MUHASEBE' && <FinanceOverview apiPayments={apiPayments} paymentsLoading={paymentsLoading} paymentsError={paymentsError} onNavigate={navigate} currentUser={currentUser} />}
+        {section === 'overview' && currentUser.role === 'MUHASEBE' && <><PublisherRoleWelcome role={currentUser.role} fullName={currentUser.fullName} allowed={allowed} onNavigate={navigate}/><FinanceOverview apiPayments={apiPayments} paymentsLoading={paymentsLoading} paymentsError={paymentsError} onNavigate={navigate} currentUser={currentUser}/></>}
         {section === 'overview' && currentUser.role !== 'MUHASEBE' && <>
-          <div className="page-heading"><div><div className="eyebrow">{todayHeading}</div><h1>Merhaba, {currentUser.fullName.split(' ')[0]} <span className="wave">✳</span></h1><p>{currentUser.role === 'YAZAR' ? 'Sorularınızı hazırlayın, editör değerlendirmesini takip edin.' : 'Üretim sürecindeki son durumu tek yerden takip edin.'}</p></div><div className="workspace-overview-actions"><span className="heading-chip"><ShieldCheck size={16} /> {roleLabels[currentUser.role]} görünümü</span><button type="button" className="workspace-main-action" onClick={() => navigate(currentUser.role === 'YAZAR' || currentUser.role === 'EDITOR' ? 'questions' : 'projects')}>{currentUser.role === 'YAZAR' ? 'Soru havuzuna git' : currentUser.role === 'EDITOR' ? 'İnceleme kuyruğunu aç' : 'Projeleri görüntüle'} <ArrowRight size={16} aria-hidden="true" /></button></div></div>
+          <PublisherRoleWelcome role={currentUser.role} fullName={currentUser.fullName} allowed={allowed} onNavigate={navigate}/>
           <div className="stats-grid">
             <StatCard label="Aktif projeler" value={activeProjects} note="Üretim takviminde" icon={BookOpen} tone="blue" />
             <StatCard label={currentUser.role === 'YAZAR' ? 'Sorularım' : 'İncelemede'} value={currentUser.role === 'YAZAR' ? apiQuestions.length : pendingQuestions} note={currentUser.role === 'YAZAR' ? 'Soru havuzunda' : 'Editör kararı bekliyor'} icon={FileQuestion} tone="amber" />
