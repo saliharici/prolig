@@ -93,7 +93,8 @@ describe('Final UX Stabilization', () => {
     expect(authGateCode).toContain('const [showLogin, setShowLogin] = useState(false);');
     expect(authGateCode).toContain('const [showApplication, setShowApplication] = useState(false);');
     expect(authGateCode).toContain('<MembershipApplicationScreen onBack={() => setShowApplication(false)} />');
-    expect(authGateCode).toContain('<PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />');
+    expect(authGateCode).toContain('<PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} onDesignPreviewClick={() => setShowDesignPreview(true)} />');
+    expect(authGateCode).toContain('serviceNotice=');
     expect(authGateCode).toContain('const [showPublicPreview, setShowPublicPreview] = useState(false);');
     expect(authGateCode).toContain('<PublicLanding');
     expect(authGateCode).toContain('authenticated');
