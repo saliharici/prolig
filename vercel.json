@@ -137,6 +137,14 @@
       "destination": "/api/v1/management?action=announcements"
     },
     {
+      "source": "/api/v1/auth/password-reset-request",
+      "destination": "/api/v1/management?action=passwordResetRequest"
+    },
+    {
+      "source": "/api/v1/auth/password-reset-complete",
+      "destination": "/api/v1/management?action=passwordResetComplete"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }

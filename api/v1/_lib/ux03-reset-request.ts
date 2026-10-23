@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { prisma } from '../_lib/prisma.js';
+import { prisma } from './prisma.js';
 import {
   GENERAL_RECOVERY_NOTICE, RECOVERY_UNAVAILABLE_NOTICE, TOKEN_LIFETIME_MS,
   hashSecret, isActiveAccount, newResetToken, recoveryConfig, recoveryLink,
   requestFromTrustedOrigin, requestRateKeys, sendResetEmail
-} from '../_lib/password-recovery.js';
+} from './password-recovery.js';
 
 // All account states, including nonexistent and Pasif, get the same success response.
 // No recovery channel => fail closed for everybody, never imply delivery.

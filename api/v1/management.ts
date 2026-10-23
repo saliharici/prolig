@@ -1,4 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import handleUx03ResetRequest from './_lib/ux03-reset-request.js';
+import handleUx03ResetComplete from './_lib/ux03-reset-complete.js';
 import bcrypt from 'bcryptjs';
 import { prisma } from './_lib/prisma.js';
 import { getCurrentUser } from './_lib/current-user.js';
@@ -182,6 +184,10 @@ function hasProtectedUserHistory(history: Record<string, number>) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const action = typeof req.query.action === 'string' ? req.query.action : '';
+    // UX-03 gated public actions: identity proof via short-lived e-mail link;
+    // no privilege/activation path and no additional Serverless Function slots.
+    if (action === 'passwordResetRequest') return handleUx03ResetRequest(req, res);
+    if (action === 'passwordResetComplete') return handleUx03ResetComplete(req, res);
     if (action === 'health') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
       return res.status(200).json({ ok: true, service: 'prolig' });

@@ -8,8 +8,8 @@ import {
 import { hasCurrentSessionVersion } from '../api/v1/_lib/auth';
 
 const source = (path: string) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-const requestHandler = source('api/v1/auth/password-reset-request.ts');
-const completeHandler = source('api/v1/auth/password-reset-complete.ts');
+const requestHandler = source('api/v1/_lib/ux03-reset-request.ts');
+const completeHandler = source('api/v1/_lib/ux03-reset-complete.ts');
 const schema = source('prisma/schema.prisma');
 
 describe('UX-03 only · guarded account recovery and session contracts', () => {
@@ -85,6 +85,8 @@ describe('UX-03 only · guarded account recovery and session contracts', () => {
       expect(completeHandler).toContain("action: 'PASSWORD_RESET_COMPLETED'");
       expect(source('api/v1/management.ts')).toContain("if (!coordinatorRoles.has(user.role.code)) return res.status(403)");
       expect(source('vercel.json')).toContain('"/api/v1/users"');
+      expect(source('vercel.json')).toContain('passwordResetComplete');
+      expect(source('api/v1/management.ts')).toContain("handleUx03ResetComplete(req, res)");
     } finally {
       if (before === undefined) delete process.env.UX03_RECOVERY_ENABLED; else process.env.UX03_RECOVERY_ENABLED = before;
       if (env === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = env;

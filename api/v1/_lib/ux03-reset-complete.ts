@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcryptjs';
-import { prisma } from '../_lib/prisma.js';
+import { prisma } from './prisma.js';
 import {
   RECOVERY_UNAVAILABLE_NOTICE, canConsumeToken, hashSecret, isActiveAccount,
   isTokenShape, isValidPassword, recoveryConfig, requestFromTrustedOrigin, requestRateKeys
-} from '../_lib/password-recovery.js';
+} from './password-recovery.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
