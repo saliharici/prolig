@@ -1,0 +1,24 @@
+name: UX-02 Preview Environment Gate
+on:
+  push:
+    branches:
+      - 'feat/ux02-corporate-publisher-login-*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Three targeted deployment gate assertions
+        run: npx vitest run tests/ux02-publisher-landing-login.test.ts -t 'closes both Production entry points and opens the approved Preview'
+      - name: Build exact commit (production-safe fallback)
+        run: npm run build

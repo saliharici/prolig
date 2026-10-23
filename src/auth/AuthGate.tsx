@@ -6,6 +6,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import DemoApp from '../DemoApp';
 import { PublicLanding } from '../public/PublicLanding';
 import { PublisherDesignPreview } from '../ux/PublisherExperience';
+import { allowUx01DesignPreview } from '../ux/preview-environment';
 import { MembershipApplicationScreen } from '../membership/MembershipApplicationScreen';
 
 export function AuthGate() {
@@ -13,7 +14,7 @@ export function AuthGate() {
   const [showLogin, setShowLogin] = useState(false);
   const [showApplication, setShowApplication] = useState(false);
   const [showPublicPreview, setShowPublicPreview] = useState(false);
-  const [showDesignPreview, setShowDesignPreview] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ux01') === 'preview');
+  const [showDesignPreview, setShowDesignPreview] = useState(() => allowUx01DesignPreview() && new URLSearchParams(window.location.search).get('ux01') === 'preview');
 
   const checkSession = async () => {
     setAuthState({ status: 'loading' });
@@ -54,7 +55,7 @@ export function AuthGate() {
     checkSession();
   }, []);
 
-  if (showDesignPreview) return <PublisherDesignPreview onBack={() => setShowDesignPreview(false)} />;
+  if (showDesignPreview && allowUx01DesignPreview()) return <PublisherDesignPreview onBack={() => setShowDesignPreview(false)} />;
 
   if (authState.status === 'loading') {
     return (
@@ -74,8 +75,8 @@ export function AuthGate() {
       onLoginClick={() => setShowLogin(true)}
       onApplyClick={() => setShowApplication(true)}
       onDesignPreviewClick={() => setShowDesignPreview(true)}
-      serviceNotice="Oturum hizmeti şu an doğrulanamadı. Kurumsal sayfa ve temsili panel tasarımları görüntülenebilir; gerçek kullanıcı oturumu doğrulanmış değildir."
-      onRetryConnection={() => { void checkSession(); }}
+      serviceNotice="Kurumsal site görüntülenebilir; çalışan oturumu henüz doğrulanamadı."
+      onRetryConnection={checkSession}
     />;
   }
 

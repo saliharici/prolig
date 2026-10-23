@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ command }) => {
   // Windows EPERM watcher workaround is opt-in; keep normal hot reload by default.
   // PROLIG_VITE_WATCH_MODE=off disables Vite watching/HMR (restart for changes).
   // PROLIG_VITE_WATCH_MODE=polling uses polling instead of native file events (more CPU).
@@ -12,8 +12,20 @@ export default defineConfig(() => {
     : (process.env.PROLIG_VITE_WATCH_MODE ?? 'native');
   const disableWatch = mode === 'off';
 
+  // Vercel supplies VERCEL_ENV during builds. Replace this non-secret marker
+  // at compile time; a production bundle must not trust a Preview-shaped URL.
+  // Unknown build environments fail closed, including local production builds.
+  const deploymentTarget = process.env.VERCEL_ENV === 'preview'
+    ? 'preview'
+    : process.env.VERCEL_ENV === 'production'
+      ? 'production'
+      : !process.env.VERCEL_ENV && command === 'serve'
+        ? 'local-dev'
+        : 'unknown';
+
   return {
     plugins: [react()],
+    define: { __PROLIG_DEPLOYMENT_TARGET__: JSON.stringify(deploymentTarget) },
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, '.'),

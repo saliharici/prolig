@@ -94,7 +94,7 @@ describe('Final UX Stabilization', () => {
     expect(authGateCode).toContain('const [showApplication, setShowApplication] = useState(false);');
     expect(authGateCode).toContain('<MembershipApplicationScreen onBack={() => setShowApplication(false)} />');
     expect(authGateCode).toContain('<PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} onDesignPreviewClick={() => setShowDesignPreview(true)} />');
-    expect(authGateCode).toContain('serviceNotice=');
+    expect(authGateCode).toContain('allowUx01DesignPreview()');
     expect(authGateCode).toContain('const [showPublicPreview, setShowPublicPreview] = useState(false);');
     expect(authGateCode).toContain('<PublicLanding');
     expect(authGateCode).toContain('authenticated');
@@ -136,38 +136,23 @@ describe('Final UX Stabilization', () => {
     expect(demoAppCode).not.toContain("{section === 'roles' && <MemberManagement");
   });
 
-  it('keeps the corporate publishing dossier and existing login behavior', () => {
-    const loginPath = path.resolve(__dirname, '../src/auth/LoginScreen.tsx');
-    const loginCode = fs.readFileSync(loginPath, 'utf8');
-    const cssPath = path.resolve(__dirname, '../src/auth/corporate-access-v1.css');
-    const cssCode = fs.readFileSync(cssPath, 'utf8');
-
-    expect(loginCode).toContain('Bir yayın dosyasının yolculuğu');
-    expect(loginCode).toContain('Yazarın taslağı');
-    expect(loginCode).toContain('Editör incelemesi');
-    expect(loginCode).toContain('Yayın hazırlığı');
-    expect(loginCode).toContain('Bu görsel gerçek proje veya kullanıcı verisi içermez.');
+  it('retains working employee login without a fake publishing dossier', () => {
+    const loginCode = fs.readFileSync(path.resolve(__dirname, '../src/auth/LoginScreen.tsx'), 'utf8');
+    expect(loginCode).toContain('Çalışan Girişi');
     expect(loginCode).toContain('onSubmit={handleSubmit}');
     expect(loginCode).toContain('onLoginSuccess();');
-    expect(cssCode).toContain('.prolig-access-v1 .access-dossier');
+    expect(loginCode).toContain('Şifreyi göster');
+    expect(loginCode).not.toContain('Bir yayın dosyasının yolculuğu');
   });
 
-  it('Landing page copy is accurate and neutral', () => {
-    const landingPath = path.resolve(__dirname, '../src/public/PublicLanding.tsx');
-    const landingCode = fs.readFileSync(landingPath, 'utf8');
-
-    // Public publishing example does not expose internal project identifiers.
-    expect(landingCode).toContain('<h3>8. Sınıf Matematik<br />Soru Bankası</h3>');
-    expect(landingCode).toContain('TEMSİLİ PROJE');
-    
-    // unsupported "8. Sınıf LGS Soru Bankası" is absent
-    expect(landingCode).not.toContain('8. Sınıf LGS Soru Bankası');
-
-    // neutral truthful label
-    expect(landingCode).toContain('Yazar ve editör ekibi');
-    
-    // unsupported "Ülke Geneli" claim is absent
+  it('retains honest publisher landing copy without synthetic book titles', () => {
+    const landingCode = fs.readFileSync(path.resolve(__dirname, '../src/public/PublicLanding.tsx'), 'utf8');
+    expect(landingCode).toContain('Nitelikli içerik,');
+    expect(landingCode).toContain('PRO-LİG YAYINEVİ');
+    expect(landingCode).toContain('Doğrulanmış kitap ve katalog bilgileri eklendikçe');
+    expect(landingCode).not.toContain('8. Sınıf Matematik');
     expect(landingCode).not.toContain('Ülke Geneli');
   });
+
 });
 
