@@ -118,6 +118,7 @@ model User {
   username       String    @unique
   email          String    @unique
   passwordHash   String?
+  authVersion    Int       @default(0) // Increment only when credentials change
   fullName       String
   roleId         Int
   role           Role      @relation(fields: [roleId], references: [id])

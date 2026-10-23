@@ -49,13 +49,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       if (claimed.count !== 1) return false;
       const user = await tx.user.findUnique({
-        where: { id: tokenRow.userId }, select: { id: true, status: true, updatedAt: true }
+        where: { id: tokenRow.userId }, select: { id: true, status: true }
       });
       if (!user || !isActiveAccount(user.status)) return false;
-      const nextTimestamp = new Date(Math.max(Date.now(), user.updatedAt.getTime() + 1));
       const changed = await tx.user.updateMany({
         where: { id: user.id, status: 'Aktif' },
-        data: { passwordHash: newHash, updatedAt: nextTimestamp }
+        data: { passwordHash: newHash, authVersion: { increment: 1 } }
       });
       if (changed.count !== 1) throw new Error('RECOVERY_ACCOUNT_CHANGED');
       await tx.passwordResetToken.updateMany({

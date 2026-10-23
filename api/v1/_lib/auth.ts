@@ -12,9 +12,9 @@ export function getSecret(): string {
   return secret;
 }
 
-export function setSessionCookie(res: VercelResponse, userId: number, version?: Date) {
+export function setSessionCookie(res: VercelResponse, userId: number, version: number) {
   const secret = getSecret();
-  const token = jwt.sign({ sub: String(userId), v: version?.getTime() }, secret, { expiresIn: '7d', algorithm: 'HS256' });
+  const token = jwt.sign({ sub: String(userId), v: version }, secret, { expiresIn: '7d', algorithm: 'HS256' });
   
   const cookie = serialize(COOKIE_NAME, token, {
     httpOnly: true,
@@ -71,7 +71,7 @@ export function getSessionClaims(req: VercelRequest): { userId: number; version:
       return null;
     }
 
-    return { userId, version: typeof payload.v === 'number' && Number.isSafeInteger(payload.v) ? payload.v : null };
+    return { userId, version: typeof payload.v === 'number' && Number.isSafeInteger(payload.v) && payload.v >= 0 ? payload.v : null };
   } catch (error) {
     return null;
   }
@@ -83,11 +83,11 @@ export function getSessionUserId(req: VercelRequest): number | null {
 
 export function hasCurrentSessionVersion(
   claims: { userId: number; version: number | null } | null,
-  updatedAt: Date
+  authVersion: number
 ): boolean {
   if (!claims) return false;
   // Old JWTs without the version are invalid when recovery is enabled.
   // This check is central and applies to all authenticated API entry points.
   if (process.env.UX03_RECOVERY_ENABLED !== 'true' || process.env.VERCEL_ENV !== 'preview') return true;
-  return claims.version !== null && claims.version === updatedAt.getTime();
+  return claims.version !== null && claims.version === authVersion;
 }

@@ -1,4 +1,5 @@
 -- UX-03 Preview ONLY. Reviewed migration file; NOT APPLIED automatically.
+-- The authVersion counter is independent of User.updatedAt and profile edits.
 CREATE TABLE "PasswordResetToken" (
   "id" TEXT NOT NULL,
   "userId" INTEGER NOT NULL,
@@ -19,3 +20,5 @@ CREATE TABLE "PasswordResetRate" (
   "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "PasswordResetRate_pkey" PRIMARY KEY ("key")
 );
+
+ALTER TABLE "User" ADD COLUMN "authVersion" INTEGER NOT NULL DEFAULT 0;

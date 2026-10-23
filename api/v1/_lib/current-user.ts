@@ -11,7 +11,7 @@ export async function getCurrentUser(req: VercelRequest) {
     where: { id: userId },
     select: {
       id: true,
-      updatedAt: true,
+      authVersion: true,
       fullName: true,
       status: true,
       assignedRegion: true,
@@ -31,7 +31,7 @@ export async function getCurrentUser(req: VercelRequest) {
     }
   });
 
-  if (!user || user.status?.toUpperCase() !== 'AKTIF' || !hasCurrentSessionVersion(claims, user.updatedAt)) {
+  if (!user || user.status?.toUpperCase() !== 'AKTIF' || !hasCurrentSessionVersion(claims, user.authVersion)) {
     return null;
   }
 

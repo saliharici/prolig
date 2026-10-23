@@ -106,7 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       include: meInclude
     });
 
-    if (!user || user.status?.toUpperCase() !== 'AKTIF' || !hasCurrentSessionVersion(claims, user.updatedAt)) {
+    if (!user || user.status?.toUpperCase() !== 'AKTIF' || !hasCurrentSessionVersion(claims, user.authVersion)) {
       clearSessionCookie(res);
       return res.status(401).json({ error: 'Unauthorized' });
     }
