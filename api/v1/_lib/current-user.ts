@@ -1,15 +1,17 @@
 import { VercelRequest } from '@vercel/node';
 import { prisma } from './prisma.js';
-import { getSessionUserId } from './auth.js';
+import { getSessionClaims, hasCurrentSessionVersion } from './auth.js';
 
 export async function getCurrentUser(req: VercelRequest) {
-  const userId = getSessionUserId(req);
+  const claims = getSessionClaims(req);
+  const userId = claims?.userId;
   if (!userId) return null;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
+      updatedAt: true,
       fullName: true,
       status: true,
       assignedRegion: true,
@@ -29,7 +31,7 @@ export async function getCurrentUser(req: VercelRequest) {
     }
   });
 
-  if (!user || user.status?.toUpperCase() !== 'AKTIF') {
+  if (!user || user.status?.toUpperCase() !== 'AKTIF' || !hasCurrentSessionVersion(claims, user.updatedAt)) {
     return null;
   }
 

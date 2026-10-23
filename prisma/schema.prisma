@@ -134,6 +134,7 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  passwordResetTokens PasswordResetToken[]
   sentMessages     Message[]      @relation("SentMessages")
   receivedMessages Message[]      @relation("ReceivedMessages")
   notifications    Notification[]
@@ -640,3 +641,24 @@ model QuestionAsset {
 
 
 
+
+
+// UX-03: schema migration file only; never apply to a shared or Production DB.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model PasswordResetRate {
+  key         String   @id
+  attempts    Int      @default(0)
+  windowStart DateTime
+  updatedAt   DateTime @updatedAt
+}
