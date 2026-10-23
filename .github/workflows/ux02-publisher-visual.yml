@@ -1,4 +1,4 @@
-name: UX-02 Publisher Visual Acceptance
+name: UX-02 Integration Preview Contract
 on:
   push:
     branches:
@@ -32,8 +32,8 @@ jobs:
           for n in $(seq 1 40); do if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi; sleep 1; done
           cat /tmp/ux02-vite.log
           exit 1
-      - name: Browser acceptance & screenshots at 1440 / 768 / 360
-        run: node scripts/ux02-browser-acceptance.mjs
+      - name: Single UX-01/UX-02 integration screenshot + Preview gallery check
+        run: node scripts/ux02-merge-visual-check.mjs
       - name: Upload UX-02 review screenshots
         if: always()
         uses: actions/upload-artifact@v4

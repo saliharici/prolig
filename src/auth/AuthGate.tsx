@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { AuthState } from './types';
 import { fetchMe, logout } from './api';
 import { LoginScreen } from './LoginScreen';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import DemoApp from '../DemoApp';
 import { PublicLanding } from '../public/PublicLanding';
+import { PublisherDesignPreview } from '../ux/PublisherExperience';
+import { allowUx01DesignPreview } from '../ux/preview-environment';
 import { MembershipApplicationScreen } from '../membership/MembershipApplicationScreen';
 
 export function AuthGate() {
@@ -12,6 +14,7 @@ export function AuthGate() {
   const [showLogin, setShowLogin] = useState(false);
   const [showApplication, setShowApplication] = useState(false);
   const [showPublicPreview, setShowPublicPreview] = useState(false);
+  const [showDesignPreview, setShowDesignPreview] = useState(() => allowUx01DesignPreview() && new URLSearchParams(window.location.search).get('ux01') === 'preview');
 
   const checkSession = async () => {
     setAuthState({ status: 'loading' });
@@ -52,6 +55,8 @@ export function AuthGate() {
     checkSession();
   }, []);
 
+  if (showDesignPreview && allowUx01DesignPreview()) return <PublisherDesignPreview onBack={() => setShowDesignPreview(false)} />;
+
   if (authState.status === 'loading') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#4f46e5' }}>
@@ -62,17 +67,14 @@ export function AuthGate() {
   }
 
   if (authState.status === 'error') {
-    // UX-02: a session service failure must not hide the public publishing
-    // website. This NEVER authenticates users or changes server authorization.
-    if (showApplication) {
-      return <MembershipApplicationScreen onBack={() => setShowApplication(false)} />;
-    }
-    if (showLogin) {
-      return <LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }} onCancel={() => setShowLogin(false)} />;
-    }
+    // Unavailable session checks must never grant authenticated application access.
+    // The public landing and read-only design gallery remain reachable.
+    if (showApplication) return <MembershipApplicationScreen onBack={() => setShowApplication(false)} />;
+    if (showLogin) return <LoginScreen onLoginSuccess={() => { setShowLogin(false); void checkSession(); }} onCancel={() => setShowLogin(false)} />;
     return <PublicLanding
       onLoginClick={() => setShowLogin(true)}
       onApplyClick={() => setShowApplication(true)}
+      onDesignPreviewClick={() => setShowDesignPreview(true)}
       serviceNotice="Kurumsal site görüntülenebilir; çalışan oturumu henüz doğrulanamadı."
       onRetryConnection={checkSession}
     />;
@@ -85,7 +87,7 @@ export function AuthGate() {
     if (showLogin) {
       return <LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }} onCancel={() => setShowLogin(false)} />;
     }
-    return <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />;
+    return <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} onDesignPreviewClick={() => setShowDesignPreview(true)} />;
   }
 
   // Authenticated
@@ -95,6 +97,7 @@ export function AuthGate() {
         authenticated
         onLoginClick={() => setShowPublicPreview(false)}
         onApplyClick={() => setShowPublicPreview(false)}
+        onDesignPreviewClick={() => setShowDesignPreview(true)}
       />
     );
   }

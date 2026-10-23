@@ -1,7 +1,7 @@
 # UX-02 · PRO-LIG Kurumsal Yayınevi ve Çalışan Girişi
 
-**Karar:** Issue #95. **Base:** `5f59de6722f660157e540ca9485ae3d267405e14`. **Branch:** `feat/ux02-corporate-publisher-login-20261022`.
-**UX-01:** Taslak PR #94'ten kod alınmadı; bağımsız dal.
+**Karar:** Issue #95. **Base (güncel main):** `2f95d0bf3d68ea9bce3da4fe017d644bbe0ba88c`. **Branch:** `feat/ux02-corporate-publisher-login-20261022`.
+**UX-01:** Birleşmiş #94 kazanımları kontrollü merge ile taşındı: gerçek rol karşılama ve yetki filtreli kısayollar, Preview'a sınırlı tasarım galerisi, parola göster/gizle, P3 TS18047 null guard. #96 hâlâ Draft; Production onayı değildir.
 
 ## Korunan sınırlar
 - Değişiklikler yalnız kurumsal yayım yüzeyi, çalışan giriş görünümü ve hata halinde AuthGate'in kamuya açık gezinimi üzerindedir.
@@ -28,3 +28,10 @@
 - Kahraman görseli "KURUMSAL GRAFİK" etiketi ve iç açıklamasıyla motif oldu; kapak iddiası yok.
 - `src/auth/api.ts`, server `api/v1/auth/*` ve yetki matrisi değiştirilmedi.
 - Genel CI baştan `main` 5f59de6 üzerinde aynı P3 TypeScript üç uyarısıyla zaten FAIL (GitHub 39688082974). Ayrı P3/CI sahipliği; UX-02'ye taşınmadı.
+
+## 23.10.2026 — Main 2f95d0b entegrasyonu / PR #96
+- `main` UI/rol kazanımları korunurken UX-02 yayınevi vitrini ve çalışan giriş görünümü birincil kalır.
+- `Panel Tasarımları` yalnız Preview/yerel önizleme hostname'inde gösterilir; `?ux01=preview` doğrudan erişim de aynı koşulla sınırlandırılır.
+- P3 özel PNG altyapısı açılmadı; `GuidedQuestionStudio.tsx` null daraltma guard'ı yalnız mevcut `main` içeriğinden taşındı.
+- Daha önceki 39/39 UX-02 görsel UAT ve anonim `GET /api/v1/auth/me` 401 PASS yeniden çalıştırılmaz; yeni entegrasyon için hedefli kontrat ve tek görsel ekran kontrolü yeterlidir.
+- Gerçek `login 200` ve oturumlu `GET /api/v1/auth/me 200` hâlâ doğrulanmadı; sentetik QA hesabı güvenlik reddini dolanarak etkinleştirilmeyecek.

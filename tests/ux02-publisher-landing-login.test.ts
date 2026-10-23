@@ -15,7 +15,8 @@ describe('UX-02 · publisher homepage and employee login', () => {
    expect(landing).toContain('PRO-LİG YAYINEVİ');
    expect(landing).not.toContain('SchoolFlow');
    expect(landing).not.toContain('Süper Admin');
-   expect(landing).not.toContain('Panel Tasarımları');
+   expect(landing).toContain('Panel Tasarımları');
+   expect(landing).toContain('showDesignPreviewLink &&');
  });
  it('does not fabricate a catalog, title, ISBN, or verified address', () => {
    expect(landing).toContain('Doğrulanmış kitap ve katalog bilgileri eklendikçe');
@@ -42,7 +43,9 @@ describe('UX-02 · publisher homepage and employee login', () => {
    expect(gate).toContain("setAuthState({ status: 'authenticated', user });");
    expect(gate).toContain('currentUser={authState.user}');
    expect(gate).not.toContain("setAuthState({ status: 'authenticated', user: ");
-   expect(gate).not.toContain('PublisherDesignPreview');
+   expect(gate).toContain('PublisherDesignPreview');
+   expect(gate).toContain('allowUx01DesignPreview()');
+   expect(gate).toContain('currentUser={authState.user}');
  });
  it('keeps real employee login endpoint, errors, password toggle and focus semantics', () => {
    expect(login).toContain("import { login } from './api'");
@@ -71,5 +74,17 @@ describe('UX-02 · publisher homepage and employee login', () => {
    expect(landing).toContain("label: 'Bizimle Çalışın'");
    expect(landing).toContain('KURUMSAL GRAFİK');
    expect(landing).not.toContain('YAYIN KÜLTÜRÜ');
+ });
+});
+
+describe('UX-01 integration into UX-02 Preview', () => {
+ it('keeps panel gallery constrained to Preview/localhost, not the production hostname', async () => {
+   const { isUx01PreviewHostname } = await import('../src/ux/preview-environment');
+   expect(isUx01PreviewHostname('prolig-k5j95ycwb-salih22.vercel.app')).toBe(true);
+   expect(isUx01PreviewHostname('prolig-git-feat-ux02-corporate-publisher-login-20261022-salih22.vercel.app')).toBe(true);
+   expect(isUx01PreviewHostname('127.0.0.1')).toBe(true);
+   expect(isUx01PreviewHostname('prolig.vercel.app')).toBe(false);
+   expect(isUx01PreviewHostname('www.prolig.com')).toBe(false);
+   expect(isUx01PreviewHostname('attacker-salih22.vercel.app.evil.com')).toBe(false);
  });
 });

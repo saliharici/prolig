@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { allowUx01DesignPreview } from '../ux/preview-environment';
 import { ArrowDownRight, ArrowRight, BookOpen, Check, ChevronRight, Menu, ShieldCheck, X } from 'lucide-react';
 import './public-enterprise-v1.css';
 import './publisher-ux02.css';
@@ -7,6 +8,7 @@ import './publisher-ux02.css';
 export interface PublicLandingProps {
   onLoginClick: () => void;
   onApplyClick: () => void;
+  onDesignPreviewClick?: () => void;
   authenticated?: boolean;
   serviceNotice?: string;
   onRetryConnection?: () => void;
@@ -22,11 +24,13 @@ const navItems = [
 export function PublicLanding({
   onLoginClick,
   onApplyClick,
+  onDesignPreviewClick,
   authenticated = false,
   serviceNotice,
   onRetryConnection
 }: PublicLandingProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const showDesignPreviewLink = Boolean(onDesignPreviewClick) && allowUx01DesignPreview();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!menuOpen) return;
@@ -57,6 +61,7 @@ export function PublicLanding({
           </nav>
           <div className="ux02-header-actions">
             {!authenticated && <button type="button" className="ux02-link-action" onClick={openApplication}>Yazar ve Editör Başvurusu</button>}
+             {showDesignPreviewLink && <button type="button" className="ux02-link-action ux02-preview-action" onClick={() => onDesignPreviewClick?.()}>Panel Tasarımları</button>}
             <button type="button" className="ux02-button ux02-button-primary ux02-header-login" onClick={openLogin}>
               {authenticated ? 'Çalışma Alanına Dön' : 'Çalışan Girişi'} <ArrowRight size={16} aria-hidden="true"/>
             </button>
@@ -72,6 +77,7 @@ export function PublicLanding({
           aria-label="Mobil kurumsal sayfa" inert={!menuOpen}>
           {navItems.map(item => <a key={item.href} href={item.href} onClick={closeMenu}>{item.label}<ChevronRight size={17} aria-hidden="true"/></a>)}
           {!authenticated && <button type="button" onClick={openApplication}>Yazar ve Editör Başvurusu <ArrowRight size={17}/></button>}
+           {showDesignPreviewLink && <button type="button" onClick={() => { closeMenu(); onDesignPreviewClick?.(); }}>Panel Tasarımları <ArrowRight size={17}/></button>}
           <button type="button" className="ux02-mobile-login" onClick={openLogin}>{authenticated ? 'Çalışma Alanına Dön' : 'Çalışan Girişi'} <ArrowRight size={17}/></button>
         </nav>
       </header>

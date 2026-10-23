@@ -132,7 +132,7 @@ describe('P3-AA private PNG studio listing', () => {
     expect(studio).toContain('privateStemImage?.questionId === privateGeometryQuestionId');
     expect(studio).toContain('renderAssets={renderPreviewAssets}');
     expect(studio).toContain('onPreviewChange={image =>');
-    expect(docx).toContain('body.push(privatePngWordDrawing(image, drawings.nextId++))');
+    expect(docx).toContain('questionParts.push(privatePngWordDrawing(image, drawings.nextId++))');
     // Private credentials and storage object keys never cross to the React view.
     expect(studio).not.toContain('AWS_SECRET_ACCESS_KEY');
     expect(studio).not.toContain('objectKey');

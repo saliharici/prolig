@@ -19,8 +19,10 @@ describe('Corporate workspace Phase 3A', () => {
   });
 
   it('offers a role-appropriate and non-dead overview action', () => {
-    expect(app).toContain('workspace-overview-actions');
-    expect(app).toContain("currentUser.role === 'YAZAR' || currentUser.role === 'EDITOR' ? 'questions' : 'projects'");
+    const roleExperience = readFileSync(new URL('../src/ux/PublisherExperience.tsx', import.meta.url), 'utf8');
+    expect(app).toContain('<PublisherRoleWelcome role={currentUser.role}');
+    expect(roleExperience).toContain('permittedExperienceLinks(role,allowed)');
+    expect(roleExperience).toContain('onNavigate(link.section)');
     expect(app).toContain("allowed.includes('roles') ? 'roles' : 'questions'");
   });
 
