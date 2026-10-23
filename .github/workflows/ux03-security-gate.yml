@@ -1,0 +1,28 @@
+name: UX-03 Scoped Security Gate
+on:
+  push:
+    branches:
+      - 'feat/ux03-secure-recovery-preview-*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scoped:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Generate type-safe Prisma client (no DB access)
+        run: npx prisma generate
+      - name: UX-03 security contracts only
+        run: npx vitest run tests/ux03-password-recovery.test.ts
+      - name: Lint changed UI and API type graphs
+        run: npm run lint:ui && npm run lint:api
+      - name: Build frontend (no DB access)
+        run: npm run build
