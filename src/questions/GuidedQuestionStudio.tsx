@@ -71,7 +71,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   // Never store a data URL or S3 key in the question payload or public media.
   const renderPreviewAssets = (placement: QuestionAssetPlacement) => <>
     {renderAssets(placement)}
-    {placement === 'STEM' && privateStemImage?.questionId === privateGeometryQuestionId &&
+    {placement === 'STEM' && privateStemImage !== null && privateStemImage?.questionId === privateGeometryQuestionId &&
       <figure className="p3-private-stem-preview" aria-label="Soru köküne bağlı özel PNG">
         <img
           src={privateStemImage.image.dataUrl}
@@ -130,7 +130,7 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   return <section className="p2-guided p3-studio-shell" aria-label="Beş aşamalı soru hazırlama" inert={disabled}>
     <header className="p3-studio-identity"><div><span className="p3-studio-eyebrow">PRO-LIG / YAZAR ÇALIŞMA ALANI</span><h2>Profesyonel Soru Stüdyosu</h2><p>Soru bilgilerini tamamlayın, içeriği hazırlayın ve editör incelemesine hazır hâle getirin.</p></div><span className="p3-studio-status" role="status">{editing ? "Soruyu düzenliyorsunuz" : "Yeni soru taslağı"}</span></header>
     <nav aria-label="Soru hazırlama aşamaları" className="p2-steps">{steps.map((label, i) => <button type="button" key={label} aria-current={step === i + 1 ? 'step' : undefined} onClick={() => onStepChange(i + 1)}><span>{i + 1}</span><strong>{label}</strong><small>{issues.some(x => x.step === i + 1) ? 'Eksik alan' : i < 4 ? 'Hazır' : 'Kontrol et'}</small></button>)}</nav>
-    {privateGeometryEnabled && editing && privateGeometryQuestionId && <div className="p3-attached-image-summary" role="status" aria-live="polite">
+    {editing && privateGeometryQuestionId && privateGeometryEnabled && <div className="p3-attached-image-summary" role="status" aria-live="polite">
       <div>
         <strong>{privateGeometryCheckFailed
           ? 'Özel çizimler doğrulanamadı'

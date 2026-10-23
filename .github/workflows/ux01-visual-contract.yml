@@ -1,0 +1,26 @@
+name: UX-01 Visual Contract
+on:
+  push:
+    branches:
+      - 'feat/ux01-publisher-experience-*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ux01-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Ensure native TypeScript 7 Linux compiler is installed
+        run: npm install --no-save --package-lock=false --no-audit --no-fund @typescript/typescript-linux-x64@7.0.2
+      - name: Typecheck application UI
+        run: npm run lint:ui
+      - name: UX-01 focused contract tests
+        run: npx vitest run tests/ux01-visual-contract.test.ts

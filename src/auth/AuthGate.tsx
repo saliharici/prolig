@@ -5,6 +5,7 @@ import { LoginScreen } from './LoginScreen';
 import { Loader2, AlertCircle } from 'lucide-react';
 import DemoApp from '../DemoApp';
 import { PublicLanding } from '../public/PublicLanding';
+import { PublisherDesignPreview } from '../ux/PublisherExperience';
 import { MembershipApplicationScreen } from '../membership/MembershipApplicationScreen';
 
 export function AuthGate() {
@@ -12,6 +13,7 @@ export function AuthGate() {
   const [showLogin, setShowLogin] = useState(false);
   const [showApplication, setShowApplication] = useState(false);
   const [showPublicPreview, setShowPublicPreview] = useState(false);
+  const [showDesignPreview, setShowDesignPreview] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ux01') === 'preview');
 
   const checkSession = async () => {
     setAuthState({ status: 'loading' });
@@ -52,6 +54,8 @@ export function AuthGate() {
     checkSession();
   }, []);
 
+  if (showDesignPreview) return <PublisherDesignPreview onBack={() => setShowDesignPreview(false)} />;
+
   if (authState.status === 'loading') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', color: '#4f46e5' }}>
@@ -62,21 +66,17 @@ export function AuthGate() {
   }
 
   if (authState.status === 'error') {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc' }}>
-        <div style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center', maxWidth: '400px' }}>
-          <AlertCircle size={48} color="#ef4444" style={{ margin: '0 auto 1rem' }} />
-          <h2 style={{ fontSize: '1.25rem', color: '#1e293b', marginBottom: '0.5rem' }}>Bağlantı Hatası</h2>
-          <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>{authState.message}</p>
-          <button 
-            onClick={checkSession}
-            style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}
-          >
-            Tekrar Dene
-          </button>
-        </div>
-      </div>
-    );
+    // Unavailable session checks must never grant authenticated application access.
+    // The public landing and read-only design gallery remain reachable.
+    if (showApplication) return <MembershipApplicationScreen onBack={() => setShowApplication(false)} />;
+    if (showLogin) return <LoginScreen onLoginSuccess={() => { setShowLogin(false); void checkSession(); }} onCancel={() => setShowLogin(false)} />;
+    return <PublicLanding
+      onLoginClick={() => setShowLogin(true)}
+      onApplyClick={() => setShowApplication(true)}
+      onDesignPreviewClick={() => setShowDesignPreview(true)}
+      serviceNotice="Oturum hizmeti şu an doğrulanamadı. Kurumsal sayfa ve temsili panel tasarımları görüntülenebilir; gerçek kullanıcı oturumu doğrulanmış değildir."
+      onRetryConnection={() => { void checkSession(); }}
+    />;
   }
 
   if (authState.status === 'unauthenticated') {
@@ -86,7 +86,7 @@ export function AuthGate() {
     if (showLogin) {
       return <LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }} onCancel={() => setShowLogin(false)} />;
     }
-    return <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} />;
+    return <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} onDesignPreviewClick={() => setShowDesignPreview(true)} />;
   }
 
   // Authenticated
@@ -96,6 +96,7 @@ export function AuthGate() {
         authenticated
         onLoginClick={() => setShowPublicPreview(false)}
         onApplyClick={() => setShowPublicPreview(false)}
+        onDesignPreviewClick={() => setShowDesignPreview(true)}
       />
     );
   }

@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BookOpen, Layers3, ShieldCheck } from 'lucide-react';
 import './public-enterprise-v1.css';
 
 /**
@@ -39,10 +39,16 @@ const stages = [
 export function PublicLanding({
   onLoginClick,
   onApplyClick,
+  onDesignPreviewClick,
+  serviceNotice,
+  onRetryConnection,
   authenticated = false
 }: {
   onLoginClick: () => void;
   onApplyClick: () => void;
+  onDesignPreviewClick: () => void;
+  serviceNotice?: string;
+  onRetryConnection?: () => void;
   authenticated?: boolean;
 }) {
   return (
@@ -62,6 +68,7 @@ export function PublicLanding({
             <a href="#yayin-projesi">Yayın Akışı</a>
           </nav>
           <div className="public-header-actions">
+            <button type="button" className="public-ghost-button ux01-preview-link" onClick={onDesignPreviewClick}>Panel Tasarımları</button>
             {!authenticated && <button className="public-ghost-button" onClick={onApplyClick}>Üyelik Başvurusu</button>}
             <button className="public-primary-button compact" onClick={onLoginClick}>
               {authenticated ? 'Çalışma Alanına Dön' : 'Giriş Yap'} <ArrowRight size={15} aria-hidden="true" />
@@ -77,6 +84,10 @@ export function PublicLanding({
         <a href="#yayin-projesi">Yayın Akışı</a>
       </nav>
 
+      {serviceNotice && <div className="ux01-connection-note" role="status">
+        <div><strong>Bağlantı durumu</strong><span>{serviceNotice}</span></div>
+        {onRetryConnection && <button type="button" onClick={onRetryConnection}>Yeniden dene</button>}
+      </div>}
       <main className="public-main" id="public-content">
         <section className="public-hero public-major-section" id="anasayfa" aria-labelledby="public-hero-heading">
           <div className="public-hero-copy">
@@ -108,6 +119,8 @@ export function PublicLanding({
             <p className="editorial-proof-disclaimer">Temsili ürün görünümü · Gerçek kullanıcı verisi içermez.</p>
           </div>
         </section>
+
+        <section className="ux01-value-strip" aria-label="Platform ilkeleri"><div><Layers3 size={23}/><span><strong>Uçtan uca yayın akışı</strong><small>Fikirden baskı dosyasına ortak çalışma düzeni.</small></span></div><div><BookOpen size={23}/><span><strong>Editoryal kalite</strong><small>Yazım, inceleme ve revizyon aynı bağlamda.</small></span></div><div><ShieldCheck size={23}/><span><strong>Yetki ve izlenebilirlik</strong><small>Her ekibe kendi sorumluluğuna uygun görünüm.</small></span></div></section>
 
         <section className="editorial-case public-major-section" id="projeler" aria-labelledby="editorial-case-title">
           <div className="editorial-case-intro">
