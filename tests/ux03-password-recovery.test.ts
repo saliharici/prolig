@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   GENERAL_RECOVERY_NOTICE, TOKEN_LIFETIME_MS,
   canConsumeToken, hashSecret, isActiveAccount, isTokenShape, isValidPassword,
-  newResetToken, previewOrigin, recoveryLink, requestFromTrustedOrigin
+  newResetToken, previewOrigin, recoveryLink, requestFromTrustedOrigin, requestRateKeys
 } from '../api/v1/_lib/password-recovery';
 import { hasCurrentSessionVersion } from '../api/v1/_lib/auth';
 
@@ -68,6 +68,21 @@ describe('UX-03 only · guarded account recovery and session contracts', () => {
     expect(requestHandler).toContain("res.status(202).json({ message: GENERAL_RECOVERY_NOTICE })");
     expect(schema).toContain('model PasswordResetToken');
     expect(schema).toContain('model PasswordResetRate');
+  });
+
+  it('throttles a destination across multiple networks without exposing e-mail in rate keys', () => {
+    const first = { headers: { 'x-vercel-forwarded-for': '198.51.100.10' } } as never;
+    const second = { headers: { 'x-vercel-forwarded-for': '203.0.113.20' } } as never;
+    const pepper = 'TEST_ONLY_ux03_rate_key_pepper_DO_NOT_DEPLOY';
+    const a = requestRateKeys(first, 'TEST@EXAMPLE.ORG', pepper);
+    const b = requestRateKeys(second, 'test@example.org', pepper);
+    expect(a).toHaveLength(3);
+    expect(a[0]).not.toBe(b[0]);
+    expect(a[1]).not.toBe(b[1]);
+    expect(a[2]).toBe(b[2]);
+    expect(a[2]).not.toContain('test@example.org');
+    expect(requestHandler).toContain('await charge(emailKey, 5, now)');
+    expect(requestHandler).toContain('!permittedIp || !permittedPair || !permittedEmail');
   });
 
   it('revokes old JWTs centrally while leaving role authorization unchanged', () => {

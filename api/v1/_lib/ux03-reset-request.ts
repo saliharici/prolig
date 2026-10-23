@@ -37,11 +37,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const now = new Date();
 
   try {
-    const [ipKey, pairKey] = requestRateKeys(req, normalized, config.secret);
-    // Independent network and address limits also apply to nonexistent accounts.
+    const [ipKey, pairKey, emailKey] = requestRateKeys(req, normalized, config.secret);
+    // Three independent limits apply even if an address does not exist.
+    // Destination-only throttling closes distributed abuse across many networks.
     const permittedIp = await charge(ipKey, 30, now);
     const permittedPair = await charge(pairKey, 5, now);
-    if (!permittedIp || !permittedPair) return res.status(429).json({ error: 'Çok fazla istek. Daha sonra deneyin.' });
+    const permittedEmail = await charge(emailKey, 5, now);
+    if (!permittedIp || !permittedPair || !permittedEmail) return res.status(429).json({ error: 'Çok fazla istek. Daha sonra deneyin.' });
 
     const user = await prisma.user.findUnique({
       where: { email: normalized },

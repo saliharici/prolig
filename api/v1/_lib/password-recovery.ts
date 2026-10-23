@@ -62,11 +62,17 @@ export function recoveryLink(origin: string, token: string): string {
   return origin + '/#ux03-reset=' + token;
 }
 
-// Rate-limit per source as well as per e-mail/source pair, regardless of user existence.
+// Rate-limit by network, network+destination and destination independently,
+// including nonexistent accounts. Rate keys remain opaque HMAC digests.
 // Never trust a client-controlled X-Forwarded-For header.
-export function requestRateKeys(req: VercelRequest, email: string, pepper: string): string[] {
+export function requestRateKeys(req: VercelRequest, email: string, pepper: string): [string, string, string] {
   const ip = String(req.headers['x-vercel-forwarded-for'] || req.socket?.remoteAddress || 'unknown').slice(0, 120);
-  return [hashSecret('ip:' + ip, pepper), hashSecret('pair:' + ip + ':' + email, pepper)];
+  const destination = email.trim().toLowerCase();
+  return [
+    hashSecret('ip:' + ip, pepper),
+    hashSecret('pair:' + ip + ':' + destination, pepper),
+    hashSecret('email:' + destination, pepper)
+  ];
 }
 
 export async function sendResetEmail(input: {
