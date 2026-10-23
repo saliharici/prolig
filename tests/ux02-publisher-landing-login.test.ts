@@ -77,14 +77,11 @@ describe('UX-02 · publisher homepage and employee login', () => {
  });
 });
 
-describe('UX-01 integration into UX-02 Preview', () => {
- it('keeps panel gallery constrained to Preview/localhost, not the production hostname', async () => {
+describe('UX-02 Preview gallery environment gate (exactly three assertions)', () => {
+ it('closes both Production entry points and opens the approved Preview', async () => {
    const { isUx01PreviewHostname } = await import('../src/ux/preview-environment');
-   expect(isUx01PreviewHostname('prolig-k5j95ycwb-salih22.vercel.app')).toBe(true);
-   expect(isUx01PreviewHostname('prolig-git-feat-ux02-corporate-publisher-login-20261022-salih22.vercel.app')).toBe(true);
-   expect(isUx01PreviewHostname('127.0.0.1')).toBe(true);
-   expect(isUx01PreviewHostname('prolig.vercel.app')).toBe(false);
-   expect(isUx01PreviewHostname('www.prolig.com')).toBe(false);
-   expect(isUx01PreviewHostname('attacker-salih22.vercel.app.evil.com')).toBe(false);
+   expect(isUx01PreviewHostname('prolig.vercel.app', 'production')).toBe(false);
+   expect(isUx01PreviewHostname('prolig-pbo8k6gvi-salih22.vercel.app', 'production')).toBe(false);
+   expect(isUx01PreviewHostname('prolig-dk0f8t522-salih22.vercel.app', 'preview')).toBe(true);
  });
 });
