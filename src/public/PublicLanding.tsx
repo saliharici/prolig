@@ -161,10 +161,31 @@ export function PublicLanding({
           {!authenticated && <button type="button" className="ux02-button ux02-button-cream" onClick={openApplication}>Yazar ve Editör Başvurusu <ArrowRight size={17} aria-hidden="true"/></button>}
         </section>
       </main>
-      <footer className="ux02-footer">
-        <div className="ux02-footer-inner">
-          <a href="#anasayfa" className="ux02-footer-logo"><img src="/brand/prolig-logo-primary.png" alt="PRO-LİG" /><span>YAYINEVİ</span></a>
-          <p>© {new Date().getFullYear()} PRO-LİG Yayınevi. Tüm hakları saklıdır.</p>
+      <footer className="ux02-footer" aria-label="PRO-LİG kurumsal alt bilgi">
+        <div className="ux02-footer-top">
+          <div className="ux02-footer-identity">
+            <a href="#anasayfa" className="ux02-footer-logo" aria-label="PRO-LİG Yayınevi, sayfanın başı">
+              <img src="/brand/prolig-logo-primary.png" alt="PRO-LİG" /><span>YAYINEVİ</span>
+            </a>
+            <p>Eğitim yayınlarını içerik kalitesi ve editoryal özenle hazırlıyoruz.</p>
+          </div>
+          <nav className="ux02-footer-nav" aria-label="Kurumsal alt menü">
+            {navItems.map(item => <a key={item.href} href={item.href}>{item.label}</a>)}
+          </nav>
+          <div className="ux02-footer-quick-actions">
+            <span>PRO-LİG ÇALIŞMA ALANI</span>
+            <button type="button" onClick={openLogin}>
+              {authenticated ? 'Çalışma Alanına Dön' : 'Çalışan Girişi'}
+              <ArrowRight size={16} aria-hidden="true"/>
+            </button>
+            {!authenticated && <button type="button" className="ux02-footer-apply" onClick={openApplication}>
+              Yazar ve Editör Başvurusu
+              <ArrowRight size={16} aria-hidden="true"/>
+            </button>}
+          </div>
+        </div>
+        <div className="ux02-footer-bottom">
+          <span>© {new Date().getFullYear()} PRO-LİG Yayınevi. Tüm hakları saklıdır.</span>
           <a href="#anasayfa">Başa dön <ArrowRight size={15} aria-hidden="true"/></a>
         </div>
       </footer>
