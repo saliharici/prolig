@@ -75,13 +75,13 @@ describe('UX-03 only · guarded account recovery and session contracts', () => {
     try {
       process.env.UX03_RECOVERY_ENABLED = 'true';
       process.env.VERCEL_ENV = 'preview';
-      const updatedAt = new Date('2026-10-24T11:00:00.000Z');
-      expect(hasCurrentSessionVersion({ userId: 1, version: null }, updatedAt)).toBe(false);
-      expect(hasCurrentSessionVersion({ userId: 1, version: updatedAt.getTime() - 1 }, updatedAt)).toBe(false);
-      expect(hasCurrentSessionVersion({ userId: 1, version: updatedAt.getTime() }, updatedAt)).toBe(true);
-      expect(source('api/v1/_lib/current-user.ts')).toContain('hasCurrentSessionVersion(claims, user.updatedAt)');
-      expect(source('api/v1/auth/me.ts')).toContain('hasCurrentSessionVersion(claims, user.updatedAt)');
-      expect(completeHandler).toContain('updatedAt: nextTimestamp');
+      const authVersion = 2;
+      expect(hasCurrentSessionVersion({ userId: 1, version: null }, authVersion)).toBe(false);
+      expect(hasCurrentSessionVersion({ userId: 1, version: authVersion - 1 }, authVersion)).toBe(false);
+      expect(hasCurrentSessionVersion({ userId: 1, version: authVersion }, authVersion)).toBe(true);
+      expect(source('api/v1/_lib/current-user.ts')).toContain('hasCurrentSessionVersion(claims, user.authVersion)');
+      expect(source('api/v1/auth/me.ts')).toContain('hasCurrentSessionVersion(claims, user.authVersion)');
+      expect(completeHandler).toContain('authVersion: { increment: 1 }');
       expect(completeHandler).toContain("action: 'PASSWORD_RESET_COMPLETED'");
       expect(source('api/v1/management.ts')).toContain("if (!coordinatorRoles.has(user.role.code)) return res.status(403)");
       expect(source('vercel.json')).toContain('"/api/v1/users"');
