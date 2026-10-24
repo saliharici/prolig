@@ -1,3 +1,21 @@
+# ADR-006A — SCHOOLFLOW ÜST PLATFORMU / PRO-LIG İLK YAYINEVİ (25.10.2026 DÜZELTMESİ)
+
+**Kullanıcının doğrudan marka sahipliği düzeltmesi ve mevcut [Issue #95](https://github.com/saliharici/prolig/issues/95) esas alınır.** Bu bölüm, ADR-006'nın aşağıdaki **"PRO-LIG Süper Admin" adlandırmasını marka yönünden GEÇERSİZ KILAR**; teknik tenant/kimlik/veri izolasyonu önerilerini ise uygun sınırlarla korur.
+
+**SAHİP/ÜRÜN MARKASI:** **SchoolFlow** — geliştiricinin bağımsız platformu ve ayrı **Super Admin (control plane)** kimliği. Super Admin firma oluşturma, lisans, logo/tema/domain, erişim ve platform metaverisini yönetir; PRO-LIG içindeki `GENEL_KOORDINATOR` veya diğer yayıncılık rolü değildir.
+
+**FİRMA / İLK MÜŞTERİ:** **PRO-LIG** — geliştiriciye ait olmayan yayınevi, kendi markasıyla `https://prolig.vercel.app/` üzerinden yayıncılık ekranlarını kullanır. PRO-LIG yazılım platformunun ticari sahip markası olarak anlatılmaz. Platform sahibi/kodun sahibi olmak, yayınevi markasına sahip olmak anlamına gelmez. Firma logosu, ad ve alan adı kullanımı ilgili yetkiye tabidir.
+
+**ÜRÜN AYRIMI:** **ZirveNefesi** başka ve bağımsız bir uygulamadır; PRO-LIG/SchoolFlow tenant tasarımına veya koduna karıştırılmaz. `saliharici/prolig` mevcut yayınevi çalışma alanının deposudur; SchoolFlow platformu ayrı bir kimlik ve dağıtım katmanı olarak ele alınır, geliştirilen mevcut soru/kitap/telif yetenekleri çöpe atılmaz.
+
+**ŞİMDİ:** SchoolFlow platform kimliği ve ilk PRO-LIG tenant konfigürasyonu için **tasarım/izole TEST**; tek müşteri Free pilotu, gerçek rol hesapları, rol dönüşümü `IL_KOORDINATORU`→`BRANS_KOORDINATORU` (**bölge ∩ branş**). Ücretli altyapı ve tam otomatik multi-tenant provisioning firma kabulü sonrasına planlanır. **Tenant izolasyonu henüz uygulanmadı; SchoolFlow Super Admin canlı değil.** Tek DB'ye birden fazla firmanın izolesiz verisi yüklenmez.
+
+**GÜVENLİK:** Super Admin kurumsal içerik/telif erişimine varsayılan sahip değildir; firma içi yetkilere gizli geçiş yok. Firma panelinden SchoolFlow platform yönetimine yetki yükseltilmez. Bu belge değişikliği Production DB, env, release, kullanıcı oluşturma veya branding yayını izni değildir.
+
+---
+
+## ADR-006 (24.10.2026) — Önceki teknik ön taslak (adlandırma yukarıdaki karara tabidir)
+
 # ADR-006 (ÖNERİ) — PRO-LIG Süper Admin ve çok yayınevi mimarisi
 **Tarih:** 24.10.2026 | **Sahip:** 03 MİMARİ | **Durum:** ÖNERİ / Production için karar veya izin değil
 **Referans kaynak:** `prisma/schema.prisma` (main `26548720`), `docs/CANONICAL_ARCHITECTURE.md`, `docs/PRODUCT_INVENTORY_AND_RELEASE_ROADMAP_20261018.md`.
