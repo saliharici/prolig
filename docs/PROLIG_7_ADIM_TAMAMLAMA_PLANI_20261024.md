@@ -55,6 +55,8 @@
 **Sahip:** 01 TEST; kabul matrisi 03 MİMARİ; yayın 02 CANLI.  
 **Durum:** **KISMİ KABUL; tam senaryo kanıtı BİLİNMİYOR**.
 
+**Tek uygulama iş emri:** [ACCEPT-01 #111 — yayın–kitap–telif tek geçişlik TEST kabulü](https://github.com/saliharici/prolig/issues/111). Önceki PASS'ler korunur.
+
 **Tek yeni örnek senaryo:** İzole TEST'te sentetik yayınevi projelendirmesi → yazar rolüyle soru/taslak → editöre gönder → revizyon → yazar düzeltme/yeniden gönderme → editör onay (mali etkisi yalnız izole sentetik veride) → bölüm/kitap seçimi → dondurulmuş soru snapshot → Word çıktı/cevap anahtarı. İlgili adım önceden PASS ise yeniden koşulmaz; yalnız eksik bağlantı test edilir.
 
 **Değişmezler:** yabancı yazara erişim 403; ilgili il/branş/rol kapsamı korunur; ret/revizyon telif üretmez; onay iki kez aynı tahakkuku yazmaz; kitap snapshot'ı canlı soru sonradan değişse bile değişmez; soru içeriğindeki kaynak satır sonu otomatik düzeltilmez.
