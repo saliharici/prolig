@@ -7,7 +7,7 @@
 > Kanıt hiyerarşisi: GitHub kod/PR/SHA → ilgili Vercel deployment ve doğru Neon kimliği → tarihli ortak durum → sohbet geçmişi. `PASS (operatör)`, `PASS (araç)`, `READY` ve `PLAN` asla eşit değildir. Bu belge canlı ortamda değişiklik yapma yetkisi vermez.
 
 ## Production GO-0 kanıt ve müdahale planı
-- [**Runtime DB kimliği ve yedek/restore kapıları — 24 Ekim güncel operasyon dosyası**](PROLIG_GO0_PRODUCTION_DB_KIMLIK_RUNBOOK_20261024.md): Vercel erişimi PASS; mevcut deployment ile `prolig.vercel.app` alias eşleşmesi PASS; `DATABASE_URL` Production env metadata'sında **görünmüyor**, `api/v1/_lib/prisma.ts` ise doğrudan bu env'i zorunlu tutuyor. Runtime eski SHA'nın DB bağlantısı **BİLİNMİYOR**. İzole Preview test/doğrulama ve ayrı izinli Production env/deploy/backup planı, geri dönüş değişmezi.
+- [**Runtime DB kimliği ve yedek/restore kapıları — 24 Ekim güncel operasyon dosyası**](PROLIG_GO0_PRODUCTION_DB_KIMLIK_RUNBOOK_20261024.md): Vercel erişimi PASS; mevcut deployment ile `prolig.vercel.app` alias eşleşmesi PASS; `DATABASE_URL` ve `AUTH_SECRET` Production env metadata'sında **VAR** (96 kayıt tam filtrelendi; önceki yok ifadesi yanlıştı). Gerçek sensitive değerler maskeli ve mevcut runtime eski SHA'nın DB bağlantısı **BİLİNMİYOR**. İzole Preview test/doğrulama ve ayrı izinli Production env/deploy/backup planı, geri dönüş değişmezi.
 
 ## Bu plana bağlı uygulama sözleşmeleri
 - [**Tek geçişlik yazar–editör–kitap ve telif kabul matrisi**](PROLIG_TEK_GECIS_YAYIN_FINANS_KABUL_20261024.md): kanonik API durum geçişleri, hangi önceki PASS'ın korunacağı, yalnız eksik E2E bağlantısı ve PostgreSQL çoklu bağlantı finans güvenliği.
