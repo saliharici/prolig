@@ -6,6 +6,21 @@
 
 > **Güvenlik kilidi:** Bu belge Production migration, env yazımı, backup/restore, deploy, merge veya veri silme yetkisi vermez. Kullanıcının genel yetki açıklaması bu işlemlerin hedef/etki/rollback içeren ayrı açık onayı yerine geçmez. Önceki [ADR-005](https://github.com/saliharici/prolig/issues/105) ve [#107 TEST kullanıcı PASS](https://github.com/saliharici/prolig/issues/107) değişmez; test tekrar edilmez.
 
+## 0. 25 Ekim 2026 CANLI RELEASE — güncel kanıt (eski tanı bölümünün yerine geçer)
+
+**ÖNCEKİ TANILAR TARİHSELDİR:** Aşağıda `G0-B = BİLİNMİYOR` diyen metinler 24 Ekim pre-release araştırmasının durumunu anlatır. 25 Ekim itibarıyla **yeni SHA için gerçek runtime kanıtı PASS**.
+
+- Kullanıcı onaylı `PROLIG_GO0_DB_ATTESTATION=1` Production var (Vercel env metadata, sensitive anahtarlar korunmuş).
+- TEST [PR #112](https://github.com/saliharici/prolig/pull/112) HEAD `41f77fab` CI 855/855 PASS (GO0 23/23) ve Preview READY; PR #112 merge edildi, **`main` yeni SHA `643cc3a524cb54c497cda550980fbc78f999be4d`**.
+- Vercel Production yeni `dpl_BWxhBb9PbHiWANZiPHcikzdDXMBc`, `READY`, `prolig.vercel.app` alias atandı.
+- `GET /api/v1/health` canlı HTTP **200**, yanıt **`{"ok":true,"service":"prolig"}`**.
+- Vercel **yeni deployment-scoped Production fonksiyon logunda** `2026-10-24T21:33:57.826Z` (Türkiye 25.10 00:33:57), `PROLIG_GO0_IDENTITY`: `production_runtime=true`, `deployment_identity_present=true`, `endpoint_matches=true`, `database_name_matches=true`, `connected_read_only=true`, **`MATCH=true`**. Kimlik doğrulaması yalnız bellekte yapıldı; URI, parola, SQL satırı açıklanmadı. Ayrıca 21:33:51.768Z üzerinde ikinci başarılı satır var.
+- **KAPSAM:** PASS yalnız yeni `643cc3a5` deployment'ına aittir, eski `26548720` için retroaktif iddia değildir. `DATABASE_URL` / `AUTH_SECRET` değişmedi; DB migration, Neon backup/restore, ek feature toggles uygulanmadı. Eski güvenli dönüş adayı `dpl_B3eqisNTSV7iXXvuf8rvAaGuLwSX` korundu.
+- Vercel function error-level kayıtlarında `pg-connection-string sslmode` ve Node `url.parse` *deprecation warning* satırları var; HTTP 200 + `MATCH=true` bu uyarıları outage kanıtı yapmaz. Teknik borç olarak izlenir.
+- **GO-0 kalan tek güvenlik kabulü:** doğru `prolig-pilot/main/neondb` üzerinde açık işlem onaylı **güncel snapshot** ve snapshot'tan yeni bağımsız **izole restore TEST dalı** kabulü. Neon meta son sayım **9/10 branch**, eski snapshot **11 Ekim**, `snapshot schedule=[]` (otomatik yedek kabulü değil). Production ana dala `restore_snapshot(target_branch_id=main)` **YASAK**; cleanup/silme ayrı izin.
+
+**25 Ekim kapanış durumu:** `G0-A PASS` / `G0-B PASS (yeni Production SHA)` / `G0-C yeni release PASS` / `BACKUP/RESTORE BEKLİYOR` / **Adım 1 bütünü NO-GO**.
+
 ## 1. Salt-okunur tanı — yeni bulgu
 **Vercel takım erişimi kullanıcı tarafından onaylandı; 403 çözülmüş:** `get_deployment`, `filter_project_envs(decrypt=false)`, `list_project_connector_connections`, alias ve hata grupları erişilebilir.
 
