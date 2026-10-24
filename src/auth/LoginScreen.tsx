@@ -7,10 +7,11 @@ import './publisher-access-ux02.css';
 export interface LoginScreenProps {
   onLoginSuccess: () => void;
   onCancel: () => void;
+  onForgotPassword?: () => void;
 }
 
 /** UX-02 visual-only surface; the existing login() endpoint and server RBAC are unchanged. */
-export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
+export function LoginScreen({ onLoginSuccess, onCancel, onForgotPassword }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -87,6 +88,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
             {loading ? 'Giriş yapılıyor...' : <ArrowRight size={18} aria-hidden="true"/>}
           </button>
         </form>
+        {onForgotPassword && <button type="button" className="ux03-forgot-link" onClick={onForgotPassword}>Şifremi unuttum</button>}
         <div className="ux02-login-trust"><ShieldCheck size={17} aria-hidden="true"/><span>Yetkileriniz yalnızca doğrulanmış oturumunuza göre belirlenir.</span></div>
       </section>
     </main>

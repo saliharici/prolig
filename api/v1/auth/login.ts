@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    setSessionCookie(res, user.id);
+    setSessionCookie(res, user.id, user.authVersion);
 
     return res.status(200).json({
       user: {

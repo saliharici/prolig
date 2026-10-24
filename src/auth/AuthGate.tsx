@@ -2,16 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { AuthState } from './types';
 import { fetchMe, logout } from './api';
 import { LoginScreen } from './LoginScreen';
+import { PasswordRecoveryScreen } from './PasswordRecoveryScreen';
 import { Loader2, AlertCircle } from 'lucide-react';
 import DemoApp from '../DemoApp';
 import { PublicLanding } from '../public/PublicLanding';
 import { PublisherDesignPreview } from '../ux/PublisherExperience';
 import { allowUx01DesignPreview } from '../ux/preview-environment';
+
+/** UX-03 is not exposed in Production until verified mail and DB migration are approved. */
+declare const __PROLIG_UX03_PRODUCTION_UI_ENABLED__: boolean;
+const allowUx03Recovery = () => allowUx01DesignPreview() ||
+  (typeof window !== 'undefined' && __PROLIG_UX03_PRODUCTION_UI_ENABLED__ &&
+    window.location.hostname === 'prolig.vercel.app');
 import { MembershipApplicationScreen } from '../membership/MembershipApplicationScreen';
 
 export function AuthGate() {
   const [authState, setAuthState] = useState<AuthState>({ status: 'loading' });
   const [showLogin, setShowLogin] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(() => allowUx03Recovery() && window.location.hash.startsWith('#ux03-reset='));
   const [showApplication, setShowApplication] = useState(false);
   const [showPublicPreview, setShowPublicPreview] = useState(false);
   const [showDesignPreview, setShowDesignPreview] = useState(() => allowUx01DesignPreview() && new URLSearchParams(window.location.search).get('ux01') === 'preview');
@@ -55,6 +63,7 @@ export function AuthGate() {
     checkSession();
   }, []);
 
+  if (showRecovery && allowUx03Recovery()) return <PasswordRecoveryScreen onBack={() => { setShowRecovery(false); setShowLogin(true); }} />;
   if (showDesignPreview && allowUx01DesignPreview()) return <PublisherDesignPreview onBack={() => setShowDesignPreview(false)} />;
 
   if (authState.status === 'loading') {
@@ -70,7 +79,7 @@ export function AuthGate() {
     // Unavailable session checks must never grant authenticated application access.
     // The public landing and read-only design gallery remain reachable.
     if (showApplication) return <MembershipApplicationScreen onBack={() => setShowApplication(false)} />;
-    if (showLogin) return <LoginScreen onLoginSuccess={() => { setShowLogin(false); void checkSession(); }} onCancel={() => setShowLogin(false)} />;
+    if (showLogin) return <LoginScreen onLoginSuccess={() => { setShowLogin(false); void checkSession(); }} onCancel={() => setShowLogin(false)} onForgotPassword={allowUx03Recovery() ? () => setShowRecovery(true) : undefined} />;
     return <PublicLanding
       onLoginClick={() => setShowLogin(true)}
       onApplyClick={() => setShowApplication(true)}
@@ -85,7 +94,7 @@ export function AuthGate() {
       return <MembershipApplicationScreen onBack={() => setShowApplication(false)} />;
     }
     if (showLogin) {
-      return <LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }} onCancel={() => setShowLogin(false)} />;
+      return <LoginScreen onLoginSuccess={() => { setShowLogin(false); checkSession(); }} onCancel={() => setShowLogin(false)} onForgotPassword={allowUx03Recovery() ? () => setShowRecovery(true) : undefined} />;
     }
     return <PublicLanding onLoginClick={() => setShowLogin(true)} onApplyClick={() => setShowApplication(true)} onDesignPreviewClick={() => setShowDesignPreview(true)} />;
   }
