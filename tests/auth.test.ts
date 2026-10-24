@@ -25,7 +25,7 @@ describe('Auth Utilities', () => {
       }
     } as unknown as VercelResponse;
 
-    setSessionCookie(res, 999);
+    setSessionCookie(res, 999, 0);
     
     expect(headers['Set-Cookie']).toBeDefined();
     expect(headers['Set-Cookie']).toContain('prolig_session=');
@@ -56,7 +56,7 @@ describe('Auth Utilities', () => {
       }
     } as unknown as VercelResponse;
 
-    setSessionCookie(res, 42);
+    setSessionCookie(res, 42, 0);
     
     // Simulate Request
     const req = {

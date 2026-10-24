@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma.js';
-import { getSessionUserId, clearSessionCookie } from '../_lib/auth.js';
+import { getSessionUserId, getSessionClaims, hasCurrentSessionVersion, clearSessionCookie } from '../_lib/auth.js';
 
 const immutableProfileFields = new Set([
   'id', 'email', 'username', 'role', 'roleId', 'status',
@@ -95,6 +95,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const userId = getSessionUserId(req);
+    const recoveryActive = process.env.UX03_RECOVERY_ENABLED === 'true' && process.env.VERCEL_ENV === 'preview';
+    const claims = recoveryActive ? getSessionClaims(req) : null;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -105,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       include: meInclude
     });
 
-    if (!user || user.status?.toUpperCase() !== 'AKTIF') {
+    if (!user || user.status?.toUpperCase() !== 'AKTIF' || (recoveryActive && !hasCurrentSessionVersion(claims, user.authVersion))) {
       clearSessionCookie(res);
       return res.status(401).json({ error: 'Unauthorized' });
     }
