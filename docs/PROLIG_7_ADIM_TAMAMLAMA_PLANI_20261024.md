@@ -6,6 +6,13 @@
 
 > Kanıt hiyerarşisi: GitHub kod/PR/SHA → ilgili Vercel deployment ve doğru Neon kimliği → tarihli ortak durum → sohbet geçmişi. `PASS (operatör)`, `PASS (araç)`, `READY` ve `PLAN` asla eşit değildir. Bu belge canlı ortamda değişiklik yapma yetkisi vermez.
 
+## 25 Ekim 2026 güncel operasyon sonucu
+- Kullanıcının ayrı canlı yayın onayıyla [PR #112](https://github.com/saliharici/prolig/pull/112) merge edildi, yeni `main` SHA **`643cc3a524cb54c497cda550980fbc78f999be4d`**.
+- Vercel Production **`dpl_BWxhBb9PbHiWANZiPHcikzdDXMBc` READY**, kanonik `prolig.vercel.app` alias eşleşti; `GET /api/v1/health` **HTTP 200**.
+- Yeni Production deployment-scoped operatör logunda `PROLIG_GO0_IDENTITY` **`MATCH=true`**, direct Neon endpoint / `neondb` / READ ONLY SELECT kanıtı alınmıştır. Bu yalnız **yeni SHA** için PASS, önceki SHA için değildir.
+- **Adım 1 hâlâ tamamlanmadı:** Yalnız güncel Production Neon `prolig-pilot/main` snapshot + **izole yeni restore dalı kabulü** eksik. Bu aşama ayrı açık işlem onayına bağlı; Neon main'e restore veya var olan branch silinmesi yok.
+- Bu belgenin aşağıdaki `0. Başlangıç durumu` bölümünde yer alan `main 26548720` ve `runtime MATCH bilinmiyor` ifadeleri **24 Ekim tarihli tarihsel başlangıç durumudur**, 25 Ekim mevcut durumunu göstermez.
+
 ## Production GO-0 kanıt ve müdahale planı
 - [**Runtime DB kimliği ve yedek/restore kapıları — 24 Ekim güncel operasyon dosyası**](PROLIG_GO0_PRODUCTION_DB_KIMLIK_RUNBOOK_20261024.md): Vercel erişimi PASS; mevcut deployment ile `prolig.vercel.app` alias eşleşmesi PASS; `DATABASE_URL` ve `AUTH_SECRET` Production env metadata'sında **VAR** (96 kayıt tam filtrelendi; önceki yok ifadesi yanlıştı). Gerçek sensitive değerler maskeli ve mevcut runtime eski SHA'nın DB bağlantısı **BİLİNMİYOR**. İzole Preview test/doğrulama ve ayrı izinli Production env/deploy/backup planı, geri dönüş değişmezi.
 
