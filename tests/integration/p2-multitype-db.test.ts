@@ -28,11 +28,12 @@ const reply = (): Reply => {
     json(data: any) { this.data = data; return this; } };
   return r;
 };
+  // Disposable CI DB applies the additive UX03 migration: new users start at authVersion 0.
 let userId = 0;
 let editorId = 0;
 const request = (method: string, body?: unknown, id?: number, query: Record<string, any> = {}, actorId = userId) => ({
   method, body, query: { ...query, ...(id ? { id: String(id) } : {}) },
-  headers: { cookie: serialize('prolig_session', jwt.sign({ sub: String(actorId) }, process.env.AUTH_SECRET!, { algorithm: 'HS256' })) }
+  headers: { cookie: serialize('prolig_session', jwt.sign({ sub: String(actorId), v: 0 }, process.env.AUTH_SECRET!, { algorithm: 'HS256' })) }
 }) as any;
 async function create(body: Record<string, any>) {
   const res = reply();

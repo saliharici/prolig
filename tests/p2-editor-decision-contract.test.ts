@@ -7,7 +7,23 @@ import { prisma } from '../api/v1/_lib/prisma.js';
 
 // These are isolated in-memory handler contract tests: no Neon connection,
 // no production API, no real questions and no real payment/accrual writes.
-vi.mock('../api/v1/_lib/auth.js', () => ({ getSessionUserId: vi.fn() }));
+vi.mock('../api/v1/_lib/auth.js', () => {
+  // Test-only bridge: old handler fixtures set getSessionUserId. The
+  // additive UX03 migration initializes User.authVersion with DEFAULT 0.
+  // Keep the real production session-version enforcement unchanged.
+  const getSessionUserId = vi.fn<() => number | null>();
+  return {
+    getSessionUserId,
+    getSessionClaims: vi.fn(() => {
+      const userId = getSessionUserId();
+      return userId == null ? null : { userId, version: 0 };
+    }),
+    hasCurrentSessionVersion: vi.fn((
+      claims: { version: number | null } | null,
+      authVersion: number | undefined,
+    ) => claims !== null && claims.version !== null && claims.version === (authVersion ?? 0)),
+  };
+});
 vi.mock('../api/v1/_lib/compensation-engine.js', () => ({
   accrueQuestionApproval: vi.fn(async () => [])
 }));

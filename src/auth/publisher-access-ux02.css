@@ -85,3 +85,8 @@
 .prolig-access-v1.ux02-login-shell .ux02-login-overline{font-size:9px}
 .prolig-access-v1.ux02-login-shell .ux02-login-footer{min-height:53px}
 }
+
+
+/* UX-03 scoped controls; UX-02 public, employee-login composition is unchanged. */
+.prolig-access-v1.ux02-login-shell .ux03-forgot-link{align-self:flex-start;margin:16px 0 0;padding:6px 0;border:0;background:transparent;color:#6c243b;text-decoration:underline;text-underline-offset:4px;font-size:12px;font-weight:700;cursor:pointer}
+.prolig-access-v1.ux02-login-shell .ux03-recovery-notice{padding:14px 16px;border-left:3px solid #6c243b;background:#f8eef2;font-size:13px;line-height:1.65;color:#503542}
