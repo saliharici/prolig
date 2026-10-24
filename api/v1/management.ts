@@ -235,9 +235,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (user.role.code !== 'GENEL_KOORDINATOR') return res.status(403).json({ error: 'Forbidden' });
       const rawLimit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 100;
       const limit = Number.isSafeInteger(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 100;
-      const logs = await prisma.activityLog.findMany({
+      // Cursor pagination preserves the stable (createdAt DESC, id DESC) order.
+      // A cursor never bypasses the General Coordinator authorization above.
+      const rawCursor = req.query.cursor;
+      if (rawCursor !== undefined &&
+          (typeof rawCursor !== 'string' || !/^[1-9]\\d*$/.test(rawCursor) ||
+           !Number.isSafeInteger(Number(rawCursor)))) {
+        return res.status(400).json({ error: 'Invalid audit cursor' });
+      }
+      const cursorId = typeof rawCursor === 'string' ? Number(rawCursor) : null;
+      const records = await prisma.activityLog.findMany({
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: limit,
+        take: limit + 1,
+        ...(cursorId === null ? {} : { cursor: { id: cursorId }, skip: 1 }),
         select: {
           id: true,
           userName: true,
@@ -248,7 +258,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           createdAt: true
         }
       });
-      return res.status(200).json({ logs });
+      const hasMore = records.length > limit;
+      const logs = records.slice(0, limit);
+      return res.status(200).json({ logs, nextCursor: hasMore ? logs[logs.length - 1].id : null });
     }
     if (!coordinatorRoles.has(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
 

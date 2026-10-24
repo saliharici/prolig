@@ -1,4 +1,4 @@
-import type { AuditLogResponse, ApiAuditLog } from './types';
+import type { AuditLogPage, ApiAuditLog } from './types';
 
 export class AuditApiError extends Error {
   constructor(public status: number, message: string) {
@@ -18,13 +18,26 @@ async function parse<T>(response: Response): Promise<T> {
   return body as T;
 }
 
-export async function fetchAuditLogs(limit = 100): Promise<ApiAuditLog[]> {
+export async function fetchAuditLogPage(limit = 100, cursor: number | null = null): Promise<AuditLogPage> {
   const safeLimit = Number.isSafeInteger(limit) ? Math.min(Math.max(limit, 1), 200) : 100;
-  const response = await parse<AuditLogResponse>(
-    await fetch(`/api/v1/audit-logs?limit=${safeLimit}`, { credentials: 'include' })
+  if (cursor !== null && (!Number.isSafeInteger(cursor) || cursor <= 0)) {
+    throw new AuditApiError(400, 'İşlem geçmişi sayfa işareti geçersiz.');
+  }
+  const suffix = cursor === null ? '' : `&cursor=${cursor}`;
+  const response = await parse<AuditLogPage>(
+    await fetch(`/api/v1/audit-logs?limit=${safeLimit}${suffix}`, { credentials: 'include' })
   );
   if (!response || !Array.isArray(response.logs)) {
     throw new AuditApiError(502, 'İşlem geçmişi beklenmeyen biçimde döndü.');
   }
-  return response.logs;
+  const nextCursor = response.nextCursor ?? null;
+  if (nextCursor !== null && (!Number.isSafeInteger(nextCursor) || nextCursor <= 0)) {
+    throw new AuditApiError(502, 'İşlem geçmişi sayfalama yanıtı geçersiz.');
+  }
+  return { logs: response.logs, nextCursor };
+}
+
+/** Preserves the previous one-page client contract for legacy callers. */
+export async function fetchAuditLogs(limit = 100): Promise<ApiAuditLog[]> {
+  return (await fetchAuditLogPage(limit)).logs;
 }

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import { AuditApiError, fetchAuditLogs } from '../src/audit/api';
+import { AuditApiError, fetchAuditLogPage, fetchAuditLogs } from '../src/audit/api';
 
 global.fetch = vi.fn();
 
@@ -53,8 +53,37 @@ describe('real audit log integration', () => {
     expect(vercel).toContain('"/api/v1/audit-logs"');
     expect(vercel).toContain('"/api/v1/management?action=auditLogs"');
     expect(demo).toContain('function AuditLogCenter(');
-    expect(demo).toContain('fetchAuditLogs(150)');
+    expect(demo).toContain('fetchAuditLogPage(150)');
     expect(demo).not.toContain('Demo verisi · Yerel tarayıcı kaydı');
+  });
+
+  it('loads older ActivityLog pages without changing role scopes', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        logs: [{ id: 3, userName: 'Test', action: 'TASK_UPDATED', entityType: 'Task', entityId: 8, details: null, createdAt: '2026-10-23T17:00:00Z' }],
+        nextCursor: 3
+      })
+    } as Response);
+    const page = await fetchAuditLogPage(150, 8);
+    expect(fetch).toHaveBeenCalledWith('/api/v1/audit-logs?limit=150&cursor=8', { credentials: 'include' });
+    expect(page.nextCursor).toBe(3);
+    expect(page.logs).toHaveLength(1);
+  });
+
+  it('rejects malformed page cursors before calling the server', async () => {
+    await expect(fetchAuditLogPage(150, -1)).rejects.toBeInstanceOf(AuditApiError);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps the server-side page limit and RBAC before querying audit logs', () => {
+    const management = fs.readFileSync(path.resolve(__dirname, '../api/v1/management.ts'), 'utf8');
+    const scope = management.slice(management.indexOf("if (action === 'auditLogs')"), management.indexOf("if (!coordinatorRoles.has(user.role.code))"));
+    expect(scope).toContain("user.role.code !== 'GENEL_KOORDINATOR'");
+    expect(scope).toContain("cursor: { id: cursorId }, skip: 1");
+    expect(scope).toContain('take: limit + 1');
+    expect(scope).toContain('nextCursor: hasMore');
   });
 
   it('uses the new Telif ve Ödemeler module label', () => {

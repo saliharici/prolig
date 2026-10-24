@@ -44,7 +44,7 @@ import { fetchPayments as loadApiPayments, approvePayment, payPayment } from './
 import type { ApiPayment as Payment } from './payments/types';
 import { fetchAuthors } from './authors/api';
 import type { ApiAuthor } from './authors/types';
-import { fetchAuditLogs } from './audit/api';
+import { fetchAuditLogPage } from './audit/api';
 import type { ApiAuditLog } from './audit/types';
 import { PaymentPeriodsPanel } from './compensation/PaymentPeriodsPanel';
 import { CompensationRulesPanel } from './compensation/CompensationRulesPanel';
@@ -222,12 +222,20 @@ function AuditLogCenter({
   logs,
   loading,
   error,
-  onRetry
+  onRetry,
+  hasMore,
+  loadingMore,
+  loadMoreError,
+  onLoadMore
 }: {
   logs: ApiAuditLog[];
   loading: boolean;
   error: string;
   onRetry: () => void;
+  hasMore: boolean;
+  loadingMore: boolean;
+  loadMoreError: string;
+  onLoadMore: () => void;
 }) {
   const [auditSearch, setAuditSearch] = useState('');
   const [auditType, setAuditType] = useState('Tümü');
@@ -255,7 +263,7 @@ function AuditLogCenter({
         <h1>İşlem Geçmişi</h1>
         <p>Sistemde gerçekleşen kritik işlemleri gerçek veritabanı kayıtları üzerinden inceleyin.</p>
       </div>
-      <span className="heading-chip"><ActivityIcon size={16}/> {logs.length} kayıt</span>
+      <span className="heading-chip"><ActivityIcon size={16}/> {logs.length} yüklenen kayıt</span>
     </div>
 
     <section className="panel audit-workbench">
@@ -263,9 +271,9 @@ function AuditLogCenter({
         <div>
           <span className="panel-kicker">SİSTEM AKTİVİTESİ</span>
           <h2>Son işlemler</h2>
-          <p>En yeni kayıtlar üstte gösterilir. Bu alan yalnız Genel Koordinatör tarafından görüntülenebilir.</p>
+          <p>En yeni kayıtlar üstte gösterilir. Arama ve filtreler yüklenen kayıtlarda çalışır; daha eskilerini aşağıdan getirebilirsiniz.</p>
         </div>
-        <button className="secondary-button" onClick={onRetry}><RotateCcw size={15}/> Yenile</button>
+        <button className="secondary-button" onClick={onRetry} disabled={loading || loadingMore}><RotateCcw size={15}/> Yenile</button>
       </div>
 
       <div className="audit-toolbar">
@@ -302,7 +310,15 @@ function AuditLogCenter({
             </tr>
           ))}</tbody>
         </table>
-        {filtered.length === 0 && <div className="audit-empty"><ActivityIcon size={24}/><strong>{logs.length ? 'Bu filtrede kayıt bulunamadı' : 'Henüz işlem kaydı yok'}</strong><span>{logs.length ? 'Arama veya kayıt türü filtresini değiştirin.' : 'Sistemde denetlenebilir bir işlem gerçekleştiğinde burada görünecek.'}</span></div>}
+        {filtered.length === 0 && <div className="audit-empty"><ActivityIcon size={24}/><strong>{logs.length ? 'Bu filtrede kayıt bulunamadı' : 'Henüz işlem kaydı yok'}</strong><span>{logs.length ? 'Arama veya kayıt türü filtresini değiştirin; gerekirse daha eski kayıtları yükleyin.' : 'Sistemde denetlenebilir bir işlem gerçekleştiğinde burada görünecek.'}</span></div>}
+      </div>}
+      {!loading && !error && (hasMore || loadingMore || loadMoreError) && <div className="audit-pagination">
+        <span>{logs.length} işlem kaydı yüklendi. Filtreler yalnızca yüklenen kayıtlara uygulanır.</span>
+        {loadMoreError && <p role="alert" className="audit-more-error">{loadMoreError}</p>}
+        {hasMore && <button type="button" className="secondary-button" onClick={onLoadMore} disabled={loadingMore}>
+          <RotateCcw size={15} className={loadingMore ? 'spin' : ''}/>
+          {loadingMore ? 'Eski işlemler yükleniyor...' : 'Daha eski işlemleri getir'}
+        </button>}
       </div>}
     </section>
   </>;
@@ -692,6 +708,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [auditLogs, setAuditLogs] = useState<ApiAuditLog[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState('');
+  const [auditNextCursor, setAuditNextCursor] = useState<number | null>(null);
+  const [auditLoadingMore, setAuditLoadingMore] = useState(false);
+  const [auditLoadMoreError, setAuditLoadMoreError] = useState('');
   
   const fetchPayments = async () => {
     setPaymentsLoading(true);
@@ -714,12 +733,35 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const loadAuditLogs = async () => {
     setAuditLoading(true);
     setAuditError('');
+    setAuditLoadMoreError('');
+    setAuditNextCursor(null);
     try {
-      setAuditLogs(await fetchAuditLogs(150));
+      const page = await fetchAuditLogPage(150);
+      setAuditLogs(page.logs);
+      setAuditNextCursor(page.nextCursor);
     } catch (error: any) {
+      setAuditLogs([]);
       setAuditError(error.message || 'İşlem geçmişi yüklenemedi.');
     } finally {
       setAuditLoading(false);
+    }
+  };
+
+  const loadMoreAuditLogs = async () => {
+    if (auditNextCursor === null || auditLoading || auditLoadingMore) return;
+    setAuditLoadingMore(true);
+    setAuditLoadMoreError('');
+    try {
+      const page = await fetchAuditLogPage(150, auditNextCursor);
+      setAuditLogs(previous => {
+        const existingIds = new Set(previous.map(log => log.id));
+        return [...previous, ...page.logs.filter(log => !existingIds.has(log.id))];
+      });
+      setAuditNextCursor(page.nextCursor);
+    } catch (error: any) {
+      setAuditLoadMoreError(error.message || 'Daha eski işlemler yüklenemedi.');
+    } finally {
+      setAuditLoadingMore(false);
     }
   };
 
@@ -2276,7 +2318,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         {section === 'roles' && <><div className="page-heading"><div><div className="eyebrow">ERİŞİM MODELİ</div><h1>Rol ve Yetkiler</h1><p>{roleLabels[currentUser.role]} rolüyle oturum açtınız.</p></div><span className="heading-chip"><LockKeyhole size={16} /> 6 Yetki Rolü</span></div><div className="roles-intro panel"><div className="roles-intro-icon"><ShieldCheck size={28} /></div><div><h2>Her rol için odaklanmış bir çalışma alanı</h2><p>Sorular, projeler ve yazar bilgileri rolünüzün yetki kapsamına göre gösterilir. Telif ve ödemeler, yetkili kullanıcılar tarafından yönetilir.</p></div></div><div className="panel matrix-panel"><div className="panel-head"><div><span className="panel-kicker">YETKİ MATRİSİ</span><h2>Görüntüleme kapsamı</h2></div></div><div className="table-wrap"><table className="matrix"><thead><tr><th>MODÜL</th>{roles.map(item => <th key={item} className={currentUser.role === item ? 'current-role' : ''}>{roleLabels[item]}</th>)}</tr></thead><tbody>{sections.map(item => <tr key={item.id}><td><strong>{sectionLabels[item.id]}</strong></td>{roles.map(persona => <td key={persona} className={currentUser.role === persona ? 'current-role' : ''}>{permissions[persona].includes(item.id) ? <span className="matrix-yes"><Check size={17} /></span> : <span className="matrix-no">—</span>}</td>)}</tr>)}</tbody></table></div></div><div className="roles-detail"><div className="panel"><span className="panel-kicker">SORU İŞLEMLERİ</span><h3>Yazar → Editör</h3><p>Yazar kendi taslağını incelemeye gönderir. Editör gelen soruyu onaylar, revizyona yollar veya reddeder.</p><button className="text-button" onClick={() => navigate('questions')}>Akışı dene <ArrowRight size={16} /></button></div><div className="panel"><span className="panel-kicker">FİNANS İŞLEMLERİ</span><h3>Onay → Ödeme</h3><p>Muhasebe ödeme sürecini yürütür; Genel Koordinatör finansal durumu denetler.</p><button className="text-button" onClick={() => navigate('payments')}>Telif ve ödemelere git <ArrowRight size={16} /></button></div></div></>}
         {section === 'members' && <><div className="page-heading"><div><div className="eyebrow">ÜYELİK VE KULLANICI YÖNETİMİ</div><h1>Üye Yönetimi</h1><p>Başvuruları coğrafi yetki kapsamınıza göre değerlendirin ve izin verilen rollerde kullanıcı hesapları oluşturun.</p></div><span className="heading-chip"><Users size={16} /> Hiyerarşik kapsam</span></div><MemberManagement currentUser={currentUser} /></>}
         {section === 'roles' && currentUser.role === 'GENEL_KOORDINATOR' && <PermissionDetails currentRole={currentUser.role} />}
-        {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <AuditLogCenter logs={auditLogs} loading={auditLoading} error={auditError} onRetry={loadAuditLogs} />}
+        {section === 'audit' && currentUser.role === 'GENEL_KOORDINATOR' && <AuditLogCenter logs={auditLogs} loading={auditLoading} error={auditError} onRetry={loadAuditLogs} hasMore={auditNextCursor !== null} loadingMore={auditLoadingMore} loadMoreError={auditLoadMoreError} onLoadMore={loadMoreAuditLogs} />}
       </main>
     </div>
     {selectedProject && <div className="modal-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)setSelectedProjectId(null)}}><div className="project-detail-modal">

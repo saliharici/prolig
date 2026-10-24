@@ -11,3 +11,8 @@ export interface ApiAuditLog {
 export interface AuditLogResponse {
   logs: ApiAuditLog[];
 }
+
+/** Server-ordered page of ActivityLog records; nextCursor is null at the end. */
+export interface AuditLogPage extends AuditLogResponse {
+  nextCursor: number | null;
+}
