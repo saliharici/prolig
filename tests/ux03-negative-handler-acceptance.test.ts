@@ -96,7 +96,7 @@ async function complete(token: string): Promise<Captured> {
   const { res, captured } = fakeResponse();
   await completeReset({
     method: 'POST',
-    headers: { origin, 'content-type': 'application/json', 'x-vercel-forwarded-for': '198.51.100.1' },
+    headers: { origin, host: new URL(origin).host, 'content-type': 'application/json', 'x-vercel-forwarded-for': '198.51.100.1' },
     body: { token, password: 'ValidTestPassword7268!' },
   } as unknown as VercelRequest, res);
   return captured;

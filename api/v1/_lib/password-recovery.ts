@@ -36,18 +36,51 @@ export function previewOrigin(origin: string | undefined, target: string | undef
   } catch { return false; }
 }
 
+// Strict server-side allowlist; Preview aliases are not trusted just because they match a wildcard.
+// Expand this list only through reviewed code, never from a request parameter.
+export const UX03_PRODUCTION_ORIGIN = 'https://prolig.vercel.app';
+export const UX03_TEST_PREVIEW_ORIGIN =
+  'https://prolig-git-feat-ux03-mainline-safe-preview-20261024-salih22.vercel.app';
+
+export function allowedRecoveryOrigin(origin: string | undefined, target: string | undefined): boolean {
+  if (target === 'preview') return origin === UX03_TEST_PREVIEW_ORIGIN;
+  if (target === 'production') return origin === UX03_PRODUCTION_ORIGIN;
+  return false;
+}
+
+export function verifiedProductionSender(from: string | undefined): boolean {
+  if (!from || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) return false;
+  const fromDomain = from.split('@')[1].toLowerCase();
+  const recordedDomain = process.env.UX03_VERIFIED_SENDER_DOMAIN?.trim().toLowerCase();
+  return Boolean(recordedDomain && recordedDomain === fromDomain &&
+    fromDomain !== 'resend.dev' && !fromDomain.endsWith('.resend.dev') &&
+    process.env.UX03_VERIFIED_SENDER_CONFIRMED === 'true');
+}
+
 export function recoveryConfig(): { origin: string; secret: string; apiKey: string; from: string } | null {
   const origin = process.env.UX03_PUBLIC_ORIGIN;
   const secret = process.env.UX03_TOKEN_PEPPER;
   const apiKey = process.env.UX03_RESEND_API_KEY;
   const from = process.env.UX03_RESET_FROM;
-  if (process.env.UX03_RECOVERY_ENABLED !== 'true' || !previewOrigin(origin, process.env.VERCEL_ENV) ||
-      !secret || secret.length < 32 || !apiKey || !from || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) return null;
+  const production = process.env.VERCEL_ENV === 'production';
+  const productionAllowed = !production || (
+    process.env.UX03_PRODUCTION_RECOVERY_ENABLED === 'true' &&
+    verifiedProductionSender(from)
+  );
+  if (process.env.UX03_RECOVERY_ENABLED !== 'true' ||
+      !allowedRecoveryOrigin(origin, process.env.VERCEL_ENV) || !productionAllowed ||
+      !secret || secret.length < 32 || !apiKey || !from ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)) return null;
   return { origin: origin!, secret, apiKey, from };
 }
 
 export function requestFromTrustedOrigin(req: VercelRequest, origin: string): boolean {
+  const hostname = new URL(origin).host;
+  // Origin and Host must refer to the same approved deployment.
+  // A supplied forwarded host may not override the real Host.
   return req.headers.origin === origin &&
+    req.headers.host === hostname &&
+    (!req.headers['x-forwarded-host'] || req.headers['x-forwarded-host'] === hostname) &&
     (req.headers['content-type'] || '').toString().toLowerCase().startsWith('application/json');
 }
 

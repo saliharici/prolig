@@ -25,7 +25,14 @@ export default defineConfig(({ command }) => {
 
   return {
     plugins: [react()],
-    define: { __PROLIG_DEPLOYMENT_TARGET__: JSON.stringify(deploymentTarget) },
+    define: {
+      __PROLIG_DEPLOYMENT_TARGET__: JSON.stringify(deploymentTarget),
+      // Optional user-facing link; cannot enable backend recovery or bypass account checks.
+      __PROLIG_UX03_PRODUCTION_UI_ENABLED__: JSON.stringify(
+        deploymentTarget === 'production' &&
+        process.env.VITE_UX03_PRODUCTION_RECOVERY_UI_ENABLED === 'true'
+      ),
+    },
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, '.'),

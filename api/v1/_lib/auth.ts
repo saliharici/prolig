@@ -86,8 +86,8 @@ export function hasCurrentSessionVersion(
   authVersion: number
 ): boolean {
   if (!claims) return false;
-  // Old JWTs without the version are invalid when recovery is enabled.
-  // This check is central and applies to all authenticated API entry points.
-  if (process.env.UX03_RECOVERY_ENABLED !== 'true' || process.env.VERCEL_ENV !== 'preview') return true;
-  return claims.version !== null && claims.version === authVersion;
+  // Mandatory regardless of recovery mail flag or deployment environment.
+  // Fail closed for legacy JWTs without v: first release requires re-login.
+  return Number.isSafeInteger(authVersion) && authVersion >= 0 &&
+    claims.version !== null && claims.version === authVersion;
 }
