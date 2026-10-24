@@ -11,6 +11,7 @@ import { handleAnnouncementAction } from './_lib/announcement-handler.js';
 import { handlePaymentPeriodAction, type PeriodAction } from './_lib/payment-period-handler.js';
 import { handleCompensationAction } from './_lib/compensation-handler.js';
 import { handleBookAction } from './_lib/book-handler.js';
+import { maybeLogGo0IdentityOnce } from './_lib/go0-db-attestation.js';
 
 const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
@@ -184,6 +185,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const action = typeof req.query.action === 'string' ? req.query.action : '';
     if (action === 'health') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+      // Default OFF; the public health response remains byte-for-byte unchanged.
+      // When separately enabled on a NEW Production deployment, logs only booleans.
+      await maybeLogGo0IdentityOnce();
       return res.status(200).json({ ok: true, service: 'prolig' });
     }
     if (action === 'applications' && req.method === 'POST') {
