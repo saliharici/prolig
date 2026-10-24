@@ -15,9 +15,11 @@ const schema = source('prisma/schema.prisma');
 describe('UX-03 only · guarded account recovery and session contracts', () => {
   it('keeps recovery navigation restricted to Preview deployments', () => {
     const gate = source('src/auth/AuthGate.tsx');
-    expect(gate).toContain("const allowUx03RecoveryPreview = () => allowUx01DesignPreview()");
-    expect(gate).toContain("if (showRecovery && allowUx03RecoveryPreview())");
-    expect(gate).toContain("onForgotPassword={allowUx03RecoveryPreview()");
+    expect(gate).toContain("const allowUx03Recovery = () => allowUx01DesignPreview() ||");
+    expect(gate).toContain("if (showRecovery && allowUx03Recovery())");
+    expect(gate).toContain("onForgotPassword={allowUx03Recovery()");
+    expect(gate).toContain("__PROLIG_UX03_PRODUCTION_UI_ENABLED__");
+    expect(gate).toContain("window.location.hostname === 'prolig.vercel.app'");
   });
   it('uses secure cookies in deployed environments while retaining local-dev login', () => {
     const auth = source('api/v1/_lib/auth.ts');
@@ -42,8 +44,10 @@ describe('UX-03 only · guarded account recovery and session contracts', () => {
     expect(previewOrigin('https://prolig.vercel.app', 'preview')).toBe(false);
     expect(previewOrigin(url + '.evil.com', 'preview')).toBe(false);
     expect(previewOrigin('http://prolig-k4bulo81u-salih22.vercel.app', 'preview')).toBe(false);
-    const request = { headers: { origin: url, 'content-type': 'application/json' } } as never;
+    const request = { headers: { origin: url, host: new URL(url).host, 'content-type': 'application/json' } } as never;
     expect(requestFromTrustedOrigin(request, url)).toBe(true);
+    expect(requestFromTrustedOrigin({ headers: { origin: url, host: 'evil.example', 'content-type': 'application/json' } } as never, url)).toBe(false);
+    expect(requestFromTrustedOrigin({ headers: { origin: url, host: new URL(url).host, 'x-forwarded-host': 'evil.example', 'content-type': 'application/json' } } as never, url)).toBe(false);
     expect(requestFromTrustedOrigin({ headers: { origin: 'https://evil.com', 'content-type': 'application/json' } } as never, url)).toBe(false);
   });
 

@@ -40,7 +40,7 @@ export function previewOrigin(origin: string | undefined, target: string | undef
 // Expand this list only through reviewed code, never from a request parameter.
 export const UX03_PRODUCTION_ORIGIN = 'https://prolig.vercel.app';
 export const UX03_TEST_PREVIEW_ORIGIN =
-  'https://prolig-git-feat-ux03-mainline-safe-preview-20261024-salih22.vercel.app';
+  'https://prolig-git-feat-ux03-mainline-integration-isolat-2b091b-salih22.vercel.app';
 
 export function allowedRecoveryOrigin(origin: string | undefined, target: string | undefined): boolean {
   if (target === 'preview') return origin === UX03_TEST_PREVIEW_ORIGIN;

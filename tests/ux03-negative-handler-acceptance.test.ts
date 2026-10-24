@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { setSessionCookie } from '../api/v1/_lib/auth';
+import { UX03_TEST_PREVIEW_ORIGIN } from '../api/v1/_lib/password-recovery';
 import completeReset from '../api/v1/_lib/ux03-reset-complete';
 import getMe from '../api/v1/auth/me';
 
@@ -67,7 +68,7 @@ vi.mock('../api/v1/_lib/prisma.js', () => {
 const envKeys = ['VERCEL_ENV', 'UX03_RECOVERY_ENABLED', 'AUTH_SECRET', 'UX03_TOKEN_PEPPER',
   'UX03_RESEND_API_KEY', 'UX03_RESET_FROM', 'UX03_PUBLIC_ORIGIN'] as const;
 const originalEnv = Object.fromEntries(envKeys.map(key => [key, process.env[key]]));
-const origin = 'https://prolig-ux03-handler-test-salih22.vercel.app';
+const origin = UX03_TEST_PREVIEW_ORIGIN;
 
 type Captured = { status: number; body: any; headers: Record<string, string> };
 function fakeResponse() {
