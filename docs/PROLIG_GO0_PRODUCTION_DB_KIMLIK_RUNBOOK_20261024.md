@@ -29,6 +29,13 @@
 - `get_snapshot_schedule(main)`: `[]`, kayıtlı zamanlanmış snapshot bulunmadı. Neon point-in-time retention `21600 saniye` (6 saat) metadata'sı görüldü; bu uzun süreli yedek garantisi değildir.
 - **YENİ SNAPSHOT OLUŞTURULMADI, RESTORE YAPILMADI, HIÇBIR BRANCH DEĞİŞMEDİ.** İlgili Production işlemi için kimlik kapısından sonra ayrıca somut onay ve rollback gerekir.
 
+## 1.2 GO-0 yalnız yeni deployment için gözlemci TEST kabulü — 25 Ekim 2026
+- Main SHA `26548720` bazlı bağımsız DRAFT [PR #112](https://github.com/saliharici/prolig/pull/112) / HEAD `41f77fab2668db38d4e10783cc29330033c97355` hazırlandı. Eski stacked UX03 #104/#106/#109 bağımlılığı **yok**.
+- Varsayılan **OFF**; yeni public endpoint yok. Mevcut public `GET /api/v1/health` cevabı aynı kalırken **yalnız Production + ayrıca onaylanmış `PROLIG_GO0_DB_ATTESTATION=1` bayrağı** ve beklenen Vercel/Neon hedefi şartlarında bir salt-okunur `SELECT current_database()` yapılır. Operator-scoped Vercel runtime logs'a yalnız boolean rapor düşer; DSN, credential veya veri satırı dışarı verilmez.
+- [GitHub CI](https://github.com/saliharici/prolig/actions/runs/40133840982) `SUCCESS`: **GO-0 yeni 23/23 test PASS**, tüm **855/855 test, 119/119 dosya, lint, build ve navigation PASS**; [isolated PostgreSQL workflow](https://github.com/saliharici/prolig/actions/runs/40133841132) `SUCCESS`. [Vercel Preview](https://vercel.com/salih22/prolig/4Lm9GScx15k8XBzdtezAoMyUnzRk) `READY` yeni SHA ile. **Ayrı Neon TEST database bind edilmedi, gerçek Preview DB PASS değildir**.
+- Mevcut Production deployment `dpl_B3eqis...` / SHA `26548720` READY **değişmedi**; eski deployment'a yeni observer enjekte edilemez. **Yeni** deployment içindeki `MATCH=true` eski SHA'ya mal edilemez.
+- Sıradaki ayrı Production transaction gates: (a) Vercel team/project Production `PROLIG_GO0_DB_ATTESTATION=1` env **açık onayı**, (b) yalnız PR #112 için main merge/deploy + rollback **ayrı açık onay**, (c) Vercel deployment-scoped `MATCH=true` runtime evidence, (d) ayrıca açık onaylı snapshot + izole restore PASS. Env flag OFF yapmak **mevcut deployment'ı değiştirmez**; yeni sürümde kapatılmalı. Önceki `DATABASE_URL` / `AUTH_SECRET` Production env'leri **VAR** ve değiştirilmeyecek.
+
 ## 2. Doğrulama rotası — kolay olanı önce
 ### Kapı G0-A — sadece mevcut ortam bilgisi
 - **Yetkili Production operator** Vercel projesinin Production Environment Variables hedefini (değerler gösterilmeden) kontrol eder; `DATABASE_URL` etkin değerinin **var/yok** bilgisini, hangi deployment için etkili olduğunu ve değişkenin kaynağını (project/marketplace/deployment) not eder.
