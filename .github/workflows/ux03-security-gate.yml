@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - 'feat/ux03-secure-recovery-preview-*'
+      - 'feat/ux03-mainline-safe-preview-*'
   workflow_dispatch:
 permissions:
   contents: read
