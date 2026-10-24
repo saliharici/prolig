@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { allowUx01DesignPreview } from '../ux/preview-environment';
-import { ArrowDownRight, ArrowRight, BookOpen, Check, ChevronRight, Menu, ShieldCheck, X } from 'lucide-react';
+import { ArrowDownRight, ArrowRight, BookOpen, Check, ChevronRight, Menu, Pause, Play, RotateCcw, ShieldCheck, X } from 'lucide-react';
 import './public-enterprise-v1.css';
 import './publisher-ux02.css';
 
@@ -30,6 +30,32 @@ export function PublicLanding({
   onRetryConnection
 }: PublicLandingProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [introReady, setIntroReady] = useState(false);
+  const [introPlaying, setIntroPlaying] = useState(false);
+  const [introEnded, setIntroEnded] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+  const introRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReduceMotion(media.matches);
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
+  const toggleIntro = () => {
+    const video = introRef.current;
+    if (!video) return;
+    if (video.paused) {
+      if (video.ended || introEnded) {
+        video.currentTime = 0;
+        setIntroEnded(false);
+      }
+      void video.play().catch(() => setIntroPlaying(false));
+    } else {
+      video.pause();
+    }
+  };
   const showDesignPreviewLink = Boolean(onDesignPreviewClick) && allowUx01DesignPreview();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -99,15 +125,48 @@ export function PublicLanding({
             </div>
             <div className="ux02-hero-byline"><span className="ux02-byline-rule"/><span>PRO-LİG Yayınevi</span></div>
           </div>
-          <div className="ux02-hero-art" role="img" aria-label="PRO-LİG kurumsal tipografik motifi. Bu bir kitap kapağı değildir.">
-            <div className="ux02-art-heading"><span>KURUMSAL GRAFİK</span><span>PRO-LİG YAYINEVİ</span></div>
-            <div className="ux02-art-composition" aria-hidden="true">
-              <div className="ux02-art-orbit ux02-art-orbit-one" />
-              <div className="ux02-art-orbit ux02-art-orbit-two" />
-              <div className="ux02-art-orbit ux02-art-orbit-three" />
-              <span className="ux02-art-letter">P</span><span className="ux02-art-dot">.</span>
+          <div className={`ux02-hero-art ux02-hero-video-card${introReady && !reduceMotion ? ' ux02-video-ready' : ''}`}>
+            <div className="ux02-hero-static" role="img" aria-label="PRO-LİG kurumsal tipografik motifi. Bu bir kitap kapağı değildir." aria-hidden={introReady && !reduceMotion}>
+              <div className="ux02-art-heading"><span>KURUMSAL GRAFİK</span><span>PRO-LİG YAYINEVİ</span></div>
+              <div className="ux02-art-composition" aria-hidden="true">
+                <div className="ux02-art-orbit ux02-art-orbit-one" />
+                <div className="ux02-art-orbit ux02-art-orbit-two" />
+                <div className="ux02-art-orbit ux02-art-orbit-three" />
+                <span className="ux02-art-letter">P</span><span className="ux02-art-dot">.</span>
+              </div>
+              <p className="ux02-art-legend">Yayıncılık kimliğimiz için tipografik motif. Gerçek kitap kapağı veya yayımlanmış eser görseli değildir.</p>
             </div>
-            <p className="ux02-art-legend">Yayıncılık kimliğimiz için tipografik motif. Gerçek kitap kapağı veya yayımlanmış eser görseli değildir.</p>
+            {!reduceMotion && (
+              <video
+                ref={introRef}
+                className="ux02-hero-video"
+                autoPlay
+                muted
+                playsInline
+                preload="metadata"
+                poster="/brand/prolig-intro-poster.jpg"
+                aria-label="PRO-LİG Yayınevi, sekiz saniyelik sessiz kurumsal tanıtım videosu"
+                aria-hidden={!introReady}
+                onCanPlay={() => setIntroReady(true)}
+                onPlaying={() => { setIntroPlaying(true); setIntroEnded(false); }}
+                onPause={() => setIntroPlaying(false)}
+                onEnded={() => { setIntroPlaying(false); setIntroEnded(true); }}
+                onError={() => { setIntroReady(false); setIntroPlaying(false); }}
+              >
+                <source src="/brand/prolig-intro-8s.mp4" type="video/mp4" />
+              </video>
+            )}
+            {introReady && !reduceMotion && (
+              <button
+                type="button"
+                className="ux02-video-control"
+                aria-label={introPlaying ? 'Tanıtım videosunu duraklat' : introEnded ? 'Tanıtım videosunu tekrar oynat' : 'Tanıtım videosunu oynat'}
+                title={introPlaying ? 'Duraklat' : introEnded ? 'Tekrar oynat' : 'Oynat'}
+                onClick={toggleIntro}
+              >
+                {introPlaying ? <Pause size={18} aria-hidden="true"/> : introEnded ? <RotateCcw size={18} aria-hidden="true"/> : <Play size={18} aria-hidden="true"/>}
+              </button>
+            )}
           </div>
         </section>
 
