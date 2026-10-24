@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { allowUx01DesignPreview } from '../ux/preview-environment';
-import { ArrowDownRight, ArrowRight, BookOpen, Check, ChevronRight, Menu, Pause, Play, RotateCcw, ShieldCheck, X } from 'lucide-react';
+import { PublicationBookAccordion } from './PublicationBookAccordion';
+import { ArrowDownRight, ArrowRight, Check, ChevronRight, Menu, Pause, Play, RotateCcw, ShieldCheck, X } from 'lucide-react';
 import './public-enterprise-v1.css';
 import './publisher-ux02.css';
 
@@ -174,13 +175,9 @@ export function PublicLanding({
           <div className="ux02-section-heading">
             <span className="ux02-section-kicker">01 / YAYINLARIMIZ</span>
             <h2 id="ux02-publications-title">İçeriğin değerine <em>inanıyoruz.</em></h2>
-            <p>PRO-LİG yayınlarını doğrulanmış bilgileriyle tanıtmayı önemsiyoruz.</p>
+            <p>Yayın seçkisi ve editoryal gündem: Doğrulanmış kitap ve katalog bilgileri eklendikçe bu alanda yer alacaktır.</p>
           </div>
-          <div className="ux02-publications-summary">
-            <BookOpen size={28} strokeWidth={1.4} aria-hidden="true" />
-            <p><strong>Yayın seçkisi</strong><span>Doğrulanmış kitap ve katalog bilgileri eklendikçe bu alanda yer alacaktır.</span></p>
-            <a href="#editorial">Yayın anlayışımız <ArrowRight size={16} aria-hidden="true"/></a>
-          </div>
+          <PublicationBookAccordion onApplyClick={onApplyClick} />
         </section>
 
         <section id="kurumsal" className="ux02-section ux02-institution" aria-labelledby="ux02-corporate-title">
