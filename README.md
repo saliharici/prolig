@@ -1,6 +1,6 @@
 # PRO-LIG · Yayın Üretimi ve Yönetim Platformu
 
-**Durum (18 Ekim 2026):** PRO-LIG'in aktif ürünü, yayıncılık süreçleri için **geliştirme/pilot aşamasındadır**; bu depo içindeki P2 özelliklerinin tamamı henüz Production'da kabul edilmiş değildir. Geliştirme dalı `feat/p2-professional-question-editor-20261012`, GitHub `main` ve Vercel Production birbirinden ayrı sürümlerdir. Özelliklerin kodlanmış olması canlı yayına alındığı anlamına gelmez.
+> **Güncel durum (24.10.2026):** Production `main` için son doğrulanan SHA `2654872084c4fd3190ab5d6b345a8509f6d89564` (`UX-06`) ve Vercel Production READY. Profesyonel Soru Stüdyosu canlı, kullanıcının görsel PASS kabulü var; P3 özel PNG Production'da KAPALI. UX03 parola kurtarma izole TEST'te operatör PASS, ancak Production kimlik/yedek/restore kapıları nedeniyle NO-GO. **Kanonik 7 adımlı güncel tamamlama planı:** [PROLIG_7_ADIM_TAMAMLAMA_PLANI_20261024.md](docs/PROLIG_7_ADIM_TAMAMLAMA_PLANI_20261024.md). Aşağıdaki 18 Ekim tarihli envanter ve PR notları tarihî bağlamdır; güncel kaynak veya dağıtım yerine kullanılmaz. Eski PASS'ler tekrar test edilmez.\n\n**Durum (18 Ekim 2026):** PRO-LIG'in aktif ürünü, yayıncılık süreçleri için **geliştirme/pilot aşamasındadır**; bu depo içindeki P2 özelliklerinin tamamı henüz Production'da kabul edilmiş değildir. Geliştirme dalı `feat/p2-professional-question-editor-20261012`, GitHub `main` ve Vercel Production birbirinden ayrı sürümlerdir. Özelliklerin kodlanmış olması canlı yayına alındığı anlamına gelmez.
 
 ## Ürün kapsamı
 
