@@ -15,10 +15,18 @@
 | `api/v1/_lib/prisma.ts` | `const connectionString = process.env.DATABASE_URL;` ve değer yoksa `throw new Error("DATABASE_URL is not configured.")` | Runtime'ın doğru env'e ihtiyacı var; `DIRECT_URL` bu API modülünün fallback'i değil |
 | Vercel env metadata | 96 kayıt; `DATABASE_URL` sadece `development` ve branch-scope `preview`; `target=["production"]` **YOK** | **KONFİGÜRASYON RİSKİ**; mevcut eski deployment'ın runtime snapshot'ı bağımsız kanıtlanmadı |
 | Vercel connectors | Proje connector kaydı `[]`; marketplace team `neon` + `prisma` kurulumu mevcut ama ilişkilendirilen `projects=[]` | Entegrasyon kurulu olması uygulamanın Production DB kimliğini kanıtlamaz |
-| Neon bağlamı | Beklenen `prolig-pilot` project `calm-band-45633698`, main branch `br-soft-salad-b2vb8sdr`, DB `neondb` (önceki #108/#109 kanıtı) | Bağlı Neon hesaplarının listesinde proje görünmüyor; **yanlış TEST projesi alternatif olamaz** |
+| Neon bağlamı | `describe_project` ile `calm-band-45633698` / `prolig-pilot` iki bağlı hesaptan **doğrulandı**; `get_default_branch` ile `br-soft-salad-b2vb8sdr` / `main` **PASS** | Liste araması başka varsayılan organizasyona denk gelmiş. **Doğrudan proje-ID erişimi VAR**; yanlış TEST projesi alternatif olamaz |
 | Vercel errors | Node/pg SSL ve URL deprecation uyarı grupları okundu | Tek başına DB MATCH veya outage kanıtı değil; 30 dk current-deployment log grubunda kayıt görülmedi |
 
 **Kesin ayrım:** `Vercel READY` = deployment hazır; `DATABASE_URL` Production metadata'da yok = şu anki proje ayarlarında uyumsuzluk riski; `MATCH=BİLİNMİYOR` = etkin deployment'ın hangi DB host/branch'i kullandığına ilişkin bağımsız runtime kanıtı yok. Bu durum **yanlış DB bağlantısı FAIL** diye ilan edilmez.
+
+## 1.1 Production Neon meta/veri kurtarma kapasitesi — aynı gün yeni salt-okunur kanıt
+- Bağlı Neon bağlantıları (`Primary` ve `PROLIG Neon`) beklenen `calm-band-45633698` proje ID'si ile `describe_project` çalıştırabildi: `prolig-pilot`, org `org-cold-star-93077958`. Varsayılan org'a göre `list_projects` içinde görünmemiş olması erişimin yokluğu değildir.
+- `get_default_branch` / `list_branches` ile **`main / br-soft-salad-b2vb8sdr` primary/default** doğrudan kanıtlandı.
+- **9 mevcut Neon dalı**, proje sahibi metadata'sında **`branches_limit=10`**. İzole restore yeni branch oluşturacaksa fiilen sadece 1 branch yuvası görünür; maliyet/branch quota ve restore ortamı planı kayıt altına alınır. Var olan branch'ler otomatik silinmez.
+- `list_snapshots`: **1 snapshot**, `snap-polished-mode-b2ebbvhy`, `PROLIG_PRE_P1D_RELEASE_20261011`, oluşturulma `2026-10-11T19:32:49Z`; 24 Ekim için güncel veri kurtarma kabulü değildir.
+- `get_snapshot_schedule(main)`: `[]`, kayıtlı zamanlanmış snapshot bulunmadı. Neon point-in-time retention `21600 saniye` (6 saat) metadata'sı görüldü; bu uzun süreli yedek garantisi değildir.
+- **YENİ SNAPSHOT OLUŞTURULMADI, RESTORE YAPILMADI, HIÇBIR BRANCH DEĞİŞMEDİ.** İlgili Production işlemi için kimlik kapısından sonra ayrıca somut onay ve rollback gerekir.
 
 ## 2. Doğrulama rotası — kolay olanı önce
 ### Kapı G0-A — sadece mevcut ortam bilgisi
@@ -57,7 +65,7 @@ G0-B mümkün değilse **yeni geçerli deployment üzerinde** güvenli teşhis u
 - Root `prisma migrate deploy` Production'da **yasak** (P3 migration'ı da tetikleyebilir).
 - Geri dönüş adayları ve live SHA ayrı: eski güvenliksizlik rollback sınırı konusunu görmezden gelme.
 - Sırf bu operasyon için GitHub PR'ı `main`e merge etme; merge otomatik Vercel Production build'i tetikleyebilir.
-- Vercel onaylı erişim **PASS**, fakat Neon `calm-band...` erişimi **BİLİNMİYOR**. Neon link/erişim sorununu çözmeden backup yetkilendirmesi talep etme.
+- Vercel onaylı erişim **PASS**; Neon `calm-band-45633698` erişimi **salt-okunur metadata PASS**, ana dal kimliği **PASS**. Fakat çalışan Vercel fonksiyonunun bu DB'ye bağlanması hâlâ **BİLİNMİYOR**.
 
 ## 5. Tek seferlik açık işlem onayı için sunulacak şablon
 **İşlem:** [somut tek değişiklik, ör. Production env `DATABASE_URL` oluştur/güncelle]  
