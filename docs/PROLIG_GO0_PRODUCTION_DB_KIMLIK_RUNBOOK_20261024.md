@@ -6,6 +6,19 @@
 
 > **Güvenlik kilidi:** Bu belge Production migration, env yazımı, backup/restore, deploy, merge veya veri silme yetkisi vermez. Kullanıcının genel yetki açıklaması bu işlemlerin hedef/etki/rollback içeren ayrı açık onayı yerine geçmez. Önceki [ADR-005](https://github.com/saliharici/prolig/issues/105) ve [#107 TEST kullanıcı PASS](https://github.com/saliharici/prolig/issues/107) değişmez; test tekrar edilmez.
 
+## 0A. 25 Ekim 2026 ONAYLI SNAPSHOT DENEMESİ — KOTA BLOKE
+
+**Kullanıcı onaylı hedef:** `prolig-pilot` / `calm-band-45633698` / `main br-soft-salad-b2vb8sdr`, güncel snapshot → yalnız yeni izole restore dalı. Production'a geri yükleme veya eski backup/dal silme **YOK**.
+
+- Giriş ön kontrolü: Neon main/default/compute metadata PASS; **9/10** dal, tek 11 Ekim snapshot, otomatik snapshot schedule `[]`.
+- Yeni snapshot adı `PROLIG_GO0_PROD_MAIN_20261025_PRE_RESTORE` ile `create_snapshot` çağrısı **FAIL: HTTP 422 `snapshots limit exceeded`**. Yeni snapshot oluşturulmadı.
+- Tekrar `list_snapshots`: yalnız tarihî `snap-polished-mode-b2ebbvhy`; `list_branches`: hâlâ 9. **restore_snapshot ÇAĞRILMADI**, `finalize_restore` yapılmadı, Production main ve mevcut compute yerinde kaldı.
+- Gerçek Production DB'ye Neon connector ile yapılan **yalnız salt-okunur** sayım: 27 public tablo (`_prisma_migrations` dahil), User=14, Role=6, Project=2, Question=8, Book=4, BookQuestion=6, CompensationEntry=13, Payment=1, PaymentPeriod=0, tamamlanmış Prisma migration=9. Bu, restorasyon PASS değil, **baseline envanteridir**.
+- [GitHub Issue #108 zamanlı işlem kanıtı](https://github.com/saliharici/prolig/issues/108#issuecomment-6389884039).
+- **Öncelikli çözüm:** Eski tek snapshot korunarak Neon snapshot kapasitesi artırılabiliyorsa plan/limit değiştirmek (ücretli işlem için kullanıcı ayrıca onay verir); sonra `finalize=false` ile yalnız izole dal restore. Bu mümkün değilse ayrı kullanıcı tercihiyle Production HEAD'den yalnız bir yeni **izole branch-copy** oluşturulabilir; fakat bu gerçek snapshot/restore kabulünün yerini tutmaz ve son boş slotu doldurur. Eski snapshot silme **ayrı yüksek riskli/yıkıcı onaysız yasak**.
+
+**Güncel durum:** Production yeni SHA runtime MATCH **PASS** | Güncel snapshot **FAIL (Neon quota)** | İzole restore **NOT RUN** | **GO-0 NO-GO**.
+
 ## 0. 25 Ekim 2026 CANLI RELEASE — güncel kanıt (eski tanı bölümünün yerine geçer)
 
 **ÖNCEKİ TANILAR TARİHSELDİR:** Aşağıda `G0-B = BİLİNMİYOR` diyen metinler 24 Ekim pre-release araştırmasının durumunu anlatır. 25 Ekim itibarıyla **yeni SHA için gerçek runtime kanıtı PASS**.
