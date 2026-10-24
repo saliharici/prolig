@@ -18,7 +18,8 @@ export const GO0_EXPECTED = Object.freeze({
 
 type Environment = Record<string, string | undefined>;
 type DbClient = {
-  connect(): Promise<void>;
+  // pg.Client.connect() resolves to Client; fakes may resolve to void.
+  connect(): Promise<unknown>;
   query(sql: string): Promise<{ rows: Array<{ db?: string }> }>;
   end(): Promise<void>;
 };
