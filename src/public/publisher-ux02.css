@@ -294,3 +294,26 @@
   .publisher-theme.prolig-publisher-ux02 .ux02-video-ready{min-height:0}
   .publisher-theme.prolig-publisher-ux02 .ux02-video-control{width:36px;height:36px;right:8px;bottom:8px}
 }
+
+/* UX-06 | Bootstrap 5.3 grid-only pilot on the public publishing page.
+   Keep the existing PRO-LIG visual system; do not load Bootstrap reboot/components/JS.
+   These higher-specificity layout declarations intentionally replace old CSS grid. */
+.publisher-theme.prolig-publisher-ux02 .ux02-editorial-steps.row{
+  display:flex;flex-wrap:wrap;gap:0;align-items:stretch;
+}
+.publisher-theme.prolig-publisher-ux02 .ux02-editorial-steps.row > article{
+  min-width:0;padding-top:20px;padding-bottom:8px;
+}
+.publisher-theme.prolig-publisher-ux02 .ux02-footer-top.row{
+  display:flex;flex-wrap:wrap;gap:0;align-items:stretch;
+}
+.publisher-theme.prolig-publisher-ux02 .ux02-footer-top.row > *{
+  min-width:0;
+}
+.publisher-theme.prolig-publisher-ux02 .ux02-footer-top.row .ux02-footer-quick-actions{
+  grid-column:auto;max-width:none;
+}
+@media(max-width:650px){
+  .publisher-theme.prolig-publisher-ux02 .ux02-editorial-steps.row{row-gap:0}
+  .publisher-theme.prolig-publisher-ux02 .ux02-footer-top.row{row-gap:0}
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { allowUx01DesignPreview } from '../ux/preview-environment';
 import { PublicationBookAccordion } from './PublicationBookAccordion';
 import { ArrowDownRight, ArrowRight, Check, ChevronRight, Menu, Pause, Play, RotateCcw, ShieldCheck, X } from 'lucide-react';
+import 'bootstrap/dist/css/bootstrap-grid.min.css';
 import './public-enterprise-v1.css';
 import './publisher-ux02.css';
 
@@ -201,10 +202,10 @@ export function PublicLanding({
             <h2 id="ux02-editorial-title">İyi bir yayının arkasında <em>özenli bir süreç vardır.</em></h2>
             <p>Yazar ve editör işbirliği, yayın hazırlığının temelidir.</p>
           </div>
-          <div className="ux02-editorial-steps">
-            <article><span>01</span><h3>İçerik üretimi</h3><p>İçeriğin amacı, kapsamı ve anlatım biçimi gözetilerek hazırlık yapılır.</p></article>
-            <article><span>02</span><h3>Editoryal inceleme</h3><p>Açıklık, tutarlılık ve yayın bütünlüğü açısından değerlendirme yapılır.</p></article>
-            <article><span>03</span><h3>Yayın hazırlığı</h3><p>İçeriğin bir bütün olarak sunulmasına yönelik son hazırlıklar ele alınır.</p></article>
+          <div className="ux02-editorial-steps row gx-4 gy-4">
+            <article className="col-12 col-md-4"><span>01</span><h3>İçerik üretimi</h3><p>İçeriğin amacı, kapsamı ve anlatım biçimi gözetilerek hazırlık yapılır.</p></article>
+            <article className="col-12 col-md-4"><span>02</span><h3>Editoryal inceleme</h3><p>Açıklık, tutarlılık ve yayın bütünlüğü açısından değerlendirme yapılır.</p></article>
+            <article className="col-12 col-md-4"><span>03</span><h3>Yayın hazırlığı</h3><p>İçeriğin bir bütün olarak sunulmasına yönelik son hazırlıklar ele alınır.</p></article>
           </div>
         </section>
 
@@ -218,17 +219,17 @@ export function PublicLanding({
         </section>
       </main>
       <footer className="ux02-footer" aria-label="PRO-LİG kurumsal alt bilgi">
-        <div className="ux02-footer-top">
-          <div className="ux02-footer-identity">
+        <div className="ux02-footer-top row gx-4 gy-4">
+          <div className="ux02-footer-identity col-12 col-md-6 col-lg-5">
             <a href="#anasayfa" className="ux02-footer-logo" aria-label="PRO-LİG Yayınevi, sayfanın başı">
               <img src="/brand/prolig-logo-primary.png" alt="PRO-LİG" /><span>YAYINEVİ</span>
             </a>
             <p>Eğitim yayınlarını içerik kalitesi ve editoryal özenle hazırlıyoruz.</p>
           </div>
-          <nav className="ux02-footer-nav" aria-label="Kurumsal alt menü">
+          <nav className="ux02-footer-nav col-12 col-md-6 col-lg-3" aria-label="Kurumsal alt menü">
             {navItems.map(item => <a key={item.href} href={item.href}>{item.label}</a>)}
           </nav>
-          <div className="ux02-footer-quick-actions">
+          <div className="ux02-footer-quick-actions col-12 col-lg-4">
             <span>PRO-LİG ÇALIŞMA ALANI</span>
             <button type="button" onClick={openLogin}>
               {authenticated ? 'Çalışma Alanına Dön' : 'Çalışan Girişi'}
