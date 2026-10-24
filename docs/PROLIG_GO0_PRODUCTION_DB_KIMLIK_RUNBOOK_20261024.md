@@ -13,13 +13,13 @@
 |---|---|---|
 | Git & Vercel | `main 26548720`, READY deployment + kanonik alias eşleşti | **PASS deployment/alias**, DB kanıtı DEĞİL |
 | `api/v1/_lib/prisma.ts` | `const connectionString = process.env.DATABASE_URL;` ve değer yoksa `throw new Error("DATABASE_URL is not configured.")` | Runtime'ın doğru env'e ihtiyacı var; `DIRECT_URL` bu API modülünün fallback'i değil |
-| `api/v1/_lib/auth.ts` | `getSecret()` doğrudan `process.env.AUTH_SECRET` okur; değer yoksa hata verir | Vercel current metadata listesinde `AUTH_SECRET` de Production-target olarak görünmüyor; yeni Production redeploy öncesi credential/session güvenliği **zorunlu kontrol** |
-| Vercel env metadata | 96 kayıt; `DATABASE_URL` sadece `development` ve branch-scope `preview`; `target=["production"]` **YOK** | **KONFİGÜRASYON RİSKİ**; mevcut eski deployment'ın runtime snapshot'ı bağımsız kanıtlanmadı |
+| `api/v1/_lib/auth.ts` | `getSecret()` doğrudan `process.env.AUTH_SECRET` okur; değer yoksa hata verir | Production-target **`AUTH_SECRET` kaydı VAR**. Değer şifrelenmiş/maskelenmiş; kullanıcıların oturumlarının kullandığı gerçek değerin değişmediği yeni deployment öncesi korunmalı |
+| Vercel env metadata — TAM 96 kayıt filtrelendi | `DATABASE_URL` **VE** `AUTH_SECRET` `target=["production"]` sensitive kayıtları **VAR**; her ikisinin metadata zaman damgaları mevcut READY deploy tarihinden önce. Gerçek değerler Vercel read connector'da `decrypted=false` ve maskelidir | **PASS: Production env anahtarlarının kayıt/target varlığı**. **BİLİNMİYOR:** gerçek URL host/DB ve eski immutable deployment'da uygulanan runtime env. Önceki 'Production anahtarı yok' yorumu, kısaltılmış çıktı üzerinden verildiği için yanlıştı; geri çekildi |
 | Vercel connectors | Proje connector kaydı `[]`; marketplace team `neon` + `prisma` kurulumu mevcut ama ilişkilendirilen `projects=[]` | Entegrasyon kurulu olması uygulamanın Production DB kimliğini kanıtlamaz |
 | Neon bağlamı | `describe_project` ile `calm-band-45633698` / `prolig-pilot` iki bağlı hesaptan **doğrulandı**; `get_default_branch` ile `br-soft-salad-b2vb8sdr` / `main` **PASS** | Liste araması başka varsayılan organizasyona denk gelmiş. **Doğrudan proje-ID erişimi VAR**; yanlış TEST projesi alternatif olamaz |
 | Vercel errors | Node/pg SSL ve URL deprecation uyarı grupları okundu | Tek başına DB MATCH veya outage kanıtı değil; 30 dk current-deployment log grubunda kayıt görülmedi |
 
-**Kesin ayrım:** `Vercel READY` = deployment hazır; `DATABASE_URL` Production metadata'da yok = şu anki proje ayarlarında uyumsuzluk riski; `MATCH=BİLİNMİYOR` = etkin deployment'ın hangi DB host/branch'i kullandığına ilişkin bağımsız runtime kanıtı yok. Bu durum **yanlış DB bağlantısı FAIL** diye ilan edilmez.
+**Kesin ayrım:** `Vercel READY` = deployment hazır; `DATABASE_URL` ve `AUTH_SECRET` Production hedefli metadata **VAR**; maskelenmiş değerlerin içeriği ve etkin deployment'daki gerçek URL **BİLİNMİYOR**. Vercel `decrypt=true` çağrısı bile iki sensitive değeri `decrypted=false`/boş placeholder olarak döndürdü; bu **gerçek değerlerin boş olduğu kanıtı DEĞİLDİR**. `MATCH=BİLİNMİYOR`, 'yanlış DB' FAIL değildir.
 
 ## 1.1 Production Neon meta/veri kurtarma kapasitesi — aynı gün yeni salt-okunur kanıt
 - Bağlı Neon bağlantıları (`Primary` ve `PROLIG Neon`) beklenen `calm-band-45633698` proje ID'si ile `describe_project` çalıştırabildi: `prolig-pilot`, org `org-cold-star-93077958`. Varsayılan org'a göre `list_projects` içinde görünmemiş olması erişimin yokluğu değildir.
@@ -33,7 +33,7 @@
 ### Kapı G0-A — sadece mevcut ortam bilgisi
 - **Yetkili Production operator** Vercel projesinin Production Environment Variables hedefini (değerler gösterilmeden) kontrol eder; `DATABASE_URL` etkin değerinin **var/yok** bilgisini, hangi deployment için etkili olduğunu ve değişkenin kaynağını (project/marketplace/deployment) not eder.
 - Hiçbir `DATABASE_URL`, `AUTH_SECRET`, `TOKEN_PEPPER` vb. gizli değeri GitHub'a, sohbete veya açık log'a yapıştırma. Testin Neon credentials'ını Production'a **ASLA** kopyalama.
-- Projede `DATABASE_URL` kaydı yeni Production deploy için yoksa, bunu **G0-A: FAIL (config future deployment)** olarak raporla; güncel READY deployment'ın runtime URL'si yine `BİLİNMİYOR`.
+- **G0-A: PASS (anahtar metadata varlığı)**: Production hedefli `DATABASE_URL` ve `AUTH_SECRET` kayıtları görüldü; değerleri connector güvenlik gereği açıklamıyor. Buradan `MATCH=true` sonucu çıkarma. İleride secret rotasyonu gerekirse sadece yeni somut işlem/rollback onayıyla, eskisinin üstüne körlemesine yazma.
 
 ### Kapı G0-B — gerçek runtime kanıtı
 - Mevcut Vercel Serverless deployment **değişmez bir artifact**. Repo'ya sonradan eklenen `scripts/ux03_runtime_db_identity_check.mjs` [#109](https://github.com/saliharici/prolig/pull/109) **eski Production fonksiyonunda kendiliğinden çalışmaz**; local/CI/Preview/sandbox sonuçları `26548720` runtime kanıtı olarak sayılmaz.
@@ -45,7 +45,7 @@ G0-B mümkün değilse **yeni geçerli deployment üzerinde** güvenli teşhis u
 
 **Teknik koşullar:**
 - Yeni deployment'da yalnız DB identity check; UX03 JWT/enforcement/migration değişikliği ve P3 migration/storage bayrakları **YOK**.
-- **Önce** proje Production `DATABASE_URL` ve `AUTH_SECRET` hedeflerinin doğru olduğu, mevcut çalışan oturumların kullandığı AUTH_SECRET değerinin **değiştirilmediği** ve gerekli runtime env'nin Vercel'in güvenli mekanizmaları ile hazır bulunduğu teyit edilir. `AUTH_SECRET` rastgele yenilenirse mevcut oturumlar çıkış yapabilir; bu yüzden değer kopyalama/sıfırlama ve yeniden deployment ayrı etki değerlendirmesi ister. Eksikse değişken ekleme işlemi dahi ayrı hedef ve gerekçe ile onaylanır; TEST sırrı kopyalanmaz.
+- **Önce** Production `DATABASE_URL` ve `AUTH_SECRET` env **metadata kayıtları var**: onları yeniden oluşturmak/sıfırlamak değil, mevcut Vercel secret sürümlerini korumak esastır. Gerçek runtime host/DB güvenli kanıtlanmadan deploy'a geçme. `AUTH_SECRET` değişirse mevcut oturumlar çıkış yapabilir; TEST sırrı kopyalanmaz; env secret rotasyonu için ayrı somut kapsam/rollback onayı gerekir.
 - `MATCH` kanıtı eski deployment için değil, **yeni SHA ve deployment ID için** geçerlidir. Sadece dar operatör yetkisi + SSO/IAP; kamuya açık route sıfır; kısa kullanım; erişim ve kapanış audit'i; response/log yalnız Boolean. Vercel'in mevcut oturum kimliği ve server-side auth sınırları ayrıca doğrulanır.
 - Önceden `main 26548720` / deployment `dpl_B3eqisNTSV7iXXvuf8rvAaGuLwSX` kod geri dönüş adayıdır **yalnız DB/oturum şeması veya authVersion değiştirilmediyse**. `authVersion>0` canlıda oluşursa eski JWT sürüm denetimsiz sürüme rollback yasak (ADR-005).
 - Aşamalı geçiş: izole Preview/mock negatif kabul (tekrarsız) → her somut Production env ayarı için ayrı onay → diagnostic deployment için ayrı onay → yalnız kendi runtime `MATCH` → teşhis kapat/kaldır planı.
@@ -78,6 +78,6 @@ G0-B mümkün değilse **yeni geçerli deployment üzerinde** güvenli teşhis u
 **Açık onay:** yalnız bu tek işlem için alınır, diğer etkili işlemlere yayılmaz.
 
 ### Bugünkü durum
-`G0-A = KONFİGÜRASYON RİSKİ`, `G0-B = BİLİNMİYOR`, `G0-C = HAZIRLIK`, `BACKUP/RESTORE = BİLİNMİYOR`; **GO-0 = NO-GO**.
+`G0-A = PASS (Production-sensitive env kayıtlarının varlığı)`, `G0-B = BİLİNMİYOR (etkin runtime DB hedefi)`, `G0-C = YALNIZ HAZIRLIK`, `BACKUP/RESTORE = BİLİNMİYOR`; **GO-0 = NO-GO**.
 
 **Güvenli sonraki sahip:** 03 MİMARİ karar/iş kapsamı → 01 TEST yalnız yeni eksik izole Preview kod/negatif test → 02 CANLI koşullu, ayrı onaylı Prod teşhis/backup. Tek sohbetten takip edilebilir; roller operasyon sınırını tarif eder.
