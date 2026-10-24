@@ -6,6 +6,10 @@
 
 > Kanıt hiyerarşisi: GitHub kod/PR/SHA → ilgili Vercel deployment ve doğru Neon kimliği → tarihli ortak durum → sohbet geçmişi. `PASS (operatör)`, `PASS (araç)`, `READY` ve `PLAN` asla eşit değildir. Bu belge canlı ortamda değişiklik yapma yetkisi vermez.
 
+## Bu plana bağlı uygulama sözleşmeleri
+- [**Tek geçişlik yazar–editör–kitap ve telif kabul matrisi**](PROLIG_TEK_GECIS_YAYIN_FINANS_KABUL_20261024.md): kanonik API durum geçişleri, hangi önceki PASS'ın korunacağı, yalnız eksik E2E bağlantısı ve PostgreSQL çoklu bağlantı finans güvenliği.
+- [**ADR-006 Süper Admin ve çok yayınevi (ÖNERİ)**](ADR006_SUPER_ADMIN_COK_YAYINEVI_20261024.md): kurumlar arası veri izolasyonu, şirket formu, bağımsız DB/Storage seçeneği, tenant A/B negatif kabulü. Production tasarım/uygulama kararı değildir.
+
 ## 0. Başlangıç durumu — gerçek kanıt ve korunacak kazanımlar
 - GitHub `main` en son doğrulanan commit `26548720` (UX-06 Bootstrap responsive public). Vercel Production deployment `dpl_B3eqisNTSV7iXXvuf8rvAaGuLwSX` için READY kaydı bulunuyor. Domain `prolig.vercel.app` Vercel projesine doğrulanmış bağlıdır.
 - #93 profesyonel Soru Stüdyosu P3 kodu main'e squash merge edildi; canlı profesyonel editör kullanıcı görsel PASS. Bu, bütün modüllerin E2E/UAT PASS olması değildir.
