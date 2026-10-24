@@ -239,7 +239,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // A cursor never bypasses the General Coordinator authorization above.
       const rawCursor = req.query.cursor;
       if (rawCursor !== undefined &&
-          (typeof rawCursor !== 'string' || !/^[1-9]\\d*$/.test(rawCursor) ||
+          (typeof rawCursor !== 'string' || !/^[1-9]\d*$/.test(rawCursor) ||
            !Number.isSafeInteger(Number(rawCursor)))) {
         return res.status(400).json({ error: 'Invalid audit cursor' });
       }
