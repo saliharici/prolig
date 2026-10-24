@@ -13,6 +13,7 @@
 |---|---|---|
 | Git & Vercel | `main 26548720`, READY deployment + kanonik alias eşleşti | **PASS deployment/alias**, DB kanıtı DEĞİL |
 | `api/v1/_lib/prisma.ts` | `const connectionString = process.env.DATABASE_URL;` ve değer yoksa `throw new Error("DATABASE_URL is not configured.")` | Runtime'ın doğru env'e ihtiyacı var; `DIRECT_URL` bu API modülünün fallback'i değil |
+| `api/v1/_lib/auth.ts` | `getSecret()` doğrudan `process.env.AUTH_SECRET` okur; değer yoksa hata verir | Vercel current metadata listesinde `AUTH_SECRET` de Production-target olarak görünmüyor; yeni Production redeploy öncesi credential/session güvenliği **zorunlu kontrol** |
 | Vercel env metadata | 96 kayıt; `DATABASE_URL` sadece `development` ve branch-scope `preview`; `target=["production"]` **YOK** | **KONFİGÜRASYON RİSKİ**; mevcut eski deployment'ın runtime snapshot'ı bağımsız kanıtlanmadı |
 | Vercel connectors | Proje connector kaydı `[]`; marketplace team `neon` + `prisma` kurulumu mevcut ama ilişkilendirilen `projects=[]` | Entegrasyon kurulu olması uygulamanın Production DB kimliğini kanıtlamaz |
 | Neon bağlamı | `describe_project` ile `calm-band-45633698` / `prolig-pilot` iki bağlı hesaptan **doğrulandı**; `get_default_branch` ile `br-soft-salad-b2vb8sdr` / `main` **PASS** | Liste araması başka varsayılan organizasyona denk gelmiş. **Doğrudan proje-ID erişimi VAR**; yanlış TEST projesi alternatif olamaz |
@@ -44,7 +45,7 @@ G0-B mümkün değilse **yeni geçerli deployment üzerinde** güvenli teşhis u
 
 **Teknik koşullar:**
 - Yeni deployment'da yalnız DB identity check; UX03 JWT/enforcement/migration değişikliği ve P3 migration/storage bayrakları **YOK**.
-- **Önce** proje Production `DATABASE_URL`/auth secret hedefinin doğru olduğu, gerekli runtime env'nin Vercel'in güvenli mekanizmaları ile hazır bulunduğu teyit edilir. Eksikse değişken ekleme işlemi dahi ayrı hedef ve gerekçe ile onaylanır; TEST sırrı kopyalanmaz.
+- **Önce** proje Production `DATABASE_URL` ve `AUTH_SECRET` hedeflerinin doğru olduğu, mevcut çalışan oturumların kullandığı AUTH_SECRET değerinin **değiştirilmediği** ve gerekli runtime env'nin Vercel'in güvenli mekanizmaları ile hazır bulunduğu teyit edilir. `AUTH_SECRET` rastgele yenilenirse mevcut oturumlar çıkış yapabilir; bu yüzden değer kopyalama/sıfırlama ve yeniden deployment ayrı etki değerlendirmesi ister. Eksikse değişken ekleme işlemi dahi ayrı hedef ve gerekçe ile onaylanır; TEST sırrı kopyalanmaz.
 - `MATCH` kanıtı eski deployment için değil, **yeni SHA ve deployment ID için** geçerlidir. Sadece dar operatör yetkisi + SSO/IAP; kamuya açık route sıfır; kısa kullanım; erişim ve kapanış audit'i; response/log yalnız Boolean. Vercel'in mevcut oturum kimliği ve server-side auth sınırları ayrıca doğrulanır.
 - Önceden `main 26548720` / deployment `dpl_B3eqisNTSV7iXXvuf8rvAaGuLwSX` kod geri dönüş adayıdır **yalnız DB/oturum şeması veya authVersion değiştirilmediyse**. `authVersion>0` canlıda oluşursa eski JWT sürüm denetimsiz sürüme rollback yasak (ADR-005).
 - Aşamalı geçiş: izole Preview/mock negatif kabul (tekrarsız) → her somut Production env ayarı için ayrı onay → diagnostic deployment için ayrı onay → yalnız kendi runtime `MATCH` → teşhis kapat/kaldır planı.
