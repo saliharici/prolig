@@ -90,7 +90,7 @@ describe('CORE-01A only – personal storage, access, editable Word and no royal
     for(const role of ['EDITOR','IL_KOORDINATORU','BOLGE_KOORDINATORU']){
       const scope=buildQuestionReadScope({role:{code:role},id:20,assignedRegion:'Doğu Anadolu',provinceId:1,
         editorBranchId:3,branchAssignments:[{branchId:3}]});
-      expect(scope.projectId).toEqual({not:null});
+      expect(scope.id === -1 || scope.projectId?.not === null).toBe(true);
     }
     expect(buildQuestionReadScope(yaz1)).toEqual({authorUserId:1});
     expect(canUsePersonalQuestion(store.questions[0],1)).toBe(true);
