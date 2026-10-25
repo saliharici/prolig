@@ -39,9 +39,15 @@ vi.mock('../api/v1/_lib/prisma.js', () => {
       createMany:async ({data}:any)=>{store.items.push(...data);return {count:data.length}}
     },
     question:{
-      findMany:async ({where}:any)=>store.questions.filter(q=>where.id.in.includes(q.id)&&
-        q.authorUserId===where.authorUserId&&q.projectId===null&&q.status==='TASLAK'),
-      findFirst:async ({where}:any)=>store.questions.find(q=>q.id===where.id&&q.authorUserId===where.authorUserId&&q.projectId===null&&q.status==='TASLAK')||null,
+      findMany:async ({where,include}:any)=>{
+        if(include?.privateGeometryAssets) throw Error('P3_TABLE_MISSING_IN_CORE01A_TEST');
+        return store.questions.filter(q=>where.id.in.includes(q.id)&&
+        q.authorUserId===where.authorUserId&&q.projectId===null&&q.status==='TASLAK');
+      },
+      findFirst:async ({where,include}:any)=>{
+        if(include?.privateGeometryAssets) throw Error('P3_TABLE_MISSING_IN_CORE01A_TEST');
+        return store.questions.find(q=>q.id===where.id&&q.authorUserId===where.authorUserId&&q.projectId===null&&q.status==='TASLAK')||null;
+      },
       create:async ({data}:any)=>{const q={id:100+store.publisherCopies.length,...data};store.publisherCopies.push(q);return q}
     },
     projectAuthor:{findUnique:async ({where}:any)=>where.projectId_authorProfileId.projectId===21?{
@@ -53,7 +59,7 @@ vi.mock('../api/v1/_lib/prisma.js', () => {
   return {prisma:fake};
 });
 vi.mock('../api/v1/_lib/question-archive.js',()=>({isQuestionArchived:async()=>false}));
-import { handlePersonalQuestionSets, canUsePersonalQuestion, validPersonalQuestionIds } from '../api/v1/_lib/personal-question-sets';
+import { handlePersonalQuestionSets, canUsePersonalQuestion, validPersonalQuestionIds, personalLibraryPreviewEnabled } from '../api/v1/_lib/personal-question-sets';
 import { buildQuestionReadScope, canWorkflowReview } from '../api/v1/_lib/question-access';
 
 const yaz1={id:1,fullName:'Yazar 1',role:{code:'YAZAR'},AuthorProfile:{id:101,branchId:3}};
@@ -151,4 +157,23 @@ describe('CORE-01A only – personal storage, access, editable Word and no royal
     expect(store.publisherCopies[0].status).toBe('TASLAK');
     expect(store.finance).toHaveLength(0);
   });
+  it('P3-free DB no relation queries: Word and copy work without PrivateGeometryAsset table',async()=>{
+    expect(personalLibraryPreviewEnabled({NODE_ENV:'test',PROLIG_P3_PNG_UPLOAD_ENABLED:'true'})).toBe(false);
+    expect(personalLibraryPreviewEnabled({NODE_ENV:'test',PROLIG_P3_BOOK_EXPORT_ENABLED:'true'})).toBe(false);
+    const made=await invoke('personalQuestionSets','POST',yaz1,
+      {title:'P3-free çalışma kâğıdı',questionIds:[11,12]});
+    expect(made.status).toBe(201);
+    const id=made.body.set.id;
+    const student=await invoke('personalQuestionSetDocx','GET',yaz1,{},id,'0');
+    const teacher=await invoke('personalQuestionSetDocx','GET',yaz1,{},id,'1');
+    expect(student.status).toBe(200);
+    expect(teacher.status).toBe(200);
+    expect(unzipStored(teacher.binary!,'word/document.xml')).toContain('Cevap Anahtarı');
+    const result=await invoke('personalQuestionPublishCopy','POST',yaz1,{projectId:21},11);
+    expect(result.status).toBe(201);
+    expect(result.body.royaltiesAccrued).toBe(false);
+    expect(store.finance).toHaveLength(0);
+    expect(store.books).toHaveLength(0);
+  });
+
 });

@@ -14,6 +14,8 @@ const intId = (x: unknown): number | null => {
 };
 
 export function personalLibraryPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  // CORE-01A intentionally uses a P3-free TEST schema. Never silently export or copy private PNGs.
+  if (env.PROLIG_P3_PNG_UPLOAD_ENABLED === 'true' || env.PROLIG_P3_BOOK_EXPORT_ENABLED === 'true') return false;
   if (env.NODE_ENV === 'test') return true;
   if (env.VERCEL_ENV !== 'preview' ||
       env.VERCEL_GIT_COMMIT_REF !== 'feat/core01a-private-question-library-20261025' ||
@@ -124,9 +126,6 @@ function frozenPrivateQuestion(question: any): FrozenBookQuestionV1 {
   if (!['MULTIPLE_CHOICE','TRUE_FALSE','OPEN_ENDED'].includes(type)) {
     throw new PersonalSetError(422, 'Bu soru türü Word aktarımında desteklenmiyor.');
   }
-  if (question.privateGeometryAssets.length) {
-    throw new PersonalSetError(422, 'Özel PNG görselleri kişisel Word çıktısına aktarılmaz.');
-  }
   return {
     schemaVersion: 1,
     sourceQuestionId: question.id, sourceQuestionUpdatedAt: question.updatedAt.toISOString(),
@@ -155,9 +154,9 @@ async function exportPersonalWord(req: VercelRequest, res: VercelResponse, id: n
   const ids = set.items.map((i: any) => i.questionId);
   const questions = await prisma.question.findMany({
     where: { id: { in: ids }, authorUserId: user.id, projectId: null, status: 'TASLAK' },
+    // Do not select PrivateGeometryAsset: that table is absent from CORE-01A TEST by design.
     include: { assets: { orderBy: { sortOrder: 'asc' } },
-      authorUser: { select: { fullName: true } },
-      privateGeometryAssets: { select: { id: true } } }
+      authorUser: { select: { fullName: true } } }
   });
   if (questions.length !== ids.length) throw new PersonalSetError(409, 'Sette artık kişisel olmayan soru var.');
   const byId = new Map(questions.map(q => [q.id, q]));
@@ -186,12 +185,10 @@ async function publishCopy(req: VercelRequest, res: VercelResponse, sourceId: nu
   }
   const source = await prisma.question.findFirst({
     where: { id: sourceId, authorUserId: user.id, projectId: null, status: 'TASLAK' },
-    include: { assets: true, privateGeometryAssets: true }
+    // P3-free Preview: selecting this relation would reference a deliberately absent table.
+    include: { assets: true }
   });
   if (!source || await isQuestionArchived(sourceId)) throw new PersonalSetError(404, 'Kişisel soru bulunamadı.');
-  if (source.privateGeometryAssets.length) {
-    throw new PersonalSetError(422, 'Özel PNG içeren soru bu yolla gönderilemez.');
-  }
   const member = await prisma.projectAuthor.findUnique({
     where: { projectId_authorProfileId: { projectId, authorProfileId: user.AuthorProfile.id } },
     include: { project: { select: { branchId: true, targetGrade: true } } }
