@@ -53,6 +53,22 @@
       "destination": "/api/v1/projects/[id]"
     },
     {
+      "source": "/api/v1/personal-question-sets/:id/docx",
+      "destination": "/api/v1/management?action=personalQuestionSetDocx&id=:id"
+    },
+    {
+      "source": "/api/v1/personal-question-sets/:id",
+      "destination": "/api/v1/management?action=personalQuestionSet&id=:id"
+    },
+    {
+      "source": "/api/v1/personal-question-sets",
+      "destination": "/api/v1/management?action=personalQuestionSets"
+    },
+    {
+      "source": "/api/v1/personal-questions/:id/publish-copy",
+      "destination": "/api/v1/management?action=personalQuestionPublishCopy&id=:id"
+    },
+    {
       "source": "/api/v1/books/:id/docx",
       "destination": "/api/v1/management?action=bookDocx&id=:id"
     },

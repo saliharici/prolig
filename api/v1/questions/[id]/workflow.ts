@@ -38,6 +38,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!question) {
       return res.status(404).json({ error: 'Not found' });
     }
+    // A project-less question never participates in editor approval or royalty accrual.
+    // Return 404 for non-owners, including coordinators, to avoid ID discovery.
+    if (question.projectId === null) {
+      return res.status(question.authorUserId === user.id ? 409 : 404)
+        .json({ error: 'Kişisel soru yayınevi onay akışına girmez.' });
+    }
 
     if (await isQuestionArchived(id)) {
       return res.status(409).json({ error: 'Archived question must be restored before workflow actions' });

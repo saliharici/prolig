@@ -142,6 +142,7 @@ model User {
   AuthorProfile     AuthorProfile?
   Payment           Payment[]
   Question          Question[]
+  personalQuestionSets QuestionSet[]
   booksCreated      Book[] @relation("BookCreatedBy")
   branchAssignments UserBranchAssignment[]
   compensationRulesCreated CompensationRule[] @relation("CompensationRuleCreatedBy")
@@ -597,6 +598,7 @@ model Question {
   compensationEntries CompensationEntry[]
   assets QuestionAsset[]
   privateGeometryAssets PrivateGeometryAsset[]
+  personalSetItems QuestionSetItem[]
   bookQuestions BookQuestion[]
 
   @@index([authorUserId])
@@ -640,3 +642,31 @@ model QuestionAsset {
 
 
 
+
+
+// CORE-01A: personal collections are NOT books, submissions or publishing licenses.
+model QuestionSet {
+  id          Int       @id @default(autoincrement())
+  ownerUserId Int
+  owner       User      @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  title       String
+  revision    Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  items       QuestionSetItem[]
+
+  @@index([ownerUserId, updatedAt])
+}
+
+model QuestionSetItem {
+  id         Int         @id @default(autoincrement())
+  setId      Int
+  set        QuestionSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  questionId Int
+  question   Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  sortOrder  Int
+
+  @@unique([setId, questionId])
+  @@unique([setId, sortOrder])
+  @@index([questionId])
+}
