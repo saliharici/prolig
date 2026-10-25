@@ -26,6 +26,7 @@ export function buildQuestionReadScope(user: any) {
   if (roleCode === 'IL_KOORDINATORU') {
     if (!user.provinceId) return { id: -1 }; // Fail closed
     return {
+      ...publisherOnly,
       authorUser: {
         AuthorProfile: {
           provinceId: user.provinceId
