@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { handlePersonalQuestionSets } from './_lib/personal-question-sets.js';
 import bcrypt from 'bcryptjs';
 import { prisma } from './_lib/prisma.js';
 import { getCurrentUser } from './_lib/current-user.js';
@@ -216,6 +217,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (['personalQuestionSets', 'personalQuestionSet', 'personalQuestionSetDocx', 'personalQuestionPublishCopy'].includes(action)) {
+      return handlePersonalQuestionSets(req, res, user, action);
+    }
     if (action === 'books' || action === 'book' || action === 'bookDocx') {
       return handleBookAction(req, res, user, action);
     }

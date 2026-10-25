@@ -278,6 +278,11 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
   const nextGrade = grade !== undefined ? updateData.grade : question.grade;
 
   if (projectId !== undefined) {
+    // Never turn a private source into a publisher record by editing its projectId.
+    // An explicit authorized COPY action preserves the private original.
+    if (question.projectId === null && projectId !== null) {
+      return res.status(409).json({ error: 'Kişisel soru yalnız ayrı yayınevine gönder eylemiyle kopyalanabilir.' });
+    }
     if (projectId !== null && (typeof projectId !== 'number' || !Number.isSafeInteger(projectId) || projectId <= 0)) {
       return res.status(400).json({ error: 'Invalid projectId' });
     }

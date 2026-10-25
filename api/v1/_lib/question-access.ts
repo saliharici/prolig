@@ -2,14 +2,17 @@ import { editorBranchIds } from './member-access.js';
 
 export function buildQuestionReadScope(user: any) {
   const roleCode = user.role.code;
+  // Personal, project-less questions are always author-private, even for GK.
+  const publisherOnly = { projectId: { not: null } };
 
   if (roleCode === 'GENEL_KOORDINATOR') {
-    return {};
+    return publisherOnly;
   }
 
   if (roleCode === 'BOLGE_KOORDINATORU') {
     if (!user.assignedRegion) return { id: -1 }; // Fail closed
     return {
+      ...publisherOnly,
       authorUser: {
         AuthorProfile: {
           province: {
@@ -42,7 +45,7 @@ export function buildQuestionReadScope(user: any) {
     } else {
       return { id: -1 };
     }
-    const scope: any = { authorUser: { AuthorProfile: profileScope } };
+    const scope: any = { ...publisherOnly, authorUser: { AuthorProfile: profileScope } };
     if (user.editorGrade) scope.grade = user.editorGrade;
     return scope;
   }
@@ -58,6 +61,7 @@ export function buildQuestionReadScope(user: any) {
 }
 
 export function canWorkflowReview(question: any, user: any) {
+  if (question.projectId === null) return false;
   if (user.role.code === 'GENEL_KOORDINATOR') return true;
   if (user.role.code === 'EDITOR') {
     const branchIds = editorBranchIds(user);
