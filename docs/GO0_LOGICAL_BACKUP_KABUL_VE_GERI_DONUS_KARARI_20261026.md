@@ -5,7 +5,8 @@
 ## 1. Mevcut kanıtın kapsamı
 - 25.10.2026: güncel Production deployment-scoped, READ ONLY kimlik gözleminde `PROLIG_GO0_IDENTITY MATCH=true` **OPERATÖR PASS**. Bu sadece söz konusu SHA/deployment içindir.
 - 26.10.2026: operatör V3 konsol çıktısı `pg_dump -Fc` akışından **AES-256-GCM şifreli dosya üretimi ve şifre çözülerek doğrulama PASS**, `postgres:18-alpine` `--network none` izole `pg_restore --exit-on-error` **PASS**, tablo ve kritik kayıt sayımı eşleşmesi **OPERATÖR PASS**.
-- Oluşturulan raporun yalnız konumu biliniyor: `D:\\PROLIG_GIZLI_YEDEK\\prolig_PRODUCTION_20261026_115940_RAPOR.json`. **Rapor dosyasının gerçek içeriği/şifreli arşiv burada incelenmedi; hash, byte büyüklüğü, kritik sayaçların gerçek değerleri bağımsız doğrulanmadı.**
+- **26.10.2026 raporu okundu ve dahili tutarlılık doğrulandı:** `prolig_PRODUCTION_20261026_115940_RAPOR.json`; zaman `2026-10-26T11:59:40.487Z` (Türkiye `14:59:40`); target `calm-band-45633698` / `br-soft-salad-b2vb8sdr` / `neondb` / direct endpoint prefix `ep-aged-rice-b21dkfno.`. `backup=PASS_ENCRYPTED_CRYPTO_VERIFIED`; `restore=PASS_ISOLATED_PG18_COUNTS_MATCH`; `productionWrite=false`, `migration=false`, `snapshotChanged=false`. Arşiv rapor boyutu **137054 bayt**; arşiv SHA-256 **`1fa653ff287c469a3827ffc40ba5a6679d9b0e44d4041ddae49553596a84198f`**. Bu SHA-256 yalnız raporda kayıtlıdır, arşiv baytları erişilebilir olmadığından bağımsız yeniden hesaplanmadı.
+- **Rapor sayaçları:** `sourceBefore == sourceAfter == restored` tüm alanlarda birebir eşit (DB `neondb`; `public_tables=27`, `neon_auth_tables=9`, `users=14`, `questions=8`, `books=4`, `earnings=13`, `payments=1`, `payment_periods=0`, `projects=2`, `roles=6`, `migrations=10`, `migrations_applied=9`). **Ayrı Neon salt-okunur SQL sorgusu aynı 12 sayısal alanın tamamında eşleşti; bu sayıların Production baseline'a uygunluğu ARAÇ-DOĞRULANDI**. Kriptografik şifre çözme ve gerçek izole restore çalışması ise **OPERATÖR PASS**, arşivin içeriği bu sohbet tarafından yeniden restore edilmedi.
 - Önceki 11.10.2026 Neon snapshot `snap-polished-mode-b2ebbvhy` korunuyor; Neon Free planda ikinci manuel snapshot `HTTP 422 snapshots limit exceeded`. **Yeni Neon snapshot/PITR PASS değil.**
 - Bu adımda Production DDL/DML, migration, env, deploy, merge, data deletion, storage/secret aktarımı yok.
 
@@ -18,12 +19,12 @@
 | Kabul kapısı | Durum | Eksik kanıt / koşul |
 |---|---|---|
 | A. Production main SHA + Vercel READY + runtime DB MATCH | **OPERATÖR PASS** | Sadece kayıttaki yeni deployment için |
-| B. Güncel şifreli mantıksal Production yedeği | **OPERATÖR PASS** | Arşiv SHA-256, boyut, raporun gerçek alanları henüz incelenmedi |
-| C. PG18 ağsız izole restore + kritik sayım eşleşmesi | **OPERATÖR PASS** | V3 raporu içindeki kaynağa/kurtarılana ait sayımlar incelenmedi |
+| B. Güncel şifreli mantıksal Production yedeği | **OPERATÖR PASS + RAPOR OKUNDU** | Boyut ve SHA-256 rapordan kaydedildi; gerçek arşiv bayt hash'i bağımsız doğrulanamadı |
+| C. PG18 ağsız izole restore + kritik sayım eşleşmesi | **OPERATÖR PASS + 12/12 SAYIM ARAÇ PASS** | Raporun üç sayı kümesi eşit ve canlı Neon SQL 12 sayısal alan ile aynı; gerçek restorasyonun bağımsız tekrar testi yapılmadı |
 | D. Arşiv saklama ve geri bulunabilirlik | **BİLİNMİYOR** | Doğrulanmış en az 2 ayrı fiziksel/servis kopyası, biri farklı cihaz/konum; erişimi sınırlı, şifreli; parola ayrı güvenli yerde |
 | E. Kurtarma kapsamı ve RPO/RTO | **KISMİ PLAN** | Backup sonrası değişiklik kaybının kabulü, Storage/object ve uygulama env/secret/DB-role sınırları, restore senaryosunda fiili süre RTO: **BİLİNMİYOR** |
 | F. Deploy/rollback + izleme | **KISMİ PLAN** | 02 CANLI operasyon sahibi, değişim sonrası hata eşikleri, gözlem erişim durumu; uygulama giriş/rol smoke; public bundle secret incelemesi |
-| **GO-0 bütünsel** | **NO-GO / KAPANIŞ BEKLİYOR** | D–F ve rapor incelemesi tamamlanmadan tüm Adım 1 PASS yazılmaz |
+| **GO-0 bütünsel** | **KISMİ / NO-GO** | Rapor incelemesi tamamlandı. D–F (bağımsız kopya/parola, kurtarma kapsamı, RPO/RTO, izleme ve güvenli rollback) açık; tüm Adım 1 PASS değil |
 
 ## 4. Tek geçişlik geri dönüş runbook'u (PLAN; Production'da şimdi uygulanmaz)
 1. **Yayın öncesi:** Vercel Production tam SHA/deployment ve Neon project/branch/DB kimliğini doğrula; uygulanacak migration seçici olsun (P3 hariç, root `prisma migrate deploy` yok). Mevcut DB yapısını, migration ledger/checksum'larını, User/Question/Book/CompensationEntry/Payment sayılarını tarihle kaydet. Yüksek etkili yazım öncesinde **yeni**, güncel şifreli mantıksal yedek + izole restore kabulünü ayrıca al. 26.10 tarihli arşiv daha sonraki tarihte otomatik güncel sayılmaz.
@@ -33,7 +34,9 @@
 5. **Karar ve cutover:** Yedek sonrası oluşturulan kullanıcı/soru/kitap/telif/ödeme değişiklikleri için kayıp/uzlaştırma planını yazılı onayla. Tek aktif yazma kaynağı ilkesiyle DNS/Vercel env/database switch/migration/rollback için **ayrı somut Production işlem onayı** al. JWT `authVersion` için güvenli ileri düzeltme kuralına uy.
 6. **Son kabul:** Sağlam restore kaynağı üzerinde login/rol, API, belge çıktısı, kitap snapshot, finans ledger/rapor smoke sonuçlarını değerlendir. Gerçek mali hareket veya gerçek kullanıcı kaydı değiştirme yetkisi bu belgeyle verilmez. RPO ve RTO ancak ölçülen ve kullanıcı tarafından kabul edilmiş değerlerle yazılır; tahminlerden PASS çıkarılmaz.
 
-## 5. Yalnız bir defalık beklenen belge
-Operatör `_RAPOR.json` dosyasını **yerel yolda gizli değer bulunmadığını kontrol edip** çalışma sohbetine eklemelidir (URL, parola, token veya gerçek satır kayıtları **gönderilmez**). İncelenecek salt-okunur alanlar: `kind/date/target`, `backup/restore`, `encryptedBytes/sha256`, `sourceBefore/sourceAfter/restored`, `productionWrite/migration/snapshotChanged`. Sahaya yeniden `pg_dump`, `pg_restore`, migration veya A/B testi yaptırılmaz.
+## 5. Rapor incelemesi kapandı; kalan kanıtlar
+**26.10.2026 `_RAPOR.json` kullanıcı tarafından sağlandı, içeriği incelendi.** Hedef, durum booleans, 12/12 sayım, rapor boyutu/hash alanları tutarlı. Parola, bağlantı URL'si ve veri satırları raporda bulunmuyor. Raporu YENİDEN İSTEME; `pg_dump`, `pg_restore`, migration veya A/B testini tekrarlama.
+
+**Açık kalan tek operasyonel ayrım:** Şifreli arşivin en az iki bağımsız güvenli saklama konumunda bulunması ve parolanın ayrı kurtarılabilirliği bu rapordan kanıtlanamaz. Bunlar sağlansa bile Private Storage/Neon dışı varlıklar, Vercel env/secrets, kabul edilmiş RPO/RTO, güvenli izleme/rollback kapıları ayrıca tanımlanmalı. 26.10 arşivi ilerideki migration öncesi otomatik güncel değildir.
 
 **Bu doküman #108'e bağlı karar eki olup Production yayını, eski snapshot'ı silme veya PR'ı main'e merge etme izni değildir.** Karar güncellemesi ve GO-0 kapanışı: 03 MİMARİ. İleride uygulanacak her Production operasyonu: 02 CANLI + ayrı açık onay.
