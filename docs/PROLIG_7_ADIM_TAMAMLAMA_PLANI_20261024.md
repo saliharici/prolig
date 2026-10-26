@@ -8,9 +8,9 @@
 
 ## 26 Ekim 2026 — GO-0 güncel mantıksal yedek / koşullu kabul
 - Mevcut Production `main 643cc3a524cb54c497cda550980fbc78f999be4d`, deployment `dpl_BWxhBb9PbHiWANZiPHcikzdDXMBc` READY, yeni sürüm runtime DB identity **MATCH=true (OPERATÖR PASS)**.
-- 26 Ekim V3 operatör çıktısı: güncel `pg_dump -Fc` şifreli arşiv ve AES-GCM doğrulama **OPERATÖR PASS**; ağsız izole PostgreSQL 18 restore + kritik sayım eşleşmesi **OPERATÖR PASS**. `_RAPOR.json` ve gerçek arşiv henüz bağımsız incelemeye sunulmadı.
+- 26 Ekim V3: `pg_dump -Fc` şifreli arşiv/AES-GCM ve ağsız PostgreSQL 18 restore **OPERATÖR PASS**. Kullanıcı `_RAPOR.json` dosyasını sundu: JSON alanları incelendi; `sourceBefore=sourceAfter=restored` ve **12 sayısal alan güncel canlı Neon salt-okunur SQL ile eşleşti (ARAÇ PASS)**. Şifreli arşiv 137054 bayt ve SHA-256 değeri raporda kayıtlı; gerçek arşiv bayt hash'i ayrıca hesaplanmadı.
 - Ücretsiz Neon'da güncel snapshot/PITR kapısı **BLOKE**; mevcut 11 Ekim snapshot korunur. 26 Ekim PostgreSQL mantıksal yedeği, **snapshot'ın aynı işlevini sağlamaz**; mimari karar gereği ancak koşullu bir geri kazanım alternatifi olarak değerlendirilebilir.
-- **Adım 1 bütünü HENÜZ PASS DEĞİL:** rapor içeriği, bağımsız/çift konumlu şifreli kopya, ayrı parola saklama, uygulama/Storage/env kapsamı, operasyonel rollback/izleme ve kabul edilebilir RPO/RTO açık. Yeni `pg_dump` veya restore tekrarı istenmez; mevcut kabul korunur.
+- **Adım 1 bütünü HENÜZ PASS DEĞİL:** rapor incelemesi **tamamlandı**; bağımsız/çift konumlu şifreli kopya, parolanın ayrı kurtarılabilirliği, uygulama/Storage/env kapsamı, operasyonel rollback/izleme ve kabul edilebilir RPO/RTO açık. Yeni `pg_dump` veya restore tekrarı istenmez; mevcut kabul korunur.
 - Yeni [**GO-0 mantıksal yedek kabulü ve güvenli geri dönüş kararı (26 Ekim)**](GO0_LOGICAL_BACKUP_KABUL_VE_GERI_DONUS_KARARI_20261026.md), eski tarihli "güncel snapshot şart" ifadelerinin bu koşullu alternatifle birlikte okunması için eklendi. **Migration/deploy/merge yetkisi oluşmadı.**
 
 ## 25 Ekim 2026 güncel operasyon sonucu
