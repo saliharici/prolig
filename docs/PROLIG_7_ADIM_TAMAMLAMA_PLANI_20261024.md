@@ -15,6 +15,11 @@
 - **Adım 1 bütünü HENÜZ PASS DEĞİL:** Rapor incelemesi, ikinci kopya ve ayrı parola operatör teyidi tamamlandı. İkinci kopyanın hash eşitliği, uygulama/Storage/env kapsamı, operasyonel rollback/izleme ve kabul edilebilir RPO/RTO açık. Önceki PASS'ler korunur; yeni yedek/test tekrarı istenmez.
 - Yeni [**GO-0 mantıksal yedek kabulü ve güvenli geri dönüş kararı (26 Ekim)**](GO0_LOGICAL_BACKUP_KABUL_VE_GERI_DONUS_KARARI_20261026.md), eski tarihli "güncel snapshot şart" ifadelerinin bu koşullu alternatifle birlikte okunması için eklendi. **Migration/deploy/merge yetkisi oluşmadı.**
 
+## 26 Ekim 2026 — GO-0 kurtarma/RPO-RTO/izleme mimari paketi
+- [**GO-0 / ADR-007 kurtarma kapsamı ve izleme sözleşmesi**](GO0_KURTARMA_KAPSAMI_RPO_RTO_IZLEME_ADR_20261026.md) yazıldı; Production üzerindeki bugünkü `VIDEO_URL` dış medya referansları, P3 private PNG OFF, Vercel Runtime Errors erişimi ve rollback sınırları belirlendi.
+- **Önerilen hedefler:** işletimde **RPO ≤24 saat** (günlük güncel bağımsız yedekleme olmadan ölçülmüş PASS değil) ve kritik servise güvenli dönüş için **RTO ≤8 saat** (uçtan uca ölçüm olmadan garanti/PASS değil). Belirlenen eşikler ve 0/5/15/30/60 dakika release gözlemi **henüz çalışan otomasyon veya canlı izleme kurulumu değildir**.
+- **Adım 1 kararı değişmedi: KISMİ / NO-GO.** Eksik ana kapılar: ikinci kopyanın SHA eşitliği, süreklilik sağlayan backup cadence/retention, kabul edilen RPO/RTO ve uygulama+env+Storage kurtarma prosedürünün gerçek operasyon koşulları. Eski yedek/restore PASS yeniden yapılmaz; Producton değişikliği ayrı onaya tabidir.
+
 ## 25 Ekim 2026 güncel operasyon sonucu
 - Kullanıcının ayrı canlı yayın onayıyla [PR #112](https://github.com/saliharici/prolig/pull/112) merge edildi, yeni `main` SHA **`643cc3a524cb54c497cda550980fbc78f999be4d`**.
 - Vercel Production **`dpl_BWxhBb9PbHiWANZiPHcikzdDXMBc` READY**, kanonik `prolig.vercel.app` alias eşleşti; `GET /api/v1/health` **HTTP 200**.
