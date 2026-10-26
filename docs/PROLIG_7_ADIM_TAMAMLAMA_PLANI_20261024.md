@@ -20,6 +20,11 @@
 - **Önerilen hedefler:** işletimde **RPO ≤24 saat** (günlük güncel bağımsız yedekleme olmadan ölçülmüş PASS değil) ve kritik servise güvenli dönüş için **RTO ≤8 saat** (uçtan uca ölçüm olmadan garanti/PASS değil). Belirlenen eşikler ve 0/5/15/30/60 dakika release gözlemi **henüz çalışan otomasyon veya canlı izleme kurulumu değildir**.
 - **Adım 1 kararı değişmedi: KISMİ / NO-GO.** Eksik ana kapılar: ikinci kopyanın SHA eşitliği, süreklilik sağlayan backup cadence/retention, kabul edilen RPO/RTO ve uygulama+env+Storage kurtarma prosedürünün gerçek operasyon koşulları. Eski yedek/restore PASS yeniden yapılmaz; Producton değişikliği ayrı onaya tabidir.
 
+## 26 Ekim 2026 — Aşama 1 → Aşama 2 güvenli geçiş kararı
+- **GO-0 MİMARİ ÇERÇEVE: HAZIR** — runtime identity/backup/PG18 restore ve JSON-Neon 12/12 kanıtlar korundu. İki yedek kopyası ve ayrı parola OPERATÖR PASS. Planlanan RPO≤24 saat, RTO≤8 saat **ölçülmüş veya uygulanmış PASS değildir**; hash, yedekleme kadansı, Vercel secret/Storage işletim kurtarma ve cutover açık olduğu için **GO-0 BÜTÜNSEL: KISMİ / Production değişiklikleri NO-GO**.
+- **AŞAMA 2 İZOLE TEST: BAŞLANABİLİR** — [#107](https://github.com/saliharici/prolig/issues/107) TEST PASS korunur. [PR #113](https://github.com/saliharici/prolig/pull/113) DRAFT SHA `c3fe2b4f87df34753403b372b36a8663974f2df5`; yeni CI 875/875 test SUCCESS, UX03 12/12 odaklı SUCCESS, izole ephemeral PG CI SUCCESS, Vercel Preview READY. **Eksik:** #113 Preview'a özel gerçek Neon TEST `DATABASE_URL` ve deployed API/rol/session smoke. Bunu Production ortamına bağlamak YASAK.
+- [**Aşama 2 — 01 TEST tek paket devri**](UX03_ASAMA2_TEST_DEVIR_20261026.md) hazırlandı. Bu devir TEST dalında izolasyon/doğrulama için geçerlidir; PR #113 `main` merge/Production migration/env/deploy izni değildir. Önceki PASS testlerini tekrar etme.
+
 ## 25 Ekim 2026 güncel operasyon sonucu
 - Kullanıcının ayrı canlı yayın onayıyla [PR #112](https://github.com/saliharici/prolig/pull/112) merge edildi, yeni `main` SHA **`643cc3a524cb54c497cda550980fbc78f999be4d`**.
 - Vercel Production **`dpl_BWxhBb9PbHiWANZiPHcikzdDXMBc` READY**, kanonik `prolig.vercel.app` alias eşleşti; `GET /api/v1/health` **HTTP 200**.
