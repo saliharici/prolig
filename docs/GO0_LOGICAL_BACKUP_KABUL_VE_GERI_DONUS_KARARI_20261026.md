@@ -26,6 +26,16 @@
 | F. Deploy/rollback + izleme | **KISMİ PLAN** | 02 CANLI operasyon sahibi, değişim sonrası hata eşikleri, gözlem erişim durumu; uygulama giriş/rol smoke; public bundle secret incelemesi |
 | **GO-0 bütünsel** | **KISMİ / NO-GO** | Rapor+canlı Neon 12/12 ve ikinci kopya/ayrı parola operatör teyidi tamamlandı. İki kopya hash eşitliği bağımsız doğrulanmadı; E–F kurtarma kapsamı, kabul edilmiş RPO/RTO, izleme ve güvenli rollback henüz PASS değil |
 
+## 3.1. Kurtarma kapsamı, RPO/RTO ve izleme sözleşmesi — 26 Ekim
+
+- [**GO-0 / ADR-007 — Kurtarma kapsamı, RPO/RTO, rollback ve izleme**](GO0_KURTARMA_KAPSAMI_RPO_RTO_IZLEME_ADR_20261026.md) belgesi, mevcut canlı Neon ve Vercel kayıtları ile `main` kaynaklarına göre hazırlandı.
+- Salt-okunur Production medya kontrolünde `QuestionAsset=3` (tamamı `VIDEO_URL`), `FileRecord=0`, dolu `Question.imageUrl=0`, dolu kullanıcı `avatarUrl=0`, P3 özel PNG tablosu=0 doğrulandı. Veritabanı bu üç video URL'sini saklar; harici video dosyalarını veya Vercel secret değerlerini saklamaz.
+- **Önerilen RPO hedefi ≤24 saat** ancak günlük güncel ve geri kazanılabilir yedek akışı ile mümkündür. Bugünkü tek yedek, sürekli `RPO≤24h` kanıtı **değildir**.
+- **Önerilen RTO hedefi ≤8 saat**, fakat uygulamaya güvenli dönüş için baştan sona süre ölçümü yapılmadı. Bu bir hizmet garantisi veya PASS değildir.
+- Vercel Runtime Errors erişimi doğrulandı; görülen SSL/`url.parse`/`client.query()` deprecation uyarıları **kendiliğinden SEV-1/outage kanıtı değil**. Yeni alarmlar kurulmadı.
+- JWT `authVersion`, telif/ödeme defterleri, soru ve kitap snapshot'ları nedeniyle Production ana DB'ye doğrudan restore veya kör rollback yapılmaz. İzole kurtarma/uzlaştırma ve ayrı somut işlem onayı zorunludur.
+- **Mimari politika tanımlandı; işletimsel uygulama tamamlanmadı.** D–F kapılarının tümü PASS olmadan GO-0 bütünü **KISMİ / NO-GO** olarak kalır.
+
 ## 4. Tek geçişlik geri dönüş runbook'u (PLAN; Production'da şimdi uygulanmaz)
 1. **Yayın öncesi:** Vercel Production tam SHA/deployment ve Neon project/branch/DB kimliğini doğrula; uygulanacak migration seçici olsun (P3 hariç, root `prisma migrate deploy` yok). Mevcut DB yapısını, migration ledger/checksum'larını, User/Question/Book/CompensationEntry/Payment sayılarını tarihle kaydet. Yüksek etkili yazım öncesinde **yeni**, güncel şifreli mantıksal yedek + izole restore kabulünü ayrıca al. 26.10 tarihli arşiv daha sonraki tarihte otomatik güncel sayılmaz.
 2. **Saklama:** Yedeğin iki bağımsız şifreli kopyasını ve SHA-256 eşitliğini kanıtla; parolayı aynı konumda saklama. Başarısız kopya/parola kaybında GO verme. Yedek dosyasını repo, sohbete veya public storage'a koyma.
