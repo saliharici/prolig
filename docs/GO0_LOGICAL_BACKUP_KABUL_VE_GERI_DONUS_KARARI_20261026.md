@@ -21,10 +21,10 @@
 | A. Production main SHA + Vercel READY + runtime DB MATCH | **OPERATÖR PASS** | Sadece kayıttaki yeni deployment için |
 | B. Güncel şifreli mantıksal Production yedeği | **OPERATÖR PASS + RAPOR OKUNDU** | Boyut ve SHA-256 rapordan kaydedildi; gerçek arşiv bayt hash'i bağımsız doğrulanamadı |
 | C. PG18 ağsız izole restore + kritik sayım eşleşmesi | **OPERATÖR PASS + 12/12 SAYIM ARAÇ PASS** | Raporun üç sayı kümesi eşit ve canlı Neon SQL 12 sayısal alan ile aynı; gerçek restorasyonun bağımsız tekrar testi yapılmadı |
-| D. Arşiv saklama ve geri bulunabilirlik | **BİLİNMİYOR** | Doğrulanmış en az 2 ayrı fiziksel/servis kopyası, biri farklı cihaz/konum; erişimi sınırlı, şifreli; parola ayrı güvenli yerde |
+| D. Arşiv saklama ve geri bulunabilirlik | **İKİNCİ KOPYA OPERATÖR PASS / TAM KAPANIŞ BEKLİYOR** | Kullanıcı 26.10.2026'da ikinci kopyayı farklı güvenli konuma aldığını doğruladı; iki kopyanın SHA-256 eşitliği, erişim korunumu ve şifreleme parolasının ayrı kurtarılabilirliği henüz kanıtlanmadı |
 | E. Kurtarma kapsamı ve RPO/RTO | **KISMİ PLAN** | Backup sonrası değişiklik kaybının kabulü, Storage/object ve uygulama env/secret/DB-role sınırları, restore senaryosunda fiili süre RTO: **BİLİNMİYOR** |
 | F. Deploy/rollback + izleme | **KISMİ PLAN** | 02 CANLI operasyon sahibi, değişim sonrası hata eşikleri, gözlem erişim durumu; uygulama giriş/rol smoke; public bundle secret incelemesi |
-| **GO-0 bütünsel** | **KISMİ / NO-GO** | Rapor incelemesi tamamlandı. D–F (bağımsız kopya/parola, kurtarma kapsamı, RPO/RTO, izleme ve güvenli rollback) açık; tüm Adım 1 PASS değil |
+| **GO-0 bütünsel** | **KISMİ / NO-GO** | Rapor incelemesi ve ikinci kopyanın alındığına dair operatör beyanı tamamlandı. D kopya/hash/parola kurtarılabilirliği ve E–F kurtarma kapsamı, RPO/RTO, izleme ve güvenli rollback henüz tam PASS değil |
 
 ## 4. Tek geçişlik geri dönüş runbook'u (PLAN; Production'da şimdi uygulanmaz)
 1. **Yayın öncesi:** Vercel Production tam SHA/deployment ve Neon project/branch/DB kimliğini doğrula; uygulanacak migration seçici olsun (P3 hariç, root `prisma migrate deploy` yok). Mevcut DB yapısını, migration ledger/checksum'larını, User/Question/Book/CompensationEntry/Payment sayılarını tarihle kaydet. Yüksek etkili yazım öncesinde **yeni**, güncel şifreli mantıksal yedek + izole restore kabulünü ayrıca al. 26.10 tarihli arşiv daha sonraki tarihte otomatik güncel sayılmaz.
@@ -37,6 +37,6 @@
 ## 5. Rapor incelemesi kapandı; kalan kanıtlar
 **26.10.2026 `_RAPOR.json` kullanıcı tarafından sağlandı, içeriği incelendi.** Hedef, durum booleans, 12/12 sayım, rapor boyutu/hash alanları tutarlı. Parola, bağlantı URL'si ve veri satırları raporda bulunmuyor. Raporu YENİDEN İSTEME; `pg_dump`, `pg_restore`, migration veya A/B testini tekrarlama.
 
-**Açık kalan tek operasyonel ayrım:** Şifreli arşivin en az iki bağımsız güvenli saklama konumunda bulunması ve parolanın ayrı kurtarılabilirliği bu rapordan kanıtlanamaz. Bunlar sağlansa bile Private Storage/Neon dışı varlıklar, Vercel env/secrets, kabul edilmiş RPO/RTO, güvenli izleme/rollback kapıları ayrıca tanımlanmalı. 26.10 arşivi ilerideki migration öncesi otomatik güncel değildir.
+**26.10.2026 kullanıcı teyidi:** Şifreli arşivin ikinci bir haricî disk veya farklı güvenli depolama alanına kopyalandığı **OPERATÖR PASS**. Yedek içeriği tekrar gönderilmeyecek; saklama ortamının ayrıntıları bilinmiyor. İki dosyanın SHA-256 eşitliği ve parolanın ayrı kurtarılabilirliği bağımsız doğrulanmadı. Private Storage/Neon dışı varlıklar, Vercel env/secrets, kabul edilmiş RPO/RTO, güvenli izleme/rollback kapıları ayrıca tanımlanmalı. 26.10 arşivi ilerideki migration öncesi otomatik güncel değildir.
 
 **Bu doküman #108'e bağlı karar eki olup Production yayını, eski snapshot'ı silme veya PR'ı main'e merge etme izni değildir.** Karar güncellemesi ve GO-0 kapanışı: 03 MİMARİ. İleride uygulanacak her Production operasyonu: 02 CANLI + ayrı açık onay.
