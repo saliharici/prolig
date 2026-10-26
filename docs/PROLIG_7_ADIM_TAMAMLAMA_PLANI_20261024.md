@@ -6,6 +6,13 @@
 
 > Kanıt hiyerarşisi: GitHub kod/PR/SHA → ilgili Vercel deployment ve doğru Neon kimliği → tarihli ortak durum → sohbet geçmişi. `PASS (operatör)`, `PASS (araç)`, `READY` ve `PLAN` asla eşit değildir. Bu belge canlı ortamda değişiklik yapma yetkisi vermez.
 
+## 26 Ekim 2026 — GO-0 güncel mantıksal yedek / koşullu kabul
+- Mevcut Production `main 643cc3a524cb54c497cda550980fbc78f999be4d`, deployment `dpl_BWxhBb9PbHiWANZiPHcikzdDXMBc` READY, yeni sürüm runtime DB identity **MATCH=true (OPERATÖR PASS)**.
+- 26 Ekim V3 operatör çıktısı: güncel `pg_dump -Fc` şifreli arşiv ve AES-GCM doğrulama **OPERATÖR PASS**; ağsız izole PostgreSQL 18 restore + kritik sayım eşleşmesi **OPERATÖR PASS**. `_RAPOR.json` ve gerçek arşiv henüz bağımsız incelemeye sunulmadı.
+- Ücretsiz Neon'da güncel snapshot/PITR kapısı **BLOKE**; mevcut 11 Ekim snapshot korunur. 26 Ekim PostgreSQL mantıksal yedeği, **snapshot'ın aynı işlevini sağlamaz**; mimari karar gereği ancak koşullu bir geri kazanım alternatifi olarak değerlendirilebilir.
+- **Adım 1 bütünü HENÜZ PASS DEĞİL:** rapor içeriği, bağımsız/çift konumlu şifreli kopya, ayrı parola saklama, uygulama/Storage/env kapsamı, operasyonel rollback/izleme ve kabul edilebilir RPO/RTO açık. Yeni `pg_dump` veya restore tekrarı istenmez; mevcut kabul korunur.
+- Yeni [**GO-0 mantıksal yedek kabulü ve güvenli geri dönüş kararı (26 Ekim)**](GO0_LOGICAL_BACKUP_KABUL_VE_GERI_DONUS_KARARI_20261026.md), eski tarihli "güncel snapshot şart" ifadelerinin bu koşullu alternatifle birlikte okunması için eklendi. **Migration/deploy/merge yetkisi oluşmadı.**
+
 ## 25 Ekim 2026 güncel operasyon sonucu
 - Kullanıcının ayrı canlı yayın onayıyla [PR #112](https://github.com/saliharici/prolig/pull/112) merge edildi, yeni `main` SHA **`643cc3a524cb54c497cda550980fbc78f999be4d`**.
 - Vercel Production **`dpl_BWxhBb9PbHiWANZiPHcikzdDXMBc` READY**, kanonik `prolig.vercel.app` alias eşleşti; `GET /api/v1/health` **HTTP 200**.
