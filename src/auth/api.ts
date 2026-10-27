@@ -5,7 +5,7 @@ export const validateRole = (role: any): Role | null => {
   const validRoles: Role[] = [
     'GENEL_KOORDINATOR',
     'BOLGE_KOORDINATORU',
-    'IL_KOORDINATORU',
+    'BRANS_KOORDINATORU',
     'EDITOR',
     'YAZAR',
     'MUHASEBE'

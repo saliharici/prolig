@@ -16,6 +16,48 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Only built for the dedicated, Vercel-protected PRO-LIG TEST Preview branch.
+  const testAdminAvailable = import.meta.env.VITE_TEST_ADMIN_SETUP === 'true'
+    && window.location.hostname.endsWith('.vercel.app');
+  const [showTestSetup, setShowTestSetup] = useState(false);
+  const [testPassword, setTestPassword] = useState('');
+  const [testPasswordAgain, setTestPasswordAgain] = useState('');
+  const [testSetupLoading, setTestSetupLoading] = useState(false);
+
+  const setupTestAdmin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    if (testPassword.length < 10 || testPassword !== testPasswordAgain) {
+      setError('TEST şifresi en az 10 karakter olmalı ve iki giriş aynı olmalı.');
+      return;
+    }
+    setTestSetupLoading(true);
+    try {
+      const response = await fetch('/api/v1/auth/test-admin', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: testPassword })
+      });
+      if (response.status === 409) {
+        setShowTestSetup(false);
+        setEmail('preview-admin@prolig.invalid');
+        setError('TEST yönetici hesabı zaten oluşturulmuş. Normal giriş bölümünden şifrenizi kullanın.');
+        return;
+      }
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(typeof body.error === 'string' ? body.error : 'TEST yöneticisi oluşturulamadı.');
+      }
+      setTestPassword('');
+      setTestPasswordAgain('');
+      onLoginSuccess();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'TEST yönetici hesabı oluşturulamadı.');
+    } finally {
+      setTestSetupLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +129,30 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
             {loading ? 'Giriş yapılıyor...' : <ArrowRight size={18} aria-hidden="true"/>}
           </button>
         </form>
+        {testAdminAvailable && <div style={{ marginTop: 18, padding: 14, background: '#eff8f5', border: '1px solid #cde6df', borderRadius: 12 }}>
+          <strong style={{ display: 'block', fontSize: 13, marginBottom: 8, color: '#215f54' }}>Ayrı TEST Yönetici Girişi</strong>
+          <p style={{ fontSize: 12, lineHeight: 1.6, margin: '0 0 10px', color: '#4e756e' }}>
+            Canlı hesabınız etkilenmez. İlk kullanımda kendi TEST şifrenizi burada belirleyin;
+            sonraki girişlerde <strong>preview-admin@prolig.invalid</strong> hesabını kullanın.
+          </p>
+          <button type="button" className="ux02-login-back" onClick={() => { setShowTestSetup(value => !value); setError(null); }}
+            style={{ marginBottom: showTestSetup ? 12 : 0 }}>
+            {showTestSetup ? 'TEST hesabı oluşturmayı kapat' : 'İlk TEST yönetici hesabımı oluştur'}
+          </button>
+          {showTestSetup && <form onSubmit={setupTestAdmin} style={{ display: 'grid', gap: 9 }}>
+            <label htmlFor="test-admin-pass" style={{ fontSize: 12 }}>Yeni TEST şifreniz</label>
+            <input id="test-admin-pass" type="password" minLength={10} required autoComplete="new-password"
+              value={testPassword} onChange={event => setTestPassword(event.target.value)}
+              style={{ padding: 11, borderRadius: 8, border: '1px solid #c1d9d4' }}/>
+            <label htmlFor="test-admin-confirm" style={{ fontSize: 12 }}>TEST şifrenizi tekrar yazın</label>
+            <input id="test-admin-confirm" type="password" minLength={10} required autoComplete="new-password"
+              value={testPasswordAgain} onChange={event => setTestPasswordAgain(event.target.value)}
+              style={{ padding: 11, borderRadius: 8, border: '1px solid #c1d9d4' }}/>
+            <button type="submit" className="ux02-login-submit" disabled={testSetupLoading}>
+              {testSetupLoading ? 'TEST hesabı oluşturuluyor…' : 'TEST hesabını oluştur ve giriş yap'}
+            </button>
+          </form>}
+        </div>}
         <div className="ux02-login-trust"><ShieldCheck size={17} aria-hidden="true"/><span>Yetkileriniz yalnızca doğrulanmış oturumunuza göre belirlenir.</span></div>
       </section>
     </main>
