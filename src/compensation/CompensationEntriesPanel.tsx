@@ -7,7 +7,7 @@ import './compensation.css';
 const roleLabels: Record<CompensationRole, string> = {
   YAZAR: 'Yazar',
   EDITOR: 'Editör',
-  IL_KOORDINATORU: 'İl Koordinatörü',
+  BRANS_KOORDINATORU: 'Branş Koordinatörü',
   BOLGE_KOORDINATORU: 'Bölge Koordinatörü',
   GENEL_KOORDINATOR: 'Genel Koordinatör'
 };
