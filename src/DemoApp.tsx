@@ -794,7 +794,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     }, [section, currentUser.role]);
     useEffect(() => {
       if (section !== 'authors') return;
-      if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role)) return;
+      if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'].includes(currentUser.role)) return;
       fetchTasks().then(setAuthorInsightTasks).catch(() => setAuthorInsightTasks([]));
     }, [section, currentUser.role]);
     useEffect(() => {
@@ -895,7 +895,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const questionLevels = Object.keys(gradesByLevel);
   const questionGrades = gradesByLevel[questionLevel] || [];
   const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
-  const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role);
+  const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'].includes(currentUser.role);
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
   // Keep P1/P1-D payloads unchanged unless the separate multi-type UI flag is enabled.
   const guidedStudioOn = questionStudioReleaseFlags.guidedP2;
@@ -1774,7 +1774,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 
   const canArchiveQuestionUi = (q: ApiQuestion) => {
     if (currentUser.role === 'GENEL_KOORDINATOR') return true;
-    if (['BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(currentUser.role)) return q.status !== 'INCELEMEDE';
+    if (['BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(currentUser.role)) return q.status !== 'INCELEMEDE';
     if (currentUser.role === 'EDITOR') return ['ONAYLANDI','REDDEDILDI'].includes(q.status);
     if (currentUser.role === 'YAZAR') return q.author?.id === currentUser.id && ['TASLAK','REVIZYON','REDDEDILDI'].includes(q.status);
     return false;
@@ -1782,7 +1782,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 
   const canRestoreQuestionUi = (q: ApiQuestion) => {
     if (currentUser.role === 'GENEL_KOORDINATOR') return true;
-    if (['BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(currentUser.role)) return true;
+    if (['BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(currentUser.role)) return true;
     if (currentUser.role === 'EDITOR') return ['ONAYLANDI','REDDEDILDI'].includes(q.status);
     if (currentUser.role === 'YAZAR') return q.author?.id === currentUser.id && ['TASLAK','REVIZYON','REDDEDILDI'].includes(q.status);
     return false;
@@ -1790,7 +1790,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 
   const canDeleteQuestionUi = (q: ApiQuestion) => {
     if (currentUser.role === 'GENEL_KOORDINATOR') return true;
-    if (['BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(currentUser.role)) return q.isArchived && ['TASLAK','REVIZYON','REDDEDILDI'].includes(q.status);
+    if (['BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(currentUser.role)) return q.isArchived && ['TASLAK','REVIZYON','REDDEDILDI'].includes(q.status);
     if (currentUser.role === 'EDITOR') return q.isArchived && q.status === 'REDDEDILDI';
     if (currentUser.role === 'YAZAR') return q.author?.id === currentUser.id && ['TASLAK','REVIZYON','REDDEDILDI'].includes(q.status);
     return false;

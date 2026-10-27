@@ -6,7 +6,7 @@ import type { PaymentPeriod, PaymentPeriodStatus } from './types';
 import { roleLabels } from '../demo/model';
 import './compensation.css';
 
-const earningLabels: Record<string, string> = { QUESTION_AUTHOR: 'Soru telifi', QUESTION_EDITOR: 'Editör incelemesi', PROJECT_PROVINCE_COORDINATOR: 'İl koordinasyonu', PROJECT_REGION_COORDINATOR: 'Bölge koordinasyonu', PROJECT_GENERAL_COORDINATOR: 'Genel koordinasyon' };
+const earningLabels: Record<string, string> = { QUESTION_AUTHOR: 'Soru telifi', QUESTION_EDITOR: 'Editör incelemesi', PROJECT_PROVINCE_COORDINATOR: 'Branş koordinasyonu', PROJECT_REGION_COORDINATOR: 'Bölge koordinasyonu', PROJECT_GENERAL_COORDINATOR: 'Genel koordinasyon' };
 const labels: Record<PaymentPeriodStatus, string> = { TASLAK: 'Taslak', HAZIR: 'Hazır', ONAYLANDI: 'Ödeme sürecinde', KAPANDI: 'Kapandı', IPTAL: 'İptal' };
 const money = (value: string) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(value));
 const date = (value: string) => new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));

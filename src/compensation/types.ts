@@ -1,7 +1,7 @@
 export type CompensationRole =
   | 'YAZAR'
   | 'EDITOR'
-  | 'IL_KOORDINATORU'
+  | 'BRANS_KOORDINATORU'
   | 'BOLGE_KOORDINATORU'
   | 'GENEL_KOORDINATOR';
 

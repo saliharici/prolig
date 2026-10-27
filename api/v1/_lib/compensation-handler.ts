@@ -5,7 +5,7 @@ import { prisma } from './prisma.js';
 const roleRuleMap = {
   YAZAR: { earningType: 'QUESTION_AUTHOR', unitType: 'QUESTION' },
   EDITOR: { earningType: 'QUESTION_EDITOR', unitType: 'QUESTION' },
-  IL_KOORDINATORU: { earningType: 'PROJECT_PROVINCE_COORDINATOR', unitType: 'PROJECT' },
+  BRANS_KOORDINATORU: { earningType: 'PROJECT_PROVINCE_COORDINATOR', unitType: 'PROJECT' },
   BOLGE_KOORDINATORU: { earningType: 'PROJECT_REGION_COORDINATOR', unitType: 'PROJECT' },
   GENEL_KOORDINATOR: { earningType: 'PROJECT_GENERAL_COORDINATOR', unitType: 'PROJECT' }
 } as const;
@@ -121,7 +121,7 @@ export async function handleCompensationAction(
   action: 'compensationRules' | 'compensationRule' | 'compensationEntries'
 ) {
   if (action === 'compensationEntries') {
-    if (!user?.id || !['GENEL_KOORDINATOR', 'MUHASEBE', 'YAZAR', 'EDITOR', 'IL_KOORDINATORU', 'BOLGE_KOORDINATORU'].includes(user?.role?.code)) return res.status(403).json({ error: 'Forbidden' });
+    if (!user?.id || !['GENEL_KOORDINATOR', 'MUHASEBE', 'YAZAR', 'EDITOR', 'BRANS_KOORDINATORU', 'BOLGE_KOORDINATORU'].includes(user?.role?.code)) return res.status(403).json({ error: 'Forbidden' });
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
     return listEntries(req, res, user);
   }

@@ -13,7 +13,7 @@ import { handleCompensationAction } from './_lib/compensation-handler.js';
 import { handleBookAction } from './_lib/book-handler.js';
 import { maybeLogGo0IdentityOnce } from './_lib/go0-db-attestation.js';
 
-const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
+const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
 
 async function ensureCanonicalBranches() {
@@ -72,9 +72,11 @@ async function validateAssignment(actor: any, payload: any) {
   if (provinceId && !province) return { error: 'Unknown province' } as const;
   if (province && actor.role.code !== 'GENEL_KOORDINATOR' && !canViewProvince(actor, province)) return { error: 'Province is outside your scope' } as const;
   if (actor.role.code === 'BOLGE_KOORDINATORU' && assignedRegion && assignedRegion !== actor.assignedRegion) return { error: 'Region is outside your scope' } as const;
-  if (actor.role.code === 'IL_KOORDINATORU' && assignedRegion) return { error: 'Province coordinator cannot assign a region-wide scope' } as const;
+  // Branch coordinator scopes are defined by assigned branches, not geography.
   if (roleCode === 'BOLGE_KOORDINATORU' && !assignedRegion) return { error: 'Region is required' } as const;
-  if (roleCode === 'IL_KOORDINATORU' && !province) return { error: 'Province is required' } as const;
+  if (roleCode === 'BRANS_KOORDINATORU' && (branchIds.length === 0 || provinceId !== null || assignedRegion)) {
+    return { error: 'Branch coordinator needs one or more branches and no geographic scope' } as const;
+  }
   if (roleCode === 'EDITOR' && (branchIds.length === 0 || (!province && !assignedRegion) || (province && assignedRegion))) {
     return { error: 'Editor requires branches and exactly one geographic scope' } as const;
   }
@@ -92,12 +94,12 @@ async function applyAssignment(tx: any, userId: number, v: any, status: string) 
   await tx.user.update({ where: { id: userId }, data: {
     roleId: role.id, status,
     assignedRegion: v.roleCode === 'BOLGE_KOORDINATORU' || (v.roleCode === 'EDITOR' && v.assignedRegion) ? v.assignedRegion : null,
-    provinceId: ['IL_KOORDINATORU','YAZAR','EDITOR'].includes(v.roleCode) && v.provinceId ? v.provinceId : null,
+    provinceId: ['YAZAR','EDITOR'].includes(v.roleCode) && v.provinceId ? v.provinceId : null,
     editorBranchId: v.roleCode === 'EDITOR' ? (v.branchIds[0] ?? null) : null,
     editorGrade: v.roleCode === 'EDITOR' ? v.editorGrade : null
   }});
   await tx.userBranchAssignment.deleteMany({ where: { userId } });
-  if (v.roleCode === 'EDITOR' && v.branchIds.length) {
+  if (['EDITOR','BRANS_KOORDINATORU'].includes(v.roleCode) && v.branchIds.length) {
     await tx.userBranchAssignment.createMany({ data: v.branchIds.map((branchId: number) => ({ userId, branchId })) });
   }
   const existingAuthor = await tx.authorProfile.findUnique({ where: { userId } });
@@ -122,10 +124,8 @@ async function applyAssignment(tx: any, userId: number, v: any, status: string) 
 async function targetInActorScope(actor: any, target: any) {
   if (actor.role.code === 'GENEL_KOORDINATOR') return true;
   const actorRole = actor.role.code;
-  if (!['BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(actorRole)) return false;
-  const allowedTargetRoles = actorRole === 'BOLGE_KOORDINATORU'
-    ? ['IL_KOORDINATORU','EDITOR','YAZAR']
-    : ['EDITOR','YAZAR'];
+  if (actorRole !== 'BOLGE_KOORDINATORU') return false;
+  const allowedTargetRoles = ['EDITOR','YAZAR'];
   if (!allowedTargetRoles.includes(target.role.code)) return false;
   if (target.assignedRegion) return actorRole === 'BOLGE_KOORDINATORU' && target.assignedRegion === actor.assignedRegion;
   const provinceId = target.province?.id ?? target.AuthorProfile?.provinceId;
@@ -293,7 +293,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ users: users.map(userDto) });
     }
     if (action === 'users' && req.method === 'POST') {
-      if (!['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
+      if (!['GENEL_KOORDINATOR','BOLGE_KOORDINATORU'].includes(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
       const fullName = clean(req.body?.fullName,120,true);
       const email = clean(req.body?.email,200,true)?.toLowerCase() || null;
       const password = clean(req.body?.password,200,true);
@@ -405,7 +405,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (action === 'user' && req.method === 'PATCH') {
-      if (!['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
+      if (!['GENEL_KOORDINATOR','BOLGE_KOORDINATORU'].includes(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
       const id = positiveInt(req.query.id);
       if (!id) return res.status(400).json({ error: 'Invalid ID' });
       if (id === user.id) return res.status(409).json({ error: 'Self role changes are not allowed here' });

@@ -10,7 +10,7 @@ import type { AuthorPerformanceReport, ComparisonDimension } from './author-perf
 import './author-comparison.css';
 
 const reportRoles: Role[] = [
-  'GENEL_KOORDINATOR', 'MUHASEBE', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'
+  'GENEL_KOORDINATOR', 'MUHASEBE', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'
 ];
 
 function downloadCsv(content: string, filename: string) {

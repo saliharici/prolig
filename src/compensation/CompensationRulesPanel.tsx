@@ -18,7 +18,7 @@ const roleOptions: Array<{
 }> = [
   { code: 'YAZAR', label: 'Yazar', unitLabel: 'Onaylanan soru başına', explanation: 'Soru ONAYLANDI olduğunda yazar telifi oluşur.' },
   { code: 'EDITOR', label: 'Editör', unitLabel: 'Sonuçlandırılan soru başına', explanation: 'Soru inceleme süreci sonuçlandığında editör ücreti oluşur.' },
-  { code: 'IL_KOORDINATORU', label: 'İl Koordinatörü', unitLabel: 'Tamamlanan proje başına', explanation: 'Proje tamamlandığında il koordinasyon ücreti oluşur.' },
+  { code: 'BRANS_KOORDINATORU', label: 'Branş Koordinatörü', unitLabel: 'Tamamlanan proje başına', explanation: 'Proje tamamlandığında branş koordinasyon ücreti oluşur.' },
   { code: 'BOLGE_KOORDINATORU', label: 'Bölge Koordinatörü', unitLabel: 'Tamamlanan proje başına', explanation: 'Proje tamamlandığında bölge koordinasyon ücreti oluşur.' },
   { code: 'GENEL_KOORDINATOR', label: 'Genel Koordinatör', unitLabel: 'Tamamlanan proje başına', explanation: 'İstenirse proje tamamlanmasında genel koordinasyon ücreti oluşturulur.' }
 ];

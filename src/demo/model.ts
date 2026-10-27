@@ -1,4 +1,4 @@
-export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'IL_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
+export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'BRANS_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
 export type Section = 'overview' | 'grades' | 'questions' | 'publishing' | 'projects' | 'tasks' | 'messages' | 'announcements' | 'authors' | 'reports' | 'payments' | 'members' | 'roles' | 'audit';
 export type QuestionStatus = 'Taslak' | 'İncelemede' | 'Revizyon' | 'Onaylandı' | 'Reddedildi';
 export type PaymentStatus = 'Bekliyor' | 'Onaylandı' | 'Ödendi';
@@ -45,7 +45,7 @@ export interface Author {
   activeProjects: number;
   levels: string[];
   status: 'Aktif' | 'Davet edildi';
-  roleType?: 'Yazar' | 'İl Koordinatörü';
+  roleType?: 'Yazar' | 'Branş Koordinatörü';
 }
 
 export interface Payment {
@@ -78,7 +78,7 @@ export interface DemoData {
 export const roleLabels: Record<Role, string> = {
   GENEL_KOORDINATOR: 'Genel Koordinatör',
   BOLGE_KOORDINATORU: 'Bölge Koordinatörü',
-    IL_KOORDINATORU: 'İl Koordinatörü',
+    BRANS_KOORDINATORU: 'Branş Koordinatörü',
   EDITOR: 'Editör',
   YAZAR: 'Yazar',
   MUHASEBE: 'Muhasebe',
@@ -87,7 +87,7 @@ export const roleLabels: Record<Role, string> = {
 export const rolePeople: Record<Role, string> = {
   GENEL_KOORDINATOR: 'Deniz Aydın',
   BOLGE_KOORDINATORU: 'Bölge Koordinatörü',
-    IL_KOORDINATORU: 'İl Koordinatörü',
+    BRANS_KOORDINATORU: 'Branş Koordinatörü',
   EDITOR: 'Selin Arslan',
   YAZAR: 'Ayşe Yılmaz',
   MUHASEBE: 'Mert Kaya',
@@ -113,7 +113,7 @@ export const sectionLabels: Record<Section, string> = {
 export const permissions: Record<Role, Section[]> = {
   GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'publishing', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments', 'members', 'roles', 'audit'],
   BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members', 'payments'],
-    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members', 'payments'],
+    BRANS_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments'],
   EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
   YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
   MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements', 'reports'],
@@ -122,7 +122,7 @@ export const permissions: Record<Role, Section[]> = {
 export const dataScopes: Record<Role, string> = {
   GENEL_KOORDINATOR: 'Tüm örnek kayıtlar',
   BOLGE_KOORDINATORU: 'Bölge Koordinatörü',
-    IL_KOORDINATORU: 'İl Koordinatörü',
+    BRANS_KOORDINATORU: 'Atanmış branşlar ve projeler',
   EDITOR: 'Tüm sorular ve proje özetleri',
   YAZAR: 'Kendi soruları ve atanmış proje',
   MUHASEBE: 'Telif ve ödeme kayıtları ile proje bağlamı',
@@ -133,10 +133,10 @@ export const actionPermissions: { label: string; roles: Role[] }[] = [
   { label: 'Kendi sorusunu incelemeye gönder', roles: ['YAZAR'] },
   { label: 'Soruyu onayla / revizyona gönder', roles: ['EDITOR', 'GENEL_KOORDINATOR'] },
   { label: 'Onaylı sorulardan kitap baskı önizlemesi oluştur', roles: ['GENEL_KOORDINATOR'] },
-  { label: 'Görev oluştur / ata', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'] },
-  { label: 'Kendi görev durumunu ilerlet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR'] },
-  { label: 'Yetki kapsamına mesaj gönder', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE'] },
-  { label: 'Duyuru yayınla / yönet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'] },
+  { label: 'Görev oluştur / ata', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'] },
+  { label: 'Kendi görev durumunu ilerlet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR', 'YAZAR'] },
+  { label: 'Yetki kapsamına mesaj gönder', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE'] },
+  { label: 'Duyuru yayınla / yönet', roles: ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'] },
   { label: 'Telif/ödeme kaydını onayla / ödendi işaretle', roles: ['MUHASEBE'] },
   { label: 'İşlem geçmişini görüntüle', roles: ['GENEL_KOORDINATOR'] },
 ];
@@ -148,7 +148,7 @@ export const seedData: DemoData = {
     { id: 3, name: 'Zeynep Kara', initials: 'ZK', subject: 'Türkçe', province: 'İzmir', activeProjects: 2, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
     { id: 4, name: 'Emre Şahin', initials: 'EŞ', subject: 'Matematik', province: 'Bursa', activeProjects: 1, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
     { id: 5, name: 'Elif Özkan', initials: 'EÖ', subject: 'Sosyal Bilgiler', province: 'İstanbul', activeProjects: 0, status: 'Davet edildi', levels: ['Lise'], roleType: 'Yazar' },
-    { id: 6, name: 'Deniz Aksoy', initials: 'DA', subject: 'Türkçe', province: 'İstanbul', activeProjects: 1, status: 'Aktif', levels: ['İlkokul', 'Ortaokul'], roleType: 'İl Koordinatörü' },
+    { id: 6, name: 'Deniz Aksoy', initials: 'DA', subject: 'Türkçe', province: 'İstanbul', activeProjects: 1, status: 'Aktif', levels: ['İlkokul', 'Ortaokul'], roleType: 'Branş Koordinatörü' },
     { id: 7, name: 'Can Erdem', initials: 'CE', subject: 'İngilizce', province: 'İstanbul', activeProjects: 1, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
     { id: 8, name: 'Derya Acar', initials: 'DA', subject: 'Fen Bilimleri', province: 'Ankara', activeProjects: 2, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
     { id: 9, name: 'Berk Yıldız', initials: 'BY', subject: 'Matematik', province: 'Ankara', activeProjects: 1, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
@@ -156,13 +156,13 @@ export const seedData: DemoData = {
     { id: 11, name: 'Kerem Ekin', initials: 'KE', subject: 'Sosyal Bilgiler', province: 'İzmir', activeProjects: 0, status: 'Davet edildi', levels: ['Lise', 'Mezun'] },
     { id: 12, name: 'İrem Güneş', initials: 'İG', subject: 'Fen Bilimleri', province: 'Bursa', activeProjects: 1, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
     { id: 13, name: 'Umut Arslan', initials: 'UA', subject: 'Matematik', province: 'Bursa', activeProjects: 1, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
-    { id: 14, name: 'Ece Polat', initials: 'EP', subject: 'İngilizce', province: 'Antalya', activeProjects: 1, status: 'Aktif', levels: ['İlkokul', 'Ortaokul'], roleType: 'İl Koordinatörü' },
+    { id: 14, name: 'Ece Polat', initials: 'EP', subject: 'İngilizce', province: 'Antalya', activeProjects: 1, status: 'Aktif', levels: ['İlkokul', 'Ortaokul'], roleType: 'Branş Koordinatörü' },
     { id: 15, name: 'Onur Şimşek', initials: 'OŞ', subject: 'Türkçe', province: 'Antalya', activeProjects: 0, status: 'Davet edildi', levels: ['Lise'], roleType: 'Yazar' },
     { id: 16, name: 'Nehir Kılıç', initials: 'NK', subject: 'Matematik', province: 'Konya', activeProjects: 2, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
     { id: 17, name: 'Arda Taş', initials: 'AT', subject: 'Tarih', province: 'Konya', activeProjects: 1, status: 'Aktif', levels: ['Lise', 'Mezun'] },
     { id: 18, name: 'Pelin Kaya', initials: 'PK', subject: 'Fen Bilimleri', province: 'Samsun', activeProjects: 1, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
     { id: 19, name: 'Burak Yalçın', initials: 'BY', subject: 'Türkçe', province: 'Trabzon', activeProjects: 1, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
-    { id: 20, name: 'Aylin Tekin', initials: 'AT', subject: 'Sosyal Bilgiler', province: 'Gaziantep', activeProjects: 1, status: 'Aktif', levels: ['İlkokul', 'Ortaokul'], roleType: 'İl Koordinatörü' },
+    { id: 20, name: 'Aylin Tekin', initials: 'AT', subject: 'Sosyal Bilgiler', province: 'Gaziantep', activeProjects: 1, status: 'Aktif', levels: ['İlkokul', 'Ortaokul'], roleType: 'Branş Koordinatörü' },
     { id: 21, name: 'Mert Balcı', initials: 'MB', subject: 'Matematik', province: 'Gaziantep', activeProjects: 0, status: 'Davet edildi', levels: ['Lise'], roleType: 'Yazar' },
     { id: 22, name: 'Ezgi Koç', initials: 'EK', subject: 'Fen Bilimleri', province: 'Adana', activeProjects: 1, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
     { id: 23, name: 'Ozan Işık', initials: 'OI', subject: 'Türkçe', province: 'Mersin', activeProjects: 1, status: 'Aktif', levels: ['Ortaokul'], roleType: 'Yazar' },
