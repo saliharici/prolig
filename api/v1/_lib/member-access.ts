@@ -1,16 +1,15 @@
 export const coordinatorRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU'
+  'BRANS_KOORDINATORU'
 ]);
 
 export const regionAssignableRoles = new Set([
-  'IL_KOORDINATORU',
   'EDITOR',
   'YAZAR'
 ]);
 
-export function editorBranchIds(user: any): number[] {
+export function assignedBranchIds(user: any): number[] {
   const ids: number[] = [];
   if (Array.isArray(user?.branchAssignments)) {
     for (const item of user.branchAssignments) {
@@ -24,6 +23,8 @@ export function editorBranchIds(user: any): number[] {
   return Array.from(new Set<number>(ids));
 }
 
+export const editorBranchIds = assignedBranchIds;
+
 export function canViewProvince(user: any, province: any): boolean {
   const role = user?.role?.code;
   if (role === 'GENEL_KOORDINATOR') return true;
@@ -31,9 +32,7 @@ export function canViewProvince(user: any, province: any): boolean {
   if (role === 'BOLGE_KOORDINATORU') {
     return Boolean(user.assignedRegion) && province.region === user.assignedRegion;
   }
-  if (role === 'IL_KOORDINATORU') {
-    return Number.isSafeInteger(user.provinceId) && province.id === user.provinceId;
-  }
+  // Branş koordinatörü coğrafi yönetici değildir; il bazlı üyelik onayı yapamaz.
   return false;
 }
 
@@ -44,10 +43,7 @@ export function buildApplicationReadScope(user: any): any {
     if (!user.assignedRegion) return { id: -1 };
     return { province: { region: user.assignedRegion } };
   }
-  if (role === 'IL_KOORDINATORU') {
-    if (!user.provinceId) return { id: -1 };
-    return { provinceId: user.provinceId };
-  }
+  // Branş koordinatörünün üyelik başvuru yetkisi yoktur.
   return null;
 }
 
@@ -64,14 +60,10 @@ export function buildUserReadScope(user: any): any {
       ]
     };
   }
-  if (role === 'IL_KOORDINATORU') {
-    if (!user.provinceId) return { id: -1 };
-    return {
-      OR: [
-        { provinceId: user.provinceId },
-        { AND: [{ role: { code: 'YAZAR' } }, { AuthorProfile: { provinceId: user.provinceId } }] }
-      ]
-    };
+  if (role === 'BRANS_KOORDINATORU') {
+    const ids = assignedBranchIds(user);
+    if (!ids.length) return { id: -1 };
+    return { role: { code: 'YAZAR' }, AuthorProfile: { branchId: { in: ids } } };
   }
   return null;
 }
@@ -79,14 +71,13 @@ export function buildUserReadScope(user: any): any {
 export function canAssignRole(actor: any, roleCode: string): boolean {
   const actorRole = actor?.role?.code;
   if (actorRole === 'GENEL_KOORDINATOR') {
-    return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE'].includes(roleCode);
+    return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE'].includes(roleCode);
   }
   if (actorRole === 'BOLGE_KOORDINATORU') {
     return regionAssignableRoles.has(roleCode);
   }
-  if (actorRole === 'IL_KOORDINATORU') {
-    return ['EDITOR', 'YAZAR'].includes(roleCode);
-  }
+  // Branş koordinatörünün yetkisi mevcut yazar/proje atamalarıyladır;
+  // kullanıcı açma ve rol değiştirme yalnız genel/bölge yönetimindedir.
   return false;
 }
 
@@ -102,12 +93,10 @@ export function canManageUserLifecycle(actor: any, target: any): boolean {
   }
 
   if (actorRole === 'BOLGE_KOORDINATORU') {
-    return ['IL_KOORDINATORU', 'EDITOR', 'YAZAR'].includes(targetRole);
-  }
-
-  if (actorRole === 'IL_KOORDINATORU') {
     return ['EDITOR', 'YAZAR'].includes(targetRole);
   }
+
+  // Branş koordinatörü kullanıcı aktivasyonu veya silme işlemi yapamaz.
 
   return false;
 }
