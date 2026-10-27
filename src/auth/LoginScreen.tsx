@@ -20,6 +20,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   const testAdminAvailable = import.meta.env.VITE_TEST_ADMIN_SETUP === 'true'
     && window.location.hostname.endsWith('.vercel.app');
   const [showTestSetup, setShowTestSetup] = useState(false);
+  const [testSetupRole, setTestSetupRole] = useState<'admin'|'branch'>('admin');
   const [testPassword, setTestPassword] = useState('');
   const [testPasswordAgain, setTestPasswordAgain] = useState('');
   const [testSetupLoading, setTestSetupLoading] = useState(false);
@@ -37,12 +38,16 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ testAdminSetup: true, password: testPassword })
+        body: JSON.stringify({
+          testAdminSetup: testSetupRole==='admin',
+          testCoordinatorSetup: testSetupRole==='branch',
+          password: testPassword
+        })
       });
       if (response.status === 409) {
         setShowTestSetup(false);
-        setEmail('preview-admin@prolig.invalid');
-        setError('TEST yönetici hesabı zaten oluşturulmuş. Normal giriş bölümünden şifrenizi kullanın.');
+        setEmail(testSetupRole==='branch'?'preview-brans@prolig.invalid':'preview-admin@prolig.invalid');
+        setError('Bu TEST hesabının şifresi zaten belirlenmiş. Normal giriş alanını kullanın.');
         return;
       }
       if (!response.ok) {
@@ -135,11 +140,19 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
             Canlı hesabınız etkilenmez. İlk kullanımda kendi TEST şifrenizi burada belirleyin;
             sonraki girişlerde <strong>preview-admin@prolig.invalid</strong> hesabını kullanın.
           </p>
-          <button type="button" className="ux02-login-back" onClick={() => { setShowTestSetup(value => !value); setError(null); }}
+          <button type="button" className="ux02-login-back" onClick={() => { setTestSetupRole('admin');setShowTestSetup(value => testSetupRole==='admin'?!value:true); setError(null); }}
             style={{ marginBottom: showTestSetup ? 12 : 0 }}>
-            {showTestSetup ? 'TEST hesabı oluşturmayı kapat' : 'İlk TEST yönetici hesabımı oluştur'}
+            {showTestSetup&&testSetupRole==='admin' ? 'TEST hesap formunu kapat' : 'Genel Koordinatör şifremi belirle'}
           </button>
-          {showTestSetup && <form onSubmit={setupTestAdmin} style={{ display: 'grid', gap: 9 }}>
+          <button type="button" className="ux02-login-back" onClick={() => {
+            setTestSetupRole('branch');setShowTestSetup(value => testSetupRole==='branch'?!value:true);setError(null);
+          }} style={{display:'block',marginBottom:showTestSetup&&testSetupRole==='branch'?12:0}}>
+            {showTestSetup&&testSetupRole==='branch'?'Branş formunu kapat':'Branş Koordinatörü şifremi belirle'}
+          </button>
+          {showTestSetup&&<form onSubmit={setupTestAdmin} style={{ display: 'grid', gap: 9 }}>
+            <strong style={{fontSize:12,color:'#245e54'}}>
+              {testSetupRole==='branch'?'Matematik / Fizik Branş Koordinatörü':'Genel Koordinatör'} — İlk şifre tanımlama
+            </strong>
             <label htmlFor="test-admin-pass" style={{ fontSize: 12 }}>Yeni TEST şifreniz</label>
             <input id="test-admin-pass" type="password" minLength={10} required autoComplete="new-password"
               value={testPassword} onChange={event => setTestPassword(event.target.value)}
@@ -149,7 +162,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
               value={testPasswordAgain} onChange={event => setTestPasswordAgain(event.target.value)}
               style={{ padding: 11, borderRadius: 8, border: '1px solid #c1d9d4' }}/>
             <button type="submit" className="ux02-login-submit" disabled={testSetupLoading}>
-              {testSetupLoading ? 'TEST hesabı oluşturuluyor…' : 'TEST hesabını oluştur ve giriş yap'}
+              {testSetupLoading ? 'TEST şifresi tanımlanıyor…' : 'Şifremi belirle ve giriş yap'}
             </button>
           </form>}
         </div>}

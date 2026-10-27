@@ -19,3 +19,11 @@ Genel Koordinatör, kullanıcı oluşturma veya düzenleme ekranından branş ko
 **Uygulama:** Migration yalnız ayrıca yetkilendirilmiş izole TEST veritabanında, ilgili kodla birlikte çalıştırılır. Production DB migration, main merge, env/deploy için ayrı açık onay gerekir.
 
 **Doğrulama durumu:** Kullanıcı isteğiyle otomatik test kampanyası açılmadı; gerçek Preview işleyişi PASS olarak işaretlenmedi.
+
+## 28.10.2026 — İzole TEST örnek üretim paketi
+
+Branş `br-round-wind-balw5c6m` / veritabanı `ux02_test` üzerinde, yalnızca `TEST` etiketiyle 6 aktif ama parola tanımlanmamış örnek YAZAR (3 Matematik, 2 Fizik, 1 Türkçe), Matematik + Fizik atamalı 1 `BRANS_KOORDINATORU`, 2 örnek kitap projesi (`TEST-MAT-7-2026`, `TEST-FIZ-10-2026`), 4 örnek görev vardır. Örnek kayıtların oluşturulması izole TEST'e mahsustur; Production kapsam dışıdır.
+
+Branş Koordinatörü ilk TEST girişinde `preview-brans@prolig.invalid` için şifresini kendisi belirler. Bu işlem Vercel'in mevcut `/api/v1/auth/login` uç noktası üzerinden yalnız ilgili Preview'a ve tanımlı izole Neon hedefine izin verilerek yapılır. Örnek yazarların parola tanımı yoktur, giriş yapamazlar. Görev formunda proje/branş bağlamı, yalnız projeye atanmış aktif yazarlar, bu projedeki açık görev sayıları ve yeni görev sorumlusu seçimi gösterilir.
+
+Kullanıcı talebi gereği ayrı otomatik test kampanyası başlatılmamıştır. Gerçek Preview rol kabulü kullanıcı tarafından doğrulanmadıkça PASS sayılmaz.

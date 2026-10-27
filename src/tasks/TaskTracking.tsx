@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
-  AlertTriangle, CalendarDays, CheckCircle2, ChevronRight, CircleDashed, ClipboardList,
+  AlertTriangle, BookOpen, CalendarDays, CheckCircle2, ChevronRight, CircleDashed, ClipboardList,
   Clock3, Columns3, List, PencilLine, Plus, RotateCcw, Save, Search, Trash2, UserRound, X
 } from 'lucide-react';
 import type { AuthUser } from '../auth/types';
@@ -11,6 +11,7 @@ import type { ManagedUser } from '../membership/types';
 import type { ApiProject } from '../projects/types';
 import { createTask, deleteTask, fetchTasks, updateTask } from './api';
 import type { ApiTask, TaskPriority, TaskStatus } from './types';
+import './task-assignment-v3.css';
 
 type TaskView = 'kanban' | 'list';
 type QuickFilter = 'all' | 'mine' | 'overdue' | 'week';
@@ -257,6 +258,7 @@ export function TaskTracking({
       projects={projects}
       authors={authors}
       managedUsers={managedUsers}
+      existingTasks={tasks}
       defaultProjectId={projectFilter}
       onClose={()=>{setShowForm(false);setEditingTask(null)}}
       onSaved={async()=>{setShowForm(false);setEditingTask(null);await load()}}
@@ -283,6 +285,7 @@ function TaskForm({
   projects,
   authors,
   managedUsers,
+  existingTasks,
   defaultProjectId,
   onClose,
   onSaved
@@ -292,12 +295,15 @@ function TaskForm({
   projects: ApiProject[];
   authors: ApiAuthor[];
   managedUsers: ManagedUser[];
+  existingTasks: ApiTask[];
   defaultProjectId: number | null;
   onClose: ()=>void;
   onSaved: ()=>Promise<void>;
 }) {
   const editing=Boolean(task);
-  const initialProjectId=task?.project.id ?? defaultProjectId ?? projects[0]?.id ?? 0;
+  const isBranchCoordinator=currentUser.role==='BRANS_KOORDINATORU';
+  const manageableProjects=projects.filter(project=>project.canManage!==false);
+  const initialProjectId=task?.project.id ?? defaultProjectId ?? manageableProjects[0]?.id ?? 0;
   const initialAssigneeType=task?.assignedUser ? 'user' : 'author';
   const [title,setTitle]=useState(task?.title??'');
   const [description,setDescription]=useState(task?.description??'');
@@ -316,6 +322,15 @@ function TaskForm({
   const selectedProject=projects.find(project=>project.id===projectId)??null;
   const projectAuthorIds=new Set(selectedProject?.authors.map(author=>author.authorProfileId)??[]);
   const eligibleAuthors=authors.filter(author=>projectAuthorIds.has(author.id)&&author.status==='Aktif');
+  // Counts are derived only from tasks already returned by the scoped task API.
+  const authorOpenTasks=new Map<number,number>();
+  for(const row of existingTasks){
+    if(row.project.id!==projectId || row.status==='Tamamlandi' || !row.assignedAuthor) continue;
+    const authorId=row.assignedAuthor.authorProfileId;
+    authorOpenTasks.set(authorId,(authorOpenTasks.get(authorId)??0)+1);
+  }
+  const selectedWriter=eligibleAuthors.find(author=>author.id===assigneeId);
+  const assignedCount=selectedProject?.authors.length??0;
 
   const currentAsManaged: ManagedUser = {
     id: currentUser.id,
@@ -378,16 +393,35 @@ function TaskForm({
     <form className="task-form-modal" onSubmit={submit}>
       <div className="modal-head"><div><span className="panel-kicker">{editing?'GÖREV YÖNETİMİ':'YENİ GÖREV'}</span><h2>{editing?'Görevi düzenle':'Yeni görev oluştur'}</h2></div><button type="button" aria-label="Kapat" onClick={onClose} disabled={busy}><X size={20}/></button></div>
       <p className="task-form-intro">Görevi bir projeye bağlayın, sorumluyu ve termin tarihini belirleyin.</p>
+      {isBranchCoordinator&&<div className="task-assignment-scope" role="note">
+        Branş Koordinatörü olarak yalnız sorumlu olduğunuz branşların projelerine ve projeye atanmış yazarlara görev verebilirsiniz.
+      </div>}
       {error&&<div className="project-management-error">{error}</div>}
       <div className="task-form-grid">
         <label className="task-span-two"><span>Görev başlığı</span><input required minLength={3} maxLength={160} value={title} onChange={e=>setTitle(e.target.value)} placeholder="1. ünite için 30 soru hazırla"/></label>
-        <label className="task-span-two"><span>Proje</span><select required value={projectId||''} disabled={editing} onChange={e=>changeProject(e.target.value)}><option value="">Proje seçin</option>{projects.filter(project=>!['Tamamlandi','Arsiv'].includes(project.status)||project.id===task?.project.id).map(project=><option key={project.id} value={project.id}>{project.code} · {project.title}</option>)}</select></label>
+        <label className="task-span-two"><span>Proje</span><select required value={projectId||''} disabled={editing} onChange={e=>changeProject(e.target.value)}><option value="">Proje seçin</option>{manageableProjects.filter(project=>!['Tamamlandi','Arsiv'].includes(project.status)||project.id===task?.project.id).map(project=><option key={project.id} value={project.id}>{project.code} · {project.title} · {project.branch.name}</option>)}</select></label>
+        {selectedProject&&<div className="task-assignment-context task-span-two">
+          <BookOpen size={17} aria-hidden="true"/>
+          <span><strong>{selectedProject.branch.name} · {selectedProject.targetGrade}</strong>
+            <small>{assignedCount} atanmış yazar · {eligibleAuthors.length} aktif görev adayı</small>
+          </span>
+        </div>}
         <label><span>Öncelik</span><select value={priority} onChange={e=>setPriority(e.target.value as TaskPriority)}>{priorities.map(item=><option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
         {editing&&<label><span>Durum</span><select value={status} onChange={e=>setStatus(e.target.value as Exclude<TaskStatus,'Gecikti'>)}>{statusColumns.map(item=><option key={item.status} value={item.status}>{item.label}</option>)}</select></label>}
         <label><span>Başlangıç</span><input required type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}/></label>
         <label><span>Son teslim</span><input required type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label>
-        <div className="task-span-two task-assignee-type"><button type="button" className={assigneeType==='author'?'active':''} onClick={()=>{setAssigneeType('author');setAssigneeId(0)}}>Yazar</button><button type="button" className={assigneeType==='user'?'active':''} onClick={()=>{setAssigneeType('user');setAssigneeId(0)}}>Koordinatör / Editör</button></div>
-        <label className="task-span-two"><span>Sorumlu</span><select required value={assigneeId||''} onChange={e=>setAssigneeId(Number(e.target.value))}><option value="">Sorumlu seçin</option>{assigneeType==='author'?eligibleAuthors.map(author=><option key={author.id} value={author.id}>{author.fullName} · {author.province.name}</option>):eligibleUsers.map(user=><option key={user.id} value={user.id}>{user.fullName} · {roleLabels[user.role]}</option>)}</select><small className="field-help">{assigneeType==='author'?'Yalnız seçili projeye atanmış aktif yazarlar gösterilir.':'Yetki kapsamınızdaki koordinatör ve editörler gösterilir.'}</small></label>
+        <div className="task-span-two task-assignee-type"><button type="button" className={assigneeType==='author'?'active':''} onClick={()=>{setAssigneeType('author');setAssigneeId(0)}}>Projeye atanmış yazar</button><button type="button" className={assigneeType==='user'?'active':''} onClick={()=>{setAssigneeType('user');setAssigneeId(0)}}>{isBranchCoordinator?'Kendime görev':'Koordinatör / Editör'}</button></div>
+        <label className="task-span-two"><span>Sorumlu</span><select required value={assigneeId||''} onChange={e=>setAssigneeId(Number(e.target.value))}><option value="">Sorumlu seçin</option>{assigneeType==='author'
+          ?eligibleAuthors.map(author=><option key={author.id} value={author.id}>{author.fullName} · {author.province.name} · {authorOpenTasks.get(author.id)??0} açık görev</option>)
+          :(isBranchCoordinator?[currentAsManaged]:eligibleUsers).map(user=><option key={user.id} value={user.id}>{user.fullName} · {roleLabels[user.role]}</option>)}</select><small className="field-help">{assigneeType==='author'
+          ?'Yalnız seçili projeye atanmış aktif yazarlar gösterilir. Açık görev sayıları bu proje içindir.'
+          :isBranchCoordinator?'Kendinize koordinasyon görevi tanımlayabilirsiniz.':'Yetki kapsamınızdaki koordinatör ve editörler gösterilir.'}</small></label>
+        {assigneeType==='author'&&selectedWriter&&<div className="task-assignment-writer task-span-two">
+          <Users size={16}/><span><strong>{selectedWriter.fullName}</strong> · {authorOpenTasks.get(selectedWriter.id)??0} açık görev · {selectedWriter.activeProjectCount} aktif proje</span>
+        </div>}
+        {assigneeType==='author'&&!eligibleAuthors.length&&<p className="task-assignment-empty task-span-two">
+          Bu proje için aktif yazar bulunmuyor. Önce Projeler bölümünden yazar atayın.
+        </p>}
         <label className="task-span-two"><span>Açıklama</span><textarea maxLength={1500} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Beklenen çıktı, kontrol ölçütü veya çalışma notu..."/></label>
       </div>
       <div className="project-management-footer">

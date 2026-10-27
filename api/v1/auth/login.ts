@@ -47,6 +47,40 @@ async function setupIsolatedTestAdmin(req: VercelRequest, res: VercelResponse) {
   return res.status(201).json({ created: true, email: TEST_ADMIN_EMAIL });
 }
 
+
+const TEST_BRANCH_COORDINATOR_EMAIL = 'preview-brans@prolig.invalid';
+
+async function setupIsolatedTestCoordinator(req: VercelRequest, res: VercelResponse) {
+  if (!testBootstrapEnabled()) return res.status(404).json({ error: 'Not found' });
+  const password = req.body?.password;
+  if (typeof password !== 'string' || password.length < 10 || password.length > 128) {
+    return res.status(400).json({ error: 'TEST şifresi 10-128 karakter olmalı.' });
+  }
+  const dbIdentity=await prisma.$queryRaw<Array<{ name:string; db_user:string }>>`
+    SELECT current_database() AS name, current_user AS db_user
+  `;
+  if(dbIdentity[0]?.name!=='ux02_test'||dbIdentity[0]?.db_user!=='ux02_owner') {
+    return res.status(403).json({ error:'TEST veritabanı tanınmadı.' });
+  }
+  const user=await prisma.user.findUnique({
+    where:{email:TEST_BRANCH_COORDINATOR_EMAIL},
+    include:{role:true}
+  });
+  if(!user || user.role.code!=='BRANS_KOORDINATORU' || user.status.toUpperCase()!=='AKTIF')
+    return res.status(404).json({error:'TEST branş koordinatörü bulunamadı.'});
+  if(user.passwordHash) return res.status(409).json({error:'Branş hesabının şifresi zaten oluşturuldu.'});
+  const hash=await bcrypt.hash(password,10);
+  // Atomic claim: never overwrite a password already set by a previous request.
+  const updated=await prisma.user.updateMany({
+    where:{id:user.id,passwordHash:null},
+    data:{passwordHash:hash}
+  });
+  if(updated.count!==1) return res.status(409).json({error:'Branş hesabının şifresi zaten oluşturuldu.'});
+  setSessionCookie(res,user.id);
+  res.setHeader('Cache-Control','no-store');
+  return res.status(201).json({created:true,email:TEST_BRANCH_COORDINATOR_EMAIL});
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -55,6 +89,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.body?.testAdminSetup === true) {
       return await setupIsolatedTestAdmin(req, res);
+    }
+    if (req.body?.testCoordinatorSetup === true) {
+      return await setupIsolatedTestCoordinator(req, res);
     }
     if (!req.body || typeof req.body !== 'object') {
       return res.status(400).json({ error: 'Invalid request body' });
