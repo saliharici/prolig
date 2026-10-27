@@ -2555,7 +2555,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         {reviewAction !== 'approve' && <label className="editor-note-box"><span><MessageSquareText size={15} /> Yazara editör notu</span><textarea maxLength={600} value={editorNote} disabled={reviewSaving} onChange={event => setEditorNote(event.target.value)} placeholder="Revizyon ve ret işlemleri için zorunludur..." required={reviewAction === 'request_revision' || reviewAction === 'reject'} /><small className="editor-note-hint">Bu not, yazarın soru listesindeki ilgili kayıtta görünür.</small></label>}
         <div className="modal-actions"><button type="button" className="secondary-button" disabled={reviewSaving} onClick={() => { if (!reviewSavingRef.current) setReviewingQuestion(null); }}>Vazgeç</button><button type="submit" className="primary-button" disabled={!reviewAction || reviewSaving}><Check size={17} /> {reviewSaving ? 'Kaydediliyor…' : 'Kararı Kaydet'}</button></div>
       </form></div>}
-      {showProjectManager && <ProjectManagementModal project={editingProject} authors={apiAuthors} onClose={()=>{setShowProjectManager(false);setEditingProject(null)}} onChanged={refreshProjectManagementData} />}
+      {showProjectManager && <ProjectManagementModal project={editingProject} authors={apiAuthors} currentUser={currentUser} onClose={()=>{setShowProjectManager(false);setEditingProject(null)}} onChanged={refreshProjectManagementData} />}
       {showProfile && <ProfileModal user={currentUser} onClose={() => setShowProfile(false)} onSaved={async () => { await onProfileUpdated(); setToast('Profil bilgileriniz güncellendi.'); }} />}
       {toast && <div className="toast" role="status"><CheckCircle2 size={18} /> {toast}</div>}
   </div>;

@@ -106,11 +106,12 @@ export function TaskTracking({
   }, [initialProjectId]);
 
   useEffect(() => {
-    if (!canCreate) return;
+    // Branch coordinators coordinate existing project authors; user administration is restricted.
+    if (!canCreate || currentUser.role === 'BRANS_KOORDINATORU') return;
     fetchManagedUsers()
       .then(({ users }) => setManagedUsers(users))
       .catch(() => setManagedUsers([]));
-  }, [canCreate]);
+  }, [canCreate, currentUser.role]);
 
   const visibleTasks = useMemo(() => {
     const now = Date.now();

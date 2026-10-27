@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Archive, ArchiveRestore, BookOpen, CalendarDays, Check, Gauge, Save, Trash2, Users, X } from 'lucide-react';
 import type { ApiAuthor } from '../authors/types';
+import type { AuthUser } from '../auth/types';
+import './project-assignment-v3.css';
 import { fetchMembershipMetadata } from '../membership/api';
 import type { BranchOption } from '../membership/types';
 import { ALL_GRADES } from './integration';
@@ -32,16 +34,22 @@ function localDate(value: string | undefined) {
 export function ProjectManagementModal({
   project,
   authors,
+  currentUser,
   onClose,
   onChanged
 }: {
   project: ApiProject | null;
   authors: ApiAuthor[];
+  currentUser: AuthUser;
   onClose: () => void;
   onChanged: () => Promise<void>;
 }) {
   const editing = Boolean(project);
   const archived = project?.status === 'Arsiv';
+  const isBranchCoordinator = currentUser.role === 'BRANS_KOORDINATORU';
+  const assignedBranches = currentUser.editorBranches ?? [];
+  const grantedBranchIds = new Set(assignedBranches.map((branch) => branch.id));
+  const singleBranchId = isBranchCoordinator && assignedBranches.length === 1 ? assignedBranches[0].id : 0;
 
   const [title, setTitle] = useState(project?.title ?? '');
   const [code, setCode] = useState(project?.code ?? '');
@@ -49,7 +57,7 @@ export function ProjectManagementModal({
   const [deadline, setDeadline] = useState(localDate(project?.deadline));
   const [priority, setPriority] = useState<ProjectPriority>(project?.priority ?? 'Normal');
   const [targetGrade, setTargetGrade] = useState(project?.targetGrade ?? '8. Sınıf');
-  const [branchId, setBranchId] = useState<number>(project?.branch.id ?? 0);
+  const [branchId, setBranchId] = useState<number>(project?.branch.id ?? singleBranchId);
   const [description, setDescription] = useState(project?.description ?? '');
   const [status, setStatus] = useState<Exclude<ProjectStatus, 'Arsiv'>>(
     project && project.status !== 'Arsiv' ? project.status : 'Planlama'
@@ -62,11 +70,14 @@ export function ProjectManagementModal({
     const map = new Map<number, BranchOption>();
     authors.forEach((author) => map.set(author.branch.id, author.branch));
     if (project) map.set(project.branch.id, project.branch);
+    // The coordinator can create a project even before the first writer exists.
+    assignedBranches.forEach((branch) => map.set(branch.id, branch));
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, 'tr-TR'));
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [metadataNote, setMetadataNote] = useState('');
+  const [authorSearch, setAuthorSearch] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -82,15 +93,39 @@ export function ProjectManagementModal({
     return () => { active = false; };
   }, []);
 
+  // Server authorization remains authoritative. The form shows only usable scope.
+  const visibleBranches = branches.filter(
+    (branch) => !isBranchCoordinator || grantedBranchIds.has(branch.id)
+  );
+  const branchInScope = branchId > 0 && visibleBranches.some((branch) => branch.id === branchId);
   const eligibleAuthors = useMemo(
-    () => authors.filter((author) => author.branch.id === branchId),
+    () => authors.filter((author) => author.branch.id === branchId && author.status === 'Aktif'),
     [authors, branchId]
   );
+  const visibleAuthors = useMemo(() => {
+    const needle = authorSearch.trim().toLocaleLowerCase('tr-TR');
+    if (!needle) return eligibleAuthors;
+    return eligibleAuthors.filter((author) =>
+      `${author.fullName} ${author.province.name} ${author.district?.name ?? ''} ${author.institution?.name ?? ''}`
+        .toLocaleLowerCase('tr-TR').includes(needle)
+    );
+  }, [eligibleAuthors, authorSearch]);
+  const selectedEligibleCount = eligibleAuthors.filter((author) => authorProfileIds.includes(author.id)).length;
+  const allVisibleSelected = visibleAuthors.length > 0 && visibleAuthors.every((author) => authorProfileIds.includes(author.id));
+
+  const toggleVisibleAuthors = () => {
+    const visibleIds = new Set(visibleAuthors.map((author) => author.id));
+    setAuthorProfileIds((current) => allVisibleSelected
+      ? current.filter((id) => !visibleIds.has(id))
+      : [...new Set([...current, ...visibleIds])]
+    );
+  };
 
   const changeBranch = (value: string) => {
     const nextBranchId = Number(value);
     setBranchId(nextBranchId);
-    const eligible = new Set(authors.filter((author) => author.branch.id === nextBranchId).map((author) => author.id));
+    setAuthorSearch('');
+    const eligible = new Set(authors.filter((author) => author.branch.id === nextBranchId && author.status === 'Aktif').map((author) => author.id));
     setAuthorProfileIds((current) => current.filter((id) => eligible.has(id)));
   };
 
@@ -105,6 +140,10 @@ export function ProjectManagementModal({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (archived) return;
+    if (!branchInScope) {
+      setError('Lütfen yetki kapsamınızdaki bir branş seçin.');
+      return;
+    }
     setBusy(true);
     setError('');
 
@@ -200,6 +239,12 @@ export function ProjectManagementModal({
         {error && <div className="project-management-error">{error}</div>}
         {archived && <div className="project-archive-notice"><Archive size={16}/><div><strong>Bu proje arşivde.</strong><span>Düzenlemek için önce arşivden çıkarın.</span></div></div>}
         {metadataNote && <div className="field-help project-metadata-note">{metadataNote}</div>}
+        {isBranchCoordinator && <div className="project-assignment-scope" role="note">
+          <BookOpen size={16} aria-hidden="true"/>
+          <span>{assignedBranches.length > 0
+            ? `Branş sorumluluğunuz: ${assignedBranches.map(branch => branch.name).join(', ')}. Projeyi yalnız bu branşlarda açabilirsiniz.`
+            : 'Henüz branş atamanız bulunmuyor. Genel Koordinatörün branş ataması yapması gerekiyor.'}</span>
+        </div>}
 
         <fieldset disabled={busy || archived} className="project-management-fields">
           <div className="project-form-grid">
@@ -219,7 +264,7 @@ export function ProjectManagementModal({
               <span>Branş <em>*</em></span>
               <select required value={branchId || ''} onChange={(e)=>changeBranch(e.target.value)}>
                 <option value="">Branş seçin</option>
-                {branches.map((branch)=><option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                {visibleBranches.map((branch)=><option key={branch.id} value={branch.id}>{branch.name}</option>)}
               </select>
             </label>
             <label>
@@ -256,17 +301,33 @@ export function ProjectManagementModal({
 
           <section className="project-author-picker">
             <div className="project-author-picker-head">
-              <div><Users size={17}/><div><strong>Proje yazarları</strong><span>Seçili branştaki ve yetki kapsamınızdaki aktif yazarlar.</span></div></div>
-              <span>{authorProfileIds.length} seçili</span>
+              <div><Users size={17}/><div><strong>Proje yazarları</strong><span>Yalnız seçili branştaki aktif yazarlar listelenir.</span></div></div>
+              <span>{selectedEligibleCount} / {eligibleAuthors.length} seçili</span>
             </div>
-            {!branchId ? <div className="grade-detail-empty">Önce branş seçin.</div> : eligibleAuthors.length === 0 ? <div className="grade-detail-empty">Bu branşta yetki kapsamınızda aktif yazar bulunmuyor. Projeyi yazarsız Taslak olarak oluşturabilirsiniz.</div> :
-              <div className="project-author-picker-grid">{eligibleAuthors.map((author)=>{
-                const selected=authorProfileIds.includes(author.id);
-                return <button type="button" key={author.id} className={selected?'selected':''} onClick={()=>toggleAuthor(author.id)}>
-                  <span className="project-author-check">{selected?<Check size={13}/>:null}</span>
-                  <span><strong>{author.fullName}</strong><small>{author.province.name}{author.district?.name ? ' · '+author.district.name : ''}</small></span>
-                </button>;
-              })}</div>}
+            {!branchInScope ? <div className="grade-detail-empty">{isBranchCoordinator && !assignedBranches.length ? 'Branş ataması bekleniyor.' : 'Önce yetki kapsamınızdaki bir branş seçin.'}</div>
+              : eligibleAuthors.length === 0 ? <div className="grade-detail-empty">Bu branşta aktif yazar bulunmuyor. Projeyi yazarsız Taslak olarak oluşturabilir, daha sonra yazar atayabilirsiniz.</div>
+              : <>
+                <div className="project-assignment-toolbar">
+                  <label htmlFor="project-author-search">Yazar ara
+                    <input id="project-author-search" type="search" value={authorSearch}
+                      onChange={event => setAuthorSearch(event.target.value)}
+                      placeholder="Ad, il, ilçe veya kurum…" />
+                  </label>
+                  <button type="button" className="secondary-button" disabled={!visibleAuthors.length} onClick={toggleVisibleAuthors}>
+                    {allVisibleSelected ? 'Görünen seçimi kaldır' : 'Görünenleri seç'}
+                  </button>
+                </div>
+                {visibleAuthors.length === 0 ? <div className="grade-detail-empty">Aramanıza uygun yazar yok. Filtreyi değiştirin.</div>
+                  : <div className="project-author-picker-grid">{visibleAuthors.map((author)=>{
+                      const selected=authorProfileIds.includes(author.id);
+                      return <button type="button" key={author.id} className={selected?'selected':''}
+                        aria-pressed={selected} onClick={()=>toggleAuthor(author.id)}>
+                        <span className="project-author-check">{selected?<Check size={13}/>:null}</span>
+                        <span><strong>{author.fullName}</strong><small>{author.province.name}{author.district?.name ? ' · '+author.district.name : ''}{author.activeProjectCount ? ` · ${author.activeProjectCount} aktif proje` : ''}</small></span>
+                      </button>;
+                    })}</div>}
+                <p className="project-assignment-footer">{selectedEligibleCount} yazar görevlendirme için seçildi. Kayıt sonrasında yalnız seçtiğiniz yazarlar projeye atanır.</p>
+              </>}
           </section>
         </fieldset>
 
@@ -279,7 +340,7 @@ export function ProjectManagementModal({
           </div>
           <div className="project-save-actions">
             <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Vazgeç</button>
-            {!archived && <button type="submit" className="primary-button" disabled={busy || !branchId}><Save size={16}/>{busy?'Kaydediliyor...':editing?'Değişiklikleri Kaydet':'Projeyi Oluştur'}</button>}
+            {!archived && <button type="submit" className="primary-button" disabled={busy || !branchInScope}><Save size={16}/>{busy?'Kaydediliyor...':editing?'Değişiklikleri Kaydet':'Projeyi Oluştur'}</button>}
           </div>
         </div>
       </form>
