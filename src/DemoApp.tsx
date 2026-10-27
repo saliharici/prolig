@@ -52,6 +52,7 @@ import { CompensationEntriesPanel } from './compensation/CompensationEntriesPane
 import { ReportsCenter } from './reports/ReportsCenter';
 import { PublishingWorkbench } from './publishing/PublishingWorkbench';
 import { GeneralCoordinatorDashboard } from './overview/GeneralCoordinatorDashboard';
+import { CoordinatorWorkboard } from './overview/CoordinatorWorkboard';
 import { PublisherRoleWelcome } from './ux/PublisherExperience';
 import { latestAuthorizedAudit, latestScopedPayments, latestScopedQuestions } from './overview/live-activity';
 import { questionStudioReleaseFlags } from './questions/studio-runtime-flags';
@@ -2059,6 +2060,26 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             onReviewQuestions={() => { navigate('questions'); setStatusFilter('İncelemede'); }}
             onReports={() => navigate('reports')}
             onPayments={() => navigate('payments')}
+          />}
+          {(currentUser.role === 'GENEL_KOORDINATOR' || currentUser.role === 'BRANS_KOORDINATORU') && <CoordinatorWorkboard
+            role={currentUser.role}
+            assignedBranches={currentUser.editorBranches ?? []}
+            projects={apiProjects}
+            projectsLoading={projectsLoading}
+            projectsError={projectsError}
+            questions={apiQuestions}
+            questionsLoading={apiLoading}
+            questionsError={apiError}
+            authors={apiAuthors}
+            authorsLoading={authorsLoading}
+            authorsError={authorsError}
+            onProjects={() => navigate('projects')}
+            onOpenProject={(id) => { navigate('projects'); setSelectedProjectId(id); }}
+            onQuestionsForProject={openQuestionsForProject}
+            onTasksForProject={openTasksForProject}
+            onTasks={() => navigate('tasks')}
+            onAuthors={() => navigate('authors')}
+            onReports={() => navigate('reports')}
           />}
           <div className="overview-grid"><section className="panel"><div className="panel-head"><div><span className="panel-kicker">İŞ AKIŞI</span><h2>Soru üretim hattı</h2></div><button className="text-button" onClick={() => navigate('questions')}>Tüm sorular <ArrowRight size={16} /></button></div><p className="panel-sub">Taslaklardan onaya uzanan süreci rolünüze göre deneyin.</p><div className="pipeline">{[{label: 'Taslak', code: 'TASLAK'}, {label: 'İncelemede', code: 'INCELEMEDE'}, {label: 'Revizyon', code: 'REVIZYON'}, {label: 'Onaylandı', code: 'ONAYLANDI'}].map((status, index) => <div key={status.code} className="pipeline-step"><span className={`pipeline-dot dot-${index}`}><span>{apiQuestions.filter(q => q.status === status.code).length}</span></span><strong>{status.label}</strong><small>{index === 0 ? 'Yazar hazırlar' : index === 1 ? 'Editör inceler' : index === 2 ? 'Yazar düzenler' : 'Yayına hazır'}</small>{index < 3 && <ArrowRight className="pipeline-arrow" size={17} />}</div>)}</div><div className="panel-action"><div className="action-icon"><CircleHelp size={20} /></div><div><strong>Rolünüzde neler yapabilirsiniz?</strong><span>Yetki matrisinde ekran ve işlem kapsamını görün.</span></div><button onClick={() => navigate(allowed.includes('roles') ? 'roles' : 'questions')}><ArrowUpRight size={18} /></button></div></section>
           <section className="panel activity-panel"><div className="panel-head"><div><span className="panel-kicker">{currentUser.role === 'GENEL_KOORDINATOR' ? 'GERÇEK DENETİM KAYITLARI' : 'GÜNCEL SORU DURUMLARI'}</span><h2>{currentUser.role === 'GENEL_KOORDINATOR' ? 'Son işlemler' : 'Soru havuzundan son kayıtlar'}</h2></div><ActivityIcon size={19} className="muted-icon" /></div>
