@@ -2078,6 +2078,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             onQuestionsForProject={openQuestionsForProject}
             onTasksForProject={openTasksForProject}
             onTasks={() => navigate('tasks')}
+            onReviewQuestions={() => { navigate('questions'); setStatusFilter('İncelemede'); }}
             onAuthors={() => navigate('authors')}
             onReports={() => navigate('reports')}
           />}

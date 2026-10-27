@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, BookOpen, CheckCircle2, ClipboardList, FileQuestion, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileQuestion, Users } from 'lucide-react';
 import type { ApiAuthor } from '../authors/types';
 import type { ApiProject } from '../projects/types';
 import type { ApiQuestion } from '../questions/types';
@@ -29,6 +29,7 @@ type Props = {
   onQuestionsForProject: (id: number) => void;
   onTasksForProject: (id: number) => void;
   onTasks: () => void;
+  onReviewQuestions: () => void;
   onAuthors: () => void;
   onReports: () => void;
 };
@@ -48,7 +49,7 @@ export function CoordinatorWorkboard({
   role, assignedBranches, projects, projectsLoading, projectsError,
   questions, questionsLoading, questionsError, authors, authorsLoading, authorsError,
   onProjects, onOpenProject, onQuestionsForProject, onTasksForProject,
-  onTasks, onAuthors, onReports
+  onTasks, onReviewQuestions, onAuthors, onReports
 }: Props) {
   const isGeneral = role === 'GENEL_KOORDINATOR';
   const branchKey = assignedBranches.map(branch => branch.id).sort((a, b) => a - b).join(',');
@@ -163,7 +164,7 @@ export function CoordinatorWorkboard({
         <Users size={17} aria-hidden="true"/><span>Yazar ağı</span>
         <strong>{authorsLoading || authorsError ? '—' : scopedAuthors.length}</strong>
       </button>
-      <button type="button" onClick={onProjects}>
+      <button type="button" onClick={onReviewQuestions}>
         <FileQuestion size={17} aria-hidden="true"/><span>İncelemede soru</span>
         <strong>{questionsLoading || questionsError ? '—' : waitingQuestions.length}</strong>
       </button>
