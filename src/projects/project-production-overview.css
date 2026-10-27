@@ -3,7 +3,9 @@
 .project-production-heading h3{margin:4px 0 0;font-size:13px;font-weight:800;color:#2f5157}
 .project-production-heading .text-button{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;font-size:10px}
 .project-production-pipeline{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0}
-.project-production-pipeline>div{border:1px solid #e3eeed;border-radius:9px;padding:11px 7px;background:#f8fbfa;text-align:center}
+.project-production-pipeline>.project-production-stage{border:1px solid #e3eeed;border-radius:9px;padding:11px 7px;background:#f8fbfa;text-align:center;cursor:pointer;min-width:0}
+.project-production-pipeline>.project-production-stage:hover,.project-production-pipeline>.project-production-stage:focus-visible{border-color:#80b8ab;background:#edf8f5;outline-offset:2px}
+.project-production-pipeline>.project-production-stage small{display:inline-flex;align-items:center;gap:3px;justify-content:center;margin-top:6px;color:#38796b;font-size:9px}
 .project-production-pipeline strong,.project-production-pipeline span{display:block}
 .project-production-pipeline strong{font:800 18px Manrope,sans-serif;color:#2b6562}
 .project-production-pipeline span{margin-top:5px;color:#70898e;font-size:9px}

@@ -15,14 +15,15 @@ type Props = {
   questionsError: string;
   role: Role;
   onOpenQuestions: () => void;
+  onOpenQuestionsByStatus: (status: string) => void;
 };
 
 const states = [
-  { key: 'draft', label: 'Taslak' },
-  { key: 'review', label: 'İncelemede' },
-  { key: 'revision', label: 'Revizyonda' },
-  { key: 'approved', label: 'Onaylandı' },
-  { key: 'rejected', label: 'Reddedildi' }
+  { key: 'draft', label: 'Taslak', filter: 'Taslak' },
+  { key: 'review', label: 'İncelemede', filter: 'İncelemede' },
+  { key: 'revision', label: 'Revizyonda', filter: 'Revizyon' },
+  { key: 'approved', label: 'Onaylandı', filter: 'Onaylandı' },
+  { key: 'rejected', label: 'Reddedildi', filter: 'Reddedildi' }
 ] as const;
 
 export function canSeeProjectFinance(role: Role) {
@@ -33,7 +34,7 @@ const amount = (value: string) =>
   new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(toKurus(value) / 100);
 
 export function ProjectProductionOverview({
-  projectId, questions, questionsLoading, questionsError, role, onOpenQuestions
+  projectId, questions, questionsLoading, questionsError, role, onOpenQuestions, onOpenQuestionsByStatus
 }: Props) {
   const stats = useMemo(() => projectQuestionStats(projectId, questions), [projectId, questions]);
   const financeAllowed = canSeeProjectFinance(role);
@@ -74,9 +75,12 @@ export function ProjectProductionOverview({
       : questionsError ? <p className="project-production-feedback" role="alert">{questionsError}</p>
       : <>
         <div className="project-production-pipeline">
-          {states.map(item => <div key={item.key}>
+          {states.map(item => <button type="button" key={item.key} className="project-production-stage"
+            title={`${item.label} durumundaki proje sorularını aç`}
+            onClick={() => onOpenQuestionsByStatus(item.filter)}>
             <strong>{stats[item.key]}</strong><span>{item.label}</span>
-          </div>)}
+            <small>Soruları gör <ArrowRight size={11}/></small>
+          </button>)}
         </div>
         <div className="project-production-progress">
           <span>Onaylanan / toplam soru</span>
@@ -85,7 +89,7 @@ export function ProjectProductionOverview({
             <span style={{ width: stats.total ? `${Math.round(stats.approved / stats.total * 100)}%` : '0%' }} />
           </div>
         </div>
-        <p className="project-production-note"><FileQuestion size={13} /> Soru sayıları, oturumunuzun görmeye yetkili olduğu kayıtları kapsar.</p>
+        <p className="project-production-note"><FileQuestion size={13} /> Aşamalara tıklayarak ilgili proje sorularını açabilirsiniz. Bu sayılar yalnız yetkili kayıtları kapsar; editör kararları ayrı yetki gerektirir.</p>
       </>}
 
     {financeAllowed && <div className="project-production-finance">
