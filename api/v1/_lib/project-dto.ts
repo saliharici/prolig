@@ -23,6 +23,7 @@ export const projectSelect = {
       authorProfileId: true,
       authorProfile: {
         select: {
+          branchId: true,
           user: { select: { id: true, fullName: true } },
           province: { select: { id: true, name: true, region: true } }
         }

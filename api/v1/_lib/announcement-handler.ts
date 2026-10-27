@@ -13,8 +13,9 @@ const recipientSelect = {
   assignedRegion: true,
   provinceId: true,
   role: { select: { code: true, name: true } },
+  branchAssignments: { select: { branchId: true } },
   province: { select: { id: true, name: true, region: true } },
-  AuthorProfile: { select: { province: { select: { id: true, name: true, region: true } } } }
+  AuthorProfile: { select: { branchId: true, province: { select: { id: true, name: true, region: true } } } }
 } as const;
 
 function positiveInt(value: unknown): number | null {
@@ -70,13 +71,6 @@ async function resolveRecipients(actor: any, audience: string) {
   if (actor.role.code !== 'GENEL_KOORDINATOR') {
     for (const target of users) {
       if (target.role.code === 'GENEL_KOORDINATOR' && !ids.includes(target.id)) ids.push(target.id);
-      if (
-        actor.role.code === 'IL_KOORDINATORU'
-        && target.role.code === 'BOLGE_KOORDINATORU'
-        && context.announcementProvince?.region
-        && target.assignedRegion === context.announcementProvince.region
-        && !ids.includes(target.id)
-      ) ids.push(target.id);
     }
   }
 
