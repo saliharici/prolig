@@ -33,11 +33,11 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
     }
     setTestSetupLoading(true);
     try {
-      const response = await fetch('/api/v1/auth/test-admin', {
+      const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: testPassword })
+        body: JSON.stringify({ testAdminSetup: true, password: testPassword })
       });
       if (response.status === 409) {
         setShowTestSetup(false);
