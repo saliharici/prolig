@@ -50,7 +50,7 @@ function dto(row: any, archivedIds: ReadonlySet<number>) {
     overdue:!!row.dueDate && row.dueDate<today && missing>0,tasks
   };
 }
-export default async function handler(req: VercelRequest,res: VercelResponse) {
+export default async function handleProductionPlanAction(req: VercelRequest,res: VercelResponse) {
   res.setHeader('Cache-Control','no-store');
   if (!['GET','POST','PATCH'].includes(req.method??'')) return res.status(405).json({error:'Method not allowed'});
   try {

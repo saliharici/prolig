@@ -65,6 +65,10 @@
       "destination": "/api/v1/management?action=books"
     },
     {
+      "source": "/api/v1/production-plan",
+      "destination": "/api/v1/management?action=productionPlan"
+    },
+    {
       "source": "/api/v1/tasks/:id",
       "destination": "/api/v1/management?action=task&id=:id"
     },

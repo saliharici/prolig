@@ -6,6 +6,7 @@ import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canManage
 import { MEB_TEACHING_BRANCHES, isMebTeachingBranch } from '../../shared/branch-catalog.js';
 import { isDistrictInProvince } from '../../shared/district-catalog.js';
 import { handleTaskAction } from './_lib/task-handler.js';
+import handleProductionPlanAction from './_lib/production-plan-handler.js';
 import { handleMessageAction } from './_lib/message-handler.js';
 import { handleAnnouncementAction } from './_lib/announcement-handler.js';
 import { handlePaymentPeriodAction, type PeriodAction } from './_lib/payment-period-handler.js';
@@ -218,6 +219,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
     if (action === 'books' || action === 'book' || action === 'bookDocx') {
       return handleBookAction(req, res, user, action);
+    }
+    if (action === 'productionPlan') {
+      return handleProductionPlanAction(req,res);
     }
     if (action === 'tasks' || action === 'task') {
       return handleTaskAction(req, res, user, action);
