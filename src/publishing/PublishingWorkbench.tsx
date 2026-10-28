@@ -1,13 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, BookOpen, Check, FileDown, RefreshCw, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDown, ArrowRight, ArrowUp, BookOpen, Check, FileDown, Plus, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 import type { ApiQuestion, QuestionAssetPlacement } from '../questions/types';
 import type { ApiProject } from '../projects/types';
 import { fetchProductionPlan, type ProductionPlan } from '../projects/production-plan-api';
 import { StudioMarkup } from '../questions/StudioDocumentPreview';
-import { approvedForPublishing, bookAnswer, bookMediaWarnings, moveBookQuestion, resolveBookOrder } from './book-assembly';
+import { approvedForPublishing, bookAnswer, bookMediaWarnings } from './book-assembly';
 import { PublishingPersistencePanel } from './PublishingPersistencePanel';
-import { flattenSingleChapter, frozenBookQuestions, publishingV2PreviewEnabled, type SavedBook } from './book-persistence-client';
+import { frozenBookQuestions, publishingV2PreviewEnabled, type SavedBook } from './book-persistence-client';
+import {
+  assignQuestionToChapter, chapterQuestionIds, draftChaptersFromBook,
+  moveChapter, moveQuestionInChapter, type BookChapterDraft
+} from './book-editor-state';
 import './publishing-production-v3.css';
+import './publishing-v5.css';
 import './publishing.css';
 
 type Props = {
@@ -59,21 +64,38 @@ function QuestionForBook({ question, ordinal }: { question: ApiQuestion; ordinal
 }
 
 export function PublishingWorkbench({ questions, projects, loading, error, onRefresh, initialProjectId = null }: Props) {
-  const [title, setTitle] = useState('Yeni Soru Kitabı');
-  const [chapter, setChapter] = useState('Bölüm 1 · Sorular');
-  const [projectFilter, setProjectFilter] = useState(initialProjectId ? String(initialProjectId) : 'all');
-  const [search, setSearch] = useState('');
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [columns, setColumns] = useState<1 | 2>(1);
-  const [withAnswerKey, setWithAnswerKey] = useState(false);
-  // Both environment markers are required: V1 remains fully read-only everywhere else.
-  const publishingPreview = publishingV2PreviewEnabled(import.meta.env as unknown as {
-    VITE_PUBLISHING_V2_PREVIEW?: string; VITE_VERCEL_ENV?: string;
+  const [title,setTitle]=useState('Yeni Soru Kitabı');
+  const [projectFilter,setProjectFilter]=useState(initialProjectId?String(initialProjectId):'all');
+  const [search,setSearch]=useState('');
+  const [columns,setColumns]=useState<1|2>(1);
+  const [withAnswerKey,setWithAnswerKey]=useState(false);
+  const [activeBook,setActiveBook]=useState<SavedBook|null>(null);
+  const [chapters,setChapters]=useState<BookChapterDraft[]>([{key:'new-1',title:'Bölüm 1 · Sorular',questionIds:[]}]);
+  const [activeKey,setActiveKey]=useState('new-1');
+  const nextKey=useRef(2);
+  const [plan,setPlan]=useState<ProductionPlan|null>(null);
+  const [planLoading,setPlanLoading]=useState(false);
+  const [planError,setPlanError]=useState('');
+  const publishingPreview=publishingV2PreviewEnabled(import.meta.env as unknown as {
+    VITE_PUBLISHING_V2_PREVIEW?:string;VITE_VERCEL_ENV?:string;
   });
-  const [activeBook, setActiveBook] = useState<SavedBook | null>(null);
-  const [plan,setPlan] = useState<ProductionPlan | null>(null);
-  const [planError,setPlanError] = useState('');
-  const [planLoading,setPlanLoading] = useState(false);
+  const selectedIds=useMemo(()=>chapterQuestionIds(chapters),[chapters]);
+  const currentChapter=chapters.find(c=>c.key===activeKey)??chapters[0];
+  const eligible=useMemo(()=>approvedForPublishing(questions),[questions]);
+  const projectOptions=useMemo(()=>{
+    const options=new Map<number,string>();
+    if(activeBook?.project)options.set(activeBook.projectId,activeBook.project.code+' · '+activeBook.project.title);
+    projects.filter(p=>p.status!=='Arsiv').forEach(p=>options.set(p.id,p.code+' · '+p.title));
+    return [...options.entries()].sort((a,b)=>a[1].localeCompare(b[1],'tr-TR'));
+  },[projects,activeBook]);
+  const selectedProject=projectFilter==='all'?null:projects.find(p=>p.id===Number(projectFilter))??null;
+  const eligibleInProject=selectedProject?eligible.filter(q=>q.projectId===selectedProject.id):[];
+  const candidates=useMemo(()=>eligible.filter(q=>{
+    if(projectFilter!=='all'&&q.projectId!==Number(projectFilter))return false;
+    const query=search.trim().toLocaleLowerCase('tr-TR');
+    return !query||(q.content+' '+(q.grade||'')+' '+(q.project?.code||'')).toLocaleLowerCase('tr-TR').includes(query);
+  }),[eligible,projectFilter,search]);
+
   useEffect(()=>{
     const projectId=Number(projectFilter);
     if(!Number.isSafeInteger(projectId)||projectId<=0){setPlan(null);setPlanError('');return;}
@@ -82,196 +104,228 @@ export function PublishingWorkbench({ questions, projects, loading, error, onRef
     void fetchProductionPlan(projectId).then(result=>{
       if(live){setPlan(result);setPlanError('');}
     }).catch(err=>{
-      if(live){setPlan(null);setPlanError(err instanceof Error?err.message:'Plan yüklenemedi.');}
-    }).finally(()=>{if(live)setPlanLoading(false)});
+      if(live){setPlan(null);setPlanError(err instanceof Error?err.message:'Bölüm planı yüklenemedi.');}
+    }).finally(()=>{if(live)setPlanLoading(false);});
     return ()=>{live=false;};
   },[projectFilter]);
 
-  function openSavedBook(book: SavedBook) {
-    const single = flattenSingleChapter(book);
+  function openSavedBook(book:SavedBook){
+    const rows=draftChaptersFromBook(book);
     setActiveBook(book);
     setTitle(book.title);
-    setChapter(single.chapter);
-    setSelectedIds(single.questionIds);
+    setChapters(rows);
+    setActiveKey(rows[0]?.key??'new-1');
     setProjectFilter(String(book.projectId));
-    setColumns(book.layoutColumns === 2 ? 2 : 1);
+    setColumns(book.layoutColumns===2?2:1);
     setWithAnswerKey(false);
     setSearch('');
   }
-
-  function startNewBook() {
+  function startNewBook(){
+    const key='new-'+nextKey.current++;
     setActiveBook(null);
     setTitle('Yeni Soru Kitabı');
-    setChapter('Bölüm 1 · Sorular');
-    setSelectedIds([]);
-    setProjectFilter('all');
-    setColumns(1);
-    setWithAnswerKey(false);
-    setSearch('');
+    setChapters([{key,title:'Bölüm 1 · Sorular',questionIds:[]}]);
+    setActiveKey(key);setProjectFilter('all');setColumns(1);setWithAnswerKey(false);setSearch('');
   }
-
-  const eligible = useMemo(() => approvedForPublishing(questions), [questions]);
-  const selectedProject = projectFilter === 'all' ? null : projects.find(p=>p.id===Number(projectFilter)) ?? null;
-  const readyForSelectedProject = selectedProject ? eligible.filter(q=>q.projectId===selectedProject.id) : [];
-  const planOrderedApproved = useMemo(()=>{
-    if(!plan || plan.projectId !== Number(projectFilter))return [] as number[];
+  function addChapter(){
+    if(chapters.length>=30)return;
+    const key='new-'+nextKey.current++;
+    setChapters(current=>[...current,{key,title:'Bölüm '+(current.length+1)+' · Yeni Ünite',questionIds:[]}]);
+    setActiveKey(key);
+  }
+  function removeChapter(key:string){
+    if(chapters.length<=1)return;
+    const found=chapters.find(ch=>ch.key===key);
+    if(found?.questionIds.length&&!window.confirm('Bu bölümdeki sorular kitap seçiminden çıkarılacak. Bölümü kaldırmak istiyor musunuz?'))return;
+    const after=chapters.filter(ch=>ch.key!==key);
+    setChapters(after);
+    if(activeKey===key)setActiveKey(after[0].key);
+  }
+  function toggleQuestion(id:number){
+    if(!currentChapter)return;
+    const existing=chapters.find(ch=>ch.questionIds.includes(id));
+    setChapters(current=>existing
+      ?current.map(ch=>({...ch,questionIds:ch.questionIds.filter(q=>q!==id)}))
+      :assignQuestionToChapter(current,id,currentChapter.key));
+  }
+  function buildChaptersFromPlan(){
+    if(!plan?.units.length)return;
+    if(selectedIds.length&&!window.confirm('Mevcut bölüm/soru seçimleri plan bölümleriyle değiştirilecek. Devam edilsin mi?'))return;
+    const valid=new Set(eligibleInProject.map(q=>q.id));
     const byTask=new Map<number,number[]>();
-    for(const question of eligible){
-      if(question.projectId !== plan.projectId || question.taskId == null)continue;
+    for(const question of eligibleInProject){
+      if(question.taskId==null)continue;
       byTask.set(question.taskId,[...(byTask.get(question.taskId)??[]),question.id]);
     }
-    return plan.units.flatMap(unit=>unit.tasks.flatMap(task=>byTask.get(task.id)??[]));
-  },[plan,eligible,projectFilter]);
-  const projectOptions = useMemo(() => {
-    const options = new Map<number, string>();
-    if (activeBook?.project) options.set(activeBook.projectId, activeBook.project.code + ' · ' + activeBook.project.title);
-    projects.filter(project => project.status !== 'Arsiv').forEach(project => {
-      options.set(project.id, project.code + ' · ' + project.title);
+    const seen=new Set<number>();
+    const next=plan.units.map(unit=>{
+      const key='new-'+nextKey.current++;
+      const questionIds=unit.tasks.flatMap(t=>byTask.get(t.id)??[]).filter(id=>{
+        if(!valid.has(id)||seen.has(id))return false;
+        seen.add(id);return true;
+      });
+      return {key,title:unit.title,questionIds};
     });
-    return [...options.entries()].sort((a, b) => a[1].localeCompare(b[1], 'tr-TR'));
-  }, [projects, activeBook]);
-  const candidates = useMemo(() => eligible.filter(question => {
-    if (projectFilter !== 'all' && question.projectId !== Number(projectFilter)) return false;
-    const query = search.trim().toLocaleLowerCase('tr-TR');
-    if (!query) return true;
-    return (question.content + ' ' + (question.grade || '') + ' ' + (question.project?.code || '')).toLocaleLowerCase('tr-TR').includes(query);
-  }), [eligible, projectFilter, search]);
-
-  const bookQuestions = useMemo(() => {
-    // Newly selected questions use current approved sources. A reopened book
-    // displays its frozen snapshot even if the live question was later removed.
-    const live = resolveBookOrder(eligible, selectedIds);
-    if (!activeBook) return live;
-    const snapshots = new Map(frozenBookQuestions(activeBook).map(question => [question.id, question]));
-    const liveMap = new Map(live.map(question => [question.id, question]));
-    return selectedIds.map(id => snapshots.get(id) ?? liveMap.get(id))
-      .filter((question): question is ApiQuestion => question !== undefined);
-  }, [eligible, selectedIds, activeBook]);
-  const warnings = useMemo(() => bookMediaWarnings(bookQuestions), [bookQuestions]);
-  const printable = bookQuestions.length > 0 && title.trim().length > 0 && !error && !loading;
-
-  function toggle(id: number) {
-    setSelectedIds(ids => ids.includes(id) ? ids.filter(item => item !== id) : [...ids, id]);
+    setChapters(next);
+    setActiveKey(next[0].key);
   }
-
-  return <div className="publishing-workbench">
+  const snapshots=useMemo(()=>new Map((activeBook?frozenBookQuestions(activeBook):[]).map(q=>[q.id,q])),[activeBook]);
+  const live=useMemo(()=>new Map(eligible.map(q=>[q.id,q])),[eligible]);
+  const chaptersForPrint=useMemo(()=>chapters.map(ch=>({
+    chapter:ch,questions:ch.questionIds.map(id=>snapshots.get(id)??live.get(id))
+      .filter((q):q is ApiQuestion=>Boolean(q))
+  })),[chapters,snapshots,live]);
+  const bookQuestions=chaptersForPrint.flatMap(ch=>ch.questions);
+  const warnings=bookMediaWarnings(bookQuestions);
+  const printable=Boolean(bookQuestions.length&&title.trim()&&!loading&&!error);
+  return <div className="publishing-workbench publishing-v5">
     <div className="page-heading publishing-heading">
-      <div><div className="eyebrow">YAYINCILIK · 1. AŞAMA</div><h1>Yayın Hazırlık Atölyesi</h1>
-        <p>Onaylı sorulardan kitap taslağı oluşturun, soruları sıralayın ve baskı önizlemesini hazırlayın.</p></div>
-      <span className="heading-chip"><BookOpen size={16} /> Önizleme sürümü</span>
+      <div><div className="eyebrow">YAYINCILIK · V5 · ÇOK BÖLÜMLÜ KİTAP</div><h1>Profesyonel Kitap Atölyesi</h1>
+        <p>Kitap bölümlerini oluşturun, onaylı soruları yerleştirin; kaydedilmiş Word belgesi veya PDF baskı önizlemesi hazırlayın.</p></div>
+      <span className="heading-chip"><BookOpen size={16}/> TEST · Kitap Taslağı</span>
     </div>
     <p className="publishing-boundary" role="note">
       {publishingPreview
-        ? 'Kalıcı taslak kaydı yalnız izole V2 önizleme veritabanında açıktır; canlı Production kapalıdır.'
-        : 'Bu aşamada kitap ve soru seçimleri yalnızca bu tarayıcı oturumundadır; sunucuya kaydedilmez.'}
-      {publishingPreview
-        ? 'Word (.docx) için Genel Koordinatörün kaydettiği tek sütunlu kitap taslağında onaylı sorular kullanılır. İzole P3 önizlemesindeki soruya bağlı özel PNG çizimleri Word çıktısına eklenir; harici medya ve desteklenmeyen matematik dizgisi çıktıyı engelleyebilir. ISBN ve nihai matbaa dizgisi henüz hazır değildir.'
-        : 'PDF için Yazdır → PDF olarak kaydet seçeneğini kullanın. Gerçek Word (.docx), kalıcı kitap kayıtları, ISBN ve matbaa dizgisi bu ortamda henüz hazır değildir. Görsel ve formülleri baskıdan önce kontrol edin.'}
+        ? 'Kalıcı kitap kaydı yalnız izole TEST Preview veritabanında etkindir. Word sadece kaydedilmiş sürümden hazırlanır. PDF, yazdırma penceresindeki “PDF olarak kaydet” seçeneğiyle alınır. ISBN, nihai matbaa dizgisi ve yayımlama onayı bu ekranda verilmez.'
+        : 'Bu ortamda bölüm seçimi geçicidir; kitap API kayıtları kapalıdır. Yazdır → PDF olarak kaydet ile baskı taslağı alabilirsiniz.'}
     </p>
-
-    {publishingPreview && <PublishingPersistencePanel
-      questions={questions}
-      loading={loading}
-      sourceError={error}
-      view={{ title, chapter, columns, projectFilter, selectedIds }}
-      activeBook={activeBook}
-      onOpen={openSavedBook}
-      onNew={startNewBook}
+    {publishingPreview&&<PublishingPersistencePanel
+      questions={questions} loading={loading} sourceError={error}
+      view={{title,columns,projectFilter,chapters}}
+      activeBook={activeBook} onOpen={openSavedBook} onNew={startNewBook}
     />}
-
-    <div className="publishing-controls">
-      <section className="panel publishing-settings" aria-label="Kitap düzeni">
-        <h2>1. Kitap bilgileri</h2>
-        <label>Kitap adı<input maxLength={120} value={title} onChange={e => setTitle(e.target.value)} /></label>
-        <label>Bölüm başlığı<input maxLength={120} value={chapter} onChange={e => setChapter(e.target.value)} /></label>
-        <label>Sayfa düzeni<select value={columns} onChange={e => setColumns(e.target.value === '2' ? 2 : 1)}>
-          <option value="1">A4 · Tek sütun</option><option value="2">A4 · Çift sütun</option>
-        </select></label>
-        <label className="publishing-check"><input type="checkbox" checked={withAnswerKey}
-          onChange={e => setWithAnswerKey(e.target.checked)} /> Cevap anahtarını ayrı sayfada ekle</label>
-      </section>
-
-      <section className="panel publishing-select" aria-label="Onaylı soru seçimi">
-        <div className="publishing-panel-heading"><h2>2. Soruları seçin</h2>
-          <button type="button" className="secondary-button" disabled={loading} onClick={() => void onRefresh()}><RefreshCw size={15}/> Yenile</button>
-        </div>
-        <p>Yalnızca oturum yetkinizle erişilen, onaylanmış ve arşivlenmemiş sorular. Görünen liste, tüm sistem için eksiksiz soru sayımı değildir.</p>
-        {selectedProject && <div className="publishing-project-production" role="status">
-          <strong>{selectedProject.title} · Kitaba seçilebilir {readyForSelectedProject.length} onaylı soru</strong>
-          {selectedProject.production?.target
-            ? <span>Görev hedefi {selectedProject.production.target} · Göreve bağlı onaylı {selectedProject.production.approved} · İncelemede {selectedProject.production.inReview} · Revizyonda {selectedProject.production.revision}</span>
-            : <span>Bu projede sayısal görev hedefi yok; onaylı sorular kitaba seçilebilir.</span>}
-          <button type="button" className="secondary-button" disabled={loading || Boolean(error) || !readyForSelectedProject.length}
-            onClick={()=>setSelectedIds(readyForSelectedProject.map(q=>q.id))}>
-            <Check size={14}/> Bu projenin onaylı sorularını kitap taslağına aktar
-          </button>
-          <small>Yalnız onaylı ve arşivlenmemiş sorular seçilir. Kalıcı kayıtta sunucu soru onayını yeniden doğrular.</small>
-        </div>}
-        {selectedProject && <div className="publishing-plan-readiness">
-          <strong>Kitap bölümleri · üretim kontrolü</strong>
-          {planLoading?<p>Ünite planı yükleniyor…</p>:planError?<p role="alert">{planError}</p>:plan ? <>
-            <p>{plan.units.length} bölüm · Hedef {plan.summary.totalTarget} · Onaylı {plan.summary.approved}
-              · Eksik {plan.summary.missing} · Ünitesiz görev {plan.summary.unallocatedTasks}</p>
-            <p>{plan.summary.ready
-              ? 'Bölüm hedefleri tamamlandı. Nihai yayın onayı ve dizgi kontrolü ayrıca gereklidir.'
-              : 'Üretim planı henüz tamamlanmadı. Kısmi kitap taslağı hazırlanabilir ancak kitap hazır sayılmaz.'}</p>
-            <button type="button" className="secondary-button" disabled={Boolean(activeBook)||loading||!!error||!planOrderedApproved.length}
-              onClick={()=>setSelectedIds(planOrderedApproved.slice(0,300))}>
-              <BookOpen size={14}/> Onaylı soruları bölüm sırasıyla seç ({planOrderedApproved.length})
-            </button>
-            <small>Yalnız görevle eşleştirilmiş onaylı sorular bölüm sırasına alınır. Kalıcı taslak bu ekranda tek bölüm olarak kaydedilir; çok bölümlü dizgi henüz etkin değil.</small>
-          </>:<p>Bu proje için ünite planı bulunamadı. Mevcut onaylı soru seçimi kullanılabilir.</p>}
-        </div>}
-        <div className="publishing-filters">
-          <label>Proje<select value={projectFilter} disabled={publishingPreview && Boolean(activeBook)} onChange={e => setProjectFilter(e.target.value)}>
-            <option value="all">Tüm erişilebilir projeler</option>
-            {projectOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-          </select></label>
-          <label>Soru ara<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Soru metni, sınıf, proje kodu" /></label>
-        </div>
-        {loading && <p role="status">Onaylı soru listesi yükleniyor…</p>}
-        {error && <p role="alert" className="publishing-error">Soru listesi yüklenemedi: {error}</p>}
-        {!loading && !error && candidates.length === 0 && <p className="publishing-empty">Bu kapsamda baskıya uygun onaylı soru bulunamadı.</p>}
-        {!loading && !error && <div className="publishing-candidates">
-          {candidates.map(question => <label key={question.id} className="publishing-candidate">
-            <input type="checkbox" checked={selectedIds.includes(question.id)} onChange={() => toggle(question.id)} />
-            <span><strong>#{question.id} · {question.project?.code || 'Projesiz'} · {question.grade || 'Sınıfsız'}</strong>
-              <small>{question.content.slice(0, 180)}</small></span>
-          </label>)}
-        </div>}
-      </section>
-
-      <section className="panel publishing-order" aria-label="Seçilmiş soru sırası">
-        <h2>3. Kitap sırası</h2><p>{bookQuestions.length} onaylı soru seçildi.</p>
-        {bookQuestions.length > 0 && <button type="button" className="secondary-button" onClick={() => setSelectedIds([])}><RotateCcw size={14} /> Seçimi temizle</button>}
-        <ol>{bookQuestions.map((question, index) => <li key={question.id}><span><strong>{index + 1}. Soru · #{question.id}</strong>
-          <small>{question.grade || 'Sınıf yok'} · {question.project?.code || 'Projesiz'}</small></span>
-          <div><button type="button" disabled={index === 0} onClick={() => setSelectedIds(moveBookQuestion(bookQuestions.map(item => item.id), question.id, -1))} aria-label={'Soru ' + question.id + ' yukarı'}><ArrowUp size={15}/></button>
-          <button type="button" disabled={index === bookQuestions.length - 1} onClick={() => setSelectedIds(moveBookQuestion(bookQuestions.map(item => item.id), question.id, 1))} aria-label={'Soru ' + question.id + ' aşağı'}><ArrowDown size={15}/></button>
-          <button type="button" onClick={() => toggle(question.id)} aria-label={'Soru ' + question.id + ' çıkar'}>Çıkar</button></div>
-        </li>)}</ol>
-      </section>
+    <div className="v5-book-setup">
+      <label>Kitap adı<input maxLength={120} value={title} onChange={e=>setTitle(e.target.value)}/></label>
+      <label>Kitap projesi<select value={projectFilter} disabled={Boolean(activeBook)} onChange={e=>{
+        const next=e.target.value;
+        if(selectedIds.length&&!window.confirm('Proje değişikliği seçilen soruları temizleyecek. Devam edilsin mi?'))return;
+        setProjectFilter(next);setChapters(chapters.map(ch=>({...ch,questionIds:[]})));
+      }}>
+        <option value="all">Proje seçin</option>
+        {projectOptions.map(([id,name])=><option key={id} value={id}>{name}</option>)}
+      </select></label>
+      <label>Sayfa düzeni<select value={columns} onChange={e=>setColumns(e.target.value==='2'?2:1)}>
+        <option value={1}>A4 · Tek sütun (Word + PDF)</option>
+        <option value={2}>A4 · Çift sütun (PDF önizleme)</option>
+      </select></label>
+      <label className="publishing-check"><input type="checkbox" checked={withAnswerKey}
+        onChange={e=>setWithAnswerKey(e.target.checked)}/> PDF önizlemesine cevap anahtarı ekle</label>
     </div>
-
-    <div className="publishing-preview-toolbar">
-      <div><h2>4. Kitap önizlemesi</h2><p>Öğrenci nüshasında cevaplar işaretlenmez. Cevap anahtarı isteğe bağlı, ayrı bölüm olarak eklenir.</p></div>
-      <button className="primary-button" type="button" disabled={!printable} onClick={() => window.print()}><FileDown size={17}/> Yazdır / PDF</button>
-    </div>
-    {warnings.map(warning => <p key={warning} className="publishing-warning" role="note">{warning}</p>)}
-    {!bookQuestions.length && <div className="panel publishing-empty">Kitap önizlemesi için en az bir onaylı soru seçin.</div>}
-    {bookQuestions.length > 0 && <div className="publishing-page" aria-label="Kitap baskı önizlemesi">
-      <div className="publishing-cover"><small>PRO-LİG · YAYIN ÖNİZLEMESİ</small><h2>{title.trim() || 'Başlıksız Kitap'}</h2>
-        <p>{chapter.trim()}</p><small>{bookQuestions.length} soru · {columns === 2 ? 'Çift sütun' : 'Tek sütun'}</small></div>
-      <h3 className="publishing-chapter-heading">{chapter.trim() || 'Sorular'}</h3>
-      <div className={columns === 2 ? 'publishing-page-body two-columns' : 'publishing-page-body'}>
-        {bookQuestions.map((question, index) => <QuestionForBook key={question.id} question={question} ordinal={index + 1} />)}
+    <section className="v5-chapter-editor" aria-label="Kitap bölüm ve ünite düzenleyici">
+      <div className="v5-section-head"><div><h2>1. Bölümler ve Üniteler</h2>
+        <p>Bölümleri sıralayın; her soruyu yalnız bir bölüme yerleştirin. Kaydedilmiş kitap yeniden açılıp düzenlenebilir.</p></div>
+        <div className="v5-actions">
+          <button type="button" className="secondary-button" onClick={addChapter} disabled={chapters.length>=30}><Plus size={14}/> Bölüm ekle</button>
+          <button type="button" className="secondary-button" disabled={!plan?.units.length||planLoading}
+            onClick={buildChaptersFromPlan}><BookOpen size={14}/> Ünite planından aktar</button>
+        </div>
       </div>
-      {withAnswerKey && <section className="publishing-key" aria-label="Cevap anahtarı">
-        <h3>Cevap Anahtarı</h3>
-        <ol>{bookQuestions.map((question, index) => <li key={question.id}><strong>{index + 1}.</strong> <StudioMarkup value={bookAnswer(question)} /></li>)}</ol>
+      {planLoading&&<p role="status">Ünite üretim planı yükleniyor…</p>}
+      {planError&&<p className="publishing-error" role="alert">{planError}</p>}
+      {plan&&<p className="v5-plan-context">Ünite hedefi {plan.summary.totalTarget} · Onay {plan.summary.approved} · Eksik {plan.summary.missing}
+        · {plan.summary.ready?'Üretim planı tamam':'Üretim eksikleri var'}; kitap taslağı eksik ünitelerle de kaydedilebilir.</p>}
+      <div className="v5-chapter-tabs">
+        {chapters.map((ch,i)=><div className={'v5-chapter-tab'+(ch.key===currentChapter?.key?' active':'')} key={ch.key}>
+          <button type="button" className="v5-chapter-pick" onClick={()=>setActiveKey(ch.key)}>
+            <span>{i+1}. {ch.title}</span><small>{ch.questionIds.length} soru</small></button>
+          <div className="v5-chapter-actions">
+            <button type="button" title="Bölümü yukarı taşı" disabled={i===0}
+              onClick={()=>setChapters(prev=>moveChapter(prev,ch.key,-1))}><ArrowUp size={13}/></button>
+            <button type="button" title="Bölümü aşağı taşı" disabled={i===chapters.length-1}
+              onClick={()=>setChapters(prev=>moveChapter(prev,ch.key,1))}><ArrowDown size={13}/></button>
+            <button type="button" title="Bölümü kaldır" disabled={chapters.length===1}
+              onClick={()=>removeChapter(ch.key)}><Trash2 size={13}/></button>
+          </div>
+        </div>)}
+      </div>
+      {currentChapter&&<label className="v5-active-title">Seçili bölüm adı
+        <input maxLength={120} value={currentChapter.title} onChange={e=>setChapters(prev=>prev.map(ch=>
+          ch.key===currentChapter.key?{...ch,title:e.target.value}:ch))}/>
+      </label>}
+    </section>
+    <div className="v5-book-editor-columns">
+      <section className="panel v5-question-bank" aria-label="Onaylanan soru havuzu">
+        <div className="v5-section-head"><div><h2>2. Onaylı Soruları Yerleştir</h2>
+          <p>{currentChapter?.title} · {currentChapter?.questionIds.length??0} soru</p></div>
+          <button type="button" className="secondary-button" disabled={loading} onClick={()=>void onRefresh()}><RefreshCw size={14}/> Yenile</button>
+        </div>
+        <label>Soru ara<input value={search} placeholder="Soru metni veya kazanım" onChange={e=>setSearch(e.target.value)}/></label>
+        {loading&&<p role="status">Soru havuzu yükleniyor…</p>}
+        {error&&<p role="alert" className="publishing-error">{error}</p>}
+        {!loading&&!error&&candidates.length===0&&<p className="publishing-empty">Seçili projede onaylı, aktif soru bulunmuyor.</p>}
+        <div className="v5-eligible-list">
+          {candidates.map(q=>{
+            const located=chapters.find(ch=>ch.questionIds.includes(q.id));
+            return <button type="button" key={q.id} disabled={projectFilter==='all'||!currentChapter}
+              className={'v5-eligible'+(located?' selected':'')} onClick={()=>toggleQuestion(q.id)}>
+              <span><strong>#{q.id} · {q.grade||'Sınıf yok'} {located?'· '+located.title:''}</strong>
+                <small>{q.content.slice(0,155)}</small></span>
+              {located?<Check size={17}/>:<Plus size={16}/>}
+            </button>
+          })}
+        </div>
+        <p className="v5-help">Seçmek soruyu etkin bölüme ekler. Başka bölümdeki soruyu önce çıkartıp doğru bölüme ekleyebilirsiniz.</p>
+      </section>
+      <section className="panel v5-questions-order" aria-label="Bölüm içi soru sırası">
+        <h2>3. Soru Sırası ve Bölümler Arası Taşıma</h2>
+        <p>Kaydedilirken bölüm sırası ve soru sırası birlikte korunur.</p>
+        {currentChapter?.questionIds.length===0&&<p className="publishing-empty">Bu bölüm boş; onaylı soruları ekleyin. Kaydetmek için her bölümde en az bir soru olmalıdır.</p>}
+        <ol>{currentChapter?.questionIds.map((id,i)=>{
+          const q=snapshots.get(id)??live.get(id);
+          return <li key={id} className="v5-ordered-question">
+            <div><strong>{i+1}. Soru · #{id}</strong>
+              <small>{q?.content.slice(0,100)??'Kaynak soruya erişilemiyor'}</small></div>
+            <div className="v5-ordered-actions">
+              <button title="Sıra yukarı" type="button" disabled={i===0}
+                onClick={()=>setChapters(prev=>moveQuestionInChapter(prev,currentChapter!.key,id,-1))}><ArrowUp size={13}/></button>
+              <button title="Sıra aşağı" type="button" disabled={i===currentChapter!.questionIds.length-1}
+                onClick={()=>setChapters(prev=>moveQuestionInChapter(prev,currentChapter!.key,id,1))}><ArrowDown size={13}/></button>
+              <select aria-label={'Soru '+id+' bölümünü değiştir'} value={currentChapter!.key}
+                onChange={e=>setChapters(prev=>assignQuestionToChapter(prev,id,e.target.value))}>
+                {chapters.map(ch=><option key={ch.key} value={ch.key}>{ch.title}</option>)}
+              </select>
+              <button title="Kitaptan çıkar" type="button" onClick={()=>toggleQuestion(id)}><Trash2 size={13}/></button>
+            </div>
+          </li>;
+        })}</ol>
+      </section>
+    </div>
+    <div className="publishing-preview-toolbar">
+      <div><h2>4. Kitap İçindekiler ve Baskı Önizlemesi</h2>
+        <p>Kapak · İçindekiler · Bölümler · İsteğe bağlı cevap anahtarı · A4 sayfa numaraları.</p></div>
+      <button type="button" className="primary-button" disabled={!printable} onClick={()=>window.print()}>
+        <FileDown size={17}/> Yazdır / PDF Kaydet</button>
+    </div>
+    {warnings.map(warning=><p key={warning} className="publishing-warning" role="note">{warning}</p>)}
+    {!bookQuestions.length&&<div className="panel publishing-empty">Önizleme için en az bir onaylı soru seçin.</div>}
+    {bookQuestions.length>0&&<div className="publishing-page v5-print-book" aria-label="Çok bölümlü kitap baskı önizlemesi">
+      <div className="publishing-cover"><small>PRO-LİG · YAYIN ÖNİZLEMESİ</small>
+        <h2>{title.trim()||'Başlıksız Kitap'}</h2>
+        <p>{chapters.length} bölüm · {bookQuestions.length} soru</p>
+        <small>Öğrenci nüshası · A4 · {columns===2?'Çift sütun':'Tek sütun'}</small>
+      </div>
+      <nav className="v5-print-toc" aria-label="Kitap içindekiler">
+        <h2>İçindekiler</h2>
+        <ol>{chapters.map((ch,i)=><li key={ch.key}>
+          <a href={'#v5-chapter-'+i}><span>{i+1}. {ch.title}</span><small>{ch.questionIds.length} soru</small></a>
+        </li>)}</ol>
+        <p className="v5-toc-help">PDF'de bölüm başlıkları görüntülenir; gerçek sayfa sayıları tarayıcının baskı motorunca belirlenir.</p>
+      </nav>
+      {chaptersForPrint.map(({chapter:ch,questions:rows},i)=><section id={'v5-chapter-'+i}
+        className="v5-print-chapter" key={ch.key} aria-label={ch.title}>
+        <h3 className="publishing-chapter-heading">{i+1}. {ch.title}</h3>
+        <div className={columns===2?'publishing-page-body two-columns':'publishing-page-body'}>
+          {rows.map((q,j)=><QuestionForBook key={q.id} question={q}
+            ordinal={chapters.slice(0,i).reduce((n,c)=>n+c.questionIds.length,0)+j+1}/>)}
+        </div>
+      </section>)}
+      {withAnswerKey&&<section className="publishing-key" aria-label="Cevap anahtarı">
+        <h3>Cevap Anahtarı</h3><ol>{bookQuestions.map((q,i)=><li key={q.id}>
+          <strong>{i+1}.</strong> <StudioMarkup value={bookAnswer(q)}/></li>)}</ol>
       </section>}
-      <p className="publishing-footnote">PRO-LİG yayın önizlemesi · Nihai dizgi ve içerik onayı yapılmamıştır.</p>
+      <p className="publishing-footnote">PRO-LİG · Yayın taslağı · Baskı ve içerik kontrolü tamamlanmamıştır.</p>
     </div>}
-    {bookQuestions.length > 0 && <p className="publishing-selected-status" role="status"><Check size={15}/> {bookQuestions.length} soruluk önizleme hazır. Baskıdan önce cevap anahtarı ve görselleri kontrol edin.</p>}
+    {bookQuestions.length>0&&<p className="publishing-selected-status" role="status">
+      <Check size={15}/>{chapters.length} bölümde {bookQuestions.length} soru. PDF yazdırma önizlemesi hazır; Word için kitabı önce sunucuya kaydedin.</p>}
   </div>;
 }
