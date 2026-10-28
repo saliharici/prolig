@@ -68,7 +68,8 @@ export function TaskTracking({
   authors,
   initialProjectId,
   onProjectFilterChange,
-  onOpenProjectQuestions
+  onOpenProjectQuestions,
+  onStartProjectDraft
 }: {
   currentUser: AuthUser;
   projects: ApiProject[];
@@ -76,6 +77,7 @@ export function TaskTracking({
   initialProjectId?: number | null;
   onProjectFilterChange?: (projectId: number | null) => void;
   onOpenProjectQuestions: (projectId: number, status?: string) => void;
+  onStartProjectDraft: (projectId: number) => void;
 }) {
   const canCreate = managerRoles.has(currentUser.role);
   const [tasks, setTasks] = useState<ApiTask[]>([]);
@@ -238,7 +240,9 @@ export function TaskTracking({
         return <section key={column.status} className="task-kanban-column">
           <header><strong>{column.label}</strong><span>{columnTasks.length}</span></header>
           <div className="task-kanban-stack">
-            {columnTasks.map(task=><TaskCard key={task.id} task={task} onEdit={openEdit} onAdvance={advance} onOpenProjectQuestions={onOpenProjectQuestions}/>)}
+            {columnTasks.map(task=><TaskCard key={task.id} task={task} onEdit={openEdit} onAdvance={advance}
+              currentUserId={currentUser.id} canWrite={currentUser.role==='YAZAR'}
+              onStartProjectDraft={onStartProjectDraft} onOpenProjectQuestions={onOpenProjectQuestions}/>)}
             {columnTasks.length===0&&<div className="task-column-empty">Görev yok</div>}
           </div>
         </section>;
@@ -254,7 +258,12 @@ export function TaskTracking({
           <td><span className={`task-priority priority-${task.priority.toLowerCase()}`}>{trPriority(task.priority)}</span></td>
           <td>{shortDate(task.dueDate)}{task.isOverdue&&<small className="task-overdue-text">Gecikti</small>}</td>
           <td><span className={`task-status task-status-${task.status.toLowerCase()}`}>{trStatus(task.status)}</span></td>
-          <td><div className="row-actions"><button type="button" title="Proje sorularını aç" onClick={()=>onOpenProjectQuestions(task.project.id)}><BookOpen size={14}/> Sorular</button>{task.canManage&&<button title="Düzenle" onClick={()=>openEdit(task)}><PencilLine size={14}/></button>}{task.canUpdateStatus&&task.status!=='Tamamlandi'&&!(task.status==='Kontrol_Bekliyor'&&!task.canManage)&&<button onClick={()=>void advance(task)}>İlerle <ChevronRight size={13}/></button>}</div></td>
+          <td><div className="row-actions">
+            {currentUser.role==='YAZAR' && task.assignedAuthor?.id===currentUser.id &&
+              <button type="button" className="task-write-question" onClick={()=>onStartProjectDraft(task.project.id)}>
+                <Plus size={14}/> Soru yaz
+              </button>}
+            <button type="button" title="Proje sorularını aç" onClick={()=>onOpenProjectQuestions(task.project.id)}><BookOpen size={14}/> Sorular</button>{task.canManage&&<button title="Düzenle" onClick={()=>openEdit(task)}><PencilLine size={14}/></button>}{task.canUpdateStatus&&task.status!=='Tamamlandi'&&!(task.status==='Kontrol_Bekliyor'&&!task.canManage)&&<button onClick={()=>void advance(task)}>İlerle <ChevronRight size={13}/></button>}</div></td>
         </tr>)}
       </tbody></table>{visibleTasks.length===0&&<div className="empty-state">Bu filtreye uygun görev bulunamadı.</div>}</div>
     </div>}
@@ -273,13 +282,20 @@ export function TaskTracking({
   </>;
 }
 
-function TaskCard({ task, onEdit, onAdvance, onOpenProjectQuestions }: { task: ApiTask; onEdit: (task: ApiTask)=>void; onAdvance: (task: ApiTask)=>void; onOpenProjectQuestions: (projectId: number, status?: string)=>void }) {
+function TaskCard({ task, onEdit, onAdvance, onOpenProjectQuestions, currentUserId, canWrite, onStartProjectDraft }: {
+  task: ApiTask; onEdit: (task: ApiTask)=>void; onAdvance: (task: ApiTask)=>void;
+  onOpenProjectQuestions: (projectId: number, status?: string)=>void;
+  currentUserId: number; canWrite: boolean; onStartProjectDraft: (projectId: number)=>void;
+}) {
   return <article className={`task-card ${task.isOverdue?'overdue':''}`}>
     <div className="task-card-top"><span className={`task-priority priority-${task.priority.toLowerCase()}`}>{trPriority(task.priority)}</span>{task.isOverdue&&<span className="task-overdue-badge"><AlertTriangle size={12}/> Gecikti</span>}</div>
     <h3>{task.title}</h3>
     <p>{task.project.code} · {task.project.title}</p>
     <div className="task-card-meta"><span><UserRound size={13}/>{assigneeName(task)}</span><span><CalendarDays size={13}/>{shortDate(task.dueDate)}</span></div>
     <div className="task-card-actions">
+      {canWrite && task.assignedAuthor?.id===currentUserId && <button type="button" className="task-write-question" onClick={()=>onStartProjectDraft(task.project.id)}>
+        <Plus size={13}/> Soru taslağı oluştur
+      </button>}
       <button type="button" onClick={()=>onOpenProjectQuestions(task.project.id)}><BookOpen size={13}/> Proje soruları</button>
       {task.canManage&&<button onClick={()=>onEdit(task)}><PencilLine size={13}/> Düzenle</button>}
       {task.canUpdateStatus&&task.status!=='Tamamlandi'&&!(task.status==='Kontrol_Bekliyor'&&!task.canManage)&&<button className="advance" onClick={()=>onAdvance(task)}>İlerle <ChevronRight size={13}/></button>}

@@ -1404,6 +1404,27 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssetAltText('');
     setShowQuestionForm(true);
   };
+  const openTaskLinkedQuestionDraft = (projectId: number) => {
+    if (currentUser.role !== 'YAZAR' || !allowed.includes('questions')) return;
+    const project = questionAssignableProjects.find(item => item.id === projectId);
+    if (!project) {
+      setToast('Bu projede soru oluşturma yetkiniz bulunmuyor.');
+      return;
+    }
+    navigate('questions');
+    // A recovered draft must not be silently reassigned to another project.
+    if (pausedQuestionDraftsRef.current.has(pausedQuestionDraftKey(currentUser.id, null))) {
+      openQuestionForm();
+      setToast('Önce mevcut soru taslağınızı tamamlayın; proje ataması değiştirilmedi.');
+      return;
+    }
+    openQuestionForm();
+    const level = levelForGrade(project.targetGrade);
+    if (level) setQuestionLevel(level);
+    setQuestionGrade(project.targetGrade);
+    setQuestionProjectId(project.id);
+    setQuestionProjectFilter(project.id);
+  };
   const changeQuestionLevel = (level: string) => {
     setQuestionLevel(level);
     setQuestionGrade(gradesByLevel[level]?.[0] || '');
@@ -2157,7 +2178,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             })}</div>}
             {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state corporate-project-empty"><BookOpen size={24} aria-hidden="true" /><strong>{apiProjects.length === 0 ? 'Henüz erişilebilir proje bulunmuyor' : 'Arama ölçütlerine uygun proje yok'}</strong><p>{apiProjects.length === 0 ? 'Yeni bir projeye atandığınızda burada görüntülenecektir.' : 'Arama ifadesini veya sınıf filtresini değiştirerek yeniden deneyin.'}</p></div>}
           </>}
-        {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} onOpenProjectQuestions={openQuestionsForProject} />}
+        {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} onOpenProjectQuestions={openQuestionsForProject} onStartProjectDraft={openTaskLinkedQuestionDraft} />}
         {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
         {section === 'announcements' && <AnnouncementCenter onUnreadChange={setAnnouncementUnreadCount} />}
         {section === 'grades' && <>
@@ -2343,6 +2364,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         </div>
       </div>
       <div className="project-detail-footer">
+        {currentUser.role === 'GENEL_KOORDINATOR' && <button className="secondary-button" type="button" onClick={() => {
+          setSelectedProjectId(null); setSection('publishing');
+        }}><BookOpen size={15}/> Kitap hazırlığı</button>}
         {selectedProject.canManage&&<button className="secondary-button project-manage-button" onClick={()=>openProjectEdit(selectedProject)}><PencilLine size={15}/> Projeyi Düzenle</button>}
         <button className="secondary-button" onClick={()=>openTasksForProject(selectedProject.id)}>Görevleri aç <ClipboardList size={15}/></button>
         <button className="secondary-button" onClick={()=>{setSelectedGrade(selectedProject.targetGrade);setSelectedProjectId(null);setSection('grades')}}>Sınıfı aç <GraduationCap size={15}/></button>

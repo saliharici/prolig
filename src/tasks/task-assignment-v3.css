@@ -16,3 +16,7 @@
 .task-workflow-link button{display:inline-flex;align-items:center;gap:4px;font-size:11px;border:1px solid #c2dfd6;background:#fff;color:#286e60;border-radius:8px;cursor:pointer;padding:7px 10px;margin-left:auto}
 .task-workflow-link button:hover{background:#e8f6f1}
 .task-workflow-link small{flex:1 0 100%;color:#708b87;font-size:10px}
+
+/* Direct, project-scoped author drafting link; no extra question workflow permission. */
+.task-card-actions .task-write-question,.row-actions .task-write-question{border-color:#a3d6c5;color:#21715c;background:#e9f7f1;font-weight:800}
+.task-card-actions .task-write-question:hover,.row-actions .task-write-question:hover{background:#d4eee4}

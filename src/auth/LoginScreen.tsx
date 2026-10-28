@@ -20,7 +20,15 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   const testAdminAvailable = import.meta.env.VITE_TEST_ADMIN_SETUP === 'true'
     && window.location.hostname.endsWith('.vercel.app');
   const [showTestSetup, setShowTestSetup] = useState(false);
-  const [testSetupRole, setTestSetupRole] = useState<'admin'|'branch'>('admin');
+  const [testSetupRole, setTestSetupRole] = useState<'admin'|'branch'|'fixture'>('admin');
+  const [fixtureActor, setFixtureActor] = useState<'matAuthor'|'fizAuthor'|'matEditor'|'fizEditor'>('matAuthor');
+  const fixtureOptions = [
+    { key: 'matAuthor', label: 'Matematik Yazarı (7. Sınıf)', email: 'prolig-fixture-mat1@prolig.invalid' },
+    { key: 'matEditor', label: 'Matematik Editörü (7. Sınıf)', email: 'preview-editor-mat@prolig.invalid' },
+    { key: 'fizAuthor', label: 'Fizik Yazarı (10. Sınıf)', email: 'prolig-fixture-fiz1@prolig.invalid' },
+    { key: 'fizEditor', label: 'Fizik Editörü (10. Sınıf)', email: 'preview-editor-fiz@prolig.invalid' }
+  ] as const;
+  const selectedFixture = fixtureOptions.find(item => item.key === fixtureActor)!;
   const [testPassword, setTestPassword] = useState('');
   const [testPasswordAgain, setTestPasswordAgain] = useState('');
   const [testSetupLoading, setTestSetupLoading] = useState(false);
@@ -41,12 +49,14 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
         body: JSON.stringify({
           testAdminSetup: testSetupRole==='admin',
           testCoordinatorSetup: testSetupRole==='branch',
+          testFixtureSetup: testSetupRole==='fixture',
+          ...(testSetupRole==='fixture' ? { testFixtureActor: fixtureActor } : {}),
           password: testPassword
         })
       });
       if (response.status === 409) {
         setShowTestSetup(false);
-        setEmail(testSetupRole==='branch'?'preview-brans@prolig.invalid':'preview-admin@prolig.invalid');
+        setEmail(testSetupRole==='branch'?'preview-brans@prolig.invalid':testSetupRole==='fixture'?selectedFixture.email:'preview-admin@prolig.invalid');
         setError('Bu TEST hesabının şifresi zaten belirlenmiş. Normal giriş alanını kullanın.');
         return;
       }
@@ -137,8 +147,8 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
         {testAdminAvailable && <div style={{ marginTop: 18, padding: 14, background: '#eff8f5', border: '1px solid #cde6df', borderRadius: 12 }}>
           <strong style={{ display: 'block', fontSize: 13, marginBottom: 8, color: '#215f54' }}>Ayrı TEST Yönetici Girişi</strong>
           <p style={{ fontSize: 12, lineHeight: 1.6, margin: '0 0 10px', color: '#4e756e' }}>
-            Canlı hesabınız etkilenmez. İlk kullanımda kendi TEST şifrenizi burada belirleyin;
-            sonraki girişlerde <strong>preview-admin@prolig.invalid</strong> hesabını kullanın.
+            Canlı hesabınız etkilenmez. İlk kullanımda kendi TEST şifrenizi belirleyin.
+            Genel Koordinatör, Branş Koordinatörü ve örnek Yazar / Editör hesapları birbirinden ayrıdır.
           </p>
           <button type="button" className="ux02-login-back" onClick={() => { setTestSetupRole('admin');setShowTestSetup(value => testSetupRole==='admin'?!value:true); setError(null); }}
             style={{ marginBottom: showTestSetup ? 12 : 0 }}>
@@ -149,9 +159,24 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
           }} style={{display:'block',marginBottom:showTestSetup&&testSetupRole==='branch'?12:0}}>
             {showTestSetup&&testSetupRole==='branch'?'Branş formunu kapat':'Branş Koordinatörü şifremi belirle'}
           </button>
+          <button type="button" className="ux02-login-back" onClick={() => {
+            setTestSetupRole('fixture');setShowTestSetup(value => testSetupRole==='fixture'?!value:true);
+            setTestPassword('');setTestPasswordAgain('');setError(null);
+          }} style={{display:'block',marginBottom:showTestSetup&&testSetupRole==='fixture'?12:0}}>
+            {showTestSetup&&testSetupRole==='fixture'?'Yazar / Editör formunu kapat':'Yazar / Editör TEST şifresi belirle'}
+          </button>
           {showTestSetup&&<form onSubmit={setupTestAdmin} style={{ display: 'grid', gap: 9 }}>
+            {testSetupRole==='fixture' && <>
+              <label htmlFor="test-fixture-role" style={{fontSize:12}}>TEST rolünü seçin</label>
+              <select id="test-fixture-role" value={fixtureActor}
+                onChange={event => {setFixtureActor(event.target.value as typeof fixtureActor);setTestPassword('');setTestPasswordAgain('');setError(null);}}
+                style={{padding:11,borderRadius:8,border:'1px solid #c1d9d4'}}>
+                {fixtureOptions.map(item=><option key={item.key} value={item.key}>{item.label}</option>)}
+              </select>
+              <small style={{fontSize:11,color:'#427366'}}>Giriş hesabı: <strong>{selectedFixture.email}</strong></small>
+            </>}
             <strong style={{fontSize:12,color:'#245e54'}}>
-              {testSetupRole==='branch'?'Matematik / Fizik Branş Koordinatörü':'Genel Koordinatör'} — İlk şifre tanımlama
+              {testSetupRole==='branch'?'Matematik / Fizik Branş Koordinatörü':testSetupRole==='fixture'?selectedFixture.label:'Genel Koordinatör'} — İlk şifre tanımlama
             </strong>
             <label htmlFor="test-admin-pass" style={{ fontSize: 12 }}>Yeni TEST şifreniz</label>
             <input id="test-admin-pass" type="password" minLength={10} required autoComplete="new-password"

@@ -81,6 +81,64 @@ async function setupIsolatedTestCoordinator(req: VercelRequest, res: VercelRespo
   return res.status(201).json({created:true,email:TEST_BRANCH_COORDINATOR_EMAIL});
 }
 
+
+// Dedicated, disposable TEST actors: password claim is one-time and never overwrites a real user's password.
+const TEST_FIXTURE_ACTORS = {
+  matAuthor: { email: 'prolig-fixture-mat1@prolig.invalid', role: 'YAZAR', provinceId: 6, branchId: 50 },
+  fizAuthor: { email: 'prolig-fixture-fiz1@prolig.invalid', role: 'YAZAR', provinceId: 25, branchId: 23 },
+  matEditor: { email: 'preview-editor-mat@prolig.invalid', role: 'EDITOR', provinceId: 6, branchId: 50, grade: '7. Sınıf' },
+  fizEditor: { email: 'preview-editor-fiz@prolig.invalid', role: 'EDITOR', provinceId: 25, branchId: 23, grade: '10. Sınıf' }
+} as const;
+
+async function setupIsolatedFixtureActor(req: VercelRequest, res: VercelResponse) {
+  if (!testBootstrapEnabled()) return res.status(404).json({ error: 'Not found' });
+  const password = req.body?.password;
+  const actorKey: unknown = req.body?.testFixtureActor;
+  if (typeof actorKey !== 'string' || !Object.prototype.hasOwnProperty.call(TEST_FIXTURE_ACTORS, actorKey)) {
+    return res.status(400).json({ error: 'Geçersiz TEST rolü.' });
+  }
+  if (typeof password !== 'string' || password.length < 10 || password.length > 128) {
+    return res.status(400).json({ error: 'TEST şifresi 10-128 karakter olmalı.' });
+  }
+  const target = await prisma.$queryRaw<Array<{ name: string; db_user: string }>>`
+    SELECT current_database() AS name, current_user AS db_user
+  `;
+  if (target[0]?.name !== 'ux02_test' || target[0]?.db_user !== 'ux02_owner') {
+    return res.status(403).json({ error: 'İzole TEST veritabanı tanınmadı.' });
+  }
+  const actor = TEST_FIXTURE_ACTORS[actorKey as keyof typeof TEST_FIXTURE_ACTORS];
+  const user = await prisma.user.findUnique({
+    where: { email: actor.email },
+    include: {
+      role: true,
+      AuthorProfile: { select: { branchId: true, provinceId: true } },
+      branchAssignments: { select: { branchId: true } }
+    }
+  });
+  if (!user || user.status.toUpperCase() !== 'AKTIF' || user.role.code !== actor.role) {
+    return res.status(404).json({ error: 'Örnek TEST hesabı bulunamadı.' });
+  }
+  if (actor.role === 'YAZAR' &&
+      (user.AuthorProfile?.branchId !== actor.branchId || user.AuthorProfile?.provinceId !== actor.provinceId)) {
+    return res.status(403).json({ error: 'Örnek yazarın branş/il bilgisi değişmiş.' });
+  }
+  if (actor.role === 'EDITOR' &&
+      (user.provinceId !== actor.provinceId || user.editorGrade !== ('grade' in actor ? actor.grade : undefined)
+        || !user.branchAssignments.some(a => a.branchId === actor.branchId))) {
+    return res.status(403).json({ error: 'Örnek editörün yetki ataması değişmiş.' });
+  }
+  if (user.passwordHash) return res.status(409).json({ error: 'Bu TEST hesabının şifresi zaten belirlenmiş.' });
+  const hash = await bcrypt.hash(password, 10);
+  const updated = await prisma.user.updateMany({
+    where: { id: user.id, passwordHash: null },
+    data: { passwordHash: hash }
+  });
+  if (updated.count !== 1) return res.status(409).json({ error: 'Bu TEST hesabının şifresi zaten belirlenmiş.' });
+  setSessionCookie(res, user.id);
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(201).json({ created: true, email: actor.email });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -92,6 +150,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (req.body?.testCoordinatorSetup === true) {
       return await setupIsolatedTestCoordinator(req, res);
+    }
+    if (req.body?.testFixtureSetup === true) {
+      return await setupIsolatedFixtureActor(req, res);
     }
     if (!req.body || typeof req.body !== 'object') {
       return res.status(400).json({ error: 'Invalid request body' });
