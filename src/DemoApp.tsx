@@ -32,6 +32,7 @@ import type { ApiProject, ProjectStatus as ApiProjectStatus } from './projects/t
 import { ALL_GRADES, buildGradeDetail, levelForGrade, projectQuestionStats } from './projects/integration';
 import { ProjectManagementModal } from './projects/ProjectManagementModal';
 import { ProjectProductionOverview } from './projects/ProjectProductionOverview';
+import { ProductionPlanPanel } from './projects/ProductionPlanPanel';
 import { ProjectAuthorPerformancePanel } from './projects/ProjectAuthorPerformancePanel';
 import { TaskTracking } from './tasks/TaskTracking';
 import { fetchTasks } from './tasks/api';
@@ -2370,6 +2371,14 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
         role={currentUser.role}
         onOpenQuestions={() => openQuestionsForProject(selectedProject.id)}
         onOpenQuestionsByStatus={status => openQuestionsForProject(selectedProject.id, status)}
+      />
+      <ProductionPlanPanel key={'plan-'+selectedProject.id} projectId={selectedProject.id} role={currentUser.role}
+        onOpenTasks={()=>openTasksForProject(selectedProject.id)}
+        onPrepareBook={()=>{
+          setPublishingProjectId(selectedProject.id);
+          setSelectedProjectId(null);
+          setSection('publishing');
+        }}
       />
       <ProjectAuthorPerformancePanel key={selectedProject.id + ':' + currentUser.role} projectId={selectedProject.id} role={currentUser.role} />
       <div className="project-detail-body">
