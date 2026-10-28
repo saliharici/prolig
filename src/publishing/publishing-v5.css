@@ -50,3 +50,14 @@
  .v5-print-toc a{color:#222}
  .v5-toc-help{display:none}
 }
+
+@media print{
+ .demo-shell:has(.publishing-workbench) .v5-book-setup,
+ .demo-shell:has(.publishing-workbench) .v5-chapter-editor,
+ .demo-shell:has(.publishing-workbench) .v5-book-editor-columns,
+ .demo-shell:has(.publishing-workbench) .v5-plan-context{display:none!important}
+ .demo-shell:has(.publishing-workbench) .publishing-workbench .v5-print-book{display:block!important}
+ .v5-print-chapter{margin:0;padding:0}
+ .v5-print-chapter .publishing-page-body{break-inside:auto}
+ .v5-print-toc li{break-inside:avoid}
+}
