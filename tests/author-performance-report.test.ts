@@ -16,15 +16,16 @@ vi.mock('../api/v1/_lib/question-archive.js', () => ({
 
 const general = { id: 1, role: { code: 'GENEL_KOORDINATOR' } };
 const finance = { id: 2, role: { code: 'MUHASEBE' } };
-const province = { id: 3, role: { code: 'IL_KOORDINATORU' }, provinceId: 25 };
+const province = { id: 3, role: { code: 'BRANS_KOORDINATORU' },
+  branchAssignments: [{ branchId: 4 }] };
 const region = { id: 4, role: { code: 'BOLGE_KOORDINATORU' }, assignedRegion: 'Doğu Anadolu' };
 const project = {
   id: 7, code: 'MATH-7', title: 'Matematik 7', targetGrade: '7. Sınıf',
   branch: { id: 4, name: 'Matematik' },
   projectAuthors: [
-    { authorProfile: { user: { id: 20, fullName: 'Zeynep Yazar' },
+    { authorProfile: { user: { id: 20, fullName: 'Zeynep Yazar' }, branchId: 4,
       province: { id: 25, name: 'Erzurum', region: 'Doğu Anadolu' } } },
-    { authorProfile: { user: { id: 30, fullName: 'Ayşe Yazar' },
+    { authorProfile: { user: { id: 30, fullName: 'Ayşe Yazar' }, branchId: 5,
       province: { id: 34, name: 'İstanbul', region: 'Marmara' } } }
   ]
 };
@@ -46,7 +47,7 @@ describe('cross-project author performance reporting — read-only scoped', () =
     expect(prisma.project.findMany).not.toHaveBeenCalled();
   });
 
-  it('scopes province coordinator to their author, with no financial query or earnings fields', async () => {
+  it('scopes branch coordinator to assigned author with no financial disclosure', async () => {
     const result = await getAuthorPerformanceReport(province);
     expect(result.financeVisible).toBe(false);
     expect(result.rows).toHaveLength(1);
@@ -57,7 +58,7 @@ describe('cross-project author performance reporting — read-only scoped', () =
     expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { AND: [
         { projectId: { in: [7] }, authorUserId: { in: [20] } },
-        { authorUser: { AuthorProfile: { provinceId: 25 } } }
+        { authorUser: { AuthorProfile: { branchId: { in: [4] } } } }
       ] }
     }));
   });

@@ -86,8 +86,8 @@ const genel = {
 const il = {
   id: 1,
   fullName: 'Erzurum İl Koordinatörü',
-  role: { code: 'IL_KOORDINATORU' },
-  provinceId: 25
+  role: { code: 'BRANS_KOORDINATORU' },
+  branchAssignments: [{ branchId: 2 }]
 };
 
 describe('Project management handlers', () => {

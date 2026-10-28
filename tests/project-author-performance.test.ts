@@ -17,13 +17,13 @@ vi.mock('../api/v1/_lib/question-archive.js', () => ({
 
 const general = { id: 1, role: { code: 'GENEL_KOORDINATOR' } };
 const accounting = { id: 2, role: { code: 'MUHASEBE' } };
-const provinceCoordinator = { id: 3, provinceId: 25, role: { code: 'IL_KOORDINATORU' } };
+const provinceCoordinator = { id: 3, branchAssignments: [{ branchId: 4 }], role: { code: 'BRANS_KOORDINATORU' } };
 const regionCoordinator = { id: 4, assignedRegion: 'Doğu Anadolu', role: { code: 'BOLGE_KOORDINATORU' } };
 const project = {
   id: 55,
   projectAuthors: [
-    { authorProfile: { user: { id: 101, fullName: 'Zehra Kaya' }, province: { id: 25, name: 'Erzurum', region: 'Doğu Anadolu' } } },
-    { authorProfile: { user: { id: 102, fullName: 'Ali Demir' }, province: { id: 34, name: 'İstanbul', region: 'Marmara' } } }
+    { authorProfile: { user: { id: 101, fullName: 'Zehra Kaya' }, branchId: 4, province: { id: 25, name: 'Erzurum', region: 'Doğu Anadolu' } } },
+    { authorProfile: { user: { id: 102, fullName: 'Ali Demir' }, branchId: 5, province: { id: 34, name: 'İstanbul', region: 'Marmara' } } }
   ]
 };
 
@@ -54,13 +54,13 @@ describe('Project author productivity and earned royalties — read only', () =>
     expect(author.counts).toEqual({ total: 5, draft: 1, review: 1, revision: 1, approved: 1, rejected: 1 });
   });
 
-  it('filters province coordinator to local author, no money query or earnings fields', async () => {
+  it('filters branch coordinator by assigned branch with finance excluded', async () => {
     const result = await getProjectAuthorPerformance(project, provinceCoordinator);
     expect(result.authors.map(a => a.userId)).toEqual([101]);
     expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { AND: [
         { projectId: 55, authorUserId: { in: [101] } },
-        { authorUser: { AuthorProfile: { provinceId: 25 } } }
+        { authorUser: { AuthorProfile: { branchId: { in: [4] } } } }
       ] }
     }));
     expect(prisma.compensationEntry.groupBy).not.toHaveBeenCalled();
@@ -118,7 +118,7 @@ describe('Project author productivity and earned royalties — read only', () =>
   });
 
   it('does not attempt database queries if geographic scope excludes all authors', async () => {
-    const result = await getProjectAuthorPerformance(project, { ...provinceCoordinator, provinceId: 99 });
+    const result = await getProjectAuthorPerformance(project, { ...provinceCoordinator, branchAssignments: [{ branchId: 99 }] });
     expect(result.authors).toEqual([]);
     expect(prisma.question.findMany).not.toHaveBeenCalled();
     expect(prisma.compensationEntry.groupBy).not.toHaveBeenCalled();
