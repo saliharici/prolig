@@ -36,6 +36,7 @@ export interface ApiQuestion extends QuestionTypeFields {
   status: QuestionStatus;
   editorNote: string | null;
   projectId: number | null;
+  taskId: number | null;
   createdAt: string;
   updatedAt: string;
   isArchived: boolean;
@@ -53,6 +54,7 @@ export interface ApiQuestion extends QuestionTypeFields {
 }
 
 export interface CreateQuestionInput extends QuestionTypeFields {
+  taskId?: number | null;
   content: string;
   grade: string;
   options: string[];

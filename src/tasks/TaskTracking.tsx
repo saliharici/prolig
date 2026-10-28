@@ -77,7 +77,7 @@ export function TaskTracking({
   initialProjectId?: number | null;
   onProjectFilterChange?: (projectId: number | null) => void;
   onOpenProjectQuestions: (projectId: number, status?: string) => void;
-  onStartProjectDraft: (projectId: number) => void;
+  onStartProjectDraft: (taskId: number, projectId: number) => void;
 }) {
   const canCreate = managerRoles.has(currentUser.role);
   const [tasks, setTasks] = useState<ApiTask[]>([]);
@@ -252,7 +252,7 @@ export function TaskTracking({
     {!loading && !error && tasks.length > 0 && view === 'list' && <div className="panel table-panel task-list-panel">
       <div className="table-wrap"><table><thead><tr><th>GÖREV</th><th>PROJE</th><th>SORUMLU</th><th>ÖNCELİK</th><th>TERMİN</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>
         {visibleTasks.map(task=><tr key={task.id} className={task.isOverdue?'task-overdue-row':''}>
-          <td><strong>{task.title}</strong>{task.description&&<small className="task-table-note">{task.description}</small>}</td>
+          <td><strong>{task.title}</strong>{task.targetQuestionCount > 0 && <small className="task-table-note">Hedef {task.targetQuestionCount} · Yazılan {task.production?.written ?? 0} · Onay {task.production?.approved ?? 0}</small>}{task.description&&<small className="task-table-note">{task.description}</small>}</td>
           <td>{task.project.code}<small className="task-table-note">{task.project.title}</small></td>
           <td>{assigneeName(task)}</td>
           <td><span className={`task-priority priority-${task.priority.toLowerCase()}`}>{trPriority(task.priority)}</span></td>
@@ -260,7 +260,7 @@ export function TaskTracking({
           <td><span className={`task-status task-status-${task.status.toLowerCase()}`}>{trStatus(task.status)}</span></td>
           <td><div className="row-actions">
             {currentUser.role==='YAZAR' && task.assignedAuthor?.id===currentUser.id &&
-              <button type="button" className="task-write-question" onClick={()=>onStartProjectDraft(task.project.id)}>
+              <button type="button" className="task-write-question" onClick={()=>onStartProjectDraft(task.id,task.project.id)}>
                 <Plus size={14}/> Soru yaz
               </button>}
             <button type="button" title="Proje sorularını aç" onClick={()=>onOpenProjectQuestions(task.project.id)}><BookOpen size={14}/> Sorular</button>{task.canManage&&<button title="Düzenle" onClick={()=>openEdit(task)}><PencilLine size={14}/></button>}{task.canUpdateStatus&&task.status!=='Tamamlandi'&&!(task.status==='Kontrol_Bekliyor'&&!task.canManage)&&<button onClick={()=>void advance(task)}>İlerle <ChevronRight size={13}/></button>}</div></td>
@@ -285,15 +285,19 @@ export function TaskTracking({
 function TaskCard({ task, onEdit, onAdvance, onOpenProjectQuestions, currentUserId, canWrite, onStartProjectDraft }: {
   task: ApiTask; onEdit: (task: ApiTask)=>void; onAdvance: (task: ApiTask)=>void;
   onOpenProjectQuestions: (projectId: number, status?: string)=>void;
-  currentUserId: number; canWrite: boolean; onStartProjectDraft: (projectId: number)=>void;
+  currentUserId: number; canWrite: boolean; onStartProjectDraft: (taskId: number, projectId: number)=>void;
 }) {
   return <article className={`task-card ${task.isOverdue?'overdue':''}`}>
     <div className="task-card-top"><span className={`task-priority priority-${task.priority.toLowerCase()}`}>{trPriority(task.priority)}</span>{task.isOverdue&&<span className="task-overdue-badge"><AlertTriangle size={12}/> Gecikti</span>}</div>
     <h3>{task.title}</h3>
     <p>{task.project.code} · {task.project.title}</p>
+    {task.targetQuestionCount > 0 && <div className="task-production-chip">
+      <strong>{task.production?.approved ?? 0} / {task.targetQuestionCount}</strong> onaylı soru
+      <small>Yazılan {task.production?.written ?? 0} · İncelemede {task.production?.submitted ?? 0} · Revizyon {task.production?.revision ?? 0}</small>
+    </div>}
     <div className="task-card-meta"><span><UserRound size={13}/>{assigneeName(task)}</span><span><CalendarDays size={13}/>{shortDate(task.dueDate)}</span></div>
     <div className="task-card-actions">
-      {canWrite && task.assignedAuthor?.id===currentUserId && <button type="button" className="task-write-question" onClick={()=>onStartProjectDraft(task.project.id)}>
+      {canWrite && task.assignedAuthor?.id===currentUserId && <button type="button" className="task-write-question" onClick={()=>onStartProjectDraft(task.id,task.project.id)}>
         <Plus size={13}/> Soru taslağı oluştur
       </button>}
       <button type="button" onClick={()=>onOpenProjectQuestions(task.project.id)}><BookOpen size={13}/> Proje soruları</button>
@@ -333,6 +337,7 @@ function TaskForm({
   const [description,setDescription]=useState(task?.description??'');
   const [projectId,setProjectId]=useState(initialProjectId);
   const [priority,setPriority]=useState<TaskPriority>(task?.priority??'Normal');
+  const [targetQuestionCount,setTargetQuestionCount]=useState<number>(task?.targetQuestionCount ?? 0);
   const [startDate,setStartDate]=useState(inputDate(task?.startDate) || new Date().toISOString().slice(0,10));
   const [dueDate,setDueDate]=useState(inputDate(task?.dueDate));
   const [status,setStatus]=useState<Exclude<TaskStatus,'Gecikti'>>(task?.status==='Gecikti'?'Devam_Ediyor':task?.status??'Bekliyor');
@@ -390,6 +395,7 @@ function TaskForm({
         priority,
         startDate,
         dueDate,
+        targetQuestionCount: assigneeType === 'author' ? targetQuestionCount : 0,
         assignedAuthorProfileId:assigneeType==='author'?assigneeId:null,
         assignedUserId:assigneeType==='user'?assigneeId:null
       };
@@ -434,6 +440,11 @@ function TaskForm({
         {editing&&<label><span>Durum</span><select value={status} onChange={e=>setStatus(e.target.value as Exclude<TaskStatus,'Gecikti'>)}>{statusColumns.map(item=><option key={item.status} value={item.status}>{item.label}</option>)}</select></label>}
         <label><span>Başlangıç</span><input required type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}/></label>
         <label><span>Son teslim</span><input required type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label>
+        {assigneeType==='author'&&<label><span>Hedef soru adedi</span>
+          <input type="number" min={0} max={10000} step={1} value={targetQuestionCount}
+            onChange={e=>setTargetQuestionCount(Number(e.target.value))}/>
+          <small className="field-help">0 = eski görev. Pozitif hedef = otomatik üretim takibi.</small>
+        </label>}
         <div className="task-span-two task-assignee-type"><button type="button" className={assigneeType==='author'?'active':''} onClick={()=>{setAssigneeType('author');setAssigneeId(0)}}>Projeye atanmış yazar</button><button type="button" className={assigneeType==='user'?'active':''} onClick={()=>{setAssigneeType('user');setAssigneeId(0)}}>{isBranchCoordinator?'Kendime görev':'Koordinatör / Editör'}</button></div>
         <label className="task-span-two"><span>Sorumlu</span><select required value={assigneeId||''} onChange={e=>setAssigneeId(Number(e.target.value))}><option value="">Sorumlu seçin</option>{assigneeType==='author'
           ?eligibleAuthors.map(author=><option key={author.id} value={author.id}>{author.fullName} · {author.province.name} · {authorOpenTasks.get(author.id)??0} açık görev</option>)

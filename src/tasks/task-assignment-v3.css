@@ -20,3 +20,7 @@
 /* Direct, project-scoped author drafting link; no extra question workflow permission. */
 .task-card-actions .task-write-question,.row-actions .task-write-question{border-color:#a3d6c5;color:#21715c;background:#e9f7f1;font-weight:800}
 .task-card-actions .task-write-question:hover,.row-actions .task-write-question:hover{background:#d4eee4}
+
+.task-production-chip{margin:9px 0;border:1px solid #cde6d9;background:#eff9f2;border-radius:9px;padding:9px;color:#276553;font-size:11px}
+.task-production-chip strong{font-size:13px}.task-production-chip small{display:block;color:#648477;margin-top:4px}
+.task-draft-binding{border:1px solid #b9e4d0;background:#eaf8ef;padding:10px 12px;color:#205f4c;border-radius:8px;font-size:12px}
