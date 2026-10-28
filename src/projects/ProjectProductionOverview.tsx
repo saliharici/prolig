@@ -10,6 +10,7 @@ import './project-production-overview.css';
 
 type Props = {
   projectId: number;
+  production?: import('./types').ApiProject['production'];
   questions: ApiQuestion[];
   questionsLoading: boolean;
   questionsError: string;
@@ -34,7 +35,7 @@ const amount = (value: string) =>
   new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(toKurus(value) / 100);
 
 export function ProjectProductionOverview({
-  projectId, questions, questionsLoading, questionsError, role, onOpenQuestions, onOpenQuestionsByStatus
+  projectId, production, questions, questionsLoading, questionsError, role, onOpenQuestions, onOpenQuestionsByStatus
 }: Props) {
   const stats = useMemo(() => projectQuestionStats(projectId, questions), [projectId, questions]);
   const financeAllowed = canSeeProjectFinance(role);
@@ -74,6 +75,11 @@ export function ProjectProductionOverview({
     {questionsLoading ? <p className="project-production-feedback">Soru durumları yükleniyor…</p>
       : questionsError ? <p className="project-production-feedback" role="alert">{questionsError}</p>
       : <>
+        {production && production.target > 0 && <div className="project-production-summary" role="status">
+          <strong>Gerçek üretim ilerlemesi: %{production.completionPercent ?? 0}</strong>
+          <span>Hedef {production.target} · Göreve bağlı {production.written} · Onaylı {production.approved} · İncelemede {production.inReview} · Revizyonda {production.revision}</span>
+          {production.overdueTasks > 0 && <small>{production.overdueTasks} geciken ve hedefi tamamlanmamış görev</small>}
+        </div>}
         <div className="project-production-pipeline">
           {states.map(item => <button type="button" key={item.key} className="project-production-stage"
             title={`${item.label} durumundaki proje sorularını aç`}

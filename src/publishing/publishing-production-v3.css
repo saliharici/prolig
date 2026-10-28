@@ -1,0 +1,5 @@
+.publishing-project-production{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #bfe2d0;background:#effaf3;color:#285e50;padding:12px 14px;border-radius:10px;margin:12px 0;font-size:11px}
+.publishing-project-production>strong{display:block;width:100%;font-size:12px}
+.publishing-project-production>span{flex:1;min-width:190px;line-height:1.55}
+.publishing-project-production>small{width:100%;color:#608579}
+.publishing-project-production>button{white-space:normal}

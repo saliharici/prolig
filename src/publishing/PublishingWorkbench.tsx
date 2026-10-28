@@ -6,6 +6,7 @@ import { StudioMarkup } from '../questions/StudioDocumentPreview';
 import { approvedForPublishing, bookAnswer, bookMediaWarnings, moveBookQuestion, resolveBookOrder } from './book-assembly';
 import { PublishingPersistencePanel } from './PublishingPersistencePanel';
 import { flattenSingleChapter, frozenBookQuestions, publishingV2PreviewEnabled, type SavedBook } from './book-persistence-client';
+import './publishing-production-v3.css';
 import './publishing.css';
 
 type Props = {
@@ -94,6 +95,8 @@ export function PublishingWorkbench({ questions, projects, loading, error, onRef
   }
 
   const eligible = useMemo(() => approvedForPublishing(questions), [questions]);
+  const selectedProject = projectFilter === 'all' ? null : projects.find(p=>p.id===Number(projectFilter)) ?? null;
+  const readyForSelectedProject = selectedProject ? eligible.filter(q=>q.projectId===selectedProject.id) : [];
   const projectOptions = useMemo(() => {
     const options = new Map<number, string>();
     if (activeBook?.project) options.set(activeBook.projectId, activeBook.project.code + ' · ' + activeBook.project.title);
@@ -168,6 +171,17 @@ export function PublishingWorkbench({ questions, projects, loading, error, onRef
           <button type="button" className="secondary-button" disabled={loading} onClick={() => void onRefresh()}><RefreshCw size={15}/> Yenile</button>
         </div>
         <p>Yalnızca oturum yetkinizle erişilen, onaylanmış ve arşivlenmemiş sorular. Görünen liste, tüm sistem için eksiksiz soru sayımı değildir.</p>
+        {selectedProject && <div className="publishing-project-production" role="status">
+          <strong>{selectedProject.title} · Kitaba seçilebilir {readyForSelectedProject.length} onaylı soru</strong>
+          {selectedProject.production?.target
+            ? <span>Görev hedefi {selectedProject.production.target} · Göreve bağlı onaylı {selectedProject.production.approved} · İncelemede {selectedProject.production.inReview} · Revizyonda {selectedProject.production.revision}</span>
+            : <span>Bu projede sayısal görev hedefi yok; onaylı sorular kitaba seçilebilir.</span>}
+          <button type="button" className="secondary-button" disabled={loading || Boolean(error) || !readyForSelectedProject.length}
+            onClick={()=>setSelectedIds(readyForSelectedProject.map(q=>q.id))}>
+            <Check size={14}/> Bu projenin onaylı sorularını kitap taslağına aktar
+          </button>
+          <small>Yalnız onaylı ve arşivlenmemiş sorular seçilir. Kalıcı kayıtta sunucu soru onayını yeniden doğrular.</small>
+        </div>}
         <div className="publishing-filters">
           <label>Proje<select value={projectFilter} disabled={publishingPreview && Boolean(activeBook)} onChange={e => setProjectFilter(e.target.value)}>
             <option value="all">Tüm erişilebilir projeler</option>

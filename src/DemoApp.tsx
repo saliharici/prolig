@@ -2187,7 +2187,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
                   </div>
                   <div className="project-meta"><span><Clock3 size={16} /> Son teslim</span><strong>{date(project.deadline)}</strong></div>
                   <div className="progress-line"><span style={{ width: project.progress + '%' }} /></div>
-                  <div className="progress-caption"><span>Tamamlanma</span><strong>%{project.progress}</strong></div>
+                  <div className="progress-caption"><span>{project.progressSource === 'automatic' ? 'Onaylı soru / hedef' : 'Tamamlanma (manuel)'}</span><strong>%{project.progress}</strong></div>
                   <span className="project-open-hint">Proje dosyasını aç <ArrowRight size={14}/></span>
                 </div>
               </button>;
@@ -2362,6 +2362,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       <ProjectProductionOverview
         key={selectedProject.id}
         projectId={selectedProject.id}
+        production={selectedProject.production}
         questions={apiQuestions}
         questionsLoading={apiLoading}
         questionsError={apiError}
