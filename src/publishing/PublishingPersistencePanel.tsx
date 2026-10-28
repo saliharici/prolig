@@ -7,6 +7,9 @@ import {
   type BookWorkbenchInput, type SavedBook, type SavedBookSummary
 } from './book-persistence-client';
 import { bookStructureEquals, bookStructureLabel, chapterQuestionIds, draftChaptersFromBook } from './book-editor-state';
+function currentChapters(view: BookWorkbenchInput) {
+  return view.chapters ?? [{title:view.chapter??'',questionIds:view.selectedIds??[]}];
+}
 
 type Props = {
   questions: ApiQuestion[];
@@ -45,7 +48,7 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
 
   async function open(id: number) {
     if (busyRef.current) return;
-    if (chapterQuestionIds(view.chapters??[]).length &&
+    if (chapterQuestionIds(currentChapters(view)).length &&
         !window.confirm('Mevcut ekrandaki kaydedilmemiş değişiklikleri bırakıp bu kitabı açmak istiyor musunuz?')) return;
     busyRef.current = true;
     setBusy(true); setError(''); setNotice('');
@@ -145,7 +148,7 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
 
   function newDraft() {
     if (busyRef.current || committedPendingId !== null) return;
-    if (chapterQuestionIds(view.chapters??[]).length &&
+    if (chapterQuestionIds(currentChapters(view)).length &&
         !window.confirm('Kaydedilmemiş seçimler silinecek. Yeni kitap hazırlamak istiyor musunuz?')) return;
     setError(''); setNotice('');
     onNew();
@@ -158,8 +161,8 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
         onClick={() => void refreshRecords()}><RefreshCw size={15}/> Listeyi yenile</button>
     </div>
     <p className="publishing-panel-explanation">Bu alan yalnızca özel test önizlemesinde açılır. Kaydetme işlemleri sadece bu önizlemenin ayrı test veritabanında yapılabilir. Yayınlanmış kitaplar düzenlenemez.</p>
-    <p className="publishing-order-intent" role="status">Kaydedilecek bölümler: <strong>{bookStructureLabel(view.chapters??[])}</strong>
-      {activeBook && <span> · {bookStructureEquals(view.chapters??[],draftChaptersFromBook(activeBook))
+    <p className="publishing-order-intent" role="status">Kaydedilecek bölümler: <strong>{bookStructureLabel(currentChapters(view))}</strong>
+      {activeBook && <span> · {bookStructureEquals(currentChapters(view),draftChaptersFromBook(activeBook))
         ? 'Kayıtlı bölüm/soru sırasıyla aynı' : 'Kayıtlı sürümden farklı'}</span>}
     </p>
     <div className="publishing-persistence-actions">
