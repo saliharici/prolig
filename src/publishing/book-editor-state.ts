@@ -7,7 +7,7 @@ export function draftChaptersFromBook(book: Pick<SavedBook,'chapters'>): BookCha
       .map(q=>q.snapshot.sourceQuestionId)
   }));
 }
-export function chapterQuestionIds(chapters: readonly BookChapterDraft[]): number[] {
+export function chapterQuestionIds(chapters: readonly Pick<BookChapterDraft,'questionIds'>[]): number[] {
   return chapters.flatMap(ch=>ch.questionIds);
 }
 export function bookStructureEquals(a:readonly Pick<BookChapterDraft,'title'|'questionIds'>[],b:readonly Pick<BookChapterDraft,'title'|'questionIds'>[]):boolean {

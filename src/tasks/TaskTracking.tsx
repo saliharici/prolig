@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, BookOpen, CalendarDays, CheckCircle2, ChevronRight, CircleDashed, ClipboardList,
-  Clock3, Columns3, List, PencilLine, Plus, RotateCcw, Save, Search, Trash2, UserRound, X
+  Clock3, Columns3, List, PencilLine, Plus, RotateCcw, Save, Search, Trash2, UserRound, Users, X
 } from 'lucide-react';
 import type { AuthUser } from '../auth/types';
 import type { ApiAuthor } from '../authors/types';
