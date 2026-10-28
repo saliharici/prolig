@@ -36,7 +36,8 @@ export interface ApiQuestion extends QuestionTypeFields {
   status: QuestionStatus;
   editorNote: string | null;
   projectId: number | null;
-  taskId: number | null;
+  /** Optional in legacy question fixtures; API returns taskId when available. */
+  taskId?: number | null;
   createdAt: string;
   updatedAt: string;
   isArchived: boolean;

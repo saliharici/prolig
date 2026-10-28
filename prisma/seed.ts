@@ -49,7 +49,6 @@ async function main() {
   const rolesToSeed = [
     { code: 'GENEL_KOORDINATOR', name: 'Genel Koordinatör' },
     { code: 'BOLGE_KOORDINATORU', name: 'Bölge Koordinatörü' },
-    { code: 'IL_KOORDINATORU', name: 'İl Koordinatörü' },
     { code: 'EDITOR', name: 'Editör' },
     { code: 'YAZAR', name: 'Yazar' },
     { code: 'MUHASEBE', name: 'Muhasebe' }
@@ -58,7 +57,6 @@ async function main() {
   const usersInfo = [
     { email: 'pilot.genel@prolig.local', role: 'GENEL_KOORDINATOR' },
     { email: 'pilot.bolge@prolig.local', role: 'BOLGE_KOORDINATORU' },
-    { email: 'pilot.il@prolig.local', role: 'IL_KOORDINATORU' },
     { email: 'pilot.editor@prolig.local', role: 'EDITOR' },
     { email: 'pilot.yazar@prolig.local', role: 'YAZAR' },
     { email: 'pilot.muhasebe@prolig.local', role: 'MUHASEBE' }
@@ -67,7 +65,7 @@ async function main() {
   // STAGE A: PREFLIGHT
   console.log('Stage A: Read-only preflight');
   
-  // 1. Validate all six expected credential entries
+  // 1. Validate only the supported legacy pilot credentials; retired IL role is not recreated
   const credentials = new Map<string, string>();
   for (const u of usersInfo) {
     credentials.set(u.role, getPass(u.role));
@@ -119,14 +117,7 @@ async function main() {
     }
   }
 
-  // Existing author profile and its district/institution associations are authoritative
-  // for the isolated pilot. Never relocate an author merely to satisfy a fixture.
-  const pilotProvinceId = existingPilotAuthor?.AuthorProfile
-    ? (await prisma.user.findUnique({
-        where: { email: 'pilot.yazar@prolig.local' },
-        select: { AuthorProfile: { select: { provinceId: true } } }
-      }))?.AuthorProfile?.provinceId
-    : undefined;
+  // Existing pilot author geography remains authoritative; never auto-relocate.
   // STAGE B: MUTATION
   console.log('Stage B: Mutation');
 
@@ -171,8 +162,6 @@ async function main() {
       }
       if (u.role === 'BOLGE_KOORDINATORU') {
         userCreate.assignedRegion = 'Marmara';
-      } else if (u.role === 'IL_KOORDINATORU') {
-        userCreate.province = { connect: { id: pilotProvinceId ?? marmara.id } };
       }
       user = await prisma.user.create({ data: userCreate });
     } else {
@@ -181,7 +170,7 @@ async function main() {
         role: { connect: { id: getRoleId(u.role) } },
         assignedRegion: ['BOLGE_KOORDINATORU', 'EDITOR'].includes(u.role) ? 'Marmara' : null,
         editorBranch: u.role === 'EDITOR' ? { connect: { id: branch.id } } : { disconnect: true },
-        province: u.role === 'EDITOR' ? { disconnect: true } : u.role === 'IL_KOORDINATORU' ? { connect: { id: pilotProvinceId ?? marmara.id } } : { disconnect: true },
+        province: { disconnect: true },
         editorGrade: u.role === 'EDITOR' ? '8. Sınıf' : null
       };
       if (action.type === 'update') {

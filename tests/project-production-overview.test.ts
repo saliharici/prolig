@@ -21,7 +21,7 @@ describe('Project → Question Studio → Compensation production overview', () 
   it('shows finance only to general coordinator and accounting roles', () => {
     expect(canSeeProjectFinance('GENEL_KOORDINATOR')).toBe(true);
     expect(canSeeProjectFinance('MUHASEBE')).toBe(true);
-    for (const role of ['YAZAR','EDITOR','IL_KOORDINATORU','BOLGE_KOORDINATORU'] as const) {
+    for (const role of ['YAZAR','EDITOR','BRANS_KOORDINATORU','BOLGE_KOORDINATORU'] as const) {
       expect(canSeeProjectFinance(role)).toBe(false);
     }
   });
