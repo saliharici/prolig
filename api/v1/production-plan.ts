@@ -22,16 +22,16 @@ const include = {
     select: {
       id:true,title:true,status:true,dueDate:true,targetQuestionCount:true,
       assignedAuthorProfile:{select:{user:{select:{fullName:true}}}},
-      questions:{select:{status:true}}
+      questions:{select:{id:true,status:true}}
     }
   }
 } as const;
-function dto(row: any) {
+function dto(row: any, archivedIds: ReadonlySet<number>) {
   const tasks = row.tasks.map((t: any) => ({
     id:t.id,title:t.title,status:t.status,dueDate:t.dueDate,
     writer:t.assignedAuthorProfile?.user.fullName ?? null,
     target:t.targetQuestionCount,written:t.questions.length,
-    approved:t.questions.filter((q:any)=>q.status==='ONAYLANDI').length,
+    approved:t.questions.filter((q:any)=>q.status==='ONAYLANDI' && !archivedIds.has(q.id)).length,
     inReview:t.questions.filter((q:any)=>q.status==='INCELEMEDE').length,
     revision:t.questions.filter((q:any)=>q.status==='REVIZYON').length
   }));
@@ -67,7 +67,20 @@ export default async function handler(req: VercelRequest,res: VercelResponse) {
       const rows=await prisma.projectUnitPlan.findMany({
         where:{projectId},include,orderBy:[{sortOrder:'asc'},{id:'asc'}]
       });
-      const units=rows.map(dto);
+      const questionIds=rows.flatMap(unit=>unit.tasks.flatMap(task=>task.questions.map(q=>q.id)));
+      const archiveLogs=questionIds.length ? await prisma.activityLog.findMany({
+        where:{entityType:'Question',entityId:{in:questionIds},
+          action:{in:['QUESTION_ARCHIVED','QUESTION_RESTORED']}},
+        orderBy:[{createdAt:'desc'},{id:'desc'}],
+        select:{entityId:true,action:true}
+      }) : [];
+      const lastArchiveState=new Map<number,boolean>();
+      for(const log of archiveLogs){
+        if(log.entityId!=null && !lastArchiveState.has(log.entityId))
+          lastArchiveState.set(log.entityId,log.action==='QUESTION_ARCHIVED');
+      }
+      const archivedIds=new Set([...lastArchiveState.entries()].filter(([,v])=>v).map(([id])=>id));
+      const units=rows.map(row=>dto(row,archivedIds));
       const unallocatedTasks=await prisma.task.count({
         where:{projectId,unitPlanId:null,assignedAuthorProfileId:{not:null},targetQuestionCount:{gt:0}}
       });
