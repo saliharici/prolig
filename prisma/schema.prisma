@@ -287,6 +287,7 @@ model Project {
   books          Book[]
   projectAuthors ProjectAuthor[]
   tasks          Task[]
+  unitPlans      ProjectUnitPlan[]
   files          FileRecord[]
 
   Payment  Payment[]
@@ -363,6 +364,23 @@ model ProjectAuthor {
   @@unique([projectId, authorProfileId])
 }
 
+model ProjectUnitPlan {
+  id                  Int      @id @default(autoincrement())
+  projectId           Int
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title               String
+  sortOrder           Int
+  targetQuestionCount Int
+  dueDate             DateTime?
+  tasks               Task[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([projectId, title])
+  @@unique([projectId, sortOrder])
+  @@index([projectId])
+}
+
 model Task {
   id                    Int            @id @default(autoincrement())
   title                 String
@@ -374,6 +392,8 @@ model Task {
   projectId             Int
   project               Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   targetQuestionCount    Int            @default(0)
+  unitPlanId            Int?
+  unitPlan              ProjectUnitPlan? @relation(fields: [unitPlanId], references: [id], onDelete: SetNull)
   questions             Question[]
   priority              Priority       @default(Normal)
   status                TaskStatus     @default(Bekliyor)
@@ -385,6 +405,7 @@ model Task {
 
   @@index([status])
   @@index([dueDate])
+  @@index([unitPlanId])
 }
 
 model Payment {
