@@ -301,10 +301,12 @@ async function updateTask(id: number, user: any, req: VercelRequest, res: Vercel
     Object.prototype.hasOwnProperty.call(body, 'assignedUserId');
 
   if (assigneeFieldsTouched) {
-    if (task.questions.length > 0) return res.status(409).json({ error: 'Linked questions exist; task assignee cannot change' });
     if (!manager) return res.status(403).json({ error: 'Only coordinators can reassign tasks' });
     const authorId = body.assignedAuthorProfileId == null ? null : positiveInt(body.assignedAuthorProfileId);
     const userId = body.assignedUserId == null ? null : positiveInt(body.assignedUserId);
+    if (task.questions.length > 0 &&
+        (authorId !== task.assignedAuthorProfileId || userId !== task.assignedCoordinatorId))
+      return res.status(409).json({ error: 'Linked questions exist; task assignee cannot change' });
     const checked = await validateAssignee(task.project, user, authorId, userId);
     if ('error' in checked) return res.status(403).json({ error: checked.error });
     data.assignedAuthorProfileId = checked.assignedAuthorProfileId;

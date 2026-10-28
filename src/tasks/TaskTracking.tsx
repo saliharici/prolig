@@ -69,7 +69,8 @@ export function TaskTracking({
   initialProjectId,
   onProjectFilterChange,
   onOpenProjectQuestions,
-  onStartProjectDraft
+  onStartProjectDraft,
+  onProductionUpdated
 }: {
   currentUser: AuthUser;
   projects: ApiProject[];
@@ -78,6 +79,7 @@ export function TaskTracking({
   onProjectFilterChange?: (projectId: number | null) => void;
   onOpenProjectQuestions: (projectId: number, status?: string) => void;
   onStartProjectDraft: (taskId: number, projectId: number) => void;
+  onProductionUpdated: () => Promise<void>;
 }) {
   const canCreate = managerRoles.has(currentUser.role);
   const [tasks, setTasks] = useState<ApiTask[]>([]);
@@ -173,7 +175,7 @@ export function TaskTracking({
 
     try {
       await updateTask(task.id, { status: next });
-      await load();
+      await Promise.all([load(), onProductionUpdated()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Görev durumu güncellenemedi.');
     }
@@ -277,7 +279,7 @@ export function TaskTracking({
       existingTasks={tasks}
       defaultProjectId={projectFilter}
       onClose={()=>{setShowForm(false);setEditingTask(null)}}
-      onSaved={async()=>{setShowForm(false);setEditingTask(null);await load()}}
+      onSaved={async()=>{setShowForm(false);setEditingTask(null);await Promise.all([load(),onProductionUpdated()])}}
     />}
   </>;
 }

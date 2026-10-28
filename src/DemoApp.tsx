@@ -733,6 +733,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     try {
       const result = await fetchQuestions('active');
       setApiQuestions(result);
+      // Production totals derive from linked approved questions, not stale UI counters.
+      void loadApiProjects();
       return result;
     } catch (e: any) {
       setApiError(e.message || 'Soru havuzu yüklenemedi.');
@@ -783,7 +785,6 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
 
   useEffect(() => {
     loadApiQuestions();
-    loadApiProjects();
     loadApiAuthors();
     fetchMessages('inbox').then(result => setMessageUnreadCount(result.counts.unread)).catch(() => undefined);
     fetchAnnouncements('active').then(result => setAnnouncementUnreadCount(result.counts.unread)).catch(() => undefined);
@@ -2194,7 +2195,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             })}</div>}
             {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state corporate-project-empty"><BookOpen size={24} aria-hidden="true" /><strong>{apiProjects.length === 0 ? 'Henüz erişilebilir proje bulunmuyor' : 'Arama ölçütlerine uygun proje yok'}</strong><p>{apiProjects.length === 0 ? 'Yeni bir projeye atandığınızda burada görüntülenecektir.' : 'Arama ifadesini veya sınıf filtresini değiştirerek yeniden deneyin.'}</p></div>}
           </>}
-        {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} onOpenProjectQuestions={openQuestionsForProject} onStartProjectDraft={openTaskLinkedQuestionDraft} />}
+        {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} onOpenProjectQuestions={openQuestionsForProject} onStartProjectDraft={openTaskLinkedQuestionDraft} onProductionUpdated={loadApiProjects} />}
         {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
         {section === 'announcements' && <AnnouncementCenter onUnreadChange={setAnnouncementUnreadCount} />}
         {section === 'grades' && <>
