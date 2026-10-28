@@ -19,7 +19,7 @@ describe('member scope helpers', () => {
     expect(buildApplicationReadScope({ role: { code: 'BOLGE_KOORDINATORU' }, assignedRegion: 'Doğu Anadolu' })).toEqual({
       province: { region: 'Doğu Anadolu' }
     });
-    expect(buildApplicationReadScope({ role: { code: 'IL_KOORDINATORU' }, provinceId: 25 })).toEqual({ provinceId: 25 });
+    expect(buildApplicationReadScope({ role: { code: 'BRANS_KOORDINATORU' }, branchAssignments:[{branchId:2}] })).toBeNull();
     expect(buildApplicationReadScope({ role: { code: 'BOLGE_KOORDINATORU' } })).toEqual({ id: -1 });
   });
 
@@ -32,9 +32,8 @@ describe('member scope helpers', () => {
         { AND: [{ role: { code: 'YAZAR' } }, { AuthorProfile: { province: { region: 'Marmara' } } }] }
       ]
     });
-    expect(buildUserReadScope({ role: { code: 'IL_KOORDINATORU' }, provinceId: 34 })).toEqual({
-      OR: [{ provinceId: 34 }, { AND: [{ role: { code: 'YAZAR' } }, { AuthorProfile: { provinceId: 34 } }] }]
-    });
+    expect(buildUserReadScope({ role: { code: 'BRANS_KOORDINATORU' }, branchAssignments:[{branchId:9}] }))
+      .toEqual({ role: { code:'YAZAR' }, AuthorProfile: { branchId:{in:[9]} } });
   });
 
   it('enforces geographic visibility', () => {
@@ -42,27 +41,27 @@ describe('member scope helpers', () => {
     expect(canViewProvince({ role: { code: 'GENEL_KOORDINATOR' } }, erzurum)).toBe(true);
     expect(canViewProvince({ role: { code: 'BOLGE_KOORDINATORU' }, assignedRegion: 'Doğu Anadolu' }, erzurum)).toBe(true);
     expect(canViewProvince({ role: { code: 'BOLGE_KOORDINATORU' }, assignedRegion: 'Marmara' }, erzurum)).toBe(false);
-    expect(canViewProvince({ role: { code: 'IL_KOORDINATORU' }, provinceId: 25 }, erzurum)).toBe(true);
-    expect(canViewProvince({ role: { code: 'IL_KOORDINATORU' }, provinceId: 34 }, erzurum)).toBe(false);
+    expect(canViewProvince({ role: { code: 'BRANS_KOORDINATORU' }, provinceId: 25 }, erzurum)).toBe(false);
+    expect(canViewProvince({ role: { code: 'BRANS_KOORDINATORU' }, provinceId: 34 }, erzurum)).toBe(false);
   });
 
   it('enforces hierarchical role assignment for general, region and province coordinators', () => {
     const general = { role: { code: 'GENEL_KOORDINATOR' } };
-    for (const role of ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']) {
+    for (const role of ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']) {
       expect(canAssignRole(general, role)).toBe(true);
     }
     const region = { role: { code: 'BOLGE_KOORDINATORU' } };
-    expect(canAssignRole(region, 'IL_KOORDINATORU')).toBe(true);
+    expect(canAssignRole(region, 'BRANS_KOORDINATORU')).toBe(false);
     expect(canAssignRole(region, 'EDITOR')).toBe(true);
     expect(canAssignRole(region, 'YAZAR')).toBe(true);
     expect(canAssignRole(region, 'BOLGE_KOORDINATORU')).toBe(false);
     expect(canAssignRole(region, 'GENEL_KOORDINATOR')).toBe(false);
     expect(canAssignRole(region, 'MUHASEBE')).toBe(false);
 
-    const province = { role: { code: 'IL_KOORDINATORU' } };
-    expect(canAssignRole(province, 'EDITOR')).toBe(true);
-    expect(canAssignRole(province, 'YAZAR')).toBe(true);
-    expect(canAssignRole(province, 'IL_KOORDINATORU')).toBe(false);
+    const province = { role: { code: 'BRANS_KOORDINATORU' } };
+    expect(canAssignRole(province, 'EDITOR')).toBe(false);
+    expect(canAssignRole(province, 'YAZAR')).toBe(false);
+    expect(canAssignRole(province, 'BRANS_KOORDINATORU')).toBe(false);
     expect(canAssignRole(province, 'BOLGE_KOORDINATORU')).toBe(false);
     expect(canAssignRole(province, 'GENEL_KOORDINATOR')).toBe(false);
     expect(canAssignRole(province, 'MUHASEBE')).toBe(false);
@@ -75,15 +74,15 @@ describe('member scope helpers', () => {
     expect(canManageUserLifecycle(general, { role: { code: 'GENEL_KOORDINATOR' } })).toBe(false);
 
     const region = { role: { code: 'BOLGE_KOORDINATORU' } };
-    expect(canManageUserLifecycle(region, { role: { code: 'IL_KOORDINATORU' } })).toBe(true);
+    expect(canManageUserLifecycle(region, { role: { code: 'BRANS_KOORDINATORU' } })).toBe(false);
     expect(canManageUserLifecycle(region, { role: { code: 'EDITOR' } })).toBe(true);
     expect(canManageUserLifecycle(region, { role: { code: 'YAZAR' } })).toBe(true);
     expect(canManageUserLifecycle(region, { role: { code: 'MUHASEBE' } })).toBe(false);
 
-    const province = { role: { code: 'IL_KOORDINATORU' } };
-    expect(canManageUserLifecycle(province, { role: { code: 'EDITOR' } })).toBe(true);
-    expect(canManageUserLifecycle(province, { role: { code: 'YAZAR' } })).toBe(true);
-    expect(canManageUserLifecycle(province, { role: { code: 'IL_KOORDINATORU' } })).toBe(false);
+    const province = { role: { code: 'BRANS_KOORDINATORU' } };
+    expect(canManageUserLifecycle(province, { role: { code: 'EDITOR' } })).toBe(false);
+    expect(canManageUserLifecycle(province, { role: { code: 'YAZAR' } })).toBe(false);
+    expect(canManageUserLifecycle(province, { role: { code: 'BRANS_KOORDINATORU' } })).toBe(false);
   });
 
 });
