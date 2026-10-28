@@ -27,3 +27,18 @@ Branş `br-round-wind-balw5c6m` / veritabanı `ux02_test` üzerinde, yalnızca `
 Branş Koordinatörü ilk TEST girişinde `preview-brans@prolig.invalid` için şifresini kendisi belirler. Bu işlem Vercel'in mevcut `/api/v1/auth/login` uç noktası üzerinden yalnız ilgili Preview'a ve tanımlı izole Neon hedefine izin verilerek yapılır. Örnek yazarların parola tanımı yoktur, giriş yapamazlar. Görev formunda proje/branş bağlamı, yalnız projeye atanmış aktif yazarlar, bu projedeki açık görev sayıları ve yeni görev sorumlusu seçimi gösterilir.
 
 Kullanıcı talebi gereği ayrı otomatik test kampanyası başlatılmamıştır. Gerçek Preview rol kabulü kullanıcı tarafından doğrulanmadıkça PASS sayılmaz.
+
+## 28.10.2026 — TEST yazar–editör kabul akışı (PR #117)
+
+İzole Neon dalı `br-round-wind-balw5c6m` / `ux02_test` üzerinde iki örnek editör oluşturuldu:
+`preview-editor-mat@prolig.invalid` (Matematik, Ankara, 7. Sınıf) ve
+`preview-editor-fiz@prolig.invalid` (Fizik, Erzurum, 10. Sınıf).
+İlk şifreleri henüz yoktur. Matematik/Fizik örnek yazar girişleri mevcut `prolig-fixture-mat1@prolig.invalid` ve `prolig-fixture-fiz1@prolig.invalid` hesaplarını kullanır; ilk şifre tanımı yalnız izole Preview ortamına bağlı `/api/v1/auth/login` fonksiyonunun `testFixtureSetup` dalından yapılır.
+Parola kod veya konuşma üzerinden paylaşılmaz ve ilk kayıt sonrasında üzerine yazılmaz.
+
+Ayrı TEST akışını göstermek için 2 `INCELEMEDE`, 1 `REVIZYON`, 1 `ONAYLANDI` durumlu tamamen sentetik soru bulunmaktadır. Onaylı soru bir **gerçek editör kararı değildir**; yalnız kitap önizleme ekranını göstermek için oluşturulan örnek kayıttır. Gerçek telif kuralı ve ödeme kaydı oluşturulmadı.
+
+Yazar görev kartındaki `Soru taslağı oluştur` düğmesi var olan soru hazırlama ekranına geçer, projeyi ve sınıfı seçer. Görev–soru arasında ayrı bir veritabanı FK oluşturulmaz; takip **proje** üzerinden yapılır. Editörlerin onay/revizyon/ret yetkisi mevcut sunucu kurallarıyla sınırlıdır, Branş Koordinatörüne editör kararı verilmez.
+Genel Koordinatör proje detayındaki `Bu projeden kitap hazırla` düğmesi kitap önizleme sayfasını proje filtresiyle açar. Kitap önizlemesi ve kalıcı V2 yayın dosyası birbirinden farklıdır.
+
+Bu paket Production'da etkinleştirilmedi ve üretime deploy/merge edilmedi. İlgili rol kabulü kullanıcı tarafından gerçekleşince PASS olarak işaretlenecektir.

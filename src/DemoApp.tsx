@@ -830,6 +830,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [showProjectManager, setShowProjectManager] = useState(false);
   const [editingProject, setEditingProject] = useState<ApiProject | null>(null);
   const [taskProjectFilter, setTaskProjectFilter] = useState<number | null>(null);
+  const [publishingProjectId, setPublishingProjectId] = useState<number | null>(null);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [announcementUnreadCount, setAnnouncementUnreadCount] = useState(0);
   const [topbarSearch, setTopbarSearch] = useState('');
@@ -1147,6 +1148,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const navigate = (target: Section) => {
     if (!allowed.includes(target)) return;
     setSection(target);
+    if (target === 'publishing') setPublishingProjectId(null);
     setQuery('');
     setAuthorProvince('');
     setStatusFilter('Tümü');
@@ -2290,6 +2292,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           </>}
         </>}
         {section === 'publishing' && currentUser.role === 'GENEL_KOORDINATOR' && <PublishingWorkbench
+          initialProjectId={publishingProjectId}
           projects={apiProjects}
           questions={apiQuestions}
           loading={apiLoading}
@@ -2365,8 +2368,9 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       </div>
       <div className="project-detail-footer">
         {currentUser.role === 'GENEL_KOORDINATOR' && <button className="secondary-button" type="button" onClick={() => {
+          setPublishingProjectId(selectedProject.id);
           setSelectedProjectId(null); setSection('publishing');
-        }}><BookOpen size={15}/> Kitap hazırlığı</button>}
+        }}><BookOpen size={15}/> Bu projeden kitap hazırla</button>}
         {selectedProject.canManage&&<button className="secondary-button project-manage-button" onClick={()=>openProjectEdit(selectedProject)}><PencilLine size={15}/> Projeyi Düzenle</button>}
         <button className="secondary-button" onClick={()=>openTasksForProject(selectedProject.id)}>Görevleri aç <ClipboardList size={15}/></button>
         <button className="secondary-button" onClick={()=>{setSelectedGrade(selectedProject.targetGrade);setSelectedProjectId(null);setSection('grades')}}>Sınıfı aç <GraduationCap size={15}/></button>

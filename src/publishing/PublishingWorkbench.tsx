@@ -14,6 +14,7 @@ type Props = {
   loading: boolean;
   error: string;
   onRefresh: () => Promise<ApiQuestion[]>;
+  initialProjectId?: number | null;
 };
 
 function safeImageSource(src: string | null | undefined): string | null {
@@ -55,10 +56,10 @@ function QuestionForBook({ question, ordinal }: { question: ApiQuestion; ordinal
   </article>;
 }
 
-export function PublishingWorkbench({ questions, projects, loading, error, onRefresh }: Props) {
+export function PublishingWorkbench({ questions, projects, loading, error, onRefresh, initialProjectId = null }: Props) {
   const [title, setTitle] = useState('Yeni Soru Kitabı');
   const [chapter, setChapter] = useState('Bölüm 1 · Sorular');
-  const [projectFilter, setProjectFilter] = useState('all');
+  const [projectFilter, setProjectFilter] = useState(initialProjectId ? String(initialProjectId) : 'all');
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [columns, setColumns] = useState<1 | 2>(1);
