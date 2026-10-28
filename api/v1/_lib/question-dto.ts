@@ -33,6 +33,7 @@ export function formatQuestionDto(question: any, isArchived = false) {
     status: question.status,
     editorNote: question.editorNote,
     projectId: question.projectId,
+    taskId: question.taskId ?? null,
     createdAt: question.createdAt,
     updatedAt: question.updatedAt,
     isArchived,

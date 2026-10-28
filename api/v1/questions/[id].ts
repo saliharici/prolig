@@ -204,7 +204,7 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
   }
 
   const payloadKeys = Object.keys(req.body || {});
-  const protectedFields = ['id', 'authorUserId', 'status', 'editorNote', 'createdAt', 'updatedAt', 'isArchived'];
+  const protectedFields = ['id', 'authorUserId', 'taskId', 'status', 'editorNote', 'createdAt', 'updatedAt', 'isArchived'];
   if (payloadKeys.some(k => protectedFields.includes(k))) {
     return res.status(400).json({ error: 'Cannot modify protected fields' });
   }
@@ -275,6 +275,8 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
   }
 
   const nextProjectId = projectId !== undefined ? projectId : question.projectId;
+  if (question.taskId != null && nextProjectId !== question.projectId)
+    return res.status(409).json({ error: 'Task-linked question cannot change project' });
   const nextGrade = grade !== undefined ? updateData.grade : question.grade;
 
   if (projectId !== undefined) {

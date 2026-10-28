@@ -152,7 +152,17 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'AuthorProfile required' });
   }
 
-  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, assets } = req.body || {};
+  const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, taskId, assets } = req.body || {};
+  if (taskId !== undefined && taskId !== null) {
+    if (!Number.isSafeInteger(taskId) || taskId <= 0 || projectId == null)
+      return res.status(400).json({ error: 'Valid taskId and projectId required together' });
+    const task = await prisma.task.findUnique({ where: { id: taskId },
+      select: { projectId: true, assignedAuthorProfileId: true, targetQuestionCount: true } });
+    if (!task || task.projectId !== projectId || task.assignedAuthorProfileId !== user.AuthorProfile.id)
+      return res.status(403).json({ error: 'Task not assigned to this author and project' });
+    if (task.targetQuestionCount <= 0)
+      return res.status(409).json({ error: 'Task has no question production target' });
+  }
   const typed = usesTypedQuestion(req.body);
   const typedResult = typed ? parseTypedQuestion(req.body) : null;
   if (typedResult?.error) return res.status(typedResult.status!).json({ error: typedResult.error });
@@ -241,6 +251,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
         ...typedResult?.data,
         explanation: explanation ? explanation.trim() : null,
         projectId: projectId || null,
+        taskId: taskId ?? null,
         authorUserId: user.id,
         status: 'TASLAK',
         assets: parsedAssets.assets.length > 0 ? {

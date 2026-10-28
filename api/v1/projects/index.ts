@@ -4,6 +4,7 @@ import { getCurrentUser } from '../_lib/current-user.js';
 import { buildProjectReadScope, canCreateProject, canManageProject } from '../_lib/project-access.js';
 import { assignedBranchIds } from '../_lib/member-access.js';
 import { formatProjectDto, projectSelect } from '../_lib/project-dto.js';
+import { productionTotalsForProjects } from '../_lib/production-progress.js';
 import { canReadAuthorPerformanceReport, getAuthorPerformanceReport } from '../_lib/author-performance-report.js';
 import {
   PROJECT_GRADES,
@@ -65,8 +66,9 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     orderBy: [{ deadline: 'asc' }, { id: 'asc' }]
   });
 
+  const production = await productionTotalsForProjects(projects.map(p => p.id));
   return res.status(200).json(
-    projects.map((project) => formatProjectDto(project, canManageProject(user, project)))
+    projects.map(project => formatProjectDto(project, canManageProject(user, project), production.get(project.id)))
   );
 }
 

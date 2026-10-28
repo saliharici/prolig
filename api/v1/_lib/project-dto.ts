@@ -1,4 +1,5 @@
 import type { Prisma } from '../../../generated/prisma/client.js';
+import type { ProductionMetrics } from './production-progress.js';
 
 export const projectSelect = {
   id: true,
@@ -34,7 +35,7 @@ export const projectSelect = {
 
 type SelectedProject = Prisma.ProjectGetPayload<{ select: typeof projectSelect }>;
 
-export function formatProjectDto(project: SelectedProject, canManage = false) {
+export function formatProjectDto(project: SelectedProject, canManage = false, production?: ProductionMetrics) {
   return {
     id: project.id,
     title: project.title,
@@ -42,7 +43,9 @@ export function formatProjectDto(project: SelectedProject, canManage = false) {
     projectType: project.projectType,
     coordinatorId: project.coordinatorId,
     canManage,
-    progress: project.progress,
+    progress: production?.completionPercent ?? project.progress,
+    progressSource: production?.completionPercent !== null && production?.completionPercent !== undefined ? 'automatic' : 'manual',
+    production: production ?? null,
     deadline: project.deadline,
     status: project.status,
     priority: project.priority,
