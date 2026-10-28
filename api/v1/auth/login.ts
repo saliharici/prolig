@@ -90,10 +90,10 @@ const TEST_FIXTURE_ACTORS = {
   fizEditor: { email: 'preview-editor-fiz@prolig.invalid', role: 'EDITOR', provinceId: 25, branchId: 23, grade: '10. Sınıf' }
 } as const;
 
-async function setupIsolatedFixtureActor(req: VercelRequest, res: VercelResponse) {
+async function setupIsolatedFixtureActor(req: VercelRequest, res: VercelResponse, actorKeyOverride?: keyof typeof TEST_FIXTURE_ACTORS) {
   if (!testBootstrapEnabled()) return res.status(404).json({ error: 'Not found' });
   const password = req.body?.password;
-  const actorKey: unknown = req.body?.testFixtureActor;
+  const actorKey: unknown = actorKeyOverride ?? req.body?.testFixtureActor;
   if (typeof actorKey !== 'string' || !Object.prototype.hasOwnProperty.call(TEST_FIXTURE_ACTORS, actorKey)) {
     return res.status(400).json({ error: 'Geçersiz TEST rolü.' });
   }
@@ -174,6 +174,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       include: { role: true }
     });
 
+    // Dedicated synthetic accounts have no initial password. Their first normal
+    // login claims the TEST-only account, then subsequent logins use bcrypt.
+    // Never enable this flow for real accounts, Production, or other databases.
+    if (user && user.status?.toUpperCase() === 'AKTIF' && !user.passwordHash) {
+      const testActor = (Object.keys(TEST_FIXTURE_ACTORS) as Array<keyof typeof TEST_FIXTURE_ACTORS>)
+        .find(key => TEST_FIXTURE_ACTORS[key].email === normalizedEmail);
+      if (testActor && testBootstrapEnabled()) {
+        return await setupIsolatedFixtureActor(req, res, testActor);
+      }
+    }
     if (!user || user.status?.toUpperCase() !== 'AKTIF' || !user.passwordHash) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

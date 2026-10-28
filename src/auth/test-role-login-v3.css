@@ -1,0 +1,10 @@
+/* Isolated Preview only: account-first author/editor login UX. */
+.ux02-test-role-chooser{margin:0 0 16px;padding:15px;border:1px solid #cfe8df;background:#eff9f5;border-radius:12px}
+.ux02-test-role-chooser>strong{display:block;color:#245e53;font-size:12px;font-weight:800}
+.ux02-test-role-chooser>p{color:#537771;line-height:1.6;font-size:11px;margin:7px 0 12px}
+.ux02-test-role-chooser-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.ux02-test-role-chooser-grid button{border:1px solid #cde5df;border-radius:8px;background:white;padding:9px 7px;text-align:center;color:#315f59;cursor:pointer;font-size:10px;font-weight:700;line-height:1.4}
+.ux02-test-role-chooser-grid button.selected,.ux02-test-role-chooser-grid button:hover{background:#d8f0e6;border-color:#62a991}
+.ux02-test-role-chooser>small{display:block;color:#386f62;font-size:10px;margin-top:10px;overflow-wrap:anywhere}
+.ux02-test-login-help{color:#386f62;background:#eff9f5;border-radius:7px;padding:9px;font-size:11px;line-height:1.5;margin:0}
+@media(max-width:480px){.ux02-test-role-chooser-grid{grid-template-columns:1fr}}

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { login } from './api';
 import './corporate-access-v1.css';
 import './publisher-access-ux02.css';
+import './test-role-login-v3.css';
 
 export interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -13,6 +14,7 @@ export interface LoginScreenProps {
 export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const passwordInputRef = useRef<HTMLInputElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,13 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
     { key: 'fizEditor', label: 'Fizik Editörü (10. Sınıf)', email: 'preview-editor-fiz@prolig.invalid' }
   ] as const;
   const selectedFixture = fixtureOptions.find(item => item.key === fixtureActor)!;
+  const selectedLoginFixture = fixtureOptions.find(item => item.email === email.toLowerCase().trim());
+  const chooseFixtureLogin = (value: typeof fixtureOptions[number]['email']) => {
+    setEmail(value);
+    setPassword('');
+    setError(null);
+    window.requestAnimationFrame(() => passwordInputRef.current?.focus());
+  };
   const [testPassword, setTestPassword] = useState('');
   const [testPasswordAgain, setTestPasswordAgain] = useState('');
   const [testSetupLoading, setTestSetupLoading] = useState(false);
@@ -116,6 +125,18 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
         </div>
         <p className="ux02-login-subtitle">Size tanımlanmış e-posta adresi ve şifrenizle giriş yapın.</p>
         {error && <div className="ux02-login-error" role="alert">{error}</div>}
+        {testAdminAvailable && <div className="ux02-test-role-chooser" role="group" aria-label="İzole TEST yazar ve editör hesapları">
+          <strong>TEST Yazar / Editör — Hızlı Giriş</strong>
+          <p>İlk girişte en az 10 karakterlik yeni şifrenizi yazın. Hesap otomatik etkinleşir;
+            sonraki girişlerde aynı şifreyi kullanırsınız. Canlı hesaplarınız etkilenmez.</p>
+          <div className="ux02-test-role-chooser-grid">
+            {fixtureOptions.map(item=><button type="button" key={item.key}
+              className={selectedLoginFixture?.key===item.key?'selected':''}
+              aria-pressed={selectedLoginFixture?.key===item.key}
+              onClick={()=>chooseFixtureLogin(item.email)}>{item.label}</button>)}
+          </div>
+          {selectedLoginFixture && <small>Seçilen hesap: <strong>{selectedLoginFixture.email}</strong>. Şifrenizi aşağıya yazın.</small>}
+        </div>}
         <form onSubmit={handleSubmit} className="ux02-login-form">
           <div className="ux02-login-field">
             <label htmlFor="email">E-posta adresi</label>
@@ -130,7 +151,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
             <label htmlFor="password">Şifre</label>
             <div className="ux02-login-input-wrap">
               <LockKeyhole size={18} aria-hidden="true"/>
-              <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={password}
+              <input ref={passwordInputRef} id="password" name="password" type={showPassword ? 'text' : 'password'} value={password}
                 onChange={event => setPassword(event.target.value)} autoComplete="current-password"
                 placeholder="Şifreniz" disabled={loading} required/>
               <button type="button" className="ux02-password-toggle" aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
@@ -139,6 +160,7 @@ export function LoginScreen({ onLoginSuccess, onCancel }: LoginScreenProps) {
               </button>
             </div>
           </div>
+          {testAdminAvailable && selectedLoginFixture && <p className="ux02-test-login-help">İlk girişte bu alana yeni TEST şifrenizi (en az 10 karakter) yazmanız yeterli. Ayrı şifre oluşturma formuna gerek yok.</p>}
           <button type="submit" className="ux02-login-submit" disabled={loading || !email || !password}>
             {loading ? <Loader2 className="ux02-spin" size={17} aria-hidden="true"/> : <span>Giriş Yap</span>}
             {loading ? 'Giriş yapılıyor...' : <ArrowRight size={18} aria-hidden="true"/>}
