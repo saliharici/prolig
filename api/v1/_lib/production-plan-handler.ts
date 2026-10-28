@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { prisma } from './_lib/prisma.js';
-import { getCurrentUser } from './_lib/current-user.js';
-import { buildProjectReadScope, canManageProject } from './_lib/project-access.js';
-import { projectSelect } from './_lib/project-dto.js';
+import { prisma } from './prisma.js';
+import { getCurrentUser } from './current-user.js';
+import { buildProjectReadScope, canManageProject } from './project-access.js';
+import { projectSelect } from './project-dto.js';
 
 function id(value: unknown): number | null {
   const num = typeof value === 'string' && /^[1-9]\d*$/.test(value) ? Number(value) : value;
