@@ -137,11 +137,11 @@ try {
   assert.equal(await logoutPage.locator('#workspace-navigation').count(), 0);
   await logoutPage.close();
 
-  for (const role of ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE']) {
+  for (const role of ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE']) {
     const rolePage = await fixturePage(role);
     const navigation = rolePage.locator('#workspace-navigation');
     await navigation.waitFor({ state: 'visible' });
-    const coordinator = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(role);
+    const coordinator = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU'].includes(role); // Branş rolü üye yönetemez.
     assert.equal(await navigation.getByRole('button', { name: 'Üye Yönetimi', exact: true }).count(), coordinator ? 1 : 0);
     assert.equal(await navigation.getByRole('button', { name: 'Rol ve Yetkiler', exact: true }).count(), role === 'GENEL_KOORDINATOR' ? 1 : 0);
     assert.equal(await navigation.getByRole('button', { name: 'Telif ve Ödemeler', exact: true }).count(), 1);
@@ -156,7 +156,7 @@ try {
   assert.equal(/pilot ortamı|test ortamı/i.test(await publicPage.locator('body').innerText()), false);
   await publicPage.close();
   assert.deepEqual(errors, [], 'Browser page errors');
-  console.log('Navigation browser checks passed: desktop, 320/390/768/960px, focus trap, Escape, backdrop, selection, resize, six roles, 320x568 mobile logout and public/login copy.');
+  console.log('Navigation browser checks passed: desktop, 320/390/768/960px, focus trap, Escape, backdrop, selection, resize, six canonical roles incl. restricted BRANS, 320x568 mobile logout and public/login copy.');
 } finally {
   await browser.close();
 }
