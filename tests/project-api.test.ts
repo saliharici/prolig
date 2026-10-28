@@ -18,14 +18,11 @@ describe('Project read scope', () => {
     expect(buildProjectReadScope({ role: { code: 'BOLGE_KOORDINATORU' } })).toEqual({ id: -1 });
   });
 
-  it('scopes IL by province and fails closed without it', () => {
-    expect(buildProjectReadScope({ id: 8, role: { code: 'IL_KOORDINATORU' }, provinceId: 34 })).toEqual({
-      OR: [
-        { coordinatorId: 8 },
-        { projectAuthors: { some: { authorProfile: { provinceId: 34 } } } }
-      ]
-    });
-    expect(buildProjectReadScope({ role: { code: 'IL_KOORDINATORU' } })).toEqual({ id: -1 });
+  it('scopes BRANS by branch and rejects forged province scopes', () => {
+    expect(buildProjectReadScope({ id: 8, role: { code: 'BRANS_KOORDINATORU' },
+      provinceId: 34, branchAssignments: [{ branchId: 2 }] })).toEqual({ branchId: { in: [2] } });
+    expect(buildProjectReadScope({ role: { code: 'BRANS_KOORDINATORU' } })).toEqual({ id: -1 });
+    expect(buildProjectReadScope({ role: { code: 'IL_KOORDINATORU' }, provinceId: 34 })).toBeNull();
   });
 
   it('scopes EDITOR by branches, geography and optional grade', () => {
@@ -51,7 +48,8 @@ describe('Project read scope', () => {
   it('limits project creation to coordinator hierarchy', () => {
     expect(canCreateProject({ role: { code: 'GENEL_KOORDINATOR' } })).toBe(true);
     expect(canCreateProject({ role: { code: 'BOLGE_KOORDINATORU' } })).toBe(true);
-    expect(canCreateProject({ role: { code: 'IL_KOORDINATORU' } })).toBe(true);
+    expect(canCreateProject({ role: { code: 'BRANS_KOORDINATORU' } })).toBe(true);
+    expect(canCreateProject({ role: { code: 'IL_KOORDINATORU' } })).toBe(false);
     expect(canCreateProject({ role: { code: 'EDITOR' } })).toBe(false);
     expect(canCreateProject({ role: { code: 'YAZAR' } })).toBe(false);
   });
@@ -78,8 +76,10 @@ describe('Project read scope', () => {
       province: { id: 25, region: 'Doğu Anadolu' }
     };
     expect(canAssignProjectAuthor({ role: { code: 'GENEL_KOORDINATOR' } }, author)).toBe(true);
-    expect(canAssignProjectAuthor({ role: { code: 'IL_KOORDINATORU' }, provinceId: 25 }, author)).toBe(true);
-    expect(canAssignProjectAuthor({ role: { code: 'IL_KOORDINATORU' }, provinceId: 34 }, author)).toBe(false);
+    expect(canAssignProjectAuthor({ role: { code: 'BRANS_KOORDINATORU' }, branchAssignments: [{ branchId: 2 }] },
+      { ...author, branchId: 2 })).toBe(true);
+    expect(canAssignProjectAuthor({ role: { code: 'BRANS_KOORDINATORU' }, branchAssignments: [{ branchId: 3 }] },
+      { ...author, branchId: 2 })).toBe(false);
     expect(canAssignProjectAuthor({ role: { code: 'EDITOR' } }, author)).toBe(false);
   });
 
