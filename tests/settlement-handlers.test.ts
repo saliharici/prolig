@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 describe('Authenticated financial scope', () => {
-  it.each(['YAZAR', 'EDITOR', 'IL_KOORDINATORU', 'BOLGE_KOORDINATORU'])('%s can read only own entries despite forged userId', async code => {
+  it.each(['YAZAR', 'EDITOR', 'BRANS_KOORDINATORU', 'BOLGE_KOORDINATORU'])('%s can read only own entries despite forged userId', async code => {
     const { req, res } = reqRes('GET', { userId: '999' }, { userId: 999 });
     await handleCompensationAction(req, res, actor(code), 'compensationEntries');
     expect(res.status).toHaveBeenCalledWith(200);
@@ -60,7 +60,7 @@ describe('Authenticated financial scope', () => {
     await handleCompensationAction(r.req, r.res, actor('YAZAR'), 'compensationEntries');
     expect(r.res.json).toHaveBeenCalledWith(expect.objectContaining({ summary: expect.objectContaining({ count: 609, total: '170.30', waiting: '120.10', inProcess: '0.20', paid: '50.00' }) }));
   });
-  it.each(['YAZAR', 'EDITOR', 'IL_KOORDINATORU', 'BOLGE_KOORDINATORU'])('%s cannot inspect or mutate periods', async code => {
+  it.each(['YAZAR', 'EDITOR', 'BRANS_KOORDINATORU', 'BOLGE_KOORDINATORU'])('%s cannot inspect or mutate periods', async code => {
     for (const method of ['GET', 'POST']) {
       const r = reqRes(method);
       await handlePaymentPeriodAction(r.req, r.res, actor(code), 'paymentPeriods');

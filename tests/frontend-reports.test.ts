@@ -12,7 +12,7 @@ describe('Raporlar V1', () => {
     const model = fs.readFileSync(modelPath, 'utf8');
     expect(model).toContain("| 'reports'");
     expect(model).toContain("reports: 'Raporlar'");
-    for (const role of ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE']) {
+    for (const role of ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE']) {
       const roleLine = model.split('\n').find(line => line.includes(`${role}:`) && line.includes("['overview'"));
       expect(roleLine).toContain("'reports'");
     }
@@ -30,7 +30,7 @@ describe('Raporlar V1', () => {
     expect(demo).toContain('payments={apiPayments}');
     expect(demo).toContain("if (section !== 'reports' || currentUser.role === 'MUHASEBE') return;");
     expect(reports).toContain("const canSeeFinance = ['GENEL_KOORDINATOR', 'MUHASEBE'].includes(role)");
-    expect(reports).toContain("const canSeeAuthors = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(role)");
+    expect(reports).toContain("const canSeeAuthors = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'].includes(role)");
   });
 
   it('provides filters, KPI analysis, project performance and role-aware report sections', () => {

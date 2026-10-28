@@ -28,7 +28,7 @@ describe('Compensation frontend', () => {
   it('separates writer editor and coordinator rates', () => {
     expect(rules).toContain("code: 'YAZAR'");
     expect(rules).toContain("code: 'EDITOR'");
-    expect(rules).toContain("code: 'IL_KOORDINATORU'");
+    expect(rules).toContain("code: 'BRANS_KOORDINATORU'");
     expect(rules).toContain("code: 'BOLGE_KOORDINATORU'");
     expect(rules).toContain("code: 'GENEL_KOORDINATOR'");
     expect(rules).toContain('Onaylanan soru başına');
