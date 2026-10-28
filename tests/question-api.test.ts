@@ -13,11 +13,12 @@ describe('Question Access Scope', () => {
     expect(buildQuestionReadScope({ role: { code: 'BOLGE_KOORDINATORU' } })).toEqual({ id: -1 });
   });
 
-  it('IL restricted to provinceId using AuthorProfile', () => {
-    expect(buildQuestionReadScope({ role: { code: 'BRANS_KOORDINATORU' }, provinceId: 34 })).toEqual({
-      authorUser: { AuthorProfile: { provinceId: 34 } }
+  it('BRANS question scope uses authorized branch IDs rather than actor province', () => {
+    expect(buildQuestionReadScope({ role: { code: 'BRANS_KOORDINATORU' },
+      provinceId: 34, branchAssignments: [{ branchId: 2 }] })).toEqual({
+      authorUser: { AuthorProfile: { branchId: { in: [2] } } }
     });
-    expect(buildQuestionReadScope({ role: { code: 'BRANS_KOORDINATORU' } })).toEqual({ id: -1 });
+    expect(buildQuestionReadScope({ role: { code: 'BRANS_KOORDINATORU' }, provinceId: 34 })).toEqual({ id: -1 });
   });
 
   it('EDITOR restricted to assigned branches and geography', () => {

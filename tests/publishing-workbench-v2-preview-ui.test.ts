@@ -7,7 +7,7 @@ import {
   type SavedBook
 } from '../src/publishing/book-persistence-client';
 
-const screen = readFileSync(new URL('../src/publishing/PublishingWorkbench.tsx', import.meta.url), 'utf8');
+const screen = readFileSync(new URL('../src/publishing/PublishingWorkbenchV5.tsx', import.meta.url), 'utf8');
 const panel = readFileSync(new URL('../src/publishing/PublishingPersistencePanel.tsx', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/publishing/publishing.css', import.meta.url), 'utf8');
 const workflow = readFileSync(new URL('../.github/workflows/publishing-books-isolated-postgres.yml', import.meta.url), 'utf8');

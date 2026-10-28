@@ -183,7 +183,7 @@ describe('compensation calculation engine', () => {
 
   it('creates the assigned coordinator project fee according to coordinator role', async () => {
     const { tx, entries } = buildTx({
-      coordinator: { id: 12, role: { code: 'IL_KOORDINATORU' } },
+      coordinator: { id: 12, role: { code: 'BRANS_KOORDINATORU' } },
       defaultRules: {
         PROJECT_PROVINCE_COORDINATOR: { id: 5, unitPrice: decimal('2500.00') }
       }
@@ -198,7 +198,7 @@ describe('compensation calculation engine', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toEqual(expect.objectContaining({
       userId: 12,
-      roleCode: 'IL_KOORDINATORU',
+      roleCode: 'BRANS_KOORDINATORU',
       earningType: 'PROJECT_PROVINCE_COORDINATOR',
       projectId: 77,
       sourceKey: 'PROJECT_COORDINATOR:77:12:PROJECT_PROVINCE_COORDINATOR',

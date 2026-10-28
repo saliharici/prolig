@@ -7,7 +7,7 @@ import {
 
 const app = readFileSync(new URL('../src/DemoApp.tsx', import.meta.url), 'utf8');
 const model = readFileSync(new URL('../src/demo/model.ts', import.meta.url), 'utf8');
-const workbench = readFileSync(new URL('../src/publishing/PublishingWorkbench.tsx', import.meta.url), 'utf8');
+const workbench = readFileSync(new URL('../src/publishing/PublishingWorkbenchV5.tsx', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/publishing/publishing.css', import.meta.url), 'utf8');
 
 function q(id: number, extras: Partial<ApiQuestion> = {}): ApiQuestion {
