@@ -9,6 +9,7 @@ import { roleLabels } from '../demo/model';
 import { fetchManagedUsers } from '../membership/api';
 import type { ManagedUser } from '../membership/types';
 import type { ApiProject } from '../projects/types';
+import { fetchProductionPlan, type ProductionUnit } from '../projects/production-plan-api';
 import { createTask, deleteTask, fetchTasks, updateTask } from './api';
 import type { ApiTask, TaskPriority, TaskStatus } from './types';
 import './task-assignment-v3.css';
@@ -254,7 +255,7 @@ export function TaskTracking({
     {!loading && !error && tasks.length > 0 && view === 'list' && <div className="panel table-panel task-list-panel">
       <div className="table-wrap"><table><thead><tr><th>GÖREV</th><th>PROJE</th><th>SORUMLU</th><th>ÖNCELİK</th><th>TERMİN</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>
         {visibleTasks.map(task=><tr key={task.id} className={task.isOverdue?'task-overdue-row':''}>
-          <td><strong>{task.title}</strong>{task.targetQuestionCount > 0 && <small className="task-table-note">Hedef {task.targetQuestionCount} · Yazılan {task.production?.written ?? 0} · Onay {task.production?.approved ?? 0}</small>}{task.description&&<small className="task-table-note">{task.description}</small>}</td>
+          <td><strong>{task.title}</strong>{task.unitPlan && <small className="task-table-note">Ünite: {task.unitPlan.title}</small>}{task.targetQuestionCount > 0 && <small className="task-table-note">Hedef {task.targetQuestionCount} · Yazılan {task.production?.written ?? 0} · Onay {task.production?.approved ?? 0}</small>}{task.description&&<small className="task-table-note">{task.description}</small>}</td>
           <td>{task.project.code}<small className="task-table-note">{task.project.title}</small></td>
           <td>{assigneeName(task)}</td>
           <td><span className={`task-priority priority-${task.priority.toLowerCase()}`}>{trPriority(task.priority)}</span></td>
@@ -293,6 +294,7 @@ function TaskCard({ task, onEdit, onAdvance, onOpenProjectQuestions, currentUser
     <div className="task-card-top"><span className={`task-priority priority-${task.priority.toLowerCase()}`}>{trPriority(task.priority)}</span>{task.isOverdue&&<span className="task-overdue-badge"><AlertTriangle size={12}/> Gecikti</span>}</div>
     <h3>{task.title}</h3>
     <p>{task.project.code} · {task.project.title}</p>
+    {task.unitPlan && <small className="task-unit-tag">{task.unitPlan.title}</small>}
     {task.targetQuestionCount > 0 && <div className="task-production-chip">
       <strong>{task.production?.approved ?? 0} / {task.targetQuestionCount}</strong> onaylı soru
       <small>Yazılan {task.production?.written ?? 0} · İncelemede {task.production?.submitted ?? 0} · Revizyon {task.production?.revision ?? 0}</small>
@@ -340,6 +342,19 @@ function TaskForm({
   const [projectId,setProjectId]=useState(initialProjectId);
   const [priority,setPriority]=useState<TaskPriority>(task?.priority??'Normal');
   const [targetQuestionCount,setTargetQuestionCount]=useState<number>(task?.targetQuestionCount ?? 0);
+  const [unitPlanId,setUnitPlanId]=useState<number | null>(task?.unitPlanId ?? null);
+  const [availableUnits,setAvailableUnits]=useState<ProductionUnit[]>([]);
+  const [unitsError,setUnitsError]=useState('');
+  useEffect(()=>{
+    let live=true;
+    if(!projectId){setAvailableUnits([]);return;}
+    void fetchProductionPlan(projectId).then(plan=>{
+      if(live){setAvailableUnits(plan.units);setUnitsError('');}
+    }).catch(err=>{
+      if(live){setAvailableUnits([]);setUnitsError(err instanceof Error?err.message:'Üniteler yüklenemedi.');}
+    });
+    return ()=>{live=false;};
+  },[projectId]);
   const [startDate,setStartDate]=useState(inputDate(task?.startDate) || new Date().toISOString().slice(0,10));
   const [dueDate,setDueDate]=useState(inputDate(task?.dueDate));
   const [status,setStatus]=useState<Exclude<TaskStatus,'Gecikti'>>(task?.status==='Gecikti'?'Devam_Ediyor':task?.status??'Bekliyor');
@@ -383,6 +398,7 @@ function TaskForm({
   const changeProject=(value:string)=>{
     const next=Number(value);
     setProjectId(next);
+    setUnitPlanId(null);
     setAssigneeId(0);
   };
 
@@ -398,6 +414,7 @@ function TaskForm({
         startDate,
         dueDate,
         targetQuestionCount: assigneeType === 'author' ? targetQuestionCount : 0,
+        unitPlanId: assigneeType === 'author' ? unitPlanId : null,
         assignedAuthorProfileId:assigneeType==='author'?assigneeId:null,
         assignedUserId:assigneeType==='user'?assigneeId:null
       };
@@ -442,6 +459,15 @@ function TaskForm({
         {editing&&<label><span>Durum</span><select value={status} onChange={e=>setStatus(e.target.value as Exclude<TaskStatus,'Gecikti'>)}>{statusColumns.map(item=><option key={item.status} value={item.status}>{item.label}</option>)}</select></label>}
         <label><span>Başlangıç</span><input required type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}/></label>
         <label><span>Son teslim</span><input required type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label>
+        {assigneeType==='author'&&<label className="task-span-two"><span>Kitap ünitesi / bölüm planı</span>
+          <select value={unitPlanId ?? ''} onChange={e=>setUnitPlanId(e.target.value?Number(e.target.value):null)}>
+            <option value="">Üniteye bağlama (eski tip görev)</option>
+            {availableUnits.map(unit=><option key={unit.id} value={unit.id}>
+              {unit.sortOrder+1}. {unit.title} · Hedef {unit.target} · Eksik {unit.missing}
+            </option>)}
+          </select>
+          <small className="field-help">{unitsError || 'Ünite planını Projeler → Üretim Planı bölümünde oluşturun. Soru yazılmış görevlerin ünitesi değiştirilemez.'}</small>
+        </label>}
         {assigneeType==='author'&&<label><span>Hedef soru adedi</span>
           <input type="number" min={0} max={10000} step={1} value={targetQuestionCount}
             onChange={e=>setTargetQuestionCount(Number(e.target.value))}/>

@@ -15,11 +15,11 @@ const priorities = new Set(['Dusuk', 'Normal', 'Yuksek', 'Acil']);
 const workflowStatuses = new Set(['Bekliyor', 'Devam_Ediyor', 'Kontrol_Bekliyor', 'Tamamlandi']);
 const createFields = new Set([
   'title', 'description', 'projectId', 'priority', 'startDate', 'dueDate',
-  'assignedAuthorProfileId', 'assignedUserId', 'targetQuestionCount'
+  'assignedAuthorProfileId', 'assignedUserId', 'targetQuestionCount', 'unitPlanId'
 ]);
 const patchFields = new Set([
   'title', 'description', 'priority', 'startDate', 'dueDate',
-  'assignedAuthorProfileId', 'assignedUserId', 'status', 'targetQuestionCount'
+  'assignedAuthorProfileId', 'assignedUserId', 'status', 'targetQuestionCount', 'unitPlanId'
 ]);
 
 function positiveInt(value: unknown): number | null {
@@ -177,6 +177,9 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
   const dueDate = parseDate(body.dueDate);
   const assignedAuthorProfileId = body.assignedAuthorProfileId == null ? null : positiveInt(body.assignedAuthorProfileId);
   const assignedUserId = body.assignedUserId == null ? null : positiveInt(body.assignedUserId);
+  const unitPlanId = body.unitPlanId == null ? null : positiveInt(body.unitPlanId);
+  if (body.unitPlanId != null && !unitPlanId)
+    return res.status(400).json({ error: 'Invalid unit plan ID' });
   const targetQuestionCount = body.targetQuestionCount === undefined ? 0 : body.targetQuestionCount;
   if (!Number.isSafeInteger(targetQuestionCount) || targetQuestionCount < 0 || targetQuestionCount > 10000) {
     return res.status(400).json({ error: 'Question target must be an integer between 0 and 10000' });
@@ -197,6 +200,11 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
     return res.status(409).json({ error: 'Tasks cannot be created for archived or completed projects' });
   }
 
+  if (unitPlanId !== null) {
+    const unit = await prisma.projectUnitPlan.findFirst({where:{id:unitPlanId,projectId},select:{id:true}});
+    if (!unit) return res.status(403).json({ error: 'Unit plan is outside selected project' });
+    if (!assignedAuthorProfileId) return res.status(400).json({ error: 'Only author tasks can use unit plans' });
+  }
   const assignee = await validateAssignee(project, user, assignedAuthorProfileId, assignedUserId);
   if ('error' in assignee) return res.status(403).json({ error: assignee.error });
 
@@ -207,6 +215,7 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
         description,
         projectId,
         targetQuestionCount,
+        unitPlanId,
         priority,
         status: 'Bekliyor',
         startDate,
@@ -227,6 +236,7 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
           projectId,
           priority,
           targetQuestionCount,
+          unitPlanId,
           assignedAuthorProfileId: assignee.assignedAuthorProfileId,
           assignedCoordinatorId: assignee.assignedCoordinatorId
         })
@@ -324,6 +334,21 @@ async function updateTask(id: number, user: any, req: VercelRequest, res: Vercel
   if (assigneeFieldsTouched && data.assignedAuthorProfileId === null && task.targetQuestionCount > 0 &&
     data.targetQuestionCount === undefined) {
     return res.status(409).json({ error: 'Clear the question target before assigning a coordinator' });
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'unitPlanId')) {
+    if (!manager) return res.status(403).json({ error: 'Only a coordinator can change a unit plan' });
+    const nextUnit = body.unitPlanId == null ? null : positiveInt(body.unitPlanId);
+    if (body.unitPlanId != null && !nextUnit) return res.status(400).json({ error: 'Invalid unit plan ID' });
+    if (task.questions.length && nextUnit !== task.unitPlanId)
+      return res.status(409).json({ error: 'Task already has linked questions: unit cannot change' });
+    if (nextUnit != null) {
+      const unit=await prisma.projectUnitPlan.findFirst({where:{id:nextUnit,projectId:task.project.id},select:{id:true}});
+      if (!unit) return res.status(403).json({ error: 'Unit is outside task project' });
+    }
+    const nextAssignee=data.assignedAuthorProfileId!==undefined?data.assignedAuthorProfileId:task.assignedAuthorProfileId;
+    if (nextUnit !== null && !nextAssignee)
+      return res.status(400).json({ error: 'Unit plan requires author task' });
+    data.unitPlanId = nextUnit;
   }
   if (Object.prototype.hasOwnProperty.call(body, 'status')) {
     if (typeof body.status !== 'string' || !workflowStatuses.has(body.status)) {

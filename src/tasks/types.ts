@@ -8,6 +8,8 @@ export interface ApiTask {
   priority: TaskPriority;
   status: TaskStatus;
   targetQuestionCount: number;
+  unitPlanId: number | null;
+  unitPlan: {id:number;title:string;targetQuestionCount:number;sortOrder:number} | null;
   production?: {
     target: number; written: number; submitted: number; revision: number;
     approved: number; rejected: number; percent: number | null;
@@ -44,6 +46,7 @@ export interface ApiTask {
 }
 
 export interface CreateTaskInput {
+  unitPlanId?: number | null;
   targetQuestionCount?: number;
   title: string;
   description?: string | null;
@@ -56,6 +59,7 @@ export interface CreateTaskInput {
 }
 
 export interface UpdateTaskInput {
+  unitPlanId?: number | null;
   targetQuestionCount?: number;
   title?: string;
   description?: string | null;

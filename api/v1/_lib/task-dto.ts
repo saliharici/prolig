@@ -16,6 +16,8 @@ export const taskSelect = {
   createdAt: true,
   updatedAt: true,
   targetQuestionCount: true,
+  unitPlanId: true,
+  unitPlan: {select:{id:true,title:true,targetQuestionCount:true,sortOrder:true}},
   questions: { select: { status: true } },
   project: { select: projectSelect },
   assignedAuthorProfile: {
@@ -53,6 +55,8 @@ export function formatTaskDto(task: SelectedTask, user: any) {
     priority: task.priority,
     status: task.status,
     targetQuestionCount: task.targetQuestionCount,
+    unitPlanId: task.unitPlanId,
+    unitPlan: task.unitPlan,
     production: {
       target: task.targetQuestionCount,
       written: task.questions.length,
