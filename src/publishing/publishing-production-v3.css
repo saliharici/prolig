@@ -3,3 +3,8 @@
 .publishing-project-production>span{flex:1;min-width:190px;line-height:1.55}
 .publishing-project-production>small{width:100%;color:#608579}
 .publishing-project-production>button{white-space:normal}
+
+.publishing-plan-readiness{border:1px solid #d4dfed;border-radius:10px;background:#f6f9fe;padding:13px;margin:12px 0;color:#345276;font-size:11px}
+.publishing-plan-readiness>strong{font-size:13px}
+.publishing-plan-readiness p{line-height:1.55;margin:7px 0}
+.publishing-plan-readiness small{display:block;margin-top:8px;color:#687e9b;line-height:1.6}

@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, BookOpen, Check, FileDown, RefreshCw, RotateCcw } from 'lucide-react';
 import type { ApiQuestion, QuestionAssetPlacement } from '../questions/types';
 import type { ApiProject } from '../projects/types';
+import { fetchProductionPlan, type ProductionPlan } from '../projects/production-plan-api';
 import { StudioMarkup } from '../questions/StudioDocumentPreview';
 import { approvedForPublishing, bookAnswer, bookMediaWarnings, moveBookQuestion, resolveBookOrder } from './book-assembly';
 import { PublishingPersistencePanel } from './PublishingPersistencePanel';
@@ -70,6 +71,21 @@ export function PublishingWorkbench({ questions, projects, loading, error, onRef
     VITE_PUBLISHING_V2_PREVIEW?: string; VITE_VERCEL_ENV?: string;
   });
   const [activeBook, setActiveBook] = useState<SavedBook | null>(null);
+  const [plan,setPlan] = useState<ProductionPlan | null>(null);
+  const [planError,setPlanError] = useState('');
+  const [planLoading,setPlanLoading] = useState(false);
+  useEffect(()=>{
+    const projectId=Number(projectFilter);
+    if(!Number.isSafeInteger(projectId)||projectId<=0){setPlan(null);setPlanError('');return;}
+    let live=true;
+    setPlanLoading(true);
+    void fetchProductionPlan(projectId).then(result=>{
+      if(live){setPlan(result);setPlanError('');}
+    }).catch(err=>{
+      if(live){setPlan(null);setPlanError(err instanceof Error?err.message:'Plan yüklenemedi.');}
+    }).finally(()=>{if(live)setPlanLoading(false)});
+    return ()=>{live=false;};
+  },[projectFilter]);
 
   function openSavedBook(book: SavedBook) {
     const single = flattenSingleChapter(book);
@@ -97,6 +113,15 @@ export function PublishingWorkbench({ questions, projects, loading, error, onRef
   const eligible = useMemo(() => approvedForPublishing(questions), [questions]);
   const selectedProject = projectFilter === 'all' ? null : projects.find(p=>p.id===Number(projectFilter)) ?? null;
   const readyForSelectedProject = selectedProject ? eligible.filter(q=>q.projectId===selectedProject.id) : [];
+  const planOrderedApproved = useMemo(()=>{
+    if(!plan || plan.projectId !== Number(projectFilter))return [] as number[];
+    const byTask=new Map<number,number[]>();
+    for(const question of eligible){
+      if(question.projectId !== plan.projectId || question.taskId == null)continue;
+      byTask.set(question.taskId,[...(byTask.get(question.taskId)??[]),question.id]);
+    }
+    return plan.units.flatMap(unit=>unit.tasks.flatMap(task=>byTask.get(task.id)??[]));
+  },[plan,eligible,projectFilter]);
   const projectOptions = useMemo(() => {
     const options = new Map<number, string>();
     if (activeBook?.project) options.set(activeBook.projectId, activeBook.project.code + ' · ' + activeBook.project.title);
@@ -181,6 +206,21 @@ export function PublishingWorkbench({ questions, projects, loading, error, onRef
             <Check size={14}/> Bu projenin onaylı sorularını kitap taslağına aktar
           </button>
           <small>Yalnız onaylı ve arşivlenmemiş sorular seçilir. Kalıcı kayıtta sunucu soru onayını yeniden doğrular.</small>
+        </div>}
+        {selectedProject && <div className="publishing-plan-readiness">
+          <strong>Kitap bölümleri · üretim kontrolü</strong>
+          {planLoading?<p>Ünite planı yükleniyor…</p>:planError?<p role="alert">{planError}</p>:plan ? <>
+            <p>{plan.units.length} bölüm · Hedef {plan.summary.totalTarget} · Onaylı {plan.summary.approved}
+              · Eksik {plan.summary.missing} · Ünitesiz görev {plan.summary.unallocatedTasks}</p>
+            <p>{plan.summary.ready
+              ? 'Bölüm hedefleri tamamlandı. Nihai yayın onayı ve dizgi kontrolü ayrıca gereklidir.'
+              : 'Üretim planı henüz tamamlanmadı. Kısmi kitap taslağı hazırlanabilir ancak kitap hazır sayılmaz.'}</p>
+            <button type="button" className="secondary-button" disabled={Boolean(activeBook)||loading||!!error||!planOrderedApproved.length}
+              onClick={()=>setSelectedIds(planOrderedApproved.slice(0,300))}>
+              <BookOpen size={14}/> Onaylı soruları bölüm sırasıyla seç ({planOrderedApproved.length})
+            </button>
+            <small>Yalnız görevle eşleştirilmiş onaylı sorular bölüm sırasına alınır. Kalıcı taslak bu ekranda tek bölüm olarak kaydedilir; çok bölümlü dizgi henüz etkin değil.</small>
+          </>:<p>Bu proje için ünite planı bulunamadı. Mevcut onaylı soru seçimi kullanılabilir.</p>}
         </div>}
         <div className="publishing-filters">
           <label>Proje<select value={projectFilter} disabled={publishingPreview && Boolean(activeBook)} onChange={e => setProjectFilter(e.target.value)}>
