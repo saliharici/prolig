@@ -1,0 +1,58 @@
+name: RELEASE-03 Minimal V3 isolated PostgreSQL
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/20261029010000_task_question_production_v3/**'
+      - 'api/v1/questions/**'
+      - 'api/v1/_lib/task-*.ts'
+      - 'src/tasks/**'
+      - 'src/DemoApp.tsx'
+      - 'scripts/release03-verify-v3-schema.mjs'
+      - '.github/workflows/release03-minimal-v3.yml'
+jobs:
+  postgresql-16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: prolig_release03_ci
+          POSTGRES_USER: release03
+          POSTGRES_PASSWORD: ci_ephemeral_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U release03 -d prolig_release03_ci"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://release03:ci_ephemeral_only@127.0.0.1:5432/prolig_release03_ci
+      DIRECT_URL: postgresql://release03:ci_ephemeral_only@127.0.0.1:5432/prolig_release03_ci
+      PGSSLMODE: disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install without accessing Production secrets
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Check only V3 migration is added to main history
+        run: |
+          test -f prisma/migrations/20261029010000_task_question_production_v3/migration.sql
+          test ! -e prisma/migrations/20261027010000_branch_coordinator_role
+          test ! -e prisma/migrations/20261029030000_unit_production_plan_v4
+      - name: Real migration apply to ephemeral PostgreSQL
+        run: npx prisma migrate deploy
+      - name: Verify actual SQL schema and six-role enum
+        run: node scripts/release03-verify-v3-schema.mjs
+      - name: Prisma validate and generate
+        run: |
+          npx prisma validate
+          npx prisma generate
+      - name: Targeted role/task/question regression
+        run: npx vitest run tests/task-handlers.test.ts tests/task-access.test.ts tests/question-handlers.test.ts tests/question-api.test.ts tests/publishing-docx-v1.test.ts tests/publishing-book-api-v2.test.ts

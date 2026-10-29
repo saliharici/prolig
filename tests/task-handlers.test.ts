@@ -78,6 +78,8 @@ function taskRecord(overrides: any = {}) {
       branch: { id: 2, name: 'Matematik' }
     },
     assignedCoordinator: null,
+    targetQuestionCount: 0,
+    questions: [],
     ...overrides
   };
 }
