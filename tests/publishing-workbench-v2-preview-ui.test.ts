@@ -7,7 +7,7 @@ import {
   type SavedBook
 } from '../src/publishing/book-persistence-client';
 
-const screen = readFileSync(new URL('../src/publishing/PublishingWorkbench.tsx', import.meta.url), 'utf8');
+const screen = readFileSync(new URL('../src/publishing/PublishingWorkbenchV5.tsx', import.meta.url), 'utf8');
 const panel = readFileSync(new URL('../src/publishing/PublishingPersistencePanel.tsx', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/publishing/publishing.css', import.meta.url), 'utf8');
 const workflow = readFileSync(new URL('../.github/workflows/publishing-books-isolated-postgres.yml', import.meta.url), 'utf8');
@@ -61,7 +61,7 @@ describe('V2 persistence client gate and immutable preview', () => {
     expect(publishingV2PreviewEnabled({ VITE_PUBLISHING_V2_PRODUCTION_ENABLED: 'true', VITE_VERCEL_ENV: 'production' })).toBe(true);
     expect(publishingV2PreviewEnabled({ VITE_PUBLISHING_V2_PRODUCTION_ENABLED: 'true', VITE_VERCEL_ENV: 'preview' })).toBe(false);
     expect(publishingV2PreviewEnabled({ VITE_PUBLISHING_V2_PREVIEW: 'true', VITE_VERCEL_ENV: 'preview' })).toBe(true);
-    expect(screen).toContain('publishingPreview && <PublishingPersistencePanel');
+    expect(screen).toContain('publishingPreview&&<PublishingPersistencePanel');
     expect(screen).toContain('publishingV2PreviewEnabled(import.meta.env as unknown as');
     expect(panel).toContain('Kitabı Kaydet');
     expect(panel).toContain('Kayıtlı Kitaplarım');
@@ -82,7 +82,7 @@ describe('V2 persistence client gate and immutable preview', () => {
     expect(entries[0].content).toBe('DONMUŞ SORU 2');
     expect(entries[0].correctAnswer).toBe('D');
     expect(entries[0].assets?.[0]).toMatchObject({ placement: 'STEM', url: '/media/a.png' });
-    expect(screen).toContain('snapshots.get(id) ?? liveMap.get(id)');
+    expect(screen).toContain('snapshots.get(id)??live.get(id)');
     expect(screen).toContain('setWithAnswerKey(false)');
   });
 
@@ -99,7 +99,7 @@ describe('V2 persistence client gate and immutable preview', () => {
     expect(() => prepareBookSave(view, [source(1), source(2, { isArchived: true })], null)).toThrow('aktif');
     expect(() => prepareBookSave(view, [source(1)], saved())).toThrow('aktif');
     expect(() => prepareBookSave(view, [source(1), source(2, { updatedAt: '2026-10-18T13:00:00.000Z' })], saved()))
-      .toThrow('sonradan güncellenmiş');
+      .toThrow('değişmiş');
     expect(() => prepareBookSave({ ...view, selectedIds: [2, 2] }, [source(1), source(2)], null))
       .toThrow('benzersiz');
     expect(() => prepareBookSave(view, [source(1), source(2)], saved({ status: 'Basıldı' }))).toThrow('Yayınlanmış');
@@ -126,7 +126,7 @@ describe('V2 persistence client gate and immutable preview', () => {
     const returnedOrder = flattenSingleChapter(book).questionIds;
     expect(returnedOrder).toEqual(persisted);
     expect(sameQuestionOrder(intended, returnedOrder)).toBe(false);
-    expect(panel).toContain('if (!sameQuestionOrder(requestedOrder, storedOrder))');
+    expect(panel).toContain('if (!bookStructureEquals(payload.chapters,storedChapters))');
     expect(panel).toContain('Mevcut seçimler korundu');
     expect(panel).toContain('setCommittedPendingId(result.id)');
   });
@@ -166,8 +166,8 @@ describe('V2 persistence client gate and immutable preview', () => {
     expect(panel).toContain('setCommittedPendingId(result.id)');
     expect(panel).toContain('if (busyRef.current || committedPendingId !== null) return');
     expect(panel).toContain('Kayıtlı Sürümü İncele');
-    expect(panel).toContain('sameQuestionOrder(requestedOrder, storedOrder)');
-    expect(panel).toContain('Kaydedilecek soru sırası');
+    expect(panel).toContain('bookStructureEquals(payload.chapters,storedChapters)');
+    expect(panel).toContain('Kaydedilecek bölümler');
     expect(panel).toContain('setCommittedPendingId(result.id)');
     expect(panel).toContain('Mevcut seçimler korundu');
     expect(panel).toContain('onOpen(reopened)');

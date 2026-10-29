@@ -53,12 +53,14 @@ function unzipStored(buffer: Buffer): Map<string, string> {
 }
 
 describe('Publishing DOCX V1, editable real OOXML package', () => {
-  it('creates the 7 required ZIP parts and preserves the frozen #77→#79→#78 order', () => {
+  it('creates all 8 required ZIP parts and preserves the frozen #77→#79→#78 order', () => {
     const packageBytes = exportBookDocx(book(), false);
     expect(packageBytes.subarray(0,4).toString('hex')).toBe('504b0304');
     const files = unzipStored(packageBytes);
+    expect(files.get('word/settings.xml')).toContain('w:updateFields');
+    expect(files.get('word/document.xml')).toContain(' TOC ');
     expect([...files.keys()].sort()).toEqual(
-      ['[Content_Types].xml','_rels/.rels','word/_rels/document.xml.rels','word/document.xml','word/styles.xml','word/header1.xml','word/footer1.xml'].sort()
+      ['[Content_Types].xml','_rels/.rels','word/_rels/document.xml.rels','word/document.xml','word/styles.xml','word/settings.xml','word/header1.xml','word/footer1.xml'].sort()
     );
     const xml = files.get('word/document.xml')!;
     expect(xml).toContain('PRO-LİG V2 Test Kitabı');

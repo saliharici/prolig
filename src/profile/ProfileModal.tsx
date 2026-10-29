@@ -25,7 +25,7 @@ export function ProfileModal({
   const scopeText = useMemo(() => {
     if (user.role === 'GENEL_KOORDINATOR') return 'Türkiye geneli';
     if (user.role === 'BOLGE_KOORDINATORU') return user.assignedRegion || 'Bölge atanmamış';
-    if (user.role === 'IL_KOORDINATORU') return user.province?.name || 'İl atanmamış';
+    if (user.role === 'BRANS_KOORDINATORU') return user.editorBranches?.map(branch => branch.name).join(', ') || 'Branş atanmamış';
     if (user.role === 'EDITOR') {
       const location = user.province?.name || user.assignedRegion || 'Kapsam atanmamış';
       const branches = user.editorBranches?.map((branch) => branch.name).join(', ') || 'Branş atanmamış';

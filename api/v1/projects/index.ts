@@ -2,7 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { buildProjectReadScope, canCreateProject, canManageProject } from '../_lib/project-access.js';
+import { assignedBranchIds } from '../_lib/member-access.js';
 import { formatProjectDto, projectSelect } from '../_lib/project-dto.js';
+import { productionTotalsForProjects } from '../_lib/production-progress.js';
 import { canReadAuthorPerformanceReport, getAuthorPerformanceReport } from '../_lib/author-performance-report.js';
 import {
   PROJECT_GRADES,
@@ -64,8 +66,9 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     orderBy: [{ deadline: 'asc' }, { id: 'asc' }]
   });
 
+  const production = await productionTotalsForProjects(projects.map(p => p.id));
   return res.status(200).json(
-    projects.map((project) => formatProjectDto(project, canManageProject(user, project)))
+    projects.map(project => formatProjectDto(project, canManageProject(user, project), production.get(project.id)))
   );
 }
 
@@ -95,6 +98,10 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
 
   if (!title || !code || !projectType || !deadline || !priority || !targetGrade || !branchId || description === undefined || authorProfileIds === null) {
     return res.status(400).json({ error: 'Invalid project fields' });
+  }
+
+  if (user.role.code === 'BRANS_KOORDINATORU' && !assignedBranchIds(user).includes(branchId)) {
+    return res.status(403).json({ error: 'Project branch is outside coordinator scope' });
   }
 
   const [branch, duplicate] = await Promise.all([

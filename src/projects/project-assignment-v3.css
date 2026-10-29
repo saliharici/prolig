@@ -1,0 +1,10 @@
+/* UX-04: branş coordinator scoped writer assignment. */
+.project-assignment-scope{display:flex;align-items:flex-start;gap:8px;margin:15px 28px 5px;padding:11px 13px;border:1px solid #cde6de;background:#eff8f5;color:#245e54;font-size:11px;line-height:1.6;border-radius:9px}
+.project-assignment-scope svg{flex-shrink:0;margin-top:2px}
+.project-assignment-toolbar{display:flex;gap:10px;justify-content:space-between;align-items:end;margin:14px 0 2px;flex-wrap:wrap}
+.project-assignment-toolbar label{display:flex;flex-direction:column;gap:5px;flex:1 1 220px;max-width:100%;font-size:10px;font-weight:700;color:#4a7373}
+.project-assignment-toolbar input{width:100%;border:1px solid #d6e4e1;border-radius:8px;background:#fff;color:#2c5053;min-height:35px;padding:8px 10px;font:inherit;font-size:12px}
+.project-assignment-toolbar input:focus{outline:2px solid #7ac5b6;outline-offset:1px}
+.project-assignment-toolbar>button{font-size:10px;min-height:35px}
+.project-assignment-footer{margin:12px 0 0;font-size:10px;color:#4b7772}
+@media(max-width:760px){.project-assignment-scope{margin:12px 20px 3px}.project-assignment-toolbar>button{width:100%;justify-content:center}}

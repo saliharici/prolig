@@ -5,7 +5,7 @@ export const validateRole = (role: any): Role | null => {
   const validRoles: Role[] = [
     'GENEL_KOORDINATOR',
     'BOLGE_KOORDINATORU',
-    'IL_KOORDINATORU',
+    'BRANS_KOORDINATORU',
     'EDITOR',
     'YAZAR',
     'MUHASEBE'
@@ -100,7 +100,11 @@ export const login = async (email: string, password: string): Promise<void> => {
     if (res.status === 401) {
       throw new Error('E-posta veya şifre hatalı.');
     } else {
-      throw new Error('Sunucu hatası, lütfen daha sonra tekrar deneyin.');
+      const body = await res.json().catch(() => null);
+      if (typeof body?.error === 'string' && res.status === 400) {
+        throw new Error(body.error);
+      }
+      throw new Error('Giriş işlemi tamamlanamadı. Lütfen tekrar deneyin.');
     }
   }
 };

@@ -1,4 +1,6 @@
-const publisherRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU']);
+import { assignedBranchIds } from './member-access.js';
+
+const publisherRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','BRANS_KOORDINATORU']);
 export const announcementAudiences = ['Tümü','Koordinatörler','Editörler','Yazarlar','Muhasebe'] as const;
 
 function provinceOf(user: any) {
@@ -11,7 +13,7 @@ export function canPublishAnnouncement(user: any): boolean {
 
 export function audienceMatches(audience: string, targetRole: string): boolean {
   if (audience === 'Tümü') return true;
-  if (audience === 'Koordinatörler') return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(targetRole);
+  if (audience === 'Koordinatörler') return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(targetRole);
   if (audience === 'Editörler') return targetRole === 'EDITOR';
   if (audience === 'Yazarlar') return targetRole === 'YAZAR';
   if (audience === 'Muhasebe') return targetRole === 'MUHASEBE';
@@ -36,13 +38,13 @@ export function targetInAnnouncementScope(actor: any, target: any): boolean {
     return targetProvince?.region === actor.assignedRegion;
   }
 
-  if (actorRole === 'IL_KOORDINATORU') {
-    if (targetRole === 'GENEL_KOORDINATOR') return true; // oversight
-    if (targetRole === 'BOLGE_KOORDINATORU') {
-      return Boolean(actorProvince?.region) && target.assignedRegion === actorProvince.region;
-    }
-    if (targetRole === 'MUHASEBE') return false;
-    return Boolean(actor.provinceId) && targetProvince?.id === actor.provinceId;
+  if (actorRole === 'BRANS_KOORDINATORU') {
+    if (targetRole === 'GENEL_KOORDINATOR') return true;
+    const ids = assignedBranchIds(actor);
+    if (!ids.length) return false;
+    if (targetRole === 'YAZAR') return ids.includes(target.AuthorProfile?.branchId);
+    if (targetRole === 'EDITOR') return assignedBranchIds(target).some(id => ids.includes(id));
+    return false;
   }
 
   return false;

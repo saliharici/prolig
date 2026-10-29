@@ -14,8 +14,8 @@ const mockRoles = [
   },
   {
     id: 2,
-    code: 'IL_KOORDINATORU',
-    name: 'İl Koordinatörü',
+    code: 'BRANS_KOORDINATORU',
+    name: 'Branş Koordinatörü',
     description: 'Sadece atandığı ildeki yazar ve projeleri yönetme yetkisine sahiptir.',
     usersCount: 25,
     permissions: ['manage_local_users', 'view_local_projects']

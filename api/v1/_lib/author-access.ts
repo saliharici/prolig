@@ -1,9 +1,9 @@
-import { editorBranchIds } from './member-access.js';
+import { assignedBranchIds, editorBranchIds } from './member-access.js';
 
 const supportedAuthorReadRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU',
   'EDITOR',
   'YAZAR',
   'MUHASEBE'
@@ -20,9 +20,9 @@ export function buildAuthorReadScope(user: any) {
     return { province: { region: user.assignedRegion } };
   }
 
-  if (roleCode === 'IL_KOORDINATORU') {
-    if (!user.provinceId) return { id: -1 };
-    return { provinceId: user.provinceId };
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    const branchIds = assignedBranchIds(user);
+    return branchIds.length ? { branchId: { in: branchIds } } : { id: -1 };
   }
 
   if (roleCode === 'EDITOR') {

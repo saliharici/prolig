@@ -40,13 +40,11 @@ describe('P0 permission scope regression contracts', () => {
     expect(canWorkflowReview({ ...question, authorUser: { AuthorProfile: { branchId: 7, provinceId: 6 } } }, editor)).toBe(false);
   });
 
-  it('IL coordinator project visibility follows project author province', () => {
-    expect(buildProjectReadScope({ id: 8, role: role('IL_KOORDINATORU'), provinceId: 34 }))
-      .toEqual({
-        OR: [
-          { coordinatorId: 8 },
-          { projectAuthors: { some: { authorProfile: { provinceId: 34 } } } }
-        ]
-      });
+  it('BRANS coordinator sees only assigned branches, not arbitrary provinces', () => {
+    expect(buildProjectReadScope({ id: 8, role: role('BRANS_KOORDINATORU'),
+      branchAssignments: [{ branchId: 12 }, { branchId: 17 }], provinceId: 34 }))
+      .toEqual({ branchId: { in: [12, 17] } });
+    expect(buildProjectReadScope({ id: 8, role: role('BRANS_KOORDINATORU'), provinceId: 34 }))
+      .toEqual({ id: -1 });
   });
 });

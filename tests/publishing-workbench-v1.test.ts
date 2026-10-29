@@ -7,7 +7,7 @@ import {
 
 const app = readFileSync(new URL('../src/DemoApp.tsx', import.meta.url), 'utf8');
 const model = readFileSync(new URL('../src/demo/model.ts', import.meta.url), 'utf8');
-const workbench = readFileSync(new URL('../src/publishing/PublishingWorkbench.tsx', import.meta.url), 'utf8');
+const workbench = readFileSync(new URL('../src/publishing/PublishingWorkbenchV5.tsx', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/publishing/publishing.css', import.meta.url), 'utf8');
 
 function q(id: number, extras: Partial<ApiQuestion> = {}): ApiQuestion {
@@ -62,7 +62,7 @@ describe('Publishing V1 — role, export and print boundaries', () => {
   it('shows the module only to general coordinator in the navigation and route', () => {
     const general = model.split('\n').find(line => line.includes("GENEL_KOORDINATOR: ['overview'"));
     expect(general).toContain("'publishing'");
-    for (const role of ['BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE']) {
+    for (const role of ['BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR', 'YAZAR', 'MUHASEBE']) {
       const line = model.split('\n').find(value => value.includes(role + ": ['overview'"));
       expect(line).not.toContain("'publishing'");
     }
@@ -73,13 +73,13 @@ describe('Publishing V1 — role, export and print boundaries', () => {
 
   it('never sends the selected book to the server and keeps student answers hidden', () => {
     expect(workbench).toContain("approvedForPublishing(questions)");
-    expect(workbench).toContain("resolveBookOrder(eligible, selectedIds)");
-    expect(workbench).toContain("bookQuestions.length > 0 && title.trim().length > 0 && !error && !loading");
+    expect(resolveBookOrder([q(1),q(2,{status:'REVIZYON'})],[2,1]).map(x=>x.id)).toEqual([1]);
+    expect(workbench).toContain('const printable=Boolean(bookQuestions.length&&title.trim()&&!loading&&!error)');
     expect(workbench).toContain('window.print()');
-    expect(workbench).toContain("setWithAnswerKey] = useState(false)");
-    expect(workbench).toContain('withAnswerKey && <section className="publishing-key"');
-    expect(workbench).toContain('bookAnswer(question)');
-    expect(workbench).not.toContain("fetch('/api/");
+    expect(workbench).toContain('setWithAnswerKey]=useState(false)');
+    expect(workbench).toContain('withAnswerKey&&<section className="publishing-key"');
+    expect(workbench).toContain('bookAnswer(q)');
+    expect(workbench).toContain('publishingPreview&&<PublishingPersistencePanel');
     expect(workbench).not.toContain('localStorage');
     expect(workbench).not.toContain('dangerouslySetInnerHTML');
   });

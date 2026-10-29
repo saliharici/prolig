@@ -1,4 +1,4 @@
-import { editorBranchIds } from './member-access.js';
+import { assignedBranchIds, editorBranchIds } from './member-access.js';
 
 function provinceOf(user: any) {
   return user?.province ?? user?.AuthorProfile?.province ?? user?.messageProvince ?? null;
@@ -42,12 +42,13 @@ export function canMessageRecipient(actor: any, target: any): boolean {
     return targetProvince?.region === actor.assignedRegion;
   }
 
-  if (actorRole === 'IL_KOORDINATORU') {
+  if (actorRole === 'BRANS_KOORDINATORU') {
     if (targetRole === 'GENEL_KOORDINATOR') return true;
-    if (targetRole === 'BOLGE_KOORDINATORU') {
-      return Boolean(actorProvince?.region) && target.assignedRegion === actorProvince.region;
-    }
-    return Boolean(actor.provinceId) && targetProvince?.id === actor.provinceId;
+    const ids = assignedBranchIds(actor);
+    if (!ids.length) return false;
+    if (targetRole === 'YAZAR') return ids.includes(target.AuthorProfile?.branchId);
+    if (targetRole === 'EDITOR') return targetEditorBranchIds(target).some(id => ids.includes(id));
+    return false;
   }
 
   if (actorRole === 'EDITOR') {
@@ -55,8 +56,8 @@ export function canMessageRecipient(actor: any, target: any): boolean {
     if (targetRole === 'BOLGE_KOORDINATORU') {
       return Boolean(actorProvince?.region) && target.assignedRegion === actorProvince.region;
     }
-    if (targetRole === 'IL_KOORDINATORU') {
-      return Boolean(actorProvince?.id) && target.provinceId === actorProvince.id;
+    if (targetRole === 'BRANS_KOORDINATORU') {
+      return editorBranchIds(actor).some(id => targetEditorBranchIds(target).includes(id));
     }
     if (targetRole !== 'YAZAR' || !target.AuthorProfile) return false;
     if (!sameEditorGeography(actor, targetProvince)) return false;
@@ -69,8 +70,8 @@ export function canMessageRecipient(actor: any, target: any): boolean {
     if (targetRole === 'BOLGE_KOORDINATORU') {
       return target.assignedRegion === actorProvince.region;
     }
-    if (targetRole === 'IL_KOORDINATORU') {
-      return target.provinceId === actorProvince.id;
+    if (targetRole === 'BRANS_KOORDINATORU') {
+      return targetEditorBranchIds(target).includes(actor.AuthorProfile.branchId);
     }
     if (targetRole !== 'EDITOR') return false;
     return sameEditorGeography(target, actorProvince)
@@ -78,7 +79,7 @@ export function canMessageRecipient(actor: any, target: any): boolean {
   }
 
   if (actorRole === 'MUHASEBE') {
-    if (['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(targetRole)) return true;
+    if (['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(targetRole)) return true;
     return targetRole === 'YAZAR' && (target._count?.Payment ?? 0) > 0;
   }
 
@@ -86,5 +87,5 @@ export function canMessageRecipient(actor: any, target: any): boolean {
 }
 
 export function canUseMessages(user: any): boolean {
-  return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE'].includes(user?.role?.code);
+  return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE'].includes(user?.role?.code);
 }

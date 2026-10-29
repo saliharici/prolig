@@ -111,6 +111,15 @@ function optionXml(value: string, index: number, drawings: DrawingSequence): str
   return p(label) + blocksToXml(blocks, drawings);
 }
 function pageBreak(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
+/** Dynamic Word TOC: request a field refresh rather than claiming guessed page positions. */
+function tocField(): string {
+  return '<w:p><w:pPr><w:pStyle w:val="TocHeading"/></w:pPr>' + run('İÇİNDEKİLER') + '</w:p>' +
+    '<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r>' +
+    '<w:r><w:instrText xml:space="preserve"> TOC \\o "1-1" \\h \\z \\u </w:instrText></w:r>' +
+    '<w:r><w:fldChar w:fldCharType="separate"/></w:r>' +
+    '<w:r><w:t>İçindekiler alanını Word üzerinden güncelleyin (Ctrl+A, F9).</w:t></w:r>' +
+    '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>';
+}
 function coverSectionBreak(): string {
   // The paragraph-level section properties belong to the preceding cover.
   // The document-level sectPr configures the subsequent question pages.
@@ -233,9 +242,12 @@ function buildDocument(book: DocxBook, includeAnswers: boolean, images: Prepared
     p(book.title.trim(), 'Title'),
     p('ÖĞRENCİ ÇALIŞMA KİTABI  •  ' + (includeAnswers ? 'CEVAP ANAHTARLI' : 'ÖĞRENCİ NÜSHASI'), 'CoverDetail'),
     p('Kitap #' + book.id + '  |  A4  |  ' + (book.layoutColumns === 2 ? 'Çift sütun' : 'Tek sütun'), 'Subtitle'),
-    coverSectionBreak()
+    coverSectionBreak(),
+    tocField(),
+    pageBreak()
   ];
-  for (const chapter of ordered) {
+  ordered.forEach((chapter, chapterIndex) => {
+    if (chapterIndex > 0) body.push(pageBreak());
     body.push(p(chapter.title, 'Heading1'));
     for (const item of [...chapter.questions].sort((a, b) => a.sortOrder - b.sortOrder)) {
       const question = item.snapshot;
@@ -263,7 +275,7 @@ function buildDocument(book: DocxBook, includeAnswers: boolean, images: Prepared
       body.push(keepQuestionOnOnePage(questionParts));
       body.push(p(''));
     }
-  }
+  });
   if (includeAnswers) {
     body.push(pageBreak(), p('Cevap Anahtarı', 'Heading1'));
     answerRows.forEach(answer => body.push(p(answer)));
@@ -284,6 +296,7 @@ const types = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<Default Extension="xml" ContentType="application/xml"/>' +
   '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
   '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
+  '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>' +
   '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>' +
   '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' +
   '</Types>';
@@ -296,7 +309,11 @@ const docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
   '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>' +
   '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>' +
+  '<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>' +
   '</Relationships>';
+const settings = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+  '<w:updateFields w:val="true"/></w:settings>';
 const header = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
   '<w:p><w:pPr><w:jc w:val="right"/></w:pPr>' + run('PRO-LİG  |  YAYIN HAZIRLIK') + '</w:p></w:hdr>';
@@ -319,6 +336,9 @@ const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<w:rPr><w:b/><w:sz w:val="48"/><w:color w:val="6D2948"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Subtitle"><w:name w:val="Subtitle"/>' +
   '<w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:sz w:val="22"/><w:color w:val="886777"/></w:rPr></w:style>' +
+  '<w:style w:type="paragraph" w:styleId="TocHeading"><w:name w:val="Toc Heading"/>' +
+  '<w:pPr><w:spacing w:before="450" w:after="260"/></w:pPr>' +
+  '<w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="6D2948"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/>' +
   '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="340" w:after="200"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="30"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/>' +
@@ -443,6 +463,7 @@ export function exportBookDocxWithVerifiedPrivateGeometry(
     ['word/document.xml', buildDocument(book, includeAnswers, images)],
     ['word/_rels/document.xml.rels', relations],
     ['word/styles.xml', styles],
+    ['word/settings.xml', settings],
     ['word/header1.xml', header],
     ['word/footer1.xml', footer],
     ...images.map(image => [image.filename, image.bytes] as [string, Buffer])

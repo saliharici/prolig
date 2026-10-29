@@ -20,7 +20,7 @@ const target = (overrides: any = {}) => ({
 
 describe('message hierarchy', () => {
   it('enables messaging for canonical app roles', () => {
-    for (const code of ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']) {
+    for (const code of ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']) {
       expect(canUseMessages({ role: { code } })).toBe(true);
     }
     expect(canUseMessages({ role: { code: 'UNKNOWN' } })).toBe(false);
@@ -37,10 +37,11 @@ describe('message hierarchy', () => {
     expect(canMessageRecipient({ id: 1, role: { code: 'BOLGE_KOORDINATORU' }, assignedRegion: 'Doğu Anadolu' }, author)).toBe(true);
     expect(canMessageRecipient({ id: 1, role: { code: 'BOLGE_KOORDINATORU' }, assignedRegion: 'Marmara' }, author)).toBe(false);
 
-    const il = { id: 3, role: { code: 'IL_KOORDINATORU' }, provinceId: 25, messageProvince: { id: 25, region: 'Doğu Anadolu' } };
-    expect(canMessageRecipient(il, author)).toBe(true);
-    expect(canMessageRecipient(il, target({ role: { code: 'GENEL_KOORDINATOR' }, AuthorProfile: null }))).toBe(true);
-    expect(canMessageRecipient(il, target({ role: { code: 'BOLGE_KOORDINATORU' }, assignedRegion: 'Doğu Anadolu', AuthorProfile: null }))).toBe(true);
+    const branch={id:3,role:{code:'BRANS_KOORDINATORU'},branchAssignments:[{branchId:2}]};
+    expect(canMessageRecipient(branch,author)).toBe(true);
+    expect(canMessageRecipient(branch,target({role:{code:'GENEL_KOORDINATOR'},AuthorProfile:null}))).toBe(true);
+    expect(canMessageRecipient(branch,target({role:{code:'BOLGE_KOORDINATORU'},assignedRegion:'Doğu Anadolu',AuthorProfile:null}))).toBe(false);
+    expect(canMessageRecipient({...branch,branchAssignments:[{branchId:4}]},author)).toBe(false);
   });
 
   it('matches editor-author communication by branch and geography', () => {

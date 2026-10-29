@@ -4,6 +4,7 @@
  * No payment status is inferred from question approval alone.
  */
 import { prisma } from './prisma.js';
+import { assignedBranchIds } from './member-access.js';
 import { buildQuestionReadScope } from './question-access.js';
 import { getQuestionArchiveStateMap } from './question-archive.js';
 import { sumMoney } from './settlement-money.js';
@@ -12,15 +13,15 @@ const statuses = ['TASLAK', 'INCELEMEDE', 'REVIZYON', 'ONAYLANDI', 'REDDEDILDI']
 type Status = typeof statuses[number];
 
 export function canReadProjectAuthorPerformance(role: string | undefined) {
-  return ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'MUHASEBE'].includes(role || '');
+  return ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU', 'MUHASEBE'].includes(role || '');
 }
 
 function isAuthorInScope(actor: any, assignment: any) {
   const role = actor?.role?.code;
   const province = assignment?.authorProfile?.province;
   if (role === 'GENEL_KOORDINATOR' || role === 'MUHASEBE') return true;
-  if (role === 'IL_KOORDINATORU') {
-    return Number.isSafeInteger(actor.provinceId) && province?.id === actor.provinceId;
+  if (role === 'BRANS_KOORDINATORU') {
+    return assignedBranchIds(actor).includes(assignment?.authorProfile?.branchId);
   }
   if (role === 'BOLGE_KOORDINATORU') {
     return Boolean(actor.assignedRegion) && province?.region === actor.assignedRegion;

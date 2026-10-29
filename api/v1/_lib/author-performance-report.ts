@@ -4,6 +4,7 @@
  * checked server-side; no question content, banking or personal contact data.
  */
 import { prisma } from './prisma.js';
+import { assignedBranchIds } from './member-access.js';
 import { buildProjectReadScope } from './project-access.js';
 import { buildQuestionReadScope } from './question-access.js';
 import { projectSelect } from './project-dto.js';
@@ -11,7 +12,7 @@ import { getQuestionArchiveStateMap } from './question-archive.js';
 import { sumMoney } from './settlement-money.js';
 
 export function canReadAuthorPerformanceReport(role: string | undefined): boolean {
-  return ['GENEL_KOORDINATOR', 'MUHASEBE', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(role || '');
+  return ['GENEL_KOORDINATOR', 'MUHASEBE', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'].includes(role || '');
 }
 
 export type ReportCounts = {
@@ -57,13 +58,13 @@ const statusKeys = {
   ONAYLANDI: 'approved', REDDEDILDI: 'rejected'
 } as const;
 
-function authorInGeography(user: any, province: { id: number; region: string }): boolean {
+function authorInGeography(user: any, province: { id: number; region: string }, branchId: number): boolean {
   switch (user?.role?.code) {
     case 'GENEL_KOORDINATOR':
     case 'MUHASEBE':
       return true;
-    case 'IL_KOORDINATORU':
-      return Number.isSafeInteger(user.provinceId) && user.provinceId === province.id;
+    case 'BRANS_KOORDINATORU':
+      return assignedBranchIds(user).includes(branchId);
     case 'BOLGE_KOORDINATORU':
       return typeof user.assignedRegion === 'string' &&
         Boolean(user.assignedRegion) && user.assignedRegion === province.region;
@@ -94,7 +95,7 @@ export async function getAuthorPerformanceReport(user: any): Promise<{
   for (const project of projects) {
     for (const assignment of project.projectAuthors) {
       const profile = assignment.authorProfile;
-      if (!authorInGeography(user, profile.province)) continue;
+      if (!authorInGeography(user, profile.province, profile.branchId)) continue;
       rows.push({
         projectId: project.id, projectCode: project.code, projectTitle: project.title,
         branchId: project.branch.id, branchName: project.branch.name,

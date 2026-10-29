@@ -15,9 +15,13 @@ describe('Author read scope', () => {
     expect(buildAuthorReadScope({ role: { code: 'BOLGE_KOORDINATORU' } })).toEqual({ id: -1 });
   });
 
-  it('scopes IL by province and fails closed without it', () => {
-    expect(buildAuthorReadScope({ role: { code: 'IL_KOORDINATORU' }, provinceId: 34 })).toEqual({ provinceId: 34 });
-    expect(buildAuthorReadScope({ role: { code: 'IL_KOORDINATORU' } })).toEqual({ id: -1 });
+  it('scopes BRANS by assigned branches and rejects the retired IL role', () => {
+    expect(buildAuthorReadScope({ role: { code: 'BRANS_KOORDINATORU' },
+      branchAssignments: [{ branchId: 7 }, { branchId: 8 }] }))
+      .toEqual({ branchId: { in: [7, 8] } });
+    expect(buildAuthorReadScope({ role: { code: 'BRANS_KOORDINATORU' }, provinceId: 34 }))
+      .toEqual({ id: -1 });
+    expect(buildAuthorReadScope({ role: { code: 'IL_KOORDINATORU' }, provinceId: 34 })).toBeNull();
   });
 
   it('scopes EDITOR by branches and geography', () => {

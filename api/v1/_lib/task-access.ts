@@ -1,9 +1,10 @@
 import { buildProjectReadScope, canManageProject } from './project-access.js';
+import { assignedBranchIds } from './member-access.js';
 
 export const taskManagerRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU'
+  'BRANS_KOORDINATORU'
 ]);
 
 export function canCreateTask(user: any): boolean {
@@ -15,7 +16,7 @@ export function buildTaskReadScope(user: any) {
 
   if (role === 'GENEL_KOORDINATOR') return {};
 
-  if (role === 'BOLGE_KOORDINATORU' || role === 'IL_KOORDINATORU') {
+  if (role === 'BOLGE_KOORDINATORU' || role === 'BRANS_KOORDINATORU') {
     const projectScope = buildProjectReadScope(user);
     if (!projectScope) return { id: -1 };
     return {
@@ -56,7 +57,7 @@ export function canUpdateTaskStatus(user: any, task: any): boolean {
 export function canAssignTaskUser(actor: any, target: any): boolean {
   if (!taskManagerRoles.has(actor?.role?.code) || !target) return false;
   if (target.status?.toUpperCase?.() !== 'AKTIF') return false;
-  if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR'].includes(target.role?.code)) {
+  if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR'].includes(target.role?.code)) {
     return false;
   }
 
@@ -70,9 +71,10 @@ export function canAssignTaskUser(actor: any, target: any): boolean {
     return target.province?.region === actor.assignedRegion;
   }
 
-  if (actor.role.code === 'IL_KOORDINATORU') {
-    if (!actor.provinceId) return false;
-    return target.role.code === 'EDITOR' && target.provinceId === actor.provinceId;
+  if (actor.role.code === 'BRANS_KOORDINATORU') {
+    const actorBranches = assignedBranchIds(actor);
+    return target.role.code === 'EDITOR' &&
+      actorBranches.some((id: number) => assignedBranchIds(target).includes(id));
   }
 
   return false;

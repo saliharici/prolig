@@ -1,4 +1,4 @@
-import { editorBranchIds } from './member-access.js';
+import { assignedBranchIds, editorBranchIds } from './member-access.js';
 
 export function buildQuestionReadScope(user: any) {
   const roleCode = user.role.code;
@@ -20,15 +20,9 @@ export function buildQuestionReadScope(user: any) {
     };
   }
 
-  if (roleCode === 'IL_KOORDINATORU') {
-    if (!user.provinceId) return { id: -1 }; // Fail closed
-    return {
-      authorUser: {
-        AuthorProfile: {
-          provinceId: user.provinceId
-        }
-      }
-    };
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    const ids = assignedBranchIds(user);
+    return ids.length ? { authorUser: { AuthorProfile: { branchId: { in: ids } } } } : { id: -1 };
   }
 
   if (roleCode === 'EDITOR') {
@@ -81,7 +75,7 @@ export function canWorkflowReview(question: any, user: any) {
 export function canArchiveQuestion(question: any, user: any): boolean {
   const role = user?.role?.code;
   if (role === 'GENEL_KOORDINATOR') return true;
-  if (role === 'BOLGE_KOORDINATORU' || role === 'IL_KOORDINATORU') {
+  if (role === 'BOLGE_KOORDINATORU' || role === 'BRANS_KOORDINATORU') {
     return question.status !== 'INCELEMEDE';
   }
   if (role === 'EDITOR') {
@@ -96,7 +90,7 @@ export function canArchiveQuestion(question: any, user: any): boolean {
 export function canRestoreQuestion(question: any, user: any): boolean {
   const role = user?.role?.code;
   if (role === 'GENEL_KOORDINATOR') return true;
-  if (role === 'BOLGE_KOORDINATORU' || role === 'IL_KOORDINATORU') return true;
+  if (role === 'BOLGE_KOORDINATORU' || role === 'BRANS_KOORDINATORU') return true;
   if (role === 'EDITOR') return ['ONAYLANDI', 'REDDEDILDI'].includes(question.status);
   if (role === 'YAZAR') {
     return question.authorUserId === user.id && ['TASLAK', 'REVIZYON', 'REDDEDILDI'].includes(question.status);
@@ -107,7 +101,7 @@ export function canRestoreQuestion(question: any, user: any): boolean {
 export function canDeleteQuestion(question: any, user: any, isArchived: boolean): boolean {
   const role = user?.role?.code;
   if (role === 'GENEL_KOORDINATOR') return true;
-  if (role === 'BOLGE_KOORDINATORU' || role === 'IL_KOORDINATORU') {
+  if (role === 'BOLGE_KOORDINATORU' || role === 'BRANS_KOORDINATORU') {
     return isArchived && ['TASLAK', 'REVIZYON', 'REDDEDILDI'].includes(question.status);
   }
   if (role === 'EDITOR') {

@@ -1,15 +1,15 @@
-import { editorBranchIds } from './member-access.js';
+import { assignedBranchIds, editorBranchIds } from './member-access.js';
 
 export const projectManagerRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU'
+  'BRANS_KOORDINATORU'
 ]);
 
 const supportedProjectReadRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU',
   'EDITOR',
   'YAZAR',
   'MUHASEBE'
@@ -26,9 +26,7 @@ function authorProvinceInActorScope(actor: any, province: any): boolean {
   if (roleCode === 'BOLGE_KOORDINATORU') {
     return Boolean(actor.assignedRegion) && province.region === actor.assignedRegion;
   }
-  if (roleCode === 'IL_KOORDINATORU') {
-    return Number.isSafeInteger(actor.provinceId) && province.id === actor.provinceId;
-  }
+  // Branch scope is resolved from the author profile, not the province.
   return false;
 }
 
@@ -37,6 +35,9 @@ export function canAssignProjectAuthor(actor: any, authorProfile: any): boolean 
   if (!authorProfile || authorProfile.status !== 'Aktif') return false;
   if (authorProfile.user?.status?.toUpperCase?.() !== 'AKTIF') return false;
   if (authorProfile.user?.role?.code !== 'YAZAR') return false;
+  if (actor.role.code === 'BRANS_KOORDINATORU') {
+    return assignedBranchIds(actor).includes(authorProfile.branchId);
+  }
   return authorProvinceInActorScope(actor, authorProfile.province);
 }
 
@@ -44,6 +45,9 @@ export function canManageProject(actor: any, project: any): boolean {
   const roleCode = actor?.role?.code;
   if (!projectManagerRoles.has(roleCode)) return false;
   if (roleCode === 'GENEL_KOORDINATOR') return true;
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    return assignedBranchIds(actor).includes(project?.branchId ?? project?.branch?.id);
+  }
 
   const assignments = Array.isArray(project?.projectAuthors) ? project.projectAuthors : [];
   const profiles = assignments.map((item: any) => item?.authorProfile).filter(Boolean);
@@ -82,20 +86,9 @@ export function buildProjectReadScope(user: any) {
     };
   }
 
-  if (roleCode === 'IL_KOORDINATORU') {
-    if (!user.provinceId) return { id: -1 };
-    return {
-      OR: [
-        { coordinatorId: user.id },
-        {
-          projectAuthors: {
-            some: {
-              authorProfile: { provinceId: user.provinceId }
-            }
-          }
-        }
-      ]
-    };
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    const ids = assignedBranchIds(user);
+    return ids.length ? { branchId: { in: ids } } : { id: -1 };
   }
 
   if (roleCode === 'EDITOR') {

@@ -13,7 +13,8 @@ describe('Frontend Auth Logic', () => {
     it('accepts six canonical roles', () => {
       expect(validateRole('GENEL_KOORDINATOR')).toBe('GENEL_KOORDINATOR');
       expect(validateRole('BOLGE_KOORDINATORU')).toBe('BOLGE_KOORDINATORU');
-      expect(validateRole('IL_KOORDINATORU')).toBe('IL_KOORDINATORU');
+      expect(validateRole('BRANS_KOORDINATORU')).toBe('BRANS_KOORDINATORU');
+      expect(validateRole('IL_KOORDINATORU')).toBeNull();
       expect(validateRole('EDITOR')).toBe('EDITOR');
       expect(validateRole('YAZAR')).toBe('YAZAR');
       expect(validateRole('MUHASEBE')).toBe('MUHASEBE');

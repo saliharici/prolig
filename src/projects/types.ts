@@ -9,6 +9,11 @@ export interface ApiProject {
   coordinatorId?: number | null;
   canManage?: boolean;
   progress: number;
+  progressSource?: 'automatic' | 'manual';
+  production?: {
+    target: number; written: number; inReview: number; revision: number;
+    approved: number; rejected: number; overdueTasks: number; completionPercent: number | null;
+  } | null;
   deadline: string;
   status: ProjectStatus;
   priority: ProjectPriority;

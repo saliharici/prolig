@@ -98,7 +98,7 @@ export function ReportsCenter({
 
   const canSeeContent = role !== 'MUHASEBE';
   const canSeeTasks = role !== 'MUHASEBE';
-  const canSeeAuthors = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(role);
+  const canSeeAuthors = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'].includes(role);
   const canSeeFinance = ['GENEL_KOORDINATOR', 'MUHASEBE'].includes(role);
   const tasksUnavailable = canSeeTasks && (tasksLoading || Boolean(tasksError));
 

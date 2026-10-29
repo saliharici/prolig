@@ -9,7 +9,8 @@ vi.mock('../api/v1/_lib/auth.js', () => ({ getSessionUserId: vi.fn() }));
 vi.mock('../api/v1/_lib/prisma.js', () => ({
   prisma: {
     user: { findUnique: vi.fn() },
-    project: { findMany: vi.fn(), findFirst: vi.fn() }
+    project: { findMany: vi.fn(), findFirst: vi.fn() },
+    task: { findMany: vi.fn() }
   }
 }));
 
@@ -72,6 +73,7 @@ describe('Project API handlers', () => {
   it('returns scoped collection for a supported role', async () => {
     authenticateAs('EDITOR', { editorBranchId: 2, provinceId: 34, editorGrade: '8. Sınıf', branchAssignments: [] });
     vi.mocked(prisma.project.findMany).mockResolvedValue([selectedProject] as any);
+    vi.mocked(prisma.task.findMany).mockResolvedValue([]);
     const { req, res } = reqRes();
     await collectionHandler(req, res);
     expect(prisma.project.findMany).toHaveBeenCalledWith(expect.objectContaining({

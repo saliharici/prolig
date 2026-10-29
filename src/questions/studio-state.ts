@@ -8,6 +8,7 @@ export interface QuestionStudioFormValues extends Partial<QuestionTypeDraft> {
   level: string;
   grade: string;
   projectId: number | null;
+  taskId?: number | null;
   options: string[];
   correctAnswer: string;
   explanation: string;
@@ -25,6 +26,7 @@ export function questionStudioFingerprint(values: QuestionStudioFormValues): str
     level: values.level,
     grade: values.grade,
     projectId: values.projectId,
+    taskId: values.taskId ?? null,
     options: [...values.options],
     correctAnswer: values.correctAnswer,
     explanation: values.explanation,

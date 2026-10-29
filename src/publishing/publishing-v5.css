@@ -1,0 +1,63 @@
+.publishing-v5 .v5-book-setup{display:grid;grid-template-columns:1.5fr 1.3fr 1fr auto;gap:12px;align-items:end;padding:15px;background:#fff;border:1px solid #e2dbe0;border-radius:12px}
+.v5-book-setup label,.v5-question-bank label,.v5-active-title{font-size:12px;font-weight:700;color:#63465a;display:grid;gap:6px}
+.v5-book-setup input,.v5-book-setup select,.v5-active-title input,.v5-question-bank input{border:1px solid #decfd7;border-radius:8px;padding:10px;min-width:0;background:white;width:100%;font:inherit}
+.v5-book-setup .publishing-check{display:flex;gap:7px;align-items:center;max-width:205px;font-weight:500}
+.v5-chapter-editor{background:white;border:1px solid #e2dbe0;border-radius:13px;margin:15px 0;padding:17px}
+.v5-section-head{display:flex;gap:12px;justify-content:space-between;align-items:start;margin-bottom:12px}
+.v5-section-head h2,.v5-questions-order h2{font-size:17px;color:#5b3047;margin:0 0 4px}
+.v5-section-head p,.v5-questions-order p{font-size:12px;color:#80707a;line-height:1.55;margin:0}
+.v5-actions,.v5-chapter-actions,.v5-ordered-actions{display:flex;gap:5px;align-items:center}
+.v5-chapter-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:12px 0}
+.v5-chapter-tab{display:flex;justify-content:space-between;gap:5px;background:#faf8fa;border:1px solid #e4d5dc;border-radius:9px;padding:5px}
+.v5-chapter-tab.active{border-color:#914e72;background:#fff2f7}
+.v5-chapter-pick{background:none;border:0;text-align:left;min-width:0;flex:1;padding:8px;cursor:pointer;color:#63354b}
+.v5-chapter-pick span,.v5-chapter-pick small{display:block}.v5-chapter-pick span{font-size:12px;font-weight:750}
+.v5-chapter-pick small{font-size:10px;color:#8e7682;margin-top:4px}
+.v5-chapter-actions button,.v5-ordered-actions button{border:1px solid #e7d5dd;border-radius:6px;background:white;color:#73485f;cursor:pointer;padding:6px}
+.v5-chapter-actions button:disabled,.v5-ordered-actions button:disabled{opacity:.35;cursor:default}
+.v5-active-title{max-width:520px}
+.v5-plan-context{background:#f4f8f5;border-radius:8px;color:#386c57;font-size:11px;padding:10px}
+.v5-book-editor-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:15px 0}
+.v5-book-editor-columns>.panel{padding:18px;min-width:0}
+.v5-eligible-list{max-height:440px;overflow-y:auto;display:grid;gap:7px;margin:12px 0}
+.v5-eligible{display:flex;gap:10px;align-items:center;justify-content:space-between;text-align:left;border:1px solid #e9dfe4;border-radius:9px;background:white;padding:11px;cursor:pointer;color:#694153}
+.v5-eligible.selected{background:#f2fbf5;border-color:#b6d8c5;color:#2d6850}
+.v5-eligible span{min-width:0}.v5-eligible strong,.v5-eligible small{display:block;font-size:11px}
+.v5-eligible small{font-weight:400;line-height:1.45;color:#887580;margin-top:4px}
+.v5-help{font-size:11px;color:#917983}
+.v5-questions-order>ol{padding-left:0;list-style:none;display:grid;gap:8px}
+.v5-ordered-question{display:grid;gap:10px;background:#fbf8fa;border:1px solid #ebdfe5;padding:10px;border-radius:9px}
+.v5-ordered-question strong,.v5-ordered-question small{display:block;font-size:11px}
+.v5-ordered-question small{color:#8a7380;line-height:1.5;margin-top:4px}
+.v5-ordered-actions{justify-content:flex-end;flex-wrap:wrap}
+.v5-ordered-actions select{font-size:11px;border:1px solid #e7d5dd;border-radius:6px;padding:7px;max-width:180px}
+.v5-print-toc{break-after:page;border-bottom:1px solid #e0cbd5;padding:22mm 10mm;min-height:210mm}
+.v5-print-toc h2{font-family:Georgia,serif;font-size:24pt;color:#63334b}
+.v5-print-toc ol{padding-left:0;list-style:none}
+.v5-print-toc li{padding:9px 0;border-bottom:1px dotted #ddc7d1}
+.v5-print-toc a{display:flex;gap:15px;justify-content:space-between;color:#614052;text-decoration:none}
+.v5-print-toc small{white-space:nowrap}
+.v5-toc-help{font-size:10px;color:#957c8a}
+.v5-print-chapter+.v5-print-chapter{break-before:page}
+@media(max-width:1100px){.publishing-v5 .v5-book-setup{grid-template-columns:1fr 1fr}.v5-book-editor-columns{grid-template-columns:1fr}}
+@media(max-width:580px){.publishing-v5 .v5-book-setup{grid-template-columns:1fr}.v5-section-head{flex-wrap:wrap}}
+@media print{
+ @page{size:A4;margin:18mm 15mm 20mm 15mm;@bottom-center{content:"PRO-LİG · Sayfa " counter(page);font-size:8pt;color:#888}}
+ .demo-shell:has(.publishing-workbench) .publishing-page{padding:0!important}
+ .v5-print-toc{padding:8mm 0;min-height:0}
+ .v5-print-chapter{break-before:page}
+ .v5-print-chapter .publishing-chapter-heading{margin-top:0}
+ .v5-print-toc a{color:#222}
+ .v5-toc-help{display:none}
+}
+
+@media print{
+ .demo-shell:has(.publishing-workbench) .v5-book-setup,
+ .demo-shell:has(.publishing-workbench) .v5-chapter-editor,
+ .demo-shell:has(.publishing-workbench) .v5-book-editor-columns,
+ .demo-shell:has(.publishing-workbench) .v5-plan-context{display:none!important}
+ .demo-shell:has(.publishing-workbench) .publishing-workbench .v5-print-book{display:block!important}
+ .v5-print-chapter{margin:0;padding:0}
+ .v5-print-chapter .publishing-page-body{break-inside:auto}
+ .v5-print-toc li{break-inside:avoid}
+}

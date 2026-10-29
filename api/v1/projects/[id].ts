@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { buildProjectReadScope, canManageProject } from '../_lib/project-access.js';
+import { assignedBranchIds } from '../_lib/member-access.js';
 import { formatProjectDto, projectSelect } from '../_lib/project-dto.js';
 import {
   EDITABLE_PROJECT_STATUSES,
@@ -182,6 +183,9 @@ async function handlePatch(id: number, user: any, req: VercelRequest, res: Verce
   }
 
   const effectiveBranchId = data.branchId ?? project.branch.id;
+  if (user.role.code === 'BRANS_KOORDINATORU' && !assignedBranchIds(user).includes(effectiveBranchId)) {
+    return res.status(403).json({ error: 'Project branch is outside coordinator scope' });
+  }
   const branchChanged = data.branchId !== undefined && data.branchId !== project.branch.id;
   const gradeChanged = data.targetGrade !== undefined && data.targetGrade !== project.targetGrade;
 

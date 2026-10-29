@@ -86,8 +86,8 @@ const genel = {
 const il = {
   id: 1,
   fullName: 'Erzurum İl Koordinatörü',
-  role: { code: 'IL_KOORDINATORU' },
-  provinceId: 25
+  role: { code: 'BRANS_KOORDINATORU' },
+  branchAssignments: [{ branchId: 2 }]
 };
 
 describe('Project management handlers', () => {
@@ -164,23 +164,18 @@ describe('Project management handlers', () => {
     }));
   });
 
-  it('lets an IL coordinator read own unassigned projects through coordinatorId scope', async () => {
+  it('lets branch coordinator read only projects with an assigned branch', async () => {
     vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(il as any);
     const { req, res } = reqRes('GET');
     await projectsHandler(req, res);
     expect(prisma.project.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        OR: [
-          { coordinatorId: 1 },
-          { projectAuthors: { some: { authorProfile: { provinceId: 25 } } } }
-        ]
-      }
+      where: { branchId: { in: [2] } }
     }));
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  it('blocks branch or class changes after questions are linked', async () => {
-    vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(il as any);
+  it('blocks branch or class changes after questions are linked for a project manager', async () => {
+    vi.mocked(currentUserLib.getCurrentUser).mockResolvedValue(genel as any);
     vi.mocked(prisma.project.findUnique).mockResolvedValue(projectRecord() as any);
     vi.mocked(prisma.branch.findUnique).mockResolvedValue({ id: 4 } as any);
     vi.mocked(prisma.question.count).mockResolvedValue(2);

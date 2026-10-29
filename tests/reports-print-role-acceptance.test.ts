@@ -14,7 +14,7 @@ describe('Reports V1 final role boundary regression', () => {
     expect(center).toContain("const canSeeFinance = ['GENEL_KOORDINATOR', 'MUHASEBE'].includes(role)");
     expect(center).toContain("const canSeeContent = role !== 'MUHASEBE'");
     expect(center).toContain("const canSeeTasks = role !== 'MUHASEBE'");
-    expect(center).toContain("const canSeeAuthors = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(role)");
+    expect(center).toContain("const canSeeAuthors = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'].includes(role)");
     expect(center).toContain('{canSeeFinance && <section className="panel reports-finance-card">');
     expect(center).toContain('canSeeFinance ? payments : []');
     expect(center).toContain('const exportCsv = () =>');
@@ -25,7 +25,7 @@ describe('Reports V1 final role boundary regression', () => {
   });
 
   it('allows only report-eligible roles to access author comparisons', () => {
-    const eligible = ['GENEL_KOORDINATOR', 'MUHASEBE', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'];
+    const eligible = ['GENEL_KOORDINATOR', 'MUHASEBE', 'BOLGE_KOORDINATORU', 'BRANS_KOORDINATORU'];
     const restricted = ['YAZAR', 'EDITOR'];
     for (const role of eligible) expect(canReadAuthorPerformanceReport(role)).toBe(true);
     for (const role of restricted) expect(canReadAuthorPerformanceReport(role)).toBe(false);

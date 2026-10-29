@@ -6,11 +6,11 @@ import { permittedExperienceLinks, PublisherDesignPreview, PublisherRoleWelcome,
 
 describe('UX-01 visual contract (no backend writes)', () => {
   const realRoles = Object.keys(permissions) as Role[];
-  it('preserves all existing real role presentations, including both coordinators', () => {
+  it('preserves all existing real role presentations, including branch and region coordinators', () => {
     expect(Object.keys(roleExperiences).sort()).toEqual(realRoles.sort());
     expect(roleExperiences.BOLGE_KOORDINATORU.label).toBe('Bölge Koordinatörü');
-    expect(roleExperiences.IL_KOORDINATORU.label).toBe('İl Koordinatörü');
-    expect('BRANS_KOORDINATORU' in permissions).toBe(false);
+    expect(roleExperiences.BRANS_KOORDINATORU.label).toBe('Branş Koordinatörü');
+    expect('BRANS_KOORDINATORU' in permissions).toBe(true);
     expect('SUPER_ADMIN' in permissions).toBe(false);
   });
   it('filters every role shortcut against its existing permission list', () => {

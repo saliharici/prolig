@@ -178,11 +178,13 @@ describe('Question API Handlers', () => {
       expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { authorUser: { AuthorProfile: { province: { region: 'Ege' } } } } }));
     });
 
-    it('IL findMany receives AuthorProfile.provinceId', async () => {
-      setupUser('IL_KOORDINATORU', { provinceId: 35 });
+    it('BRANS findMany uses assigned author branches and ignores forged province', async () => {
+      setupUser('BRANS_KOORDINATORU', { provinceId: 35, branchAssignments: [{ branchId: 9 }] });
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
-      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { authorUser: { AuthorProfile: { provinceId: 35 } } } }));
+      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { authorUser: { AuthorProfile: { branchId: { in: [9] } } } }
+      }));
     });
 
     it('EDITOR receives branch, geography and grade filters', async () => {

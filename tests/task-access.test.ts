@@ -12,7 +12,7 @@ describe('task access hierarchy', () => {
   it('limits task creation to coordinators', () => {
     expect(canCreateTask({ role: { code: 'GENEL_KOORDINATOR' } })).toBe(true);
     expect(canCreateTask({ role: { code: 'BOLGE_KOORDINATORU' } })).toBe(true);
-    expect(canCreateTask({ role: { code: 'IL_KOORDINATORU' } })).toBe(true);
+    expect(canCreateTask({ role: { code: 'BRANS_KOORDINATORU' } })).toBe(true);
     expect(canCreateTask({ role: { code: 'EDITOR' } })).toBe(false);
     expect(canCreateTask({ role: { code: 'YAZAR' } })).toBe(false);
   });
@@ -40,8 +40,10 @@ describe('task access hierarchy', () => {
     const editor = { id: 20, status: 'Aktif', role: { code: 'EDITOR' }, provinceId: 25, province: { id: 25, region: 'Doğu Anadolu' } };
     expect(canAssignTaskUser({ id: 1, role: { code: 'GENEL_KOORDINATOR' } }, editor)).toBe(true);
     expect(canAssignTaskUser({ id: 2, role: { code: 'BOLGE_KOORDINATORU' }, assignedRegion: 'Doğu Anadolu' }, editor)).toBe(true);
-    expect(canAssignTaskUser({ id: 3, role: { code: 'IL_KOORDINATORU' }, provinceId: 25 }, editor)).toBe(true);
-    expect(canAssignTaskUser({ id: 3, role: { code: 'IL_KOORDINATORU' }, provinceId: 34 }, editor)).toBe(false);
+    expect(canAssignTaskUser({ id: 3, role: { code: 'BRANS_KOORDINATORU' }, branchAssignments: [{ branchId: 2 }] },
+      { ...editor, branchAssignments: [{ branchId: 2 }] })).toBe(true);
+    expect(canAssignTaskUser({ id: 3, role: { code: 'BRANS_KOORDINATORU' }, branchAssignments: [{ branchId: 9 }] },
+      { ...editor, branchAssignments: [{ branchId: 2 }] })).toBe(false);
   });
 
   it('uses project management scope for task managers', () => {
@@ -49,7 +51,10 @@ describe('task access hierarchy', () => {
       coordinatorId: 3,
       projectAuthors: []
     };
-    expect(canManageTask({ id: 3, role: { code: 'IL_KOORDINATORU' }, provinceId: 25 }, { project })).toBe(true);
+    expect(canManageTask({ id: 3, role: { code: 'BRANS_KOORDINATORU' },
+      branchAssignments: [{ branchId: 2 }] }, { project: { ...project, branchId: 2 } })).toBe(true);
+    expect(canManageTask({ id: 3, role: { code: 'BRANS_KOORDINATORU' },
+      branchAssignments: [{ branchId: 3 }] }, { project: { ...project, branchId: 2 } })).toBe(false);
     expect(canManageTask({ id: 8, role: { code: 'EDITOR' } }, { project })).toBe(false);
   });
 });

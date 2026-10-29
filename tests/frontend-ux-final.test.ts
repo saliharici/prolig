@@ -54,7 +54,7 @@ describe('Final UX Stabilization', () => {
 
     expect(submitStart).toBeGreaterThan(-1);
     expect(submitCode).toMatch(/if \(editingQuestion\)[\s\S]*await patchQuestion\(editingQuestion\.id, input\);/);
-    expect(submitCode).toMatch(/\} else \{[\s\S]*await createQuestion\(buildQuestionCreateInput\(/);
+    expect(submitCode).toMatch(/\} else \{[\s\S]*await createQuestion\(\{/);
   });
 
   it('YAZAR can edit TASLAK and REVIZYON', () => {
@@ -127,7 +127,8 @@ describe('Final UX Stabilization', () => {
 
     expect(modelCode).toContain("GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'publishing', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments', 'members', 'roles', 'audit']");
     expect(modelCode).toContain("BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members', 'payments']");
-    expect(modelCode).toContain("IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members', 'payments']");
+    expect(modelCode).toContain('BRANS_KOORDINATORU:');
+    expect(modelCode).not.toContain('IL_KOORDINATORU:');
     expect(modelCode).toContain("EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments']");
     expect(modelCode).toContain("YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments']");
     expect(modelCode).toContain("MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements', 'reports']");

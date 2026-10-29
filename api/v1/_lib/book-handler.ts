@@ -34,6 +34,20 @@ export function bookApiPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boo
     } catch { return false; }
   }
   if (env.NODE_ENV === 'test') return true;
+  // Dedicated PR #117 Preview: additive V3 task/production/book acceptance.
+  // Deny other Preview branches, Production, and any unrecognized DB/host/owner.
+  if (env.VERCEL_ENV === 'preview' &&
+      env.VERCEL_GIT_COMMIT_REF === 'feat/branch-coordinator-v3-20261027' &&
+      env.PROLIG_TEST_ADMIN_SETUP === 'enabled') {
+    try {
+      const db = new URL(env.DATABASE_URL || '');
+      if (db.protocol === 'postgresql:' &&
+          db.hostname.endsWith('.neon.tech') &&
+          db.hostname === env.PROLIG_TEST_DATABASE_HOST &&
+          db.pathname === '/ux02_test' &&
+          decodeURIComponent(db.username) === 'ux02_owner') return true;
+    } catch { return false; }
+  }
   // P3 private geometry books may run only on the dedicated isolated Preview DB.
   if (env.PROLIG_P3_BOOK_EXPORT_ENABLED === 'true' && isP3IsolatedPngUploadEnvironment(env)) return true;
   if (env.VERCEL_ENV !== 'preview') return false;

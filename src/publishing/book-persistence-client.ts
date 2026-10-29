@@ -1,6 +1,7 @@
 import type { ApiQuestion } from '../questions/types';
 import type { BookDraftInput, FrozenBookQuestionV1 } from './book-draft-contract';
 import { approvedForPublishing } from './book-assembly';
+import type { BookChapterDraft } from './book-editor-state';
 
 export interface SavedBookSummary {
   id: number;
@@ -183,9 +184,11 @@ export function frozenBookQuestions(book: SavedBook): ApiQuestion[] {
 export interface BookWorkbenchInput {
   projectFilter: string;
   title: string;
-  chapter: string;
   columns: 1 | 2;
-  selectedIds: number[];
+  /** V5 chapter editor; legacy single-chapter callers remain supported. */
+  chapters?: Array<Pick<BookChapterDraft,'title'|'questionIds'>>;
+  chapter?: string;
+  selectedIds?: number[];
 }
 
 /**
@@ -199,45 +202,41 @@ export function prepareBookSave(
   saved: SavedBook | null
 ): BookDraftInput {
   const projectId = Number(view.projectFilter);
-  if (!Number.isSafeInteger(projectId) || projectId <= 0 ||
-      view.projectFilter === 'all') {
-    throw new PublishingApiError(400, 'Kaydetmeden önce tek bir kitap projesi seçin.');
-  }
-  if (saved && saved.projectId !== projectId) {
-    throw new PublishingApiError(409, 'Kayıtlı kitabın projesi değiştirilemez.');
-  }
-  if (saved && saved.status !== 'Dizgi Aşamasında') {
-    throw new PublishingApiError(409, 'Yayınlanmış kitap bu ekrandan düzenlenemez.');
-  }
-  if (view.title.trim().length < 3 || view.title.trim().length > 120 ||
-      view.chapter.trim().length < 1 || view.chapter.trim().length > 120) {
-    throw new PublishingApiError(400, 'Kitap adı 3–120, bölüm başlığı 1–120 karakter olmalı.');
-  }
-  if (view.columns !== 1 && view.columns !== 2) {
-    throw new PublishingApiError(400, 'Yalnız tek veya çift sütun seçin.');
-  }
-  if (!view.selectedIds.length || view.selectedIds.length > 300 ||
-      new Set(view.selectedIds).size !== view.selectedIds.length) {
-    throw new PublishingApiError(400, 'Kitapta 1–300 benzersiz soru bulunmalı.');
-  }
-  const available = new Map(approvedForPublishing(source).map(q => [q.id, q]));
-  const frozen = new Map(saved?.chapters.flatMap(c => c.questions)
-    .map(row => [row.snapshot.sourceQuestionId, row.sourceQuestionUpdatedAt] as const) ?? []);
-  for (const id of view.selectedIds) {
-    const q = available.get(id);
-    if (!q || q.projectId !== projectId) {
-      throw new PublishingApiError(409, 'Seçilen sorulardan biri artık onaylı, aktif veya bu projede değil. Soruları yenileyin.');
-    }
-    const updated = frozen.get(id);
-    if (updated && new Date(updated).getTime() !== new Date(q.updatedAt).getTime()) {
-      throw new PublishingApiError(409, 'Kayıtlı kitaptaki bir soru sonradan güncellenmiş. Kaynağı incelemeden üstüne yazmayın.');
-    }
+  if (!Number.isSafeInteger(projectId)||projectId<=0||view.projectFilter==='all')
+    throw new PublishingApiError(400,'Kaydetmeden önce tek bir kitap projesi seçin.');
+  if (saved && saved.projectId!==projectId)
+    throw new PublishingApiError(409,'Kayıtlı kitabın projesi değiştirilemez.');
+  if (saved && saved.status!=='Dizgi Aşamasında')
+    throw new PublishingApiError(409,'Yayınlanmış kitap bu ekrandan düzenlenemez.');
+  if (view.title.trim().length<3||view.title.trim().length>120)
+    throw new PublishingApiError(400,'Kitap adı 3–120 karakter olmalıdır.');
+  if (view.columns!==1&&view.columns!==2)
+    throw new PublishingApiError(400,'Tek veya çift sütun seçin.');
+  const chapters=view.chapters??[{title:view.chapter??'',questionIds:view.selectedIds??[]}];
+  if(!chapters.length||chapters.length>30)
+    throw new PublishingApiError(400,'Kitapta 1–30 bölüm bulunmalıdır.');
+  if(chapters.some(ch=>!ch.title.trim()||ch.title.trim().length>120||!Array.isArray(ch.questionIds)||!ch.questionIds.length))
+    throw new PublishingApiError(400,'Her bölümün başlığı ve en az bir onaylı sorusu olmalıdır.');
+  const names=chapters.map(ch=>ch.title.trim().toLocaleLowerCase('tr-TR'));
+  if(new Set(names).size!==names.length)
+    throw new PublishingApiError(400,'Bölüm başlıkları birbirinden farklı olmalıdır.');
+  const allIds=chapters.flatMap(ch=>ch.questionIds);
+  if(allIds.length>300||new Set(allIds).size!==allIds.length||allIds.some(id=>!Number.isSafeInteger(id)||id<1))
+    throw new PublishingApiError(400,'Kitapta 1–300 benzersiz soru olmalı; soru iki bölümde tekrar edemez.');
+  const available=new Map(approvedForPublishing(source).map(q=>[q.id,q]));
+  const frozen=new Map(saved?.chapters.flatMap(ch=>ch.questions)
+    .map(row=>[row.snapshot.sourceQuestionId,row.sourceQuestionUpdatedAt] as const)??[]);
+  for(const id of allIds){
+    const q=available.get(id);
+    if(!q||q.projectId!==projectId)
+      throw new PublishingApiError(409,'Seçilen sorulardan biri artık onaylı, aktif veya bu projede değil. Soruları yenileyin.');
+    const updated=frozen.get(id);
+    if(updated&&new Date(updated).getTime()!==new Date(q.updatedAt).getTime())
+      throw new PublishingApiError(409,'Kayıtlı kitaptaki bir soru değişmiş. Kaynağı incelemeden üstüne yazmayın.');
   }
   return {
-    projectId,
-    title: view.title.trim(),
-    layoutColumns: view.columns,
-    expectedRevision: saved?.revision ?? null,
-    chapters: [{ title: view.chapter.trim(), questionIds: [...view.selectedIds] }]
+    projectId,title:view.title.trim(),layoutColumns:view.columns,
+    expectedRevision:saved?.revision??null,
+    chapters:chapters.map(ch=>({title:ch.title.trim(),questionIds:[...ch.questionIds]}))
   };
 }
