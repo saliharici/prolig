@@ -908,6 +908,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     level: questionLevel,
     grade: questionGrade,
     projectId: questionProjectId,
+    taskId: questionTaskId,
     options: questionOptions,
     correctAnswer: questionCorrectAnswer,
     explanation: questionExplanation,
@@ -923,6 +924,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionLevel(next.level);
     setQuestionGrade(next.grade);
     setQuestionProjectId(next.projectId);
+    setQuestionTaskId(next.projectId===questionProjectId?(next.taskId??null):null);
     setQuestionOptions([...next.options]);
     setQuestionCorrectAnswer(next.correctAnswer);
     setQuestionExplanation(next.explanation);
@@ -957,6 +959,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionLevel(values.level);
     setQuestionGrade(values.grade);
     setQuestionProjectId(values.projectId);
+    setQuestionTaskId(values.taskId??null);
     setQuestionOptions([...values.options]);
     setQuestionCorrectAnswer(values.correctAnswer);
     setQuestionExplanation(values.explanation);
@@ -1383,7 +1386,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionSaveError('');
     setQuestionBaseline(questionStudioFingerprint({
       ...(guidedStudioOn ? questionTypeDraft() : {}),
-      content: '', level: 'Ortaokul', grade: '8. Sınıf', projectId: null,
+      content: '', level: 'Ortaokul', grade: '8. Sınıf', projectId: null, taskId:null,
       options: ['', '', '', ''], correctAnswer: guidedStudioOn ? '' : 'A', explanation: '', assets: [],
       assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
     }));
@@ -1768,7 +1771,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionSaveError('');
     setQuestionBaseline(questionStudioFingerprint({
       ...(guidedStudioOn ? questionTypeDraft(question) : {}),
-      content: question.content, level, grade, projectId: question.projectId,
+      content: question.content, level, grade, projectId: question.projectId, taskId:question.taskId??null,
       options: normalizeQuestionOptions(question.options),
       correctAnswer: restoredQuestionCorrectAnswer(question),
       explanation: question.explanation || '', assets: normalizeQuestionAssets(question.assets),
