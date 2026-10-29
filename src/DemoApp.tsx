@@ -820,6 +820,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const [questionLevel, setQuestionLevel] = useState('Ortaokul');
   const [questionGrade, setQuestionGrade] = useState('8. Sınıf');
   const [questionProjectId, setQuestionProjectId] = useState<number | null>(null);
+  const [questionTaskId, setQuestionTaskId] = useState<number | null>(null);
   const [originalQuestionProjectId, setOriginalQuestionProjectId] = useState<number | null>(null);
   const [questionProjectFilter, setQuestionProjectFilter] = useState<number | null>(null);
   const [questionGradeFilter, setQuestionGradeFilter] = useState('');
@@ -1242,10 +1243,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
       };
       // The exact same validation, authorization and persistence contract as
       // normal question creation. No client-side media shortcut.
-      const created = await createQuestion(buildQuestionCreateInput(
-        guardedLegacyQuestionWrite ? toP2SandboxLegacyDraft(draft) : draft,
-        guardedLegacyQuestionWrite
-      ));
+      const created = await createQuestion({
+        ...buildQuestionCreateInput(guardedLegacyQuestionWrite ? toP2SandboxLegacyDraft(draft) : draft,guardedLegacyQuestionWrite),
+        taskId: questionTaskId
+      });
       durableDraftGenerationRef.current += 1;
       if (durableFeatureOn) {
         try { removeEncryptedQuestionDraft(window.localStorage, durableDraftOwner, null); }
@@ -1309,10 +1310,10 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           assets: normalizeQuestionAssets(questionAssets),
           ...(guidedStudioOn ? questionTypeExtras : {})
         };
-        await createQuestion(buildQuestionCreateInput(
-          guardedLegacyQuestionWrite ? toP2SandboxLegacyDraft(draft) : draft,
-          guardedLegacyQuestionWrite
-        ));
+        await createQuestion({
+          ...buildQuestionCreateInput(guardedLegacyQuestionWrite ? toP2SandboxLegacyDraft(draft) : draft,guardedLegacyQuestionWrite),
+          taskId: questionTaskId
+        });
 
         setToast('Taslak oluşturuldu. İncelemeye gönderebilirsiniz.');
       }
@@ -1389,6 +1390,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionLevel('Ortaokul');
     setQuestionGrade('8. Sınıf');
     setQuestionProjectId(null);
+    setQuestionTaskId(null);
     setOriginalQuestionProjectId(null);
     setQuestionOptions(['', '', '', '']);
     setQuestionCorrectAnswer(guidedStudioOn ? '' : 'A');
@@ -1403,6 +1405,19 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionAssetAltText('');
     setShowQuestionForm(true);
   };
+  const openTaskLinkedQuestionDraft = (taskId:number,projectId:number) => {
+    if(currentUser.role!=='YAZAR'||!permissions[currentUser.role]?.includes('questions')) return;
+    const project=questionAssignableProjects.find(p=>p.id===projectId);
+    if(!project){setToast('Proje için soru oluşturma yetkiniz bulunmuyor.');return;}
+    navigate('questions');
+    openQuestionForm();
+    const level=levelForGrade(project.targetGrade);
+    if(level) setQuestionLevel(level);
+    setQuestionGrade(project.targetGrade);
+    setQuestionProjectId(project.id);
+    setQuestionTaskId(taskId);
+    setQuestionProjectFilter(project.id);
+  };
   const changeQuestionLevel = (level: string) => {
     setQuestionLevel(level);
     setQuestionGrade(gradesByLevel[level]?.[0] || '');
@@ -1415,6 +1430,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const changeQuestionProject = (value: string) => {
     const projectId = value ? Number(value) : null;
     setQuestionProjectId(projectId);
+    setQuestionTaskId(null);
     if (projectId === null) return;
     const project = apiProjects.find(item => item.id === projectId);
     if (!project) return;
@@ -1737,6 +1753,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setQuestionStep(1);
     setQuestionAssets(normalizeQuestionAssets(question.assets));
     setQuestionProjectId(question.projectId);
+    setQuestionTaskId(question.taskId??null);
     setOriginalQuestionProjectId(question.projectId);
     setQuestionAssetPlacement('STEM');
     setQuestionAssetType('IMAGE');
@@ -2086,7 +2103,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const hasAction = canEdit || canReview || canArchive || canDelete;
   const authorSubmitting = authorSubmittingIds.includes(q.id);
   const authorSubmissionError = authorSubmitError?.questionId === q.id ? authorSubmitError.message : null;
-  return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}</small>{q.status === 'REVIZYON' && currentUser.role === 'YAZAR'
+  return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}{q.taskId?' · Görev #'+q.taskId:''}</small>{q.status === 'REVIZYON' && currentUser.role === 'YAZAR'
     ? <div className="question-revision-feedback" role="note" aria-label="Editör revizyon geri bildirimi">
         <strong><MessageSquareText size={15} aria-hidden="true" /> Editörden revizyon isteği</strong>
         <p>{q.editorNote?.trim() || 'Revizyon gerekçesi görüntülenemiyor; editörle iletişime geçin.'}</p>
@@ -2132,7 +2149,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             })}</div>}
             {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state corporate-project-empty"><BookOpen size={24} aria-hidden="true" /><strong>{apiProjects.length === 0 ? 'Henüz erişilebilir proje bulunmuyor' : 'Arama ölçütlerine uygun proje yok'}</strong><p>{apiProjects.length === 0 ? 'Yeni bir projeye atandığınızda burada görüntülenecektir.' : 'Arama ifadesini veya sınıf filtresini değiştirerek yeniden deneyin.'}</p></div>}
           </>}
-        {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} />}
+        {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} onStartProjectDraft={openTaskLinkedQuestionDraft} />}
         {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
         {section === 'announcements' && <AnnouncementCenter onUnreadChange={setAnnouncementUnreadCount} />}
         {section === 'grades' && <>
@@ -2331,6 +2348,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
           </div>
           <p>{guidedStudioOn ? 'Soru türünü belirleyin ve beş aşamada hazırlayın.' : 'Soru kökü, seçenekler, çözüm ve medya bileşenlerini tek akışta hazırlayın.'}</p>
           {questionStudioReleaseFlags.p1Workspace && <p className="studio-dirty-status" role="status">{questionSaving ? 'Kaydediliyor…' : hasUnsavedQuestionChanges ? 'Kaydedilmemiş değişiklikler var' : 'Henüz kaydedilmemiş değişiklik yok'}</p>}
+          {questionTaskId!==null && <p className="task-draft-binding" role="note">Bu soru <strong>Görev #{questionTaskId}</strong> için hazırlanıyor. Yetki sunucuda kontrol edilir.</p>}
           {questionSaveError && <div className="studio-save-error" role="alert">{questionSaveError}</div>}
           {serverQuestionConflict && <section className="studio-revision-review" aria-label="Soru sürüm karşılaştırması">
             <div className="studio-revision-heading"><strong>Sunucudaki sürüm değişmiş</strong><span>Kaydetme engellendi</span></div>
