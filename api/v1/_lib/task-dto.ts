@@ -15,6 +15,8 @@ export const taskSelect = {
   completionDate: true,
   createdAt: true,
   updatedAt: true,
+  targetQuestionCount: true,
+  questions: { select: { status: true } },
   project: { select: projectSelect },
   assignedAuthorProfile: {
     select: {
@@ -50,6 +52,17 @@ export function formatTaskDto(task: SelectedTask, user: any) {
     description: task.description,
     priority: task.priority,
     status: task.status,
+    targetQuestionCount: task.targetQuestionCount,
+    production: {
+      target: task.targetQuestionCount,
+      written: task.questions.length,
+      submitted: task.questions.filter(q => q.status === 'INCELEMEDE').length,
+      revision: task.questions.filter(q => q.status === 'REVIZYON').length,
+      approved: task.questions.filter(q => q.status === 'ONAYLANDI').length,
+      rejected: task.questions.filter(q => q.status === 'REDDEDILDI').length,
+      percent: task.targetQuestionCount > 0 ? Math.min(100,
+        Math.round(task.questions.filter(q => q.status === 'ONAYLANDI').length * 100 / task.targetQuestionCount)) : null
+    },
     isOverdue,
     startDate: task.startDate,
     dueDate: task.dueDate,
