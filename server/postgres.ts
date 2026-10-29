@@ -1,7 +1,10 @@
 import 'dotenv/config';
 import pg from 'pg';
+import { createRelease03GuardedPool } from './release03-db-connection.js';
+import { assertRelease03DbEnvironment, isRelease03VercelRuntime } from './release03-db-policy.js';
 
 export function getDatabaseUrl(): string | undefined {
+  assertRelease03DbEnvironment();
   return process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.PRISMA_DATABASE_URL;
 }
 
@@ -13,13 +16,13 @@ export function getPostgresPool(): pg.Pool | null {
   const databaseUrl = getDatabaseUrl();
   if (!databaseUrl) return null;
   if (!pool) {
-    pool = new pg.Pool({
+    pool = createRelease03GuardedPool({
       connectionString: databaseUrl,
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
       ssl: {
-        rejectUnauthorized: false
+        rejectUnauthorized: isRelease03VercelRuntime()
       }
     });
 

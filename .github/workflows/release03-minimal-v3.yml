@@ -1,5 +1,7 @@
 name: RELEASE-03 Minimal V3 isolated PostgreSQL
 on:
+  push:
+    branches: ['release/prolig-pilot-v3-minimal']
   workflow_dispatch:
   pull_request:
     branches: [main]
@@ -55,4 +57,9 @@ jobs:
           npx prisma validate
           npx prisma generate
       - name: Targeted role/task/question regression
-        run: npx vitest run tests/task-handlers.test.ts tests/task-access.test.ts tests/question-handlers.test.ts tests/question-api.test.ts tests/publishing-docx-v1.test.ts tests/publishing-book-api-v2.test.ts tests/release03-question-task-draft.test.ts
+        run: npx vitest run tests/task-handlers.test.ts tests/task-access.test.ts tests/question-handlers.test.ts tests/question-api.test.ts tests/publishing-docx-v1.test.ts tests/publishing-book-api-v2.test.ts tests/release03-question-task-draft.test.ts tests/release03-preview-guard.test.ts
+
+      - name: Candidate TypeScript / lint
+        run: npm run lint
+      - name: Candidate build
+        run: npm run build
