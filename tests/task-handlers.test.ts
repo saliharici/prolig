@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { handleTaskAction } from '../api/v1/_lib/task-handler.js';
 import { prisma } from '../api/v1/_lib/prisma.js';
+import { getQuestionArchiveStateMap } from '../api/v1/_lib/question-archive.js';
+vi.mock('../api/v1/_lib/question-archive.js',()=>({
+  getQuestionArchiveStateMap:vi.fn().mockResolvedValue(new Map())
+}));
 
 vi.mock('../api/v1/_lib/prisma.js', () => ({
   prisma: {
@@ -101,6 +105,7 @@ const yazar = {
 describe('Task action handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getQuestionArchiveStateMap).mockResolvedValue(new Map());
     vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => callback(prisma as any));
     vi.mocked(prisma.task.findMany).mockResolvedValue([]);
   });

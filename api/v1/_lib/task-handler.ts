@@ -9,7 +9,14 @@ import {
   canManageTask,
   isTaskAssignee
 } from './task-access.js';
-import { formatTaskDto, taskSelect } from './task-dto.js';
+import { formatTaskDto, taskSelect, type SelectedTask } from './task-dto.js';
+import { getQuestionArchiveStateMap } from './question-archive.js';
+
+async function formatActiveTasks(tasks: SelectedTask[], user:any) {
+  const archived=await getQuestionArchiveStateMap(tasks.flatMap(task=>task.questions.map(q=>q.id)));
+  const archivedIds=new Set([...archived.entries()].filter(([,v])=>v).map(([id])=>id));
+  return tasks.map(task=>formatTaskDto(task,user,archivedIds));
+}
 
 const priorities = new Set(['Dusuk', 'Normal', 'Yuksek', 'Acil']);
 const workflowStatuses = new Set(['Bekliyor', 'Devam_Ediyor', 'Kontrol_Bekliyor', 'Tamamlandi']);
@@ -145,7 +152,7 @@ async function listTasks(user: any, req: VercelRequest, res: VercelResponse) {
     orderBy: [{ dueDate: 'asc' }, { priority: 'desc' }, { id: 'asc' }]
   });
 
-  return res.status(200).json(tasks.map((task) => formatTaskDto(task, user)));
+  return res.status(200).json(await formatActiveTasks(tasks,user));
 }
 
 async function getTask(id: number, user: any, res: VercelResponse) {
@@ -158,7 +165,7 @@ async function getTask(id: number, user: any, res: VercelResponse) {
   });
   if (!task) return res.status(404).json({ error: 'Task not found' });
 
-  return res.status(200).json(formatTaskDto(task, user));
+  return res.status(200).json((await formatActiveTasks([task],user))[0]);
 }
 
 async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
@@ -237,7 +244,7 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
   });
 
   if (!task) return res.status(500).json({ error: 'Task creation failed' });
-  return res.status(201).json(formatTaskDto(task, user));
+  return res.status(201).json((await formatActiveTasks([task],user))[0]);
 }
 
 async function updateTask(id: number, user: any, req: VercelRequest, res: VercelResponse) {
@@ -348,7 +355,7 @@ async function updateTask(id: number, user: any, req: VercelRequest, res: Vercel
   });
 
   if (!updated) return res.status(404).json({ error: 'Task not found' });
-  return res.status(200).json(formatTaskDto(updated, user));
+  return res.status(200).json((await formatActiveTasks([updated],user))[0]);
 }
 
 async function deleteTask(id: number, user: any, res: VercelResponse) {

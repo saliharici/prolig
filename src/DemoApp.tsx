@@ -1410,6 +1410,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     const project=questionAssignableProjects.find(p=>p.id===projectId);
     if(!project){setToast('Proje için soru oluşturma yetkiniz bulunmuyor.');return;}
     navigate('questions');
+    if(pausedQuestionDraftsRef.current.has(pausedQuestionDraftKey(currentUser.id,null))){
+      openQuestionForm();
+      setToast('Mevcut soru taslağı korunuyor; yeni göreve otomatik bağlanmadı.');
+      return;
+    }
     openQuestionForm();
     const level=levelForGrade(project.targetGrade);
     if(level) setQuestionLevel(level);
