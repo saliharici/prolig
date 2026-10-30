@@ -27,10 +27,15 @@ describe('RELEASE-03 fail-closed Preview database guard', () => {
     expect(assertRelease03DbEnvironment({ CI: 'true' })).toBe(false);
   });
 
+  it('does not apply the RELEASE-03 Preview identity gate to Production', () => {
+    const production = { ...safeEnv(), VERCEL_ENV: 'production' };
+    expect(isRelease03VercelRuntime(production)).toBe(false);
+    expect(assertRelease03DbEnvironment(production)).toBe(false);
+  });
+
   it.each([
     ['missing release ref', 'VERCEL_GIT_COMMIT_REF', undefined],
     ['different branch', 'VERCEL_GIT_COMMIT_REF', 'main'],
-    ['production environment', 'VERCEL_ENV', 'production'],
     ['missing Vercel identity', 'VERCEL', undefined],
     ['unexpected repository', 'VERCEL_GIT_REPO_SLUG', 'another-repo'],
     ['missing migration URL', 'DIRECT_URL', undefined],
