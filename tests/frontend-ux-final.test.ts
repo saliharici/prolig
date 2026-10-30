@@ -54,7 +54,9 @@ describe('Final UX Stabilization', () => {
 
     expect(submitStart).toBeGreaterThan(-1);
     expect(submitCode).toMatch(/if \(editingQuestion\)[\s\S]*await patchQuestion\(editingQuestion\.id, input\);/);
-    expect(submitCode).toMatch(/\} else \{[\s\S]*await createQuestion\(buildQuestionCreateInput\(/);
+    expect(submitCode).toMatch(/\} else \{[\s\S]*await createQuestion\(\{/);
+    expect(submitCode).toContain('...buildQuestionCreateInput(');
+    expect(submitCode).toContain('taskId: questionTaskId');
   });
 
   it('YAZAR can edit TASLAK and REVIZYON', () => {
