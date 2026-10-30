@@ -13,7 +13,11 @@ const DATABASE_KEYS = ['DATABASE_URL', 'POSTGRES_URL', 'PRISMA_DATABASE_URL', 'D
 
 /** The CI PostgreSQL-16 container runs without VERCEL or a Vercel target. */
 export function isRelease03VercelRuntime(env: Release03Environment = process.env): boolean {
-  return env.VERCEL === '1' || env.VERCEL_ENV === 'preview' || env.VERCEL_ENV === 'production';
+  // RELEASE-03 identity enforcement belongs to isolated Preview builds only.
+  // Production retains the pre-existing DATABASE_URL/Pool behavior. The V3
+  // database migration must still be applied before a Production deployment.
+  return (env.VERCEL === '1' || env.VERCEL_ENV === 'preview') &&
+    env.VERCEL_ENV !== 'production';
 }
 
 function reject(): never {
