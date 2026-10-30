@@ -3,6 +3,8 @@ import { prisma } from './prisma.js';
 import { formatQuestionDto } from './question-dto.js';
 import { DocxExportError, exportBookDocxWithVerifiedPrivateGeometry } from './book-docx.js';
 import { isP3IsolatedPngUploadEnvironment } from './p3-png-upload-environment.js';
+import { isRelease03BookPreviewAllowed } from '../../../server/release03-book-preview.js';
+import { RELEASE03_REF } from '../../../server/release03-db-policy.js';
 import { privateGeometryPngKey, readVerifiedPrivatePng } from './p3-png-s3.js';
 import {
   BookDraftValidationError, canEditBookDraft, prepareBookDraft,
@@ -32,6 +34,10 @@ export function bookApiPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boo
         db.pathname === '/' + expectedName &&
         db.hostname.endsWith('.neon.tech');
     } catch { return false; }
+  }
+  // Release-03 must pass its own strict identity policy, even in test mode.
+  if (env.VERCEL_GIT_COMMIT_REF === RELEASE03_REF) {
+    return isRelease03BookPreviewAllowed(env);
   }
   if (env.NODE_ENV === 'test') return true;
   // P3 private geometry books may run only on the dedicated isolated Preview DB.
