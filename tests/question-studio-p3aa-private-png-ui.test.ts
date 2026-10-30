@@ -115,7 +115,9 @@ describe('P3-AA private PNG studio listing', () => {
     expect(studio).toContain('Taslağı oluştur ve PNG eklemeye devam et');
     expect(studio).toContain('onSaveForPrivateImage ? void onSaveForPrivateImage()');
     expect(app).toContain('const saveNewDraftAndContinueWithPng = async () => {');
-    expect(app).toContain('const created = await createQuestion(buildQuestionCreateInput(');
+    expect(app).toContain('const created = await createQuestion({');
+    expect(app).toContain('...buildQuestionCreateInput(');
+    expect(app).toContain('taskId: questionTaskId');
     expect(app).toContain('openYazarEdit(created);');
     expect(app).toContain('setQuestionStep(2);');
     expect(app).toContain('onSaveForPrivateImage={saveNewDraftAndContinueWithPng}');
