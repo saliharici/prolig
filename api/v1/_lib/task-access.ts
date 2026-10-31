@@ -8,7 +8,12 @@ export const taskManagerRoles = new Set([
 ]);
 
 export function canCreateTask(user: any): boolean {
-  return taskManagerRoles.has(user?.role?.code);
+  if (!taskManagerRoles.has(user?.role?.code)) return false;
+  if (user.role.code === 'BRANS_KOORDINATORU') {
+    const scope = buildProjectReadScope(user);
+    return Boolean(scope && !('id' in scope));
+  }
+  return true;
 }
 
 export function buildTaskReadScope(user: any) {
