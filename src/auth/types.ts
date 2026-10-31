@@ -7,6 +7,7 @@ export interface AuthUser {
   role: Role;
   provinceId: number | null;
   assignedRegion: string | null;
+  branchPermissions?: string[];
   phone?: string | null;
   avatarUrl?: string | null;
   province?: { id: number; name: string; region: string } | null;
