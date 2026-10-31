@@ -54,6 +54,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
   const [users,setUsers]=useState<ManagedUser[]>([]);
   const [provinces,setProvinces]=useState<ProvinceOption[]>([]);
   const [branches,setBranches]=useState<BranchOption[]>([]);
+  const [branchActivationEnabled,setBranchActivationEnabled]=useState(false);
   const [form,setForm]=useState<FormState>(emptyForm());
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
@@ -100,6 +101,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     try {
       const [a,u,m]=await Promise.all([fetchApplications(),fetchManagedUsers(),fetchMembershipMetadata()]);
       setApplications(a.applications); setUsers(u.users); setProvinces(m.provinces); setBranches(m.branches);
+      setBranchActivationEnabled(m.branchCoordinatorActivationEnabled===true);
     } catch(e:any){ setError(e.message||'Üye yönetimi yüklenemedi.'); }
     finally{setBusy(false);}
   };
@@ -244,6 +246,9 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
         {form.id&&<button type="button" className="secondary-button" onClick={()=>setForm(emptyForm())}>İptal</button>}
       </div>
 
+      {!branchActivationEnabled&&<p role="status" style={{padding:'0 20px',color:'#92400e'}}>
+        Branş Koordinatörü ataması, kontrollü yayın aktivasyonu açılıncaya kadar kapalıdır.
+      </p>}
       <div className="member-form-divider"/>
 
       <div className="member-form-grid">
@@ -285,7 +290,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
                   : form.assignedRegion||provinces.find(p=>String(p.id)===form.provinceId)?.region||'')
                 : '';
               setForm({...form,role,provinceId:'',districtName:'',assignedRegion,editorGrade:'',branchIds:[],branchPermissions:[]});
-            }}>{(form.id&&form.role==='IL_KOORDINATORU'?[...roles,'IL_KOORDINATORU' as Role]:roles).map(r=><option key={r} value={r}>{roleLabels[r]}</option>)}</select>
+            }}>{(form.id&&form.role==='IL_KOORDINATORU'?[...roles,'IL_KOORDINATORU' as Role]:roles).map(r=><option key={r} value={r} disabled={r==='BRANS_KOORDINATORU'&&!branchActivationEnabled}>{roleLabels[r]}{r==='BRANS_KOORDINATORU'&&!branchActivationEnabled?' (aktivasyon bekleniyor)':''}</option>)}</select>
           </span>
         </label>
 
