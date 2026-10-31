@@ -39,6 +39,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'Not found' });
     }
 
+    // Explicit private scope is never part of the editorial/royalty workflow.
+    // Personal to publisher transfer requires a separate copy into the publisher flow.
+    if (question.isPersonal === true) {
+      return res.status(409).json({ error: 'Private question cannot be submitted or approved; create a separate publisher question' });
+    }
     if (await isQuestionArchived(id)) {
       return res.status(409).json({ error: 'Archived question must be restored before workflow actions' });
     }
