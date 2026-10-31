@@ -1,7 +1,8 @@
 export const coordinatorRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU'
+  'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU'
 ]);
 
 export const regionAssignableRoles = new Set([
