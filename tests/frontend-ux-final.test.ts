@@ -131,7 +131,7 @@ describe('Final UX Stabilization', () => {
     expect(modelCode).toContain("BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members', 'payments']");
     expect(modelCode).toContain("IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members', 'payments']");
     expect(modelCode).toContain("EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments']");
-    expect(modelCode).toContain("YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments']");
+    expect(modelCode).toContain("YAZAR: ['overview', 'authorDesk', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments']");
     expect(modelCode).toContain("MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements', 'reports']");
     expect(demoAppCode).toContain("{section === 'members'");
     expect(demoAppCode).toContain("{section === 'roles' && currentUser.role === 'GENEL_KOORDINATOR'");
