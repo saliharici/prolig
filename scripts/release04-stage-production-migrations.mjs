@@ -49,21 +49,38 @@ const localCi = process.argv.includes('--local-ci');
 if (localCi && process.env.CI !== 'true') throw new Error('RELEASE04_LOCAL_CI_MODE_REQUIRES_CI');
 if (process.argv.some(arg => arg.startsWith('--') && arg !== '--local-ci'))
   throw new Error('RELEASE04_UNRECOGNIZED_MODE');
+// Preserve bytes of executed SQL in the staged copy. Some historical files
+// were applied from Windows CRLF files; GitHub stores the equivalent LF text.
+// Never change the source or rewrite Prisma's Production ledger.
+const sourceChecksums = {};
 const checksums = {};
-const historyMismatch = [];
+const historicalLineEndingRestorations = [];
+const stagedSql = new Map();
 for (const name of approved) {
   const sqlFile = join(source, name, 'migration.sql');
   if (!existsSync(sqlFile)) throw new Error('RELEASE04_MISSING_SQL: ' + name);
-  const content = readFileSync(sqlFile);
-  const sha = createHash('sha256').update(content).digest('hex');
-  if (historical[name] && sha !== historical[name]) historyMismatch.push(name);
-  checksums[name] = sha;
-}
-if (historyMismatch.length && !localCi) {
-  throw new Error('RELEASE04_PRODUCTION_LEDGER_DRIFT_NO_GO: ' + historyMismatch.join(','));
-}
-if (historyMismatch.length) {
-  console.warn('RELEASE04_LOCAL_CI_UNCERTIFIED_LEDGER: historical source SQL differs from Production: ' + historyMismatch.join(','));
+  const sourceBytes = readFileSync(sqlFile);
+  const sourceSha = createHash('sha256').update(sourceBytes).digest('hex');
+  sourceChecksums[name] = sourceSha;
+  let installedBytes = sourceBytes;
+  if (historical[name] && sourceSha !== historical[name]) {
+    // Strictly allow one forensic recovery: same UTF-8 SQL with CRLF endings.
+    // Its SHA-256 must EXACTLY match the immutable Production ledger checksum.
+    const sourceText = sourceBytes.toString('utf8');
+    const crlfBytes = Buffer.from(sourceText.replace(/\r\n|\n/g, '\r\n'), 'utf8');
+    const crlfSha = createHash('sha256').update(crlfBytes).digest('hex');
+    if (crlfSha !== historical[name]) {
+      throw new Error('RELEASE04_PRODUCTION_LEDGER_DRIFT_NO_GO: ' + name);
+    }
+    installedBytes = crlfBytes;
+    historicalLineEndingRestorations.push(name);
+  }
+  const stagedSha = createHash('sha256').update(installedBytes).digest('hex');
+  if (historical[name] && stagedSha !== historical[name]) {
+    throw new Error('RELEASE04_HISTORICAL_CHECKSUM_FAILURE: ' + name);
+  }
+  checksums[name] = stagedSha;
+  stagedSql.set(name, installedBytes);
 }
 if (!existsSync(join(source, 'migration_lock.toml'))) throw new Error('RELEASE04_MISSING_MIGRATION_LOCK');
 // All checks above finish BEFORE touching the reproducible ignored staging folder.
@@ -72,16 +89,20 @@ mkdirSync(output, { recursive: true });
 copyFileSync(join(source, 'migration_lock.toml'), join(output, 'migration_lock.toml'));
 for (const name of approved) {
   mkdirSync(join(output, name));
-  copyFileSync(join(source, name, 'migration.sql'), join(output, name, 'migration.sql'));
+  const stagedPath = join(output, name, 'migration.sql');
+  writeFileSync(stagedPath, stagedSql.get(name));
+  const onDiskSha = createHash('sha256').update(readFileSync(stagedPath)).digest('hex');
+  if (onDiskSha !== checksums[name]) throw new Error('RELEASE04_STAGED_FILE_CHECKSUM_MISMATCH: ' + name);
 }
 if (existsSync(join(output, forbidden))) throw new Error('RELEASE04_P3_IN_PRODUCTION_CANDIDATE');
 writeFileSync(join(output, 'RELEASE04_MANIFEST.json'), JSON.stringify({
   policy: 'RELEASE04_PRODUCTION_CANDIDATE_NO_P3',
   approved, historical: Object.keys(historical), pending,
-  excluded: [forbidden], checksums,
-  historicalChecksumCertified: historyMismatch.length === 0,
-  historicalChecksumDrift: historyMismatch,
-  mode: localCi ? 'EPHEMERAL_CI_ONLY_NOT_PRODUCTION_CERTIFIED' : 'PRODUCTION_LEDGER_PINNED'
+  excluded: [forbidden], checksums, sourceChecksums,
+  historicalChecksumCertified: true,
+  historicalLineEndingRestorations,
+  mode: localCi ? 'EPHEMERAL_CI_PROOF' : 'PRODUCTION_CANDIDATE_STAGED_NOT_EXECUTED'
 }, null, 2) + '\n');
-console.log('RELEASE04_MIGRATION_STAGE_PASS: 9 historical + 3 pending; P3 omitted; ledger-certificate=' + (historyMismatch.length === 0 ? 'MATCH' : 'DRIFT_NOT_PRODUCTION_APPROVED'));
-console.log('This is local staging only: NO database read or write; NO Production approval or migration execution.');
+console.log('RELEASE04_MIGRATION_STAGE_PASS: 9 historical + 3 pending; P3 omitted; historical staged bytes match Production ledger (9/9).');
+console.log('Recovered historical CRLF bytes from unchanged GitHub source for ' + historicalLineEndingRestorations.length + ' migrations.');
+console.log('NO database access, SQL execution, Production approval or deploy occurred.');
