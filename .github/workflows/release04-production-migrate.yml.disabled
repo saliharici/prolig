@@ -113,7 +113,9 @@ jobs:
           test "$RELEASE04_APPROVED_PRODUCTION_DB_HOST" = "ep-aged-rice-b21dkfno.c-6.eu-central-1.aws.neon.tech"
           # This config validates real repo/ref/full SHA, exact Neon host,
           # neondb, sslmode=verify-full, P3 exclusion and all 13 checksums.
-          ./node_modules/.bin/prisma migrate status --config ./prisma.config.release04.production.ts
+          # prisma migrate status exits 1 by design while four migrations are pending.
+          # validate verifies the guarded config without treating pending work as failure.
+          ./node_modules/.bin/prisma validate --config ./prisma.config.release04.production.ts
           # STOP if another run already started/applied any of the 4 migrations,
           # or if the successful historical ledger differs in any way.
           node --input-type=module <<'NODE'
