@@ -14,11 +14,14 @@ function block(): never { throw new Error('RELEASE04_PRODUCTION_MIGRATION_NOT_AU
 const releaseApproval = process.env.RELEASE04_EXPLICIT_PRODUCTION_APPROVAL;
 const approvedSha = process.env.RELEASE04_APPROVED_RELEASE_SHA;
 const repository = process.env.GITHUB_REPOSITORY;
+// Apply the additive schema BEFORE merging, because merging main can trigger
+// an automatic Vercel Production build. Pin the existing reviewed release
+// branch AND its exact SHA, not a fabricated "main" context.
 const branch = process.env.GITHUB_REF;
 const actualSha = process.env.GITHUB_SHA;
 if (releaseApproval !== 'RELEASE04_APPROVED_WITH_ROLLBACK' ||
     repository !== 'saliharici/prolig' ||
-    branch !== 'refs/heads/main' ||
+    branch !== 'refs/heads/release/prolig-pilot-v3-minimal' ||
     !approvedSha || !actualSha || approvedSha !== actualSha ||
     !/^[a-f0-9]{40}$/.test(actualSha)) block();
 
