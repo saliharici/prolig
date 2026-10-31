@@ -43,6 +43,12 @@ if (otherDirs.length || missingDirs.length || !present.includes(forbidden)) {
   throw new Error('RELEASE04_MIGRATION_SOURCE_MANIFEST_MISMATCH: ' +
     JSON.stringify({ unexpectedCount: otherDirs.length, missingCount: missingDirs.length, p3Exists: present.includes(forbidden) }));
 }
+// The --local-ci mode demonstrates P3 exclusion on an ephemeral database,
+ // but does NOT certify Production's historical checksum provenance.
+const localCi = process.argv.includes('--local-ci');
+if (localCi && process.env.CI !== 'true') throw new Error('RELEASE04_LOCAL_CI_MODE_REQUIRES_CI');
+if (process.argv.some(arg => arg.startsWith('--') && arg !== '--local-ci'))
+  throw new Error('RELEASE04_UNRECOGNIZED_MODE');
 const checksums = {};
 const historyMismatch = [];
 for (const name of approved) {
@@ -53,8 +59,11 @@ for (const name of approved) {
   if (historical[name] && sha !== historical[name]) historyMismatch.push(name);
   checksums[name] = sha;
 }
+if (historyMismatch.length && !localCi) {
+  throw new Error('RELEASE04_PRODUCTION_LEDGER_DRIFT_NO_GO: ' + historyMismatch.join(','));
+}
 if (historyMismatch.length) {
-  throw new Error('RELEASE04_HISTORICAL_CHECKSUM_MISMATCH: ' + historyMismatch.join(','));
+  console.warn('RELEASE04_LOCAL_CI_UNCERTIFIED_LEDGER: historical source SQL differs from Production: ' + historyMismatch.join(','));
 }
 if (!existsSync(join(source, 'migration_lock.toml'))) throw new Error('RELEASE04_MISSING_MIGRATION_LOCK');
 // All checks above finish BEFORE touching the reproducible ignored staging folder.
@@ -69,7 +78,10 @@ if (existsSync(join(output, forbidden))) throw new Error('RELEASE04_P3_IN_PRODUC
 writeFileSync(join(output, 'RELEASE04_MANIFEST.json'), JSON.stringify({
   policy: 'RELEASE04_PRODUCTION_CANDIDATE_NO_P3',
   approved, historical: Object.keys(historical), pending,
-  excluded: [forbidden], checksums
+  excluded: [forbidden], checksums,
+  historicalChecksumCertified: historyMismatch.length === 0,
+  historicalChecksumDrift: historyMismatch,
+  mode: localCi ? 'EPHEMERAL_CI_ONLY_NOT_PRODUCTION_CERTIFIED' : 'PRODUCTION_LEDGER_PINNED'
 }, null, 2) + '\n');
-console.log('RELEASE04_PRODUCTION_MIGRATION_STAGE_PASS: 9 historical + 3 pending; P3 omitted; historical checksums pinned.');
+console.log('RELEASE04_MIGRATION_STAGE_PASS: 9 historical + 3 pending; P3 omitted; ledger-certificate=' + (historyMismatch.length === 0 ? 'MATCH' : 'DRIFT_NOT_PRODUCTION_APPROVED'));
 console.log('This is local staging only: NO database read or write; NO Production approval or migration execution.');
