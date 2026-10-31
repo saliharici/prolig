@@ -75,6 +75,7 @@ export function buildQuestionReadScope(user: any) {
 }
 
 export function canWorkflowReview(question: any, user: any) {
+  if (question?.isPersonal === true) return false;
   if (user.role.code === 'GENEL_KOORDINATOR') return true;
   if (user.role.code === 'EDITOR') {
     const branchIds = editorBranchIds(user);
