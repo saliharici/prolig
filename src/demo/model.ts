@@ -1,5 +1,5 @@
 export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'IL_KOORDINATORU' | 'BRANS_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
-export type Section = 'overview' | 'grades' | 'questions' | 'publishing' | 'projects' | 'tasks' | 'messages' | 'announcements' | 'authors' | 'reports' | 'payments' | 'members' | 'roles' | 'audit';
+export type Section = 'overview' | 'grades' | 'authorDesk' | 'questions' | 'publishing' | 'projects' | 'tasks' | 'messages' | 'announcements' | 'authors' | 'reports' | 'payments' | 'members' | 'roles' | 'audit';
 export type QuestionStatus = 'Taslak' | 'İncelemede' | 'Revizyon' | 'Onaylandı' | 'Reddedildi';
 export type PaymentStatus = 'Bekliyor' | 'Onaylandı' | 'Ödendi';
 
@@ -98,6 +98,7 @@ IL_KOORDINATORU: 'İl Koordinatörü',
 export const sectionLabels: Record<Section, string> = {
   overview: 'Genel Bakış',
   questions: 'Soru Havuzu',
+  authorDesk: 'Yazar Masası',
   publishing: 'Yayıncılık',
   grades: 'Eğitim Kademeleri',
   projects: 'Projeler',
@@ -119,7 +120,7 @@ export const permissions: Record<Role, Section[]> = {
   BRANS_KOORDINATORU: ['overview','authors','projects','tasks','questions'],
 IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members', 'payments'],
   EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
-  YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
+  YAZAR: ['overview', 'authorDesk', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
   MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements', 'reports'],
 };
 
