@@ -41,7 +41,7 @@ describe('RELEASE-04 — branch coordinator regional scope (pure access policy)'
         province: { region: 'Doğu Anadolu' }
       }
     });
-    const questions = buildQuestionReadScope(branchCoordinator);
+    const questions: any = buildQuestionReadScope(branchCoordinator);
     expect(questions.authorUser.AuthorProfile).toEqual({
       branchId: { in: [7, 9] }, province: { region: 'Doğu Anadolu' }
     });
@@ -62,7 +62,7 @@ describe('RELEASE-04 — branch coordinator regional scope (pure access policy)'
     expect(canManageProject(branchCoordinator, project([]))).toBe(false);
     expect(canManageProject(branchCoordinator, mixed)).toBe(false);
     expect(canManageProject(branchCoordinator, wrongBranch)).toBe(false);
-    const scope = buildProjectReadScope(branchCoordinator);
+    const scope: any = buildProjectReadScope(branchCoordinator);
     expect(scope).toEqual(expect.objectContaining({ branchId: { in: [7, 9] } }));
     expect(scope.projectAuthors).toHaveProperty('none');
     expect(scope.projectAuthors).toHaveProperty('some');
