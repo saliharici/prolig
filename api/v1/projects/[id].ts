@@ -181,9 +181,19 @@ async function handlePatch(id: number, user: any, req: VercelRequest, res: Verce
     requestedAuthors = ids;
   }
 
+  if (user.role?.code === 'BRANS_KOORDINATORU') {
+    // Project completion triggers immutable compensation accrual. This transition
+    // stays under General/Regional control until branch tariff semantics are defined.
+    if (data.status === 'Tamamlandi') return res.status(403).json({ error: 'Branch coordinators cannot trigger financial project completion' });
+    if (requestedAuthors !== undefined && requestedAuthors.length === 0) return res.status(403).json({ error: 'Branch coordinator project must retain at least one in-scope author' });
+  }
+
   const effectiveBranchId = data.branchId ?? project.branch.id;
   const branchChanged = data.branchId !== undefined && data.branchId !== project.branch.id;
   const gradeChanged = data.targetGrade !== undefined && data.targetGrade !== project.targetGrade;
+  if (user.role?.code === 'BRANS_KOORDINATORU' && branchChanged) {
+    return res.status(403).json({ error: 'Branch coordinators cannot change a project branch' });
+  }
 
   if (branchChanged || gradeChanged) {
     const linkedQuestions = await prisma.question.count({ where: { projectId: id } });
