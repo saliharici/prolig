@@ -232,6 +232,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    // BRANS permissions are an explicit small allowlist. Legacy handlers must
+    // not accidentally grant unrelated book/message/announcement/finance rights.
+    if (user.role.code === 'BRANS_KOORDINATORU' &&
+      ['books','book','bookDocx','messages','message','messageRecipients',
+       'announcements','announcement','compensationRules','compensationRule',
+       'compensationEntries','paymentPeriods','paymentPeriod','paymentPeriodPrepare',
+       'paymentPeriodSettle','paymentPeriodClose','paymentPeriodCancel','auditLogs',
+       'applications','application'].includes(action)) {
+      return res.status(403).json({ error: 'Branch coordinator action is outside delegated rights' });
+    }
     if (action === 'books' || action === 'book' || action === 'bookDocx') {
       return handleBookAction(req, res, user, action);
     }
