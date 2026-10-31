@@ -46,7 +46,7 @@ describe('RELEASE-05 owner-only private questions / ordered sets / editable DOCX
     const admin=await prisma.role.upsert({where:{code:'GENEL_KOORDINATOR'},
       create:{code:'GENEL_KOORDINATOR',name:'General'},update:{}});
     const province=await prisma.province.findFirst() ??
-      await prisma.province.create({data:{code:'98',name:'Release 05 CI',region:'CI'}});
+      await prisma.province.create({data:{id: 9105,code:'98',name:'Release 05 CI',region:'CI'}});
     const branch=await prisma.branch.create({data:{name:'Release05 Matematik',category:'CI'}});
     const first=await prisma.user.create({data:{
       username:'release05-author-one',email:'release05-1@invalid.example',
