@@ -1,4 +1,4 @@
-export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'IL_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
+export type Role = 'GENEL_KOORDINATOR' | 'BOLGE_KOORDINATORU' | 'IL_KOORDINATORU' | 'BRANS_KOORDINATORU' | 'EDITOR' | 'YAZAR' | 'MUHASEBE';
 export type Section = 'overview' | 'grades' | 'questions' | 'publishing' | 'projects' | 'tasks' | 'messages' | 'announcements' | 'authors' | 'reports' | 'payments' | 'members' | 'roles' | 'audit';
 export type QuestionStatus = 'Taslak' | 'İncelemede' | 'Revizyon' | 'Onaylandı' | 'Reddedildi';
 export type PaymentStatus = 'Bekliyor' | 'Onaylandı' | 'Ödendi';
@@ -78,7 +78,8 @@ export interface DemoData {
 export const roleLabels: Record<Role, string> = {
   GENEL_KOORDINATOR: 'Genel Koordinatör',
   BOLGE_KOORDINATORU: 'Bölge Koordinatörü',
-    IL_KOORDINATORU: 'İl Koordinatörü',
+      BRANS_KOORDINATORU: 'Branş Koordinatörü',
+IL_KOORDINATORU: 'İl Koordinatörü',
   EDITOR: 'Editör',
   YAZAR: 'Yazar',
   MUHASEBE: 'Muhasebe',
@@ -87,7 +88,8 @@ export const roleLabels: Record<Role, string> = {
 export const rolePeople: Record<Role, string> = {
   GENEL_KOORDINATOR: 'Deniz Aydın',
   BOLGE_KOORDINATORU: 'Bölge Koordinatörü',
-    IL_KOORDINATORU: 'İl Koordinatörü',
+      BRANS_KOORDINATORU: 'Branş Koordinatörü',
+IL_KOORDINATORU: 'İl Koordinatörü',
   EDITOR: 'Selin Arslan',
   YAZAR: 'Ayşe Yılmaz',
   MUHASEBE: 'Mert Kaya',
@@ -113,7 +115,9 @@ export const sectionLabels: Record<Section, string> = {
 export const permissions: Record<Role, Section[]> = {
   GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'publishing', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments', 'members', 'roles', 'audit'],
   BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members', 'payments'],
-    IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members', 'payments'],
+      // Fail closed until project/task/report APIs enforce region + branch scopes.
+  BRANS_KOORDINATORU: ['overview'],
+IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members', 'payments'],
   EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
   YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
   MUHASEBE: ['overview', 'payments', 'projects', 'messages', 'announcements', 'reports'],
@@ -122,7 +126,8 @@ export const permissions: Record<Role, Section[]> = {
 export const dataScopes: Record<Role, string> = {
   GENEL_KOORDINATOR: 'Tüm örnek kayıtlar',
   BOLGE_KOORDINATORU: 'Bölge Koordinatörü',
-    IL_KOORDINATORU: 'İl Koordinatörü',
+      BRANS_KOORDINATORU: 'Bölge ve branş atamalı (üretim modülleri geçiş boyunca kapalı)',
+IL_KOORDINATORU: 'İl Koordinatörü',
   EDITOR: 'Tüm sorular ve proje özetleri',
   YAZAR: 'Kendi soruları ve atanmış proje',
   MUHASEBE: 'Telif ve ödeme kayıtları ile proje bağlamı',
