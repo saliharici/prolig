@@ -6,6 +6,7 @@ export const coordinatorRoles = new Set([
 
 export const regionAssignableRoles = new Set([
   'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU',
   'EDITOR',
   'YAZAR'
 ]);
@@ -79,7 +80,7 @@ export function buildUserReadScope(user: any): any {
 export function canAssignRole(actor: any, roleCode: string): boolean {
   const actorRole = actor?.role?.code;
   if (actorRole === 'GENEL_KOORDINATOR') {
-    return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE'].includes(roleCode);
+    return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE'].includes(roleCode);
   }
   if (actorRole === 'BOLGE_KOORDINATORU') {
     return regionAssignableRoles.has(roleCode);
