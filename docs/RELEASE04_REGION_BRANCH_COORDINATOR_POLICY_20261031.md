@@ -77,7 +77,20 @@ PR #117'nin `20261027010000_branch_coordinator_role/migration.sql` dosyası `ALT
 ## 7. Durum
 
 **Karar:** KABUL EDİLDİ.  
-**GitHub kod entegrasyonu:** NOT IMPLEMENTED.  
+**GitHub kod entegrasyonu:** PARTIAL — Üyelik, rol atama, geçici UI ve eklemeli migration dosyaları PR #118 üzerinde; diğer BRANS modül API'leri henüz yapılmadı.  
 **Yeni migration:** NOT IMPLEMENTED.  
 **Production:** DEĞİŞMEDİ.  
 **Sıradaki sahip:** 01 TEST mevcut PR #118'de kod ve minimum CI; 02 CANLI kontrollü yayın; 03 MİMARİ kapsam ve kabul matrisi.
+
+## 8. 31.10.2026 — Üyelik ve rol atama geliştirme paketi
+
+**GitHub kapsamı: IMPLEMENTED ON EXISTING PR #118 (NOT DEPLOYED).**
+- `api/v1/_lib/member-access.ts`: Bölge Koordinatörü, BRANS rolüne atama yapabilir. Genel tüm roller için yetkilidir; İl rolü tarihsel olarak korunmuştur.
+- `api/v1/management.ts`: BRANS rolü için geçerli mevcut bölge, bir veya fazla geçerli branş ve il alanının boş olması gerekir; Bölge Koordinatörü başka bölge atayamaz. Üye rolü, bölge ve branşlar tek transaction içinde güncellenir; audit önceki/sonraki kapsamı kaydeder. Yeni IL hesabı açılması reddedilir, eski hesaplar korunur.
+- `src/membership/MemberManagement.tsx`: Genel tüm bölgeleri, Bölge yalnız kendi bölgesini seçer; Branş Koordinatörü için birden çok branş seçimi ve geçerli rol dönüşümü. Aktif eski IL hesapları düzenleme sırasında geçiş rolü olarak görünür.
+- `prisma/schema.prisma`: IL değerini koruyarak BRANS enum'u eklendi. `User.assignedRegion` ve `UserBranchAssignment` zaten vardır; yeni tablo gerekmemiştir.
+- `20261031010000_release04_expand_branch_coordinator_enum` ve `20261031011000_release04_seed_branch_coordinator_role`: ADD VALUE ve rol seed işlemleri ayrıldı. **Migration SQL'i yalnız hazırlandı, Neon'a uygulanmadı.**
+- `src/demo/model.ts`, `src/types.ts`, `src/DemoApp.tsx`: geçici ikili rol tipi ve gösterim. **BRANS yeni rolü yalnız overview bölümüne erişir**; proje/görev/yazar/rapor API'lerinde bölge∩branş denetimi tamamlanıncaya kadar bu modüller açılmaz.
+- `tests/member-access.test.ts`: yeni rol atama hiyerarşisi için mevcut test sözleşmesine asgari doğrulama eklendi. **CI sonucu henüz PASS olarak doğrulanmadı.**
+
+**Açık kalan geliştirmeler:** Tüm işlevsel API'lerin BRANS bölge∩branş kapsamı, proje bölgesel sahiplik modeli, rol içi özelleştirilebilir izinler (ayrı açık sözleşme), P3'ü dışlayan kalıcı Production migration yolu ve DB+Vercel uyumlu geri dönüş mekanizması. Sadece bu üyelik paketinin tamamlanması yayın izni değildir. PR #117 ve #118'in 18 ortak dosyası hâlâ genel bütünleşme kapsamında çözülmelidir.
