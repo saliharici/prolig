@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma.js';
 import { getCurrentUser } from '../_lib/current-user.js';
 import { buildProjectReadScope, canCreateProject, canManageProject } from '../_lib/project-access.js';
+import { coordinatorBranchIds } from '../_lib/member-access.js';
 import { formatProjectDto, projectSelect } from '../_lib/project-dto.js';
 import { canReadAuthorPerformanceReport, getAuthorPerformanceReport } from '../_lib/author-performance-report.js';
 import {
@@ -95,6 +96,12 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
 
   if (!title || !code || !projectType || !deadline || !priority || !targetGrade || !branchId || description === undefined || authorProfileIds === null) {
     return res.status(400).json({ error: 'Invalid project fields' });
+  }
+
+  if (user.role.code === 'BRANS_KOORDINATORU' &&
+      (!user.assignedRegion || !coordinatorBranchIds(user).includes(branchId) ||
+       authorProfileIds.length === 0)) {
+    return res.status(403).json({ error: 'Branch coordinator project requires scoped branch and at least one region-matching author' });
   }
 
   const [branch, duplicate] = await Promise.all([

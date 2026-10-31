@@ -33,5 +33,6 @@ export interface ManagedUser {
   province?: ProvinceOption | null;
   editorGrade?: string | null;
   branchIds: number[];
+  branchPermissions?: string[];
   authorProfile?: { id: number; branchId: number; provinceId: number; districtId?: number | null; district?: { id: number; name: string } | null } | null;
 }

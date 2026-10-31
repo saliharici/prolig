@@ -24,6 +24,7 @@ export const projectSelect = {
       authorProfile: {
         select: {
           user: { select: { id: true, fullName: true } },
+          branchId: true,
           province: { select: { id: true, name: true, region: true } }
         }
       }

@@ -1,9 +1,11 @@
-import { editorBranchIds } from './member-access.js';
+import { hasBranchPermission } from './branch-permissions.js';
+import { coordinatorBranchIds, editorBranchIds } from './member-access.js';
 
 const supportedAuthorReadRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
   'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU',
   'EDITOR',
   'YAZAR',
   'MUHASEBE'
@@ -23,6 +25,13 @@ export function buildAuthorReadScope(user: any) {
   if (roleCode === 'IL_KOORDINATORU') {
     if (!user.provinceId) return { id: -1 };
     return { provinceId: user.provinceId };
+  }
+
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'authors.read')) return { id: -1 };
+    const branches = coordinatorBranchIds(user);
+    if (!user.assignedRegion || branches.length === 0) return { id: -1 };
+    return { branchId: { in: branches }, province: { region: user.assignedRegion } };
   }
 
   if (roleCode === 'EDITOR') {

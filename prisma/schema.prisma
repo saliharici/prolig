@@ -15,6 +15,7 @@ enum RoleCode {
   GENEL_KOORDINATOR
   BOLGE_KOORDINATORU
   IL_KOORDINATORU
+  BRANS_KOORDINATORU
   EDITOR
   YAZAR
   MUHASEBE
@@ -121,7 +122,8 @@ model User {
   fullName       String
   roleId         Int
   role           Role      @relation(fields: [roleId], references: [id])
-  assignedRegion String? // Bölge Koordinatörünün sorumlu olduğu bölge (örn: 'Marmara')
+  assignedRegion String? // Bölge / Branş Koordinatörünün sorumlu olduğu bölge (örn: 'Marmara')
+  branchPermissions String[] @default([]) // BRANS per-user least-privilege grants; server-side enforced
 
   editorBranchId Int?
   editorBranch   Branch? @relation("EditorBranch", fields: [editorBranchId], references: [id], onDelete: SetNull)
@@ -373,6 +375,8 @@ model Task {
   assignedCoordinator   User?          @relation("CoordinatorTasks", fields: [assignedCoordinatorId], references: [id])
   projectId             Int
   project               Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  targetQuestionCount    Int            @default(0)
+  questions             Question[]
   priority              Priority       @default(Normal)
   status                TaskStatus     @default(Bekliyor)
   startDate             DateTime       @default(now())
@@ -573,6 +577,8 @@ model Question {
   // Havuz sistemi: Soru havuza bağımsız düşer, sonradan kitaba çekilir.
   projectId Int?
   project   Project? @relation(fields: [projectId], references: [id])
+  taskId    Int?
+  task      Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   // Taksonomi (MEB Kategorizasyonu)
   objectiveCode String? // Kazanım Kodu (Örn: M.8.1.2.1)
@@ -601,6 +607,7 @@ model Question {
 
   @@index([authorUserId])
   @@index([projectId])
+  @@index([taskId])
   @@index([status])
 }
 

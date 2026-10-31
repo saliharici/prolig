@@ -15,7 +15,7 @@ import type { ApiTask, TaskPriority, TaskStatus } from './types';
 type TaskView = 'kanban' | 'list';
 type QuickFilter = 'all' | 'mine' | 'overdue' | 'week';
 
-const managerRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU']);
+const managerRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','BRANS_KOORDINATORU']);
 const statusColumns: Array<{ status: Exclude<TaskStatus,'Gecikti'>; label: string }> = [
   { status: 'Bekliyor', label: 'Bekliyor' },
   { status: 'Devam_Ediyor', label: 'Devam Ediyor' },
@@ -66,13 +66,15 @@ export function TaskTracking({
   projects,
   authors,
   initialProjectId,
-  onProjectFilterChange
+  onProjectFilterChange,
+  onStartProjectDraft
 }: {
   currentUser: AuthUser;
   projects: ApiProject[];
   authors: ApiAuthor[];
   initialProjectId?: number | null;
   onProjectFilterChange?: (projectId: number | null) => void;
+  onStartProjectDraft: (taskId: number, projectId: number) => void;
 }) {
   const canCreate = managerRoles.has(currentUser.role);
   const [tasks, setTasks] = useState<ApiTask[]>([]);
@@ -229,7 +231,8 @@ export function TaskTracking({
         return <section key={column.status} className="task-kanban-column">
           <header><strong>{column.label}</strong><span>{columnTasks.length}</span></header>
           <div className="task-kanban-stack">
-            {columnTasks.map(task=><TaskCard key={task.id} task={task} onEdit={openEdit} onAdvance={advance}/>)}
+            {columnTasks.map(task=><TaskCard key={task.id} task={task} onEdit={openEdit} onAdvance={advance}
+  canWrite={currentUser.role==='YAZAR'} currentUserId={currentUser.id} onStartProjectDraft={onStartProjectDraft}/>)}
             {columnTasks.length===0&&<div className="task-column-empty">Görev yok</div>}
           </div>
         </section>;
@@ -239,13 +242,13 @@ export function TaskTracking({
     {!loading && !error && tasks.length > 0 && view === 'list' && <div className="panel table-panel task-list-panel">
       <div className="table-wrap"><table><thead><tr><th>GÖREV</th><th>PROJE</th><th>SORUMLU</th><th>ÖNCELİK</th><th>TERMİN</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody>
         {visibleTasks.map(task=><tr key={task.id} className={task.isOverdue?'task-overdue-row':''}>
-          <td><strong>{task.title}</strong>{task.description&&<small className="task-table-note">{task.description}</small>}</td>
+          <td><strong>{task.title}</strong>{task.targetQuestionCount>0&&<small className="task-table-note">Hedef {task.targetQuestionCount} · Onay {task.production?.approved??0}</small>}{task.description&&<small className="task-table-note">{task.description}</small>}</td>
           <td>{task.project.code}<small className="task-table-note">{task.project.title}</small></td>
           <td>{assigneeName(task)}</td>
           <td><span className={`task-priority priority-${task.priority.toLowerCase()}`}>{trPriority(task.priority)}</span></td>
           <td>{shortDate(task.dueDate)}{task.isOverdue&&<small className="task-overdue-text">Gecikti</small>}</td>
           <td><span className={`task-status task-status-${task.status.toLowerCase()}`}>{trStatus(task.status)}</span></td>
-          <td><div className="row-actions">{task.canManage&&<button title="Düzenle" onClick={()=>openEdit(task)}><PencilLine size={14}/></button>}{task.canUpdateStatus&&task.status!=='Tamamlandi'&&!(task.status==='Kontrol_Bekliyor'&&!task.canManage)&&<button onClick={()=>void advance(task)}>İlerle <ChevronRight size={13}/></button>}</div></td>
+          <td><div className="row-actions">{currentUser.role==='YAZAR'&&task.assignedAuthor?.id===currentUser.id&&task.targetQuestionCount>0&&<button title="Görevden soru oluştur" onClick={()=>onStartProjectDraft(task.id,task.project.id)}><Plus size={14}/> Soru yaz</button>}{task.canManage&&<button title="Düzenle" onClick={()=>openEdit(task)}><PencilLine size={14}/></button>}{task.canUpdateStatus&&task.status!=='Tamamlandi'&&!(task.status==='Kontrol_Bekliyor'&&!task.canManage)&&<button onClick={()=>void advance(task)}>İlerle <ChevronRight size={13}/></button>}</div></td>
         </tr>)}
       </tbody></table>{visibleTasks.length===0&&<div className="empty-state">Bu filtreye uygun görev bulunamadı.</div>}</div>
     </div>}
@@ -263,13 +266,18 @@ export function TaskTracking({
   </>;
 }
 
-function TaskCard({ task, onEdit, onAdvance }: { task: ApiTask; onEdit: (task: ApiTask)=>void; onAdvance: (task: ApiTask)=>void }) {
+function TaskCard({ task, onEdit, onAdvance,canWrite,currentUserId,onStartProjectDraft }: {
+  task:ApiTask;onEdit:(task:ApiTask)=>void;onAdvance:(task:ApiTask)=>void;
+  canWrite:boolean;currentUserId:number;onStartProjectDraft:(taskId:number,projectId:number)=>void;
+}) {
   return <article className={`task-card ${task.isOverdue?'overdue':''}`}>
     <div className="task-card-top"><span className={`task-priority priority-${task.priority.toLowerCase()}`}>{trPriority(task.priority)}</span>{task.isOverdue&&<span className="task-overdue-badge"><AlertTriangle size={12}/> Gecikti</span>}</div>
     <h3>{task.title}</h3>
     <p>{task.project.code} · {task.project.title}</p>
+    {task.targetQuestionCount>0&&<p className="task-production-chip">Hedef: {task.targetQuestionCount} · Onaylanan: {task.production?.approved??0} · Yazılan: {task.production?.written??0}</p>}
     <div className="task-card-meta"><span><UserRound size={13}/>{assigneeName(task)}</span><span><CalendarDays size={13}/>{shortDate(task.dueDate)}</span></div>
     <div className="task-card-actions">
+      {canWrite&&task.assignedAuthor?.id===currentUserId&&task.targetQuestionCount>0&&<button onClick={()=>onStartProjectDraft(task.id,task.project.id)}><Plus size={13}/> Soru yaz</button>}
       {task.canManage&&<button onClick={()=>onEdit(task)}><PencilLine size={13}/> Düzenle</button>}
       {task.canUpdateStatus&&task.status!=='Tamamlandi'&&!(task.status==='Kontrol_Bekliyor'&&!task.canManage)&&<button className="advance" onClick={()=>onAdvance(task)}>İlerle <ChevronRight size={13}/></button>}
     </div>
@@ -302,6 +310,7 @@ function TaskForm({
   const [description,setDescription]=useState(task?.description??'');
   const [projectId,setProjectId]=useState(initialProjectId);
   const [priority,setPriority]=useState<TaskPriority>(task?.priority??'Normal');
+  const [targetQuestionCount,setTargetQuestionCount]=useState<number>(task?.targetQuestionCount??0);
   const [startDate,setStartDate]=useState(inputDate(task?.startDate) || new Date().toISOString().slice(0,10));
   const [dueDate,setDueDate]=useState(inputDate(task?.dueDate));
   const [status,setStatus]=useState<Exclude<TaskStatus,'Gecikti'>>(task?.status==='Gecikti'?'Devam_Ediyor':task?.status??'Bekliyor');
@@ -329,7 +338,12 @@ function TaskForm({
   };
   const userMap=new Map<number,ManagedUser>();
   [currentAsManaged,...managedUsers].forEach(user=>{
-    if (['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR'].includes(user.role)&&user.status==='Aktif') userMap.set(user.id,user);
+    if (currentUser.role==='BRANS_KOORDINATORU') {
+      // API allows only self-assignment or project-scoped authors for this role.
+      if (user.id===currentUser.id&&user.status==='Aktif') userMap.set(user.id,user);
+    } else if (['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR'].includes(user.role)&&user.status==='Aktif') {
+      userMap.set(user.id,user);
+    }
   });
   const eligibleUsers=[...userMap.values()].sort((a,b)=>a.fullName.localeCompare(b.fullName,'tr-TR'));
 
@@ -350,6 +364,7 @@ function TaskForm({
         priority,
         startDate,
         dueDate,
+        targetQuestionCount:assigneeType==='author'?targetQuestionCount:0,
         assignedAuthorProfileId:assigneeType==='author'?assigneeId:null,
         assignedUserId:assigneeType==='user'?assigneeId:null
       };
@@ -385,6 +400,7 @@ function TaskForm({
         {editing&&<label><span>Durum</span><select value={status} onChange={e=>setStatus(e.target.value as Exclude<TaskStatus,'Gecikti'>)}>{statusColumns.map(item=><option key={item.status} value={item.status}>{item.label}</option>)}</select></label>}
         <label><span>Başlangıç</span><input required type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}/></label>
         <label><span>Son teslim</span><input required type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label>
+        {assigneeType==='author'&&<label><span>Hedef soru adedi</span><input type="number" min={0} max={10000} step={1} value={targetQuestionCount} onChange={e=>setTargetQuestionCount(Number(e.target.value))}/><small className="field-help">0 = klasik görev; pozitif hedef = soru yazma görevi.</small></label>}
         <div className="task-span-two task-assignee-type"><button type="button" className={assigneeType==='author'?'active':''} onClick={()=>{setAssigneeType('author');setAssigneeId(0)}}>Yazar</button><button type="button" className={assigneeType==='user'?'active':''} onClick={()=>{setAssigneeType('user');setAssigneeId(0)}}>Koordinatör / Editör</button></div>
         <label className="task-span-two"><span>Sorumlu</span><select required value={assigneeId||''} onChange={e=>setAssigneeId(Number(e.target.value))}><option value="">Sorumlu seçin</option>{assigneeType==='author'?eligibleAuthors.map(author=><option key={author.id} value={author.id}>{author.fullName} · {author.province.name}</option>):eligibleUsers.map(user=><option key={user.id} value={user.id}>{user.fullName} · {roleLabels[user.role]}</option>)}</select><small className="field-help">{assigneeType==='author'?'Yalnız seçili projeye atanmış aktif yazarlar gösterilir.':'Yetki kapsamınızdaki koordinatör ve editörler gösterilir.'}</small></label>
         <label className="task-span-two"><span>Açıklama</span><textarea maxLength={1500} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Beklenen çıktı, kontrol ölçütü veya çalışma notu..."/></label>

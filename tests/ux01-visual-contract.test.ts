@@ -10,7 +10,8 @@ describe('UX-01 visual contract (no backend writes)', () => {
     expect(Object.keys(roleExperiences).sort()).toEqual(realRoles.sort());
     expect(roleExperiences.BOLGE_KOORDINATORU.label).toBe('Bölge Koordinatörü');
     expect(roleExperiences.IL_KOORDINATORU.label).toBe('İl Koordinatörü');
-    expect('BRANS_KOORDINATORU' in permissions).toBe(false);
+    expect('BRANS_KOORDINATORU' in permissions).toBe(true);
+    expect(roleExperiences.BRANS_KOORDINATORU.label).toBe('Branş Koordinatörü');
     expect('SUPER_ADMIN' in permissions).toBe(false);
   });
   it('filters every role shortcut against its existing permission list', () => {

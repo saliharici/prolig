@@ -15,6 +15,8 @@ export const taskSelect = {
   completionDate: true,
   createdAt: true,
   updatedAt: true,
+  targetQuestionCount: true,
+  questions: { select: { id: true, status: true } },
   project: { select: projectSelect },
   assignedAuthorProfile: {
     select: {
@@ -39,7 +41,8 @@ export const taskSelect = {
 
 export type SelectedTask = Prisma.TaskGetPayload<{ select: typeof taskSelect }>;
 
-export function formatTaskDto(task: SelectedTask, user: any) {
+export function formatTaskDto(task: SelectedTask, user: any, archivedIds: ReadonlySet<number> = new Set()) {
+  const activeQuestions=task.questions.filter(q=>!archivedIds.has(q.id));
   const now = Date.now();
   const isCompleted = task.status === 'Tamamlandi';
   const isOverdue = !isCompleted && task.dueDate.getTime() < now;
@@ -50,6 +53,17 @@ export function formatTaskDto(task: SelectedTask, user: any) {
     description: task.description,
     priority: task.priority,
     status: task.status,
+    targetQuestionCount: task.targetQuestionCount,
+    production: {
+      target: task.targetQuestionCount,
+      written: activeQuestions.length,
+      submitted: activeQuestions.filter(q => q.status === 'INCELEMEDE').length,
+      revision: activeQuestions.filter(q => q.status === 'REVIZYON').length,
+      approved: activeQuestions.filter(q => q.status === 'ONAYLANDI').length,
+      rejected: activeQuestions.filter(q => q.status === 'REDDEDILDI').length,
+      percent: task.targetQuestionCount > 0 ? Math.min(100,
+        Math.round(activeQuestions.filter(q => q.status === 'ONAYLANDI').length * 100 / task.targetQuestionCount)) : null
+    },
     isOverdue,
     startDate: task.startDate,
     dueDate: task.dueDate,
