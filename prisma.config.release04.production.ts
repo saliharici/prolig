@@ -43,10 +43,10 @@ try { manifest = JSON.parse(readFileSync(manifestPath, 'utf8')); } catch { block
 if (manifest!.policy !== 'RELEASE04_PRODUCTION_CANDIDATE_NO_P3' ||
     manifest!.historicalChecksumCertified !== true ||
     !Array.isArray(manifest!.historical) || manifest!.historical.length !== 9 ||
-    !Array.isArray(manifest!.pending) || manifest!.pending.length !== 3 ||
+    !Array.isArray(manifest!.pending) || manifest!.pending.length !== 4 ||
     !Array.isArray(manifest!.excluded) ||
     !manifest!.excluded.includes('20261021120000_p3_private_geometry_assets') ||
-    !Array.isArray(manifest!.approved) || manifest!.approved.length !== 12) block();
+    !Array.isArray(manifest!.approved) || manifest!.approved.length !== 13) block();
 const approved = manifest!.approved as string[];
 const checksums = manifest!.checksums as Record<string, string>;
 if (!checksums || typeof checksums !== 'object' ||
