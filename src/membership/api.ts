@@ -14,7 +14,7 @@ export async function submitMembershipApplication(payload: Record<string, unknow
   }));
 }
 export async function fetchMembershipMetadata() {
-  return json<{ provinces: ProvinceOption[]; branches: BranchOption[] }>(await fetch('/api/v1/membership/metadata', { credentials: 'include' }));
+  return json<{ provinces: ProvinceOption[]; branches: BranchOption[]; branchCoordinatorActivationEnabled: boolean }>(await fetch('/api/v1/membership/metadata', { credentials: 'include' }));
 }
 export async function fetchApplications() {
   return json<{ applications: MembershipApplication[] }>(await fetch('/api/v1/membership/applications', { credentials: 'include' }));
