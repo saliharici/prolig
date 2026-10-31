@@ -10,6 +10,7 @@ on:
       - 'prisma/migrations/20261029010000_task_question_production_v3/**'
       - 'prisma/migrations/20261031010000_release04_expand_branch_coordinator_enum/**'
       - 'prisma/migrations/20261031011000_release04_seed_branch_coordinator_role/**'
+      - 'prisma/migrations/20261031012000_release04_branch_permissions/**'
       - 'api/v1/questions/**'
       - 'api/v1/_lib/task-*.ts'
       - 'src/tasks/**'
@@ -51,6 +52,7 @@ jobs:
           test -f prisma/migrations/20261029010000_task_question_production_v3/migration.sql
           test -f prisma/migrations/20261031010000_release04_expand_branch_coordinator_enum/migration.sql
           test -f prisma/migrations/20261031011000_release04_seed_branch_coordinator_role/migration.sql
+          test -f prisma/migrations/20261031012000_release04_branch_permissions/migration.sql
           test ! -e prisma/migrations/20261027010000_branch_coordinator_role
           test ! -e prisma/migrations/20261029030000_unit_production_plan_v4
       - name: Stage exact-ledger Production candidate (no DB access, excludes P3)
@@ -64,7 +66,7 @@ jobs:
           npx prisma validate
           npx prisma generate
       - name: Targeted role/task/question regression
-        run: npx vitest run tests/release04-region-branch-scope.test.ts tests/task-handlers.test.ts tests/task-access.test.ts tests/question-handlers.test.ts tests/question-api.test.ts tests/publishing-docx-v1.test.ts tests/publishing-book-api-v2.test.ts tests/release03-question-task-draft.test.ts tests/release03-preview-guard.test.ts
+        run: npx vitest run tests/release04-region-branch-scope.test.ts tests/release04-permissions.test.ts tests/task-handlers.test.ts tests/task-access.test.ts tests/question-handlers.test.ts tests/question-api.test.ts tests/publishing-docx-v1.test.ts tests/publishing-book-api-v2.test.ts tests/release03-question-task-draft.test.ts tests/release03-preview-guard.test.ts
 
       - name: Candidate TypeScript / lint
         run: npm run lint
