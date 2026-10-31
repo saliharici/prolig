@@ -61,7 +61,7 @@ export function PublisherDesignPreview({onBack}:{onBack:()=>void}) {
          </div>
        </div>
      </div>
-     <p className="ux01-preview-disclaimer"><ShieldCheck size={16}/> Süper Admin ve Branş Koordinatörü yalnızca görsel prototiptir. İl Koordinatörü ve Bölge Koordinatörü mevcut backend rol ve yetkileri korunur.</p>
+     <p className="ux01-preview-disclaimer"><ShieldCheck size={16}/> Bu sayfa yalnızca görsel prototiptir; burada gösterilen kartlar izin vermez. Branş Koordinatörü rolü ve yetkileri gerçek API kurallarıyla denetlenir; Süper Admin henüz uygulanmadı.</p>
    </main>
  </div>;
 }
