@@ -18,6 +18,14 @@ const BRANCH_GRANT_OPTIONS = [
   ['tasks.update', 'Görev düzenle'],
   ['questions.read', 'Soruları görüntüle']
 ] as const;
+const BRANCH_GRANT_DEPS: Record<string, string[]> = {
+  'projects.create': ['projects.read','authors.read'],
+  'projects.update': ['projects.read'],
+  'tasks.read': ['projects.read'],
+  'tasks.update': ['tasks.read','projects.update'],
+  'tasks.create': ['tasks.update','tasks.read','projects.update','projects.read'],
+  'questions.read': ['projects.read']
+};
 
 type FormState = {
   id?: number;
@@ -103,6 +111,32 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     setForm(prev=>{
       if(prev.role==='YAZAR') return {...prev,branchIds:[id]};
       return {...prev,branchIds:prev.branchIds.includes(id)?prev.branchIds.filter(x=>x!==id):[...prev.branchIds,id]};
+    });
+  };
+  const toggleGrant = (key: string) => {
+    setForm(prev => {
+      const next = new Set(prev.branchPermissions);
+      if (next.has(key)) {
+        next.delete(key);
+        // Revoking a dependency also revokes every right that needs it.
+        let changed = true;
+        while (changed) {
+          changed = false;
+          for (const [grant,deps] of Object.entries(BRANCH_GRANT_DEPS)) {
+            if (next.has(grant) && deps.some(dep => !next.has(dep))) {
+              next.delete(grant); changed = true;
+            }
+          }
+        }
+      } else {
+        const include = (grant: string) => {
+          if (next.has(grant)) return;
+          next.add(grant);
+          (BRANCH_GRANT_DEPS[grant]||[]).forEach(include);
+        };
+        include(key);
+      }
+      return { ...prev, branchPermissions: [...next] };
     });
   };
   const startFromApplication=(app:MembershipApplication)=>{
@@ -326,8 +360,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
           <div className="member-branch-options">{BRANCH_GRANT_OPTIONS.map(([key,label])=>
             <label key={key} className={form.branchPermissions.includes(key)?'selected':''}>
               <input type="checkbox" checked={form.branchPermissions.includes(key)}
-                onChange={()=>setForm(prev=>({...prev,branchPermissions:prev.branchPermissions.includes(key)?
-                  prev.branchPermissions.filter(x=>x!==key):[...prev.branchPermissions,key]}))}/>
+                onChange={()=>toggleGrant(key)}/>
               <span>{label}</span>
             </label>)}</div>
           <small>İlişkili haklar: Proje oluşturma yazar/proje görüntüleme; görev oluşturma görev/proje görüntüleme ve düzenleme hakları gerektirir.</small>
