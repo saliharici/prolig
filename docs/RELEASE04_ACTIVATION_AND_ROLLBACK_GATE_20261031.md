@@ -29,7 +29,7 @@ Bölge Koordinatörü **yalnız kendi bölgesindeki** Branş Koordinatörüne bi
 1. Son SHA / `main` / Production Vercel dağıtımının aynı olduğunu ve başlangıç veri sayılarını salt okunur doğrula.
 2. Gerçekten geri yüklenebilir, güncel Neon kurtarma noktası ve geri dönüş koşulunu doğrula. Önceki `br-rapid-term-b2g1rg99` dalının READY olması **geri yükleme testinin PASS olması değildir**.
 3. Seçici P3'süz migration setinin tarihsel 9/9 SHA-256 kanıtını ve bekleyen **4 yeni migration'ı** doğrula. `prisma migrate deploy` varsayılan config ile ASLA çalıştırılmaz. `prisma.config.release04.production.ts` ancak yetkili operasyon için tam SHA, bağlantı hostu, `sslmode=verify-full`, tam manifest ve açık işlem onayıyla kullanılabilir.
-4. Şema eklemesi tamamlanmadan yeni Prisma client kullanan Production kodunu yayımlama. `main` PR merge işlemi otomatik Production build tetikleyebilir; yayın öncesi koşullar hazır değilse merge yapma.
+4. **Yayın sırası kritik (31 Ekim düzeltmesi):** Veritabanı geri dönüşü ve operasyonel onay doğrulandıktan sonra, varsayılan Prisma config yerine **`prisma.config.release04.production.ts` ile**, gerçek `refs/heads/release/prolig-pilot-v3-minimal` branch'i üzerinde, **onaylanmış HEAD SHA** değerinde seçilmiş 13 migration'ı uygula. Bu config gerçek GitHub ref/SHA, ayrı `RELEASE04_EXPLICIT_PRODUCTION_APPROVAL`, approved Neon hostname ve `sslmode=verify-full` eşleşmesini zorunlu tutar. `GITHUB_REF` değerini sahte `main` olarak sunma. **Yalnız migration başarısı ve eski sürümün genişletilmiş şemayla uyumluluk doğrulaması sonrası PR #118'i `main` ile birleştir.** Merge otomatik Production build başlatabilir; bu yüzden migration öncesi merge NO-GO.
 5. Yeni Production kodunu **aktivasyon OFF** durumunda yayımla; 6 tarihsel rol, mevcut hesap oturumları, soru/proje/kitap/telif ve HTTP health kısa kontrolü; P3 tablo/özellik aktif değil.
 
 **B — Branş hesaplarını ilk kez açma (ayrı operasyon, henüz onaylanmadı):**
@@ -45,7 +45,14 @@ Bölge Koordinatörü **yalnız kendi bölgesindeki** Branş Koordinatörüne bi
 
 **P3 ve tarihsel migration:** P3 migration'ı Production'a uygulanmaz veya `resolve --applied` ile sahte uygulanmış sayılmaz. Eski 9 başarılı + 1 rolled-back ledger kayıtlarına yazılmaz.
 
-## 5. Yayın kararı
+## 5. 31.10.2026 — CI legacy uyumluluk kanıtı
+
+- Hedefli GitHub Actions adımı, canlıda kullanılan `643cc3a524cb54c497cda550980fbc78f999be4d` kaynağının eski Prisma istemcisini doğrudan GitHub'dan çekip RELEASE-04'ün genişletilmiş **izole PostgreSQL** şemasında çalıştırır.
+- İlk çalışmadaki `LEGACY_IL_ROLE_MISSING` hatası, boş CI veritabanının eski altı rol için uygulama seed'ini çalıştırmamasından kaynaklandı. Sadece ephemeral CI ortamında tarihsel İl Koordinatörü rol fixture'ı oluşturularak test düzeltildi.
+- `d6737e6f2898f678d39b3420b92c444f752af423` üzerinde **RELEASE-04 ephemeral PostgreSQL PASS**: eski istemci eski IL rolü, kullanıcı ilişkisi ve temel kayıt tablolarında okuma uyumu doğruladı. Bu, gerçek Neon restore/Vercel rollback değildir; yeni BRANS hesapları aktifken old-code rollback izni vermez.
+- Sonraki `4e79aa946d5f7e94146c48ad8d3756adbce61051` commitinde Production migration guard, yanlış `main`-önce mantığını düzelterek onaylı PR branch/SHA üzerinde migration-önce-merge sırasını zorunlu kıldı. Bu değişiklik için son CI sonucunu ayrıca doğrula.
+
+## 6. Yayın kararı
 
 **Mevcut sonuç: NOT DEPLOYED / ACTIVATION OFF BY DEFAULT / ROLLBACK FULLY VERIFIED: NO.** Yetki ve aktivasyon kodu mevcut PR #118'de hazırlanmıştır; CI ve G2–G5 tamamen doğrulanmadan 02 CANLI release yapmaz.
 
