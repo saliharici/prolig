@@ -2,6 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../_lib/prisma.js';
 import { setSessionCookie } from '../_lib/auth.js';
+import { isBranchCoordinatorActivationEnabled } from '../_lib/branch-permissions.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -29,7 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       include: { role: true }
     });
 
-    if (!user || user.status?.toUpperCase() !== 'AKTIF' || !user.passwordHash) {
+    if (!user || user.status?.toUpperCase() !== 'AKTIF' || !user.passwordHash ||
+        (user.role.code === 'BRANS_KOORDINATORU' && !isBranchCoordinatorActivationEnabled())) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
