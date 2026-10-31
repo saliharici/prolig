@@ -1,3 +1,4 @@
+import { hasBranchPermission } from './branch-permissions.js';
 export const coordinatorRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
@@ -84,6 +85,7 @@ export function buildUserReadScope(user: any): any {
     };
   }
   if (role === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'authors.read')) return { id: -1 };
     const branches = coordinatorBranchIds(user);
     if (!user.assignedRegion || branches.length === 0) return { id: -1 };
     return {
