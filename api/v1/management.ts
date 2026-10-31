@@ -12,6 +12,7 @@ import { handlePaymentPeriodAction, type PeriodAction } from './_lib/payment-per
 import { handleCompensationAction } from './_lib/compensation-handler.js';
 import { handleBookAction } from './_lib/book-handler.js';
 import { maybeLogGo0IdentityOnce } from './_lib/go0-db-attestation.js';
+import { hasBranchPermission, isBranchCoordinatorActivationEnabled, validateBranchPermissionDependencies } from './_lib/branch-permissions.js';
 
 const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
@@ -51,6 +52,7 @@ function userDto(user: any) {
     province: user.province ? { id: user.province.id, name: user.province.name, region: user.province.region } : null,
     editorGrade: user.editorGrade,
     branchIds: user.branchAssignments?.map((x: any) => x.branchId) ?? [],
+    branchPermissions: user.role?.code === 'BRANS_KOORDINATORU' ? (user.branchPermissions ?? []) : [],
     authorProfile: user.AuthorProfile ?? null
   };
 }
@@ -61,6 +63,7 @@ async function validateAssignment(actor: any, payload: any) {
   const districtName = payload.districtName == null ? null : clean(payload.districtName, 120, true);
   const assignedRegion = payload.assignedRegion == null ? null : clean(payload.assignedRegion, 100, true);
   const editorGrade = payload.editorGrade == null ? null : clean(payload.editorGrade, 50, true);
+  if (roleCode === 'BRANS_KOORDINATORU' && !isBranchCoordinatorActivationEnabled()) return { error: 'Branch coordinator activation is disabled for this release' } as const;
   const branchIds: number[] = [];
   if (Array.isArray(payload.branchIds)) {
     for (const rawBranchId of payload.branchIds) {
@@ -75,7 +78,10 @@ async function validateAssignment(actor: any, payload: any) {
   if (actor.role.code === 'IL_KOORDINATORU' && assignedRegion) return { error: 'Province coordinator cannot assign a region-wide scope' } as const;
   if (roleCode === 'BOLGE_KOORDINATORU' && !assignedRegion) return { error: 'Region is required' } as const;
   if (roleCode === 'IL_KOORDINATORU' && !province) return { error: 'Province is required' } as const;
+  const branchPermissions: string[] = roleCode === 'BRANS_KOORDINATORU'
+    ? (payload.branchPermissions === undefined ? [] : payload.branchPermissions) : [];
   if (roleCode === 'BRANS_KOORDINATORU') {
+    if (!validateBranchPermissionDependencies(branchPermissions)) return { error: 'Invalid or unsafe branch coordinator permissions' } as const;
     if (!assignedRegion || provinceId !== null || branchIds.length === 0 || !Array.isArray(payload.branchIds) ||
         payload.branchIds.some((id: unknown) => positiveInt(id) === null) ||
         (await prisma.province.count({ where: { region: assignedRegion } })) === 0) {
@@ -92,13 +98,14 @@ async function validateAssignment(actor: any, payload: any) {
     const count = await prisma.branch.count({ where: { id: { in: branchIds } } });
     if (count !== branchIds.length) return { error: 'Unknown branch' } as const;
   }
-  return { roleCode, provinceId, districtName: roleCode === 'YAZAR' ? districtName : null, assignedRegion, editorGrade, branchIds } as const;
+  return { roleCode, provinceId, districtName: roleCode === 'YAZAR' ? districtName : null, assignedRegion, editorGrade, branchIds, branchPermissions } as const;
 }
 async function applyAssignment(tx: any, userId: number, v: any, status: string) {
   const role = await tx.role.findUnique({ where: { code: v.roleCode } });
   if (!role) throw new Error('ROLE_NOT_FOUND');
   await tx.user.update({ where: { id: userId }, data: {
     roleId: role.id, status,
+    branchPermissions: v.roleCode === 'BRANS_KOORDINATORU' ? v.branchPermissions : [],
     assignedRegion: ['BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(v.roleCode) || (v.roleCode === 'EDITOR' && v.assignedRegion) ? v.assignedRegion : null,
     provinceId: ['IL_KOORDINATORU','YAZAR','EDITOR'].includes(v.roleCode) && v.provinceId ? v.provinceId : null,
     editorBranchId: v.roleCode === 'EDITOR' ? (v.branchIds[0] ?? null) : null,
@@ -305,6 +312,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ application: updated });
     }
     if (action === 'users' && req.method === 'GET') {
+      if (user.role.code === 'BRANS_KOORDINATORU' && !hasBranchPermission(user, 'authors.read')) return res.status(403).json({ error: 'Forbidden' });
       const where = buildUserReadScope(user);
       if (!where) return res.status(403).json({ error: 'Forbidden' });
       const users = await prisma.user.findMany({ where, include: userInclude, orderBy: [{ fullName: 'asc' }, { id: 'asc' }] });
@@ -313,6 +321,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (action === 'users' && req.method === 'POST') {
       if (!['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
       if (req.body?.role === 'IL_KOORDINATORU') return res.status(409).json({ error: 'New province coordinator accounts are disabled during transition' });
+      if (req.body?.role === 'BRANS_KOORDINATORU' && !isBranchCoordinatorActivationEnabled()) return res.status(409).json({ error: 'Branch coordinator activation is disabled' });
       const fullName = clean(req.body?.fullName,120,true);
       const email = clean(req.body?.email,200,true)?.toLowerCase() || null;
       const password = clean(req.body?.password,200,true);
@@ -332,7 +341,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const base = await tx.user.create({ data: { username: email, email, passwordHash, fullName, roleId: role.id, status: 'Aktif' } });
         await applyAssignment(tx, base.id, v, 'Aktif');
         if (applicationId) await tx.membershipApplication.update({ where: { id: applicationId }, data: { status: 'ONAYLANDI', reviewedByName: user.fullName } });
-        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_CREATED_AND_ASSIGNED', entityType: 'User', entityId: base.id, details: JSON.stringify({ role: v.roleCode, provinceId: v.provinceId, districtName: v.districtName, assignedRegion: v.assignedRegion, branchIds: v.branchIds }) } });
+        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_CREATED_AND_ASSIGNED', entityType: 'User', entityId: base.id, details: JSON.stringify({ role: v.roleCode, provinceId: v.provinceId, districtName: v.districtName, assignedRegion: v.assignedRegion, branchIds: v.branchIds, branchPermissions: v.branchPermissions }) } });
         return tx.user.findUnique({ where: { id: base.id }, include: userInclude });
       });
       return res.status(201).json({ user: userDto(created) });
@@ -430,13 +439,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (id === user.id) return res.status(409).json({ error: 'Self role changes are not allowed here' });
       const target = await prisma.user.findUnique({ where: { id }, include: userInclude });
       if (!target || !(await targetInActorScope(user,target))) return res.status(404).json({ error: 'Not found' });
-      const v = await validateAssignment(user, req.body || {});
+      // Permission updates require an explicit complete grant list; never inherit
+      // grants when changing to or from a different role.
+      const patchPayload = { ...(req.body || {}) };
+      if (patchPayload.role === 'BRANS_KOORDINATORU' && patchPayload.branchPermissions === undefined &&
+        target.role.code === 'BRANS_KOORDINATORU') patchPayload.branchPermissions = target.branchPermissions;
+      const v = await validateAssignment(user, patchPayload);
       if ('error' in v) return res.status(403).json({ error: v.error });
       const status = req.body?.status === undefined ? target.status : clean(req.body.status,30,true);
       if (!status || !['Aktif','Pasif'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
       const updated = await prisma.$transaction(async (tx: any) => {
         await applyAssignment(tx,id,v,status);
-        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_ROLE_SCOPE_UPDATED', entityType: 'User', entityId: id, details: JSON.stringify({ fromRole: target.role.code, toRole: v.roleCode, fromRegion: target.assignedRegion, toRegion: v.assignedRegion, fromBranchIds: target.branchAssignments.map((item: any) => item.branchId), toBranchIds: v.branchIds, provinceId: v.provinceId, districtName: v.districtName, status }) } });
+        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_ROLE_SCOPE_UPDATED', entityType: 'User', entityId: id, details: JSON.stringify({ fromRole: target.role.code, toRole: v.roleCode, fromRegion: target.assignedRegion, toRegion: v.assignedRegion, fromBranchIds: target.branchAssignments.map((item: any) => item.branchId), toBranchIds: v.branchIds, fromBranchPermissions: target.branchPermissions, toBranchPermissions: v.branchPermissions, provinceId: v.provinceId, districtName: v.districtName, status }) } });
         return tx.user.findUnique({ where: { id }, include: userInclude });
       });
       return res.status(200).json({ user: userDto(updated) });
