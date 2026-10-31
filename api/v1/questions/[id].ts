@@ -43,7 +43,7 @@ function parseId(req: VercelRequest) {
 async function findQuestionInScope(id: number, user: any) {
   const scope = buildQuestionReadScope(user);
   return prisma.question.findFirst({
-    where: { AND: [{ id }, scope] },
+    where: { AND: [{ id }, scope, { isPersonal: false }] },
     include: questionInclude()
   });
 }
@@ -204,14 +204,29 @@ async function handlePatch(req: VercelRequest, res: VercelResponse) {
   }
 
   const payloadKeys = Object.keys(req.body || {});
-  const protectedFields = ['id', 'authorUserId', 'taskId', 'status', 'editorNote', 'createdAt', 'updatedAt', 'isArchived'];
+  const protectedFields = ['id', 'authorUserId', 'taskId', 'status', 'editorNote', 'createdAt', 'updatedAt', 'isArchived', 'isPersonal'];
+  if (question.isPersonal === true && (req.body?.projectId !== undefined && req.body.projectId !== null))
+    return res.status(409).json({ error: 'Private questions cannot enter publisher projects through editing' });
   if (payloadKeys.some(k => protectedFields.includes(k))) {
     return res.status(400).json({ error: 'Cannot modify protected fields' });
   }
 
   const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, assets } = req.body || {};
+  if (!question.isPersonal && (req.body?.personalSubject !== undefined || req.body?.personalTopic !== undefined))
+    return res.status(400).json({ error: 'Only personal questions have private taxonomy' });
+  for (const field of ['personalSubject', 'personalTopic'] as const) {
+    const value = req.body?.[field];
+    if (value !== undefined) {
+      if (!question.isPersonal || (value !== null && (typeof value !== 'string' || !value.trim() || value.length > 100)))
+        return res.status(400).json({ error: 'Invalid personal taxonomy' });
+    }
+  }
   const typed = usesTypedQuestion(req.body, question);
   const updateData: any = {};
+  if (question.isPersonal) {
+    if (req.body?.personalSubject !== undefined) updateData.personalSubject = req.body.personalSubject?.trim() ?? null;
+    if (req.body?.personalTopic !== undefined) updateData.personalTopic = req.body.personalTopic?.trim() ?? null;
+  }
 
   if (content !== undefined) {
     if (typeof content !== 'string' || content.trim().length < 10 || content.trim().length > 1200) {
