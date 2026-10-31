@@ -3,7 +3,8 @@ import { buildProjectReadScope, canManageProject } from './project-access.js';
 export const taskManagerRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU'
+  'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU'
 ]);
 
 export function canCreateTask(user: any): boolean {
@@ -24,6 +25,12 @@ export function buildTaskReadScope(user: any) {
         { project: projectScope }
       ]
     };
+  }
+
+  if (role === 'BRANS_KOORDINATORU') {
+    const projectScope = buildProjectReadScope(user);
+    if (!projectScope || 'id' in projectScope) return { id: -1 };
+    return { project: projectScope };
   }
 
   if (role === 'EDITOR') {
@@ -50,13 +57,14 @@ export function canManageTask(user: any, task: any): boolean {
 }
 
 export function canUpdateTaskStatus(user: any, task: any): boolean {
+  if (user?.role?.code === 'BRANS_KOORDINATORU') return canManageTask(user, task);
   return canManageTask(user, task) || isTaskAssignee(user, task);
 }
 
 export function canAssignTaskUser(actor: any, target: any): boolean {
   if (!taskManagerRoles.has(actor?.role?.code) || !target) return false;
   if (target.status?.toUpperCase?.() !== 'AKTIF') return false;
-  if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR'].includes(target.role?.code)) {
+  if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR'].includes(target.role?.code)) {
     return false;
   }
 
@@ -68,6 +76,12 @@ export function canAssignTaskUser(actor: any, target: any): boolean {
     if (target.role.code === 'BOLGE_KOORDINATORU') return target.assignedRegion === actor.assignedRegion;
     if (target.assignedRegion) return target.assignedRegion === actor.assignedRegion;
     return target.province?.region === actor.assignedRegion;
+  }
+
+  if (actor.role.code === 'BRANS_KOORDINATORU') {
+    // Only self-assignment; do not delegate tasks to another region/branch.
+    return Boolean(actor.assignedRegion) && target.id === actor.id &&
+      target.assignedRegion === actor.assignedRegion;
   }
 
   if (actor.role.code === 'IL_KOORDINATORU') {
