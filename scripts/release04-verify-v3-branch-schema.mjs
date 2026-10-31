@@ -25,10 +25,12 @@ try {
       WHERE migration_name='20261031011000_release04_seed_branch_coordinator_role' AND finished_at IS NOT NULL) AS branch_seed_applied,
     (SELECT COUNT(*)::int FROM "_prisma_migrations"
       WHERE migration_name LIKE '20261027010000_branch%' OR migration_name LIKE '20261029030000_unit%') AS forbidden_migrations,
+    (SELECT COUNT(*)::int FROM information_schema.columns WHERE table_name='User' AND column_name='branchPermissions' AND is_nullable='NO') AS permission_column,
+    (SELECT COUNT(*)::int FROM "_prisma_migrations" WHERE migration_name='20261031012000_release04_branch_permissions' AND finished_at IS NOT NULL) AS branch_permission_applied,
     to_regclass('"PrivateGeometryAsset"') IS NOT NULL AS has_p3,
     to_regclass('"ProjectUnitPlan"') IS NOT NULL AS has_v4`);
   const x = rows[0];
-  const expected = ['task_target','task_relation','historical_il','new_branch','branch_role','v3_applied','branch_enum_applied','branch_seed_applied'];
+  const expected = ['task_target','task_relation','historical_il','new_branch','branch_role','v3_applied','branch_enum_applied','branch_seed_applied','permission_column','branch_permission_applied'];
   if (expected.some(k => x[k] !== 1) || x.enum_count !== 7 || x.has_v4 || x.has_p3 || x.forbidden_migrations !== 0)
     throw new Error('RELEASE04_SCHEMA_INVARIANTS_FAIL: ' + JSON.stringify(x));
   const {rows: constraints} = await db.query(`SELECT COUNT(*)::int AS n FROM information_schema.table_constraints
