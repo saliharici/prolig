@@ -77,7 +77,7 @@ PR #117'nin `20261027010000_branch_coordinator_role/migration.sql` dosyası `ALT
 ## 7. Durum
 
 **Karar:** KABUL EDİLDİ.  
-**GitHub kod entegrasyonu:** PARTIAL — Üyelik, rol atama, yazar/proje/görev/soru bölge+branş kapsamı ve eklemeli migration dosyaları PR #118 üzerinde; rapor/kitap/mesaj/telif gibi diğer modüller tamamlanmadı.  
+**GitHub kod entegrasyonu:** PARTIAL — Üyelik, rol atama, yazar/proje/görev/soru bölge+branş kapsamı, sunucu tarafında kişiye özel sekiz işlem hakkı ve aktivasyon bayrağı PR #118 üzerinde; rapor/kitap/mesaj/telif yetkileri bilinçli olarak devredilmedi.  
 **Yeni migration:** SQL PREPARED / NOT APPLIED.  
 **Production:** DEĞİŞMEDİ.  
 **Sıradaki sahip:** 01 TEST mevcut PR #118'de kod ve minimum CI; 02 CANLI kontrollü yayın; 03 MİMARİ kapsam ve kabul matrisi.
@@ -123,3 +123,15 @@ PR #117'nin `20261027010000_branch_coordinator_role/migration.sql` dosyası `ALT
 - GitHub otomatik CI **`e57e0312523495b4e941db31862c04fd72ab8e1f` commitinde** dört işte PASS: Pro-Lig CI; P2 Isolated PostgreSQL; Publishing V2 Isolated PostgreSQL; RELEASE-04 V3 + Additive Branch Role (ephemeral PostgreSQL).
 - Sonraki metadata/görev formu ve belge commitleri bu eski PASS sonucunu otomatik miras almaz. **Son HEAD CI: PENDING**, bu belgede PASS iddiası yalnız `e57e0312` için.
 - Production migration ve Vercel deploy **YAPILMADI**. P3 izolasyonu ve 2 tarihsel IL hesabının yetkili branş atamaları hâlâ operasyonel NO-GO konusudur.
+
+## 11. 31.10.2026 — Kullanıcı bazlı izin motoru ve iki aşamalı geri dönüş
+
+**GitHub uygulaması (PR #118):**
+- `api/v1/_lib/branch-permissions.ts`: yalnız sekiz izin anahtarı, bağımlılık denetimi, varsayılan **deny**. `RELEASE04_BRANS_ACTIVATION_ENABLED` tam `true` değilse yeni rol erişimi kapalı.
+- `User.branchPermissions String[] @default([])` ve `20261031012000_release04_branch_permissions` yeni eklemeli migration. Eski İl Koordinatörleri, tarihi finans ve yazar kayıtları dönüştürülmez.
+- Üye yönetimi ekranında Genel/Bölge Koordinatörü, yalnız yetkili bölgede hesap, birden fazla branş ve sekiz işlem iznini yönetebilir. İzin bağımlılıkları otomatik seçilir/geri alınır, API sunucuda kesin doğrular; değişiklikler `ActivityLog` içinde önce/sonra olarak saklanır.
+- `getCurrentUser` yeni BRANS rolünü aktivasyon OFF iken kabul etmez; `management.ts` BRANS atamasını OFF iken reddeder. Yazar, proje, soru, görev ve üye-okuma kapsamı için hem **eylem izni hem bölge∩branş** denetimi şarttır. Finans, editör onayı, mesaj, duyuru, kitap ve işlem geçmişi Branş Koordinatörüne açılmaz.
+- Proje silme/arşivleme, görev kalıcı silme işlemleri `projects.update` / `tasks.update` haklarıyla genişlemez; server-side DENY.
+- Kaynakta seçilen **4 yeni migration**: V3, BRANS enum, Role seed, kullanıcı-bazlı `branchPermissions`. P3 migration kaynakta korunur, staged Production adayına alınmaz.
+- Geri dönüş ve aktivasyon kuralları: `docs/RELEASE04_ACTIVATION_AND_ROLLBACK_GATE_20261031.md`. Aktivasyon öncesinde eski deployment'a dönüş bile yeni enum/Role satırlarıyla uyumluluğu doğrulanmadan PASS sayılmaz; aktivasyon sonrası eski deployment'a kör rollback **NO-GO**.
+- **Bu geliştirmelerin canlıya alınması ve Production migration yapılması henüz onaylı/uygulanmış değildir.** CI sonucunu yalnız son HEAD üzerinde doğrulayınca PASS yaz.
