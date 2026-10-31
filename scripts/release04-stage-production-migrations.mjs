@@ -44,14 +44,17 @@ if (otherDirs.length || missingDirs.length || !present.includes(forbidden)) {
     JSON.stringify({ unexpectedCount: otherDirs.length, missingCount: missingDirs.length, p3Exists: present.includes(forbidden) }));
 }
 const checksums = {};
+const historyMismatch = [];
 for (const name of approved) {
   const sqlFile = join(source, name, 'migration.sql');
   if (!existsSync(sqlFile)) throw new Error('RELEASE04_MISSING_SQL: ' + name);
   const content = readFileSync(sqlFile);
   const sha = createHash('sha256').update(content).digest('hex');
-  if (historical[name] && sha !== historical[name])
-    throw new Error('RELEASE04_HISTORICAL_CHECKSUM_MISMATCH: ' + name);
+  if (historical[name] && sha !== historical[name]) historyMismatch.push(name);
   checksums[name] = sha;
+}
+if (historyMismatch.length) {
+  throw new Error('RELEASE04_HISTORICAL_CHECKSUM_MISMATCH: ' + historyMismatch.join(','));
 }
 if (!existsSync(join(source, 'migration_lock.toml'))) throw new Error('RELEASE04_MISSING_MIGRATION_LOCK');
 // All checks above finish BEFORE touching the reproducible ignored staging folder.
