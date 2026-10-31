@@ -1,4 +1,4 @@
-import { editorBranchIds } from './member-access.js';
+import { coordinatorBranchIds, editorBranchIds } from './member-access.js';
 
 export function buildQuestionReadScope(user: any) {
   const roleCode = user.role.code;
@@ -28,6 +28,20 @@ export function buildQuestionReadScope(user: any) {
           provinceId: user.provinceId
         }
       }
+    };
+  }
+
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    const branches = coordinatorBranchIds(user);
+    if (!user.assignedRegion || branches.length === 0) return { id: -1 };
+    return {
+      authorUser: {
+        AuthorProfile: {
+          branchId: { in: branches },
+          province: { region: user.assignedRegion }
+        }
+      },
+      project: { branchId: { in: branches } }
     };
   }
 
