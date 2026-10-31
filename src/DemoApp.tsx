@@ -878,7 +878,14 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   useEffect(() => { saveDemoData(data); }, [data]);
   useEffect(() => { if (toast) { const timer = window.setTimeout(() => setToast(''), 3800); return () => window.clearTimeout(timer); } }, [toast]);
 
-  const allowed = permissions[currentUser.role];
+  // UI is an advisory view of per-user rights; server checks remain authoritative.
+  const allowed = currentUser.role === 'BRANS_KOORDINATORU'
+    ? (['overview',
+        ...(currentUser.branchPermissions?.includes('authors.read') ? ['authors'] : []),
+        ...(currentUser.branchPermissions?.includes('projects.read') ? ['projects'] : []),
+        ...(currentUser.branchPermissions?.includes('tasks.read') ? ['tasks'] : []),
+        ...(currentUser.branchPermissions?.includes('questions.read') ? ['questions'] : [])
+      ] as Section[]) : permissions[currentUser.role];
   const authorMapAuthors = useMemo(() => apiAuthors.map(author => ({
     id: author.id,
     name: author.fullName,
@@ -896,7 +903,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const questionLevels = Object.keys(gradesByLevel);
   const questionGrades = gradesByLevel[questionLevel] || [];
   const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
-  const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'BRANS_KOORDINATORU'].includes(currentUser.role);
+  const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role)
+    || (currentUser.role === 'BRANS_KOORDINATORU' && (currentUser.branchPermissions||[]).includes('projects.create'));
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
   // Keep P1/P1-D payloads unchanged unless the separate multi-type UI flag is enabled.
   const guidedStudioOn = questionStudioReleaseFlags.guidedP2;
@@ -1409,7 +1417,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
     setShowQuestionForm(true);
   };
   const openTaskLinkedQuestionDraft = (taskId:number,projectId:number) => {
-    if(currentUser.role!=='YAZAR'||!permissions[currentUser.role]?.includes('questions')) return;
+    if(currentUser.role!=='YAZAR'||!allowed.includes('questions')) return;
     const project=questionAssignableProjects.find(p=>p.id===projectId);
     if(!project){setToast('Proje için soru oluşturma yetkiniz bulunmuyor.');return;}
     navigate('questions');
