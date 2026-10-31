@@ -8,6 +8,16 @@ import type { BranchOption, ManagedUser, MembershipApplication, ProvinceOption }
 import { districtsForProvince } from '../../shared/district-catalog';
 
 const REGIONS = ['Akdeniz','Doğu Anadolu','Ege','Güneydoğu Anadolu','İç Anadolu','Karadeniz','Marmara'];
+const BRANCH_GRANT_OPTIONS = [
+  ['authors.read', 'Yazarları görüntüle'],
+  ['projects.read', 'Projeleri görüntüle'],
+  ['projects.create', 'Proje oluştur'],
+  ['projects.update', 'Proje düzenle'],
+  ['tasks.read', 'Görevleri görüntüle'],
+  ['tasks.create', 'Görev oluştur'],
+  ['tasks.update', 'Görev düzenle'],
+  ['questions.read', 'Soruları görüntüle']
+] as const;
 
 type FormState = {
   id?: number;
@@ -21,11 +31,12 @@ type FormState = {
   assignedRegion: string;
   editorGrade: string;
   branchIds: number[];
+  branchPermissions: string[];
   status: 'Aktif'|'Pasif';
 };
 
 const emptyForm = (role: Role = 'YAZAR'): FormState => ({
-  fullName:'', email:'', password:'', role, provinceId:'', districtName:'', assignedRegion:'', editorGrade:'', branchIds:[], status:'Aktif'
+  fullName:'', email:'', password:'', role, provinceId:'', districtName:'', assignedRegion:'', editorGrade:'', branchIds:[], branchPermissions:[], status:'Aktif'
 });
 
 export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
@@ -112,6 +123,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
       id:u.id, fullName:u.fullName, email:u.email, password:'', role:u.role,
       provinceId:u.province?.id?String(u.province.id):'', districtName:u.authorProfile?.district?.name||'', assignedRegion:u.assignedRegion||'',
       editorGrade:u.editorGrade||'', branchIds:u.role==='YAZAR'&&u.authorProfile?[u.authorProfile.branchId]:u.branchIds,
+      branchPermissions:u.role==='BRANS_KOORDINATORU'?(u.branchPermissions||[]):[],
       status:(u.status==='Pasif'?'Pasif':'Aktif')
     });
   };
@@ -126,6 +138,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
         assignedRegion:form.role==='BRANS_KOORDINATORU'&&currentUser.role==='BOLGE_KOORDINATORU' ? currentUser.assignedRegion||null : form.assignedRegion||null,
         editorGrade:form.editorGrade||null,
         branchIds:form.branchIds,
+        branchPermissions:form.role==='BRANS_KOORDINATORU'?form.branchPermissions:[],
         applicationId:form.applicationId
       };
       if(form.role==='BRANS_KOORDINATORU' && (!payload.assignedRegion || form.branchIds.length===0)) throw new Error('Branş Koordinatörü için bölge ve en az bir branş seçilmelidir.');
@@ -237,7 +250,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
                 ? (currentUser.role==='BOLGE_KOORDINATORU' ? currentUser.assignedRegion||''
                   : form.assignedRegion||provinces.find(p=>String(p.id)===form.provinceId)?.region||'')
                 : '';
-              setForm({...form,role,provinceId:'',districtName:'',assignedRegion,editorGrade:'',branchIds:[]});
+              setForm({...form,role,provinceId:'',districtName:'',assignedRegion,editorGrade:'',branchIds:[],branchPermissions:[]});
             }}>{(form.id&&form.role==='IL_KOORDINATORU'?[...roles,'IL_KOORDINATORU' as Role]:roles).map(r=><option key={r} value={r}>{roleLabels[r]}</option>)}</select>
           </span>
         </label>
@@ -305,6 +318,19 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
             <span className="member-branch-search"><Search size={15}/><input value={branchQuery} onChange={e=>setBranchQuery(e.target.value)} placeholder="Branş ara..."/></span>
           </div>
           <div className="member-branch-options">{visibleBranches.map(b=><label key={b.id} className={form.branchIds.includes(b.id)?'selected':''}><input type={form.role==='YAZAR'?'radio':'checkbox'} checked={form.branchIds.includes(b.id)} onChange={()=>toggleBranch(b.id)}/><span>{b.name}</span></label>)}{visibleBranches.length===0&&<div className="member-branch-empty">Aramanızla eşleşen branş bulunamadı.</div>}</div>
+        </div>}
+        {form.role==='BRANS_KOORDINATORU'&&<div className="member-branch-field">
+          <div className="member-branch-head"><div><strong>Rol içi yetkiler</strong>
+            <span>Her yetki ayrı atanır. Bölge ve branş kapsamı her durumda geçerlidir; boş liste hiçbir işlem hakkı vermez.</span>
+          </div></div>
+          <div className="member-branch-options">{BRANCH_GRANT_OPTIONS.map(([key,label])=>
+            <label key={key} className={form.branchPermissions.includes(key)?'selected':''}>
+              <input type="checkbox" checked={form.branchPermissions.includes(key)}
+                onChange={()=>setForm(prev=>({...prev,branchPermissions:prev.branchPermissions.includes(key)?
+                  prev.branchPermissions.filter(x=>x!==key):[...prev.branchPermissions,key]}))}/>
+              <span>{label}</span>
+            </label>)}</div>
+          <small>İlişkili haklar: Proje oluşturma yazar/proje görüntüleme; görev oluşturma görev/proje görüntüleme ve düzenleme hakları gerektirir.</small>
         </div>}
       </div>
 
