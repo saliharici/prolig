@@ -18,7 +18,14 @@ if (process.env.CI !== 'true' || !['127.0.0.1','localhost'].includes(target.host
 const pool = new Pool({connectionString: raw});
 const db = new PrismaClient({adapter: new PrismaPg(pool)});
 try {
-  const provinceRole = await db.role.findUnique({where: {code: 'IL_KOORDINATORU'}});
+  // The ephemeral migration chain does not run the application's historic
+  // data seed. Production already has this role; initialize only this isolated
+  // smoke fixture before exercising the old generated Prisma client.
+  const provinceRole = await db.role.upsert({
+    where: {code: 'IL_KOORDINATORU'},
+    create: {code: 'IL_KOORDINATORU', name: 'İl Koordinatörü', permissions: []},
+    update: {}
+  });
   if (!provinceRole) throw new Error('LEGACY_IL_ROLE_MISSING');
   const created = await db.user.create({data: {
     username:'ci-release04-legacy', email:'ci-release04-legacy@invalid.example',
