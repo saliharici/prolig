@@ -35,16 +35,16 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
   const [users,setUsers]=useState<ManagedUser[]>([]);
   const [provinces,setProvinces]=useState<ProvinceOption[]>([]);
   const [branches,setBranches]=useState<BranchOption[]>([]);
-  const [form,setForm]=useState<FormState>(emptyForm(currentUser.role==='BOLGE_KOORDINATORU'?'YAZAR':'YAZAR'));
+  const [form,setForm]=useState<FormState>(emptyForm());
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
   const [showPassword,setShowPassword]=useState(false);
   const [branchQuery,setBranchQuery]=useState('');
 
   const roles = useMemo<Role[]>(()=> currentUser.role==='GENEL_KOORDINATOR'
-    ? ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']
+    ? ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']
     : currentUser.role==='BOLGE_KOORDINATORU'
-      ? ['IL_KOORDINATORU','EDITOR','YAZAR']
+      ? ['BRANS_KOORDINATORU','EDITOR','YAZAR']
       : ['EDITOR','YAZAR'], [currentUser.role]);
 
   const visibleBranches = useMemo(() => {
@@ -52,6 +52,20 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     if (!query) return branches;
     return branches.filter((branch) => branch.name.toLocaleLowerCase('tr-TR').includes(query));
   }, [branches, branchQuery]);
+
+  // UI mirrors server-side targetInActorScope; the API remains authoritative.
+  const canEditTarget = (target: ManagedUser) => {
+    if (target.id === currentUser.id) return false;
+    if (currentUser.role === 'GENEL_KOORDINATOR') return true;
+    if (currentUser.role === 'BOLGE_KOORDINATORU') {
+      if (!['IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR'].includes(target.role)) return false;
+      if (!currentUser.assignedRegion) return false;
+      if (target.assignedRegion) return target.assignedRegion === currentUser.assignedRegion;
+      return target.province?.region === currentUser.assignedRegion;
+    }
+    return currentUser.role === 'IL_KOORDINATORU' && ['EDITOR','YAZAR'].includes(target.role) &&
+      Boolean(currentUser.provinceId) && target.province?.id === currentUser.provinceId;
+  };
 
   const canManageLifecycle = (target: ManagedUser) => {
     if (target.id === currentUser.id) return false;
@@ -109,11 +123,12 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
         fullName:form.fullName,email:form.email,role:form.role,status:form.status,
         provinceId:form.provinceId?Number(form.provinceId):null,
         districtName:form.role==='YAZAR'?(form.districtName||null):null,
-        assignedRegion:form.assignedRegion||null,
+        assignedRegion:form.role==='BRANS_KOORDINATORU'&&currentUser.role==='BOLGE_KOORDINATORU' ? currentUser.assignedRegion||null : form.assignedRegion||null,
         editorGrade:form.editorGrade||null,
         branchIds:form.branchIds,
         applicationId:form.applicationId
       };
+      if(form.role==='BRANS_KOORDINATORU' && (!payload.assignedRegion || form.branchIds.length===0)) throw new Error('Branş Koordinatörü için bölge ve en az bir branş seçilmelidir.');
       if(!form.id) payload.password=form.password;
       if(form.id) await updateManagedUser(form.id,payload); else await createManagedUser(payload);
       setForm(emptyForm()); await load();
@@ -165,7 +180,7 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
     <div className="panel" style={{padding:0,overflow:'hidden',marginTop:18}}>
       <div className="table-heading"><div><strong>Kullanıcılar</strong><span>{currentUser.role==='GENEL_KOORDINATOR'?'Türkiye geneli':currentUser.role==='BOLGE_KOORDINATORU'?'Yalnız kendi bölgeniz':'Yalnız kendi iliniz'}</span></div></div>
       <div className="table-wrap"><table><thead><tr><th>KULLANICI</th><th>ROL</th><th>KAPSAM</th><th>BRANŞ</th><th>DURUM</th><th></th></tr></thead><tbody>
-        {users.map(u=><tr key={u.id}><td><strong>{u.fullName}</strong><small>{u.email}</small></td><td>{roleLabels[u.role]}</td><td>{u.assignedRegion||(u.province?`${u.province.name}${u.role==='YAZAR'&&u.authorProfile?.district?.name?` / ${u.authorProfile.district.name}`:''}`:'Türkiye')}</td><td>{u.role==='YAZAR'&&u.authorProfile?branches.find(b=>b.id===u.authorProfile?.branchId)?.name||'-':u.branchIds.map(id=>branches.find(b=>b.id===id)?.name).filter(Boolean).join(', ')||'-'}</td><td>{u.status}</td><td><div className="row-actions">{canManage&&u.id!==currentUser.id&&<button className="text-button" onClick={()=>editUser(u)}><PencilLine size={13}/> Düzenle</button>}{canManage&&canManageLifecycle(u)&&<button className="text-button" onClick={()=>toggleUserStatus(u)}>{u.status==='Pasif'?<UserCheck size={13}/>:<UserX size={13}/>} {u.status==='Pasif'?'Aktifleştir':'Pasife al'}</button>}{canManage&&canManageLifecycle(u)&&<button className="text-button danger-action" onClick={()=>removeUser(u)}><Trash2 size={13}/> Sil</button>}</div></td></tr>)}
+        {users.map(u=><tr key={u.id}><td><strong>{u.fullName}</strong><small>{u.email}</small></td><td>{roleLabels[u.role]}</td><td>{u.assignedRegion||(u.province?`${u.province.name}${u.role==='YAZAR'&&u.authorProfile?.district?.name?` / ${u.authorProfile.district.name}`:''}`:'Türkiye')}</td><td>{u.role==='YAZAR'&&u.authorProfile?branches.find(b=>b.id===u.authorProfile?.branchId)?.name||'-':u.branchIds.map(id=>branches.find(b=>b.id===id)?.name).filter(Boolean).join(', ')||'-'}</td><td>{u.status}</td><td><div className="row-actions">{canManage&&canEditTarget(u)&&<button className="text-button" onClick={()=>editUser(u)}><PencilLine size={13}/> Düzenle</button>}{canManage&&canManageLifecycle(u)&&<button className="text-button" onClick={()=>toggleUserStatus(u)}>{u.status==='Pasif'?<UserCheck size={13}/>:<UserX size={13}/>} {u.status==='Pasif'?'Aktifleştir':'Pasife al'}</button>}{canManage&&canManageLifecycle(u)&&<button className="text-button danger-action" onClick={()=>removeUser(u)}><Trash2 size={13}/> Sil</button>}</div></td></tr>)}
       </tbody></table></div>
     </div>
 
@@ -216,15 +231,28 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
           <span className="member-field-label">Rol <em>*</em></span>
           <span className="member-control member-select-control">
             <UsersRound size={18}/>
-            <select value={form.role} onChange={e=>setForm({...form,role:e.target.value as Role,branchIds:[],districtName:e.target.value==='YAZAR'?form.districtName:''})}>{roles.map(r=><option key={r} value={r}>{roleLabels[r]}</option>)}</select>
+            <select value={form.role} onChange={e=>{
+              const role=e.target.value as Role;
+              const assignedRegion = role==='BRANS_KOORDINATORU'
+                ? (currentUser.role==='BOLGE_KOORDINATORU' ? currentUser.assignedRegion||''
+                  : form.assignedRegion||provinces.find(p=>String(p.id)===form.provinceId)?.region||'')
+                : '';
+              setForm({...form,role,provinceId:'',districtName:'',assignedRegion,editorGrade:'',branchIds:[]});
+            }}>{(form.id&&form.role==='IL_KOORDINATORU'?[...roles,'IL_KOORDINATORU' as Role]:roles).map(r=><option key={r} value={r}>{roleLabels[r]}</option>)}</select>
           </span>
         </label>
 
-        {form.role==='BOLGE_KOORDINATORU'&&<label className="member-field">
+        {['BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(form.role)&&<label className="member-field">
           <span className="member-field-label">Bölge <em>*</em></span>
           <span className="member-control member-select-control">
             <MapPin size={18}/>
-            <select value={form.assignedRegion} onChange={e=>setForm({...form,assignedRegion:e.target.value})}><option value="">Seçiniz</option>{REGIONS.map(r=><option key={r}>{r}</option>)}</select>
+            <select required
+              value={form.role==='BRANS_KOORDINATORU'&&currentUser.role==='BOLGE_KOORDINATORU'?currentUser.assignedRegion||'':form.assignedRegion}
+              disabled={form.role==='BRANS_KOORDINATORU'&&currentUser.role==='BOLGE_KOORDINATORU'}
+              onChange={e=>setForm({...form,assignedRegion:e.target.value})}>
+              <option value="">Seçiniz</option>
+              {REGIONS.filter(r=>currentUser.role==='GENEL_KOORDINATOR'||r===currentUser.assignedRegion).map(r=><option key={r} value={r}>{r}</option>)}
+            </select>
           </span>
         </label>}
 
@@ -271,9 +299,9 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
           </span>
         </label>}
 
-        {['YAZAR','EDITOR'].includes(form.role)&&<div className="member-branch-field">
+        {['YAZAR','EDITOR','BRANS_KOORDINATORU'].includes(form.role)&&<div className="member-branch-field">
           <div className="member-branch-head">
-            <div><strong>Branş seçimi</strong><span>{form.role==='YAZAR'?'Yazar için tek branş seçin.':'Editör için bir veya daha fazla branş seçebilirsiniz.'}</span></div>
+            <div><strong>Branş seçimi</strong><span>{form.role==='YAZAR'?'Yazar için tek branş seçin.':'Editör veya Branş Koordinatörü için en az bir branş seçiniz.'}</span></div>
             <span className="member-branch-search"><Search size={15}/><input value={branchQuery} onChange={e=>setBranchQuery(e.target.value)} placeholder="Branş ara..."/></span>
           </div>
           <div className="member-branch-options">{visibleBranches.map(b=><label key={b.id} className={form.branchIds.includes(b.id)?'selected':''}><input type={form.role==='YAZAR'?'radio':'checkbox'} checked={form.branchIds.includes(b.id)} onChange={()=>toggleBranch(b.id)}/><span>{b.name}</span></label>)}{visibleBranches.length===0&&<div className="member-branch-empty">Aramanızla eşleşen branş bulunamadı.</div>}</div>
