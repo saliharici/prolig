@@ -298,7 +298,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           orderBy: { name: 'asc' }
         })
       ]);
-      return res.status(200).json({ provinces, branches });
+      return res.status(200).json({ provinces, branches, branchCoordinatorActivationEnabled: isBranchCoordinatorActivationEnabled() });
     }
     if (action === 'applications' && req.method === 'GET') {
       const where = buildApplicationReadScope(user);
