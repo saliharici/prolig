@@ -30,7 +30,8 @@ const historical = Object.freeze({
 const pending = Object.freeze([
   '20261029010000_task_question_production_v3',
   '20261031010000_release04_expand_branch_coordinator_enum',
-  '20261031011000_release04_seed_branch_coordinator_role'
+  '20261031011000_release04_seed_branch_coordinator_role',
+  '20261031012000_release04_branch_permissions'
 ]);
 const forbidden = '20261021120000_p3_private_geometry_assets';
 const approved = [...Object.keys(historical), ...pending];
@@ -99,6 +100,6 @@ writeFileSync(join(output, 'RELEASE04_MANIFEST.json'), JSON.stringify({
   historicalLineEndingRestorations,
   mode: 'PRODUCTION_CANDIDATE_STAGED_NOT_EXECUTED'
 }, null, 2) + '\n');
-console.log('RELEASE04_MIGRATION_STAGE_PASS: 9 historical + 3 pending; P3 omitted; historical staged bytes match Production ledger (9/9).');
+console.log('RELEASE04_MIGRATION_STAGE_PASS: 9 historical + 4 pending; P3 omitted; historical staged bytes match Production ledger (9/9).');
 console.log('Recovered historical CRLF bytes from unchanged GitHub source for ' + historicalLineEndingRestorations.length + ' migrations.');
 console.log('NO database access, SQL execution, Production approval or deploy occurred.');
