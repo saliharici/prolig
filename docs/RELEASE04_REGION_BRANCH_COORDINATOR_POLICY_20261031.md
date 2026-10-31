@@ -114,3 +114,12 @@ PR #117'nin `20261027010000_branch_coordinator_role/migration.sql` dosyası `ALT
 3. İki mevcut İl Koordinatörü hesabına bölge/branşlar otomatik atanmadı. Onaylı gerçek kullanıcı ataması olmadan rol dönüşümü yapılmaz.
 4. Rapor, kitap, duyuru, mesaj, finans ve kişiye özel alt-izin motoru BRANS için henüz açılmadı. Yetkilerin tüm API uçlarında tamamlandığı iddia edilmez.
 5. Mevcut GitHub Actions CI (yeni commitler için) PASS olarak henüz doğrulanmadı. Değişiklikler Production'a alınmadı; release ve geri dönüş aşaması ayrıca kontrol edilecek.
+
+## 10. 31.10.2026 — Metadata ve görev formu erişimi + CI kanıtı
+
+- `api/v1/management.ts`: BRANS `GET membership/metadata` yalnız kendi `assignedRegion` il listesini ve `UserBranchAssignment` branşlarını getirir; **BRANS ile katalogya veri yazılmaz**. BRANS `GET users` yalnız bölge+branş YAZAR listesini getirir, kullanıcı oluşturma/düzenleme/aktivasyonu ve başvuru onayı hâlâ reddedilir.
+- `src/tasks/TaskTracking.tsx`: BRANS için görev formu açılır; koordinatör atamada yalnız kendi hesabı, yazar atamada yalnız yetkili projenin yazarları kullanılabilir.
+- `api/v1/_lib/member-access.ts`: Bölge Koordinatörü yalnız kendi bölgesindeki Branş Koordinatörü hesabını pasifleştirerek yetkiyi geri alabilir. Bu kontrol sunucuda hedef kapsamıyla birlikte işletilir.
+- GitHub otomatik CI **`e57e0312523495b4e941db31862c04fd72ab8e1f` commitinde** dört işte PASS: Pro-Lig CI; P2 Isolated PostgreSQL; Publishing V2 Isolated PostgreSQL; RELEASE-04 V3 + Additive Branch Role (ephemeral PostgreSQL).
+- Sonraki metadata/görev formu ve belge commitleri bu eski PASS sonucunu otomatik miras almaz. **Son HEAD CI: PENDING**, bu belgede PASS iddiası yalnız `e57e0312` için.
+- Production migration ve Vercel deploy **YAPILMADI**. P3 izolasyonu ve 2 tarihsel IL hesabının yetkili branş atamaları hâlâ operasyonel NO-GO konusudur.
