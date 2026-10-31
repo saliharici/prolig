@@ -46,8 +46,11 @@ export function validateBranchPermissionDependencies(raw: unknown): boolean {
   if (grants.has('projects.create') && (!grants.has('projects.read') || !grants.has('authors.read'))) return false;
   if (grants.has('projects.update') && !grants.has('projects.read')) return false;
   if (grants.has('tasks.read') && !grants.has('projects.read')) return false;
-  if (grants.has('tasks.create') && (!grants.has('tasks.read') || !grants.has('projects.read'))) return false;
-  if (grants.has('tasks.update') && !grants.has('tasks.read')) return false;
+  // Underlying project/task handlers require a manageable project for writes.
+  // Enforce those requirements at grant time, rather than issuing unusable grants.
+  if (grants.has('tasks.create') && (!grants.has('tasks.read') || !grants.has('tasks.update') ||
+      !grants.has('projects.read') || !grants.has('projects.update'))) return false;
+  if (grants.has('tasks.update') && (!grants.has('tasks.read') || !grants.has('projects.update'))) return false;
   if (grants.has('questions.read') && !grants.has('projects.read')) return false;
   return true;
 }
