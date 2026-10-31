@@ -1,0 +1,149 @@
+# INERT TEMPLATE — NOT A GITHUB ACTIONS WORKFLOW UNTIL RENAME TO .yml
+# DO NOT RENAME until Settings > Environments > release04-production-migration
+# has REQUIRED REVIEWERS, ONLY the exact release branch in Deployment branches,
+# the environment-scoped secret and protected SHA/host/gate variables.
+# This file MUST NOT be added to main before the DB migration: merging main
+# may trigger an automatic Production build before the new schema is applied.
+#
+# One-shot trigger: a push that adds/changes the enabled .yml ONLY.
+# A commit touching any other path will NOT launch this workflow.
+# No workflow_dispatch: GitHub requires that workflow file on default branch.
+name: RELEASE-04 Production Migration (one-shot, approved release branch)
+
+on:
+  push:
+    branches:
+      - release/prolig-pilot-v3-minimal
+    paths:
+      - .github/workflows/release04-production-migrate.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release04-production-migration-once
+  cancel-in-progress: false
+
+jobs:
+  production-migration:
+    if: >-
+      github.repository == 'saliharici/prolig' &&
+      github.ref == 'refs/heads/release/prolig-pilot-v3-minimal' &&
+      github.event_name == 'push' &&
+      github.actor == 'saliharici'
+    environment:
+      name: release04-production-migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout reviewed source SHA without persistent credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify environment approval, immutable release SHA and main baseline
+        env:
+          APPROVED_SHA: ${{ vars.RELEASE04_APPROVED_RELEASE_SHA }}
+          APPROVED_HOST: ${{ vars.RELEASE04_APPROVED_PRODUCTION_DB_HOST }}
+          RELEASE_GATE: ${{ vars.RELEASE04_PRODUCTION_GATE }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "saliharici/prolig"
+          test "$GITHUB_REF" = "refs/heads/release/prolig-pilot-v3-minimal"
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test -n "$APPROVED_SHA"
+          test "$GITHUB_SHA" = "$APPROVED_SHA"
+          test "$APPROVED_HOST" = "ep-aged-rice-b21dkfno.c-6.eu-central-1.aws.neon.tech"
+          test "$RELEASE_GATE" = "RELEASE04_ONE_SHOT_ENVIRONMENT_APPROVED"
+          main_sha="$(git ls-remote --exit-code https://github.com/saliharici/prolig.git refs/heads/main | cut -f1)"
+          test "$main_sha" = "643cc3a524cb54c497cda550980fbc78f999be4d"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo 'RELEASE04_REPOSITORY_BRANCH_SHA_AND_ENV_GATES_PASS'
+
+      - name: Prepare Prisma tooling without exposing Production secrets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install pinned dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Stage and verify strict historical-checksum manifest (P3 excluded)
+        run: |
+          set -euo pipefail
+          node scripts/release04-stage-production-migrations.mjs
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync, existsSync } from 'node:fs';
+          const root = 'prisma/.release04-production-migrations';
+          const m = JSON.parse(readFileSync(root + '/RELEASE04_MANIFEST.json', 'utf8'));
+          assert.equal(m.policy, 'RELEASE04_PRODUCTION_CANDIDATE_NO_P3');
+          assert.equal(m.historicalChecksumCertified, true);
+          assert.equal(m.historical.length, 9);
+          assert.equal(m.pending.length, 4);
+          assert.equal(m.approved.length, 13);
+          assert.deepEqual(m.pending, [
+            '20261029010000_task_question_production_v3',
+            '20261031010000_release04_expand_branch_coordinator_enum',
+            '20261031011000_release04_seed_branch_coordinator_role',
+            '20261031012000_release04_branch_permissions'
+          ]);
+          assert(m.excluded.includes('20261021120000_p3_private_geometry_assets'));
+          assert(!existsSync(root + '/20261021120000_p3_private_geometry_assets'));
+          assert.equal(new Set(m.approved).size, 13);
+          console.log('RELEASE04_MIGRATION_MANIFEST_PASS');
+          NODE
+
+      - name: Check target and ledger, execute migration once only
+        env:
+          DIRECT_URL: ${{ secrets.RELEASE04_PRODUCTION_DIRECT_URL }}
+          RELEASE04_APPROVED_RELEASE_SHA: ${{ vars.RELEASE04_APPROVED_RELEASE_SHA }}
+          RELEASE04_APPROVED_PRODUCTION_DB_HOST: ${{ vars.RELEASE04_APPROVED_PRODUCTION_DB_HOST }}
+          RELEASE04_EXPLICIT_PRODUCTION_APPROVAL: RELEASE04_APPROVED_WITH_ROLLBACK
+        run: |
+          set -euo pipefail
+          test -n "${DIRECT_URL:-}"
+          test "$GITHUB_SHA" = "$RELEASE04_APPROVED_RELEASE_SHA"
+          test "$RELEASE04_APPROVED_PRODUCTION_DB_HOST" = "ep-aged-rice-b21dkfno.c-6.eu-central-1.aws.neon.tech"
+          # This config validates real repo/ref/full SHA, exact Neon host,
+          # neondb, sslmode=verify-full, P3 exclusion and all 13 checksums.
+          # prisma migrate status exits 1 by design while four migrations are pending.
+          # validate verifies the guarded config without treating pending work as failure.
+          ./node_modules/.bin/prisma validate --config ./prisma.config.release04.production.ts
+          # STOP if another run already started/applied any of the 4 migrations,
+          # or if the successful historical ledger differs in any way.
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import pg from 'pg';
+          const manifest = JSON.parse(readFileSync('prisma/.release04-production-migrations/RELEASE04_MANIFEST.json','utf8'));
+          const client = new pg.Client({connectionString:process.env.DIRECT_URL});
+          try {
+            await client.connect();
+            const { rows } = await client.query('SELECT migration_name, checksum, finished_at, rolled_back_at FROM "_prisma_migrations"');
+            const completed = rows.filter(r => r.finished_at !== null);
+            assert.equal(completed.length, 9, 'expected exactly nine completed historical migrations');
+            assert.equal(rows.filter(r => r.rolled_back_at !== null).length, 1, 'unexpected rollback ledger');
+            assert.equal(rows.length, 10, 'unexpected migration history; one-shot replay or partial migration');
+            assert.deepEqual(completed.map(r=>r.migration_name).sort(), [...manifest.historical].sort());
+            for (const r of completed) {
+              assert.equal(r.checksum, manifest.checksums[r.migration_name], 'historical checksum mismatch');
+            }
+            assert(rows.every(r=>!manifest.pending.includes(r.migration_name)), 'RELEASE04_ALREADY_STARTED_OR_APPLIED');
+            const {rows:[v]} = await client.query(`SELECT
+              to_regclass('public."PrivateGeometryAsset"') IS NULL AS no_p3,
+              NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Task' AND column_name='targetQuestionCount') AS no_v3,
+              NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel='BRANS_KOORDINATORU' AND enumtypid='"RoleCode"'::regtype) AS no_brans`);
+            assert(v.no_p3 && v.no_v3 && v.no_brans, 'unexpected target schema');
+            console.log('RELEASE04_PRODUCTION_PREFLIGHT_PASS');
+          } finally { await client.end(); }
+          NODE
+          # The only Production write operation in this workflow.
+          ./node_modules/.bin/prisma migrate deploy --config ./prisma.config.release04.production.ts
+          echo 'RELEASE04_PRODUCTION_MIGRATION_EXECUTED_REQUIRES_POSTDEPLOY_VERIFICATION'

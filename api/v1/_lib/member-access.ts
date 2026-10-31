@@ -1,14 +1,25 @@
+import { hasBranchPermission } from './branch-permissions.js';
 export const coordinatorRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU'
+  'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU'
 ]);
 
 export const regionAssignableRoles = new Set([
   'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU',
   'EDITOR',
   'YAZAR'
 ]);
+
+// Branş Koordinatörü scopes never inherit the legacy editorBranchId fallback.
+export function coordinatorBranchIds(user: any): number[] {
+  if (!Array.isArray(user?.branchAssignments)) return [];
+  return [...new Set<number>(user.branchAssignments
+    .map((assignment: any) => assignment?.branchId)
+    .filter((id: unknown): id is number => typeof id === 'number' && Number.isSafeInteger(id) && id > 0))];
+}
 
 export function editorBranchIds(user: any): number[] {
   const ids: number[] = [];
@@ -73,13 +84,25 @@ export function buildUserReadScope(user: any): any {
       ]
     };
   }
+  if (role === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'authors.read')) return { id: -1 };
+    const branches = coordinatorBranchIds(user);
+    if (!user.assignedRegion || branches.length === 0) return { id: -1 };
+    return {
+      role: { code: 'YAZAR' },
+      AuthorProfile: {
+        branchId: { in: branches },
+        province: { region: user.assignedRegion }
+      }
+    };
+  }
   return null;
 }
 
 export function canAssignRole(actor: any, roleCode: string): boolean {
   const actorRole = actor?.role?.code;
   if (actorRole === 'GENEL_KOORDINATOR') {
-    return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE'].includes(roleCode);
+    return ['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE'].includes(roleCode);
   }
   if (actorRole === 'BOLGE_KOORDINATORU') {
     return regionAssignableRoles.has(roleCode);
@@ -102,7 +125,7 @@ export function canManageUserLifecycle(actor: any, target: any): boolean {
   }
 
   if (actorRole === 'BOLGE_KOORDINATORU') {
-    return ['IL_KOORDINATORU', 'EDITOR', 'YAZAR'].includes(targetRole);
+    return ['IL_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR', 'YAZAR'].includes(targetRole);
   }
 
   if (actorRole === 'IL_KOORDINATORU') {

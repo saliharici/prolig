@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { createRelease03GuardedPool } from '../../../server/release03-db-connection.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../../generated/prisma/client.js';
 
@@ -8,7 +8,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not configured.");
 }
 
-const pool = new Pool({ connectionString });
+const pool = createRelease03GuardedPool({ connectionString });
 const adapter = new PrismaPg(pool);
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };

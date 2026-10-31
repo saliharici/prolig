@@ -9,17 +9,24 @@ import {
   canManageTask,
   isTaskAssignee
 } from './task-access.js';
-import { formatTaskDto, taskSelect } from './task-dto.js';
+import { formatTaskDto, taskSelect, type SelectedTask } from './task-dto.js';
+import { getQuestionArchiveStateMap } from './question-archive.js';
+
+async function formatActiveTasks(tasks: SelectedTask[], user:any) {
+  const archived=await getQuestionArchiveStateMap(tasks.flatMap(task=>task.questions.map(q=>q.id)));
+  const archivedIds=new Set([...archived.entries()].filter(([,v])=>v).map(([id])=>id));
+  return tasks.map(task=>formatTaskDto(task,user,archivedIds));
+}
 
 const priorities = new Set(['Dusuk', 'Normal', 'Yuksek', 'Acil']);
 const workflowStatuses = new Set(['Bekliyor', 'Devam_Ediyor', 'Kontrol_Bekliyor', 'Tamamlandi']);
 const createFields = new Set([
   'title', 'description', 'projectId', 'priority', 'startDate', 'dueDate',
-  'assignedAuthorProfileId', 'assignedUserId'
+  'assignedAuthorProfileId', 'assignedUserId', 'targetQuestionCount'
 ]);
 const patchFields = new Set([
   'title', 'description', 'priority', 'startDate', 'dueDate',
-  'assignedAuthorProfileId', 'assignedUserId', 'status'
+  'assignedAuthorProfileId', 'assignedUserId', 'status', 'targetQuestionCount'
 ]);
 
 function positiveInt(value: unknown): number | null {
@@ -145,7 +152,7 @@ async function listTasks(user: any, req: VercelRequest, res: VercelResponse) {
     orderBy: [{ dueDate: 'asc' }, { priority: 'desc' }, { id: 'asc' }]
   });
 
-  return res.status(200).json(tasks.map((task) => formatTaskDto(task, user)));
+  return res.status(200).json(await formatActiveTasks(tasks,user));
 }
 
 async function getTask(id: number, user: any, res: VercelResponse) {
@@ -158,7 +165,7 @@ async function getTask(id: number, user: any, res: VercelResponse) {
   });
   if (!task) return res.status(404).json({ error: 'Task not found' });
 
-  return res.status(200).json(formatTaskDto(task, user));
+  return res.status(200).json((await formatActiveTasks([task],user))[0]);
 }
 
 async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
@@ -177,7 +184,13 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
   const dueDate = parseDate(body.dueDate);
   const assignedAuthorProfileId = body.assignedAuthorProfileId == null ? null : positiveInt(body.assignedAuthorProfileId);
   const assignedUserId = body.assignedUserId == null ? null : positiveInt(body.assignedUserId);
-
+  const targetQuestionCount = body.targetQuestionCount === undefined ? 0 : body.targetQuestionCount;
+  if (!Number.isSafeInteger(targetQuestionCount) || targetQuestionCount < 0 || targetQuestionCount > 10000) {
+    return res.status(400).json({ error: 'Question target must be an integer between 0 and 10000' });
+  }
+  if (targetQuestionCount > 0 && !assignedAuthorProfileId) {
+    return res.status(400).json({ error: 'Only an author task can carry a question target' });
+  }
   if (!title || description === undefined || !projectId || !priority || !startDate || !dueDate) {
     return res.status(400).json({ error: 'Invalid task fields' });
   }
@@ -200,6 +213,7 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
         title,
         description,
         projectId,
+        targetQuestionCount,
         priority,
         status: 'Bekliyor',
         startDate,
@@ -219,6 +233,7 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
         details: JSON.stringify({
           projectId,
           priority,
+          targetQuestionCount,
           assignedAuthorProfileId: assignee.assignedAuthorProfileId,
           assignedCoordinatorId: assignee.assignedCoordinatorId
         })
@@ -229,7 +244,7 @@ async function createTask(user: any, req: VercelRequest, res: VercelResponse) {
   });
 
   if (!task) return res.status(500).json({ error: 'Task creation failed' });
-  return res.status(201).json(formatTaskDto(task, user));
+  return res.status(201).json((await formatActiveTasks([task],user))[0]);
 }
 
 async function updateTask(id: number, user: any, req: VercelRequest, res: VercelResponse) {
@@ -296,12 +311,27 @@ async function updateTask(id: number, user: any, req: VercelRequest, res: Vercel
     if (!manager) return res.status(403).json({ error: 'Only coordinators can reassign tasks' });
     const authorId = body.assignedAuthorProfileId == null ? null : positiveInt(body.assignedAuthorProfileId);
     const userId = body.assignedUserId == null ? null : positiveInt(body.assignedUserId);
+    if (task.questions.length > 0 &&
+        (authorId !== task.assignedAuthorProfileId || userId !== task.assignedCoordinatorId))
+      return res.status(409).json({ error: 'Linked questions exist; task assignee cannot change' });
     const checked = await validateAssignee(task.project, user, authorId, userId);
     if ('error' in checked) return res.status(403).json({ error: checked.error });
     data.assignedAuthorProfileId = checked.assignedAuthorProfileId;
     data.assignedCoordinatorId = checked.assignedCoordinatorId;
   }
 
+  if (Object.prototype.hasOwnProperty.call(body, 'targetQuestionCount')) {
+    if (!manager || !Number.isSafeInteger(body.targetQuestionCount) || body.targetQuestionCount < 0 || body.targetQuestionCount > 10000) {
+      return res.status(400).json({ error: 'Invalid question target or task permission' });
+    }
+    const nextAuthorId = data.assignedAuthorProfileId !== undefined ? data.assignedAuthorProfileId : task.assignedAuthorProfileId;
+    if (body.targetQuestionCount > 0 && !nextAuthorId) return res.status(400).json({ error: 'Question target requires a writer' });
+    data.targetQuestionCount = body.targetQuestionCount;
+  }
+  if (assigneeFieldsTouched && data.assignedAuthorProfileId === null && task.targetQuestionCount > 0 &&
+    data.targetQuestionCount === undefined) {
+    return res.status(409).json({ error: 'Clear the question target before assigning a coordinator' });
+  }
   if (Object.prototype.hasOwnProperty.call(body, 'status')) {
     if (typeof body.status !== 'string' || !workflowStatuses.has(body.status)) {
       return res.status(400).json({ error: 'Invalid task status' });
@@ -325,14 +355,16 @@ async function updateTask(id: number, user: any, req: VercelRequest, res: Vercel
   });
 
   if (!updated) return res.status(404).json({ error: 'Task not found' });
-  return res.status(200).json(formatTaskDto(updated, user));
+  return res.status(200).json((await formatActiveTasks([updated],user))[0]);
 }
 
 async function deleteTask(id: number, user: any, res: VercelResponse) {
+  if (user.role?.code === 'BRANS_KOORDINATORU') return res.status(403).json({ error: 'Branch coordinators cannot permanently delete tasks' });
   const task = await prisma.task.findUnique({ where: { id }, select: taskSelect });
   if (!task || !canManageTask(user, task)) {
     return res.status(404).json({ error: 'Task not found or outside management scope' });
   }
+  if (task.questions.length > 0) return res.status(409).json({ error: 'Cannot delete a task with linked questions' });
   if (task.status !== 'Bekliyor') {
     return res.status(409).json({ error: 'Only waiting tasks can be permanently deleted' });
   }

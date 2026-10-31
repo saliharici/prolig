@@ -19,6 +19,7 @@ vi.mock('../api/v1/_lib/prisma.js', () => ({
   prisma: {
     user: { findUnique: vi.fn() },
     question: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
+    task: { findUnique: vi.fn() },
     projectAuthor: { findUnique: vi.fn() },
     activityLog: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
     $transaction: vi.fn()
@@ -844,5 +845,51 @@ describe('Question API Handlers', () => {
       expect(findUniqueCall?.select).toBeDefined();
       expect(findUniqueCall?.select).not.toHaveProperty("passwordHash");
     });
+  });
+});
+
+describe('RELEASE-03 V3 question-to-task fail-closed binding', () => {
+  const writer={id:30,fullName:'TEST',status:'Aktif',
+    role:{code:'YAZAR'},AuthorProfile:{id:3,branchId:2}};
+  const payload={content:'Sınıftaki öğrencilerin sayısını bulunuz',
+    grade:'8. Sınıf',options:['1','2','3','4'],correctAnswer:'A',
+    projectId:10,taskId:50};
+  beforeEach(()=>{
+    vi.clearAllMocks();
+    vi.mocked(authLib.getSessionUserId).mockReturnValue(30);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(writer as any);
+  });
+  it('rejects another writer or project task before creating any question',async()=>{
+    vi.mocked(prisma.task.findUnique).mockResolvedValue({
+      projectId:10,assignedAuthorProfileId:4,targetQuestionCount:20
+    } as any);
+    const {req,res}=mockReqRes('POST',payload);
+    await handlerGetPost(req,res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(prisma.question.create).not.toHaveBeenCalled();
+  });
+  it('rejects tasks without a positive question production target',async()=>{
+    vi.mocked(prisma.task.findUnique).mockResolvedValue({
+      projectId:10,assignedAuthorProfileId:3,targetQuestionCount:0
+    } as any);
+    const {req,res}=mockReqRes('POST',payload);
+    await handlerGetPost(req,res);
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(prisma.question.create).not.toHaveBeenCalled();
+  });
+  it('rejects mismatched project/task pair before mutating data',async()=>{
+    vi.mocked(prisma.task.findUnique).mockResolvedValue({
+      projectId:11,assignedAuthorProfileId:3,targetQuestionCount:20
+    } as any);
+    const {req,res}=mockReqRes('POST',payload);
+    await handlerGetPost(req,res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(prisma.question.create).not.toHaveBeenCalled();
+  });
+  it('rejects malformed task IDs, including numeric strings',async()=>{
+    const {req,res}=mockReqRes('POST',{...payload,taskId:'50'});
+    await handlerGetPost(req,res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(prisma.task.findUnique).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import { VercelRequest } from '@vercel/node';
 import { prisma } from './prisma.js';
 import { getSessionUserId } from './auth.js';
+import { isBranchCoordinatorActivationEnabled } from './branch-permissions.js';
 
 export async function getCurrentUser(req: VercelRequest) {
   const userId = getSessionUserId(req);
@@ -13,6 +14,7 @@ export async function getCurrentUser(req: VercelRequest) {
       fullName: true,
       status: true,
       assignedRegion: true,
+      branchPermissions: true,
       provinceId: true,
       editorBranchId: true,
       editorGrade: true,
@@ -29,7 +31,8 @@ export async function getCurrentUser(req: VercelRequest) {
     }
   });
 
-  if (!user || user.status?.toUpperCase() !== 'AKTIF') {
+  if (!user || user.status?.toUpperCase() !== 'AKTIF' ||
+    (user.role?.code === 'BRANS_KOORDINATORU' && !isBranchCoordinatorActivationEnabled())) {
     return null;
   }
 

@@ -1,0 +1,88 @@
+name: RELEASE-04 V3 + Additive Branch Role (ephemeral PostgreSQL)
+on:
+  push:
+    branches: ['release/prolig-pilot-v3-minimal']
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/20261029010000_task_question_production_v3/**'
+      - 'prisma/migrations/20261031010000_release04_expand_branch_coordinator_enum/**'
+      - 'prisma/migrations/20261031011000_release04_seed_branch_coordinator_role/**'
+      - 'prisma/migrations/20261031012000_release04_branch_permissions/**'
+      - 'api/v1/questions/**'
+      - 'api/v1/_lib/task-*.ts'
+      - 'src/tasks/**'
+      - 'src/DemoApp.tsx'
+      - 'scripts/release04-verify-v3-branch-schema.mjs'
+      - 'scripts/release03-verify-v3-schema.mjs'
+      - '.github/workflows/release03-minimal-v3.yml'
+jobs:
+  postgresql-16:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: prolig_release03_ci
+          POSTGRES_USER: release03
+          POSTGRES_PASSWORD: ci_ephemeral_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U release03 -d prolig_release03_ci"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://release03:ci_ephemeral_only@127.0.0.1:5432/prolig_release03_ci
+      DIRECT_URL: postgresql://release03:ci_ephemeral_only@127.0.0.1:5432/prolig_release03_ci
+      PGSSLMODE: disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install without accessing Production secrets
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Check V3 + additive BRANS migrations while rejecting rename/V4
+        run: |
+          test -f prisma/migrations/20261029010000_task_question_production_v3/migration.sql
+          test -f prisma/migrations/20261031010000_release04_expand_branch_coordinator_enum/migration.sql
+          test -f prisma/migrations/20261031011000_release04_seed_branch_coordinator_role/migration.sql
+          test -f prisma/migrations/20261031012000_release04_branch_permissions/migration.sql
+          test ! -e prisma/migrations/20261027010000_branch_coordinator_role
+          test ! -e prisma/migrations/20261029030000_unit_production_plan_v4
+      - name: Stage exact-ledger Production candidate (no DB access, excludes P3)
+        run: node scripts/release04-stage-production-migrations.mjs
+      - name: Verify isolated production-candidate migration set on ephemeral PostgreSQL
+        run: npx prisma migrate deploy --config ./prisma.config.release04.ci.ts
+      - name: Verify actual SQL schema, historic IL and additive BRANS
+        run: node scripts/release04-verify-v3-branch-schema.mjs
+      - name: Prisma validate and generate
+        run: |
+          npx prisma validate
+          npx prisma generate
+      - name: Targeted role/task/question regression
+        run: npx vitest run tests/release04-region-branch-scope.test.ts tests/release04-permissions.test.ts tests/task-handlers.test.ts tests/task-access.test.ts tests/question-handlers.test.ts tests/question-api.test.ts tests/publishing-docx-v1.test.ts tests/publishing-book-api-v2.test.ts tests/release03-question-task-draft.test.ts tests/release03-preview-guard.test.ts
+
+      - name: Candidate TypeScript / lint
+        run: npm run lint
+      - name: Candidate build
+        run: npm run build
+      - name: Fetch exact currently deployed Production source for legacy rollback read compatibility
+        uses: actions/checkout@v4
+        with:
+          ref: 643cc3a524cb54c497cda550980fbc78f999be4d
+          path: _release04_legacy_production
+          persist-credentials: false
+      - name: Verify legacy Prisma read compatibility on expanded ephemeral schema
+        run: |
+          cp scripts/release04-legacy-rollback-smoke.ts _release04_legacy_production/release04-legacy-rollback-smoke.ts
+          cp prisma.config.release04.legacy.ci.ts _release04_legacy_production/prisma.config.release04.legacy.ci.ts
+          cd _release04_legacy_production
+          npm install --package-lock=false --no-audit --no-fund
+          npx prisma generate --config ./prisma.config.release04.legacy.ci.ts
+          npx tsx release04-legacy-rollback-smoke.ts

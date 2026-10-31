@@ -2,7 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcryptjs';
 import { prisma } from './_lib/prisma.js';
 import { getCurrentUser } from './_lib/current-user.js';
-import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canManageUserLifecycle, canViewProvince, coordinatorRoles } from './_lib/member-access.js';
+import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canManageUserLifecycle, canViewProvince, coordinatorRoles, coordinatorBranchIds } from './_lib/member-access.js';
 import { MEB_TEACHING_BRANCHES, isMebTeachingBranch } from '../../shared/branch-catalog.js';
 import { isDistrictInProvince } from '../../shared/district-catalog.js';
 import { handleTaskAction } from './_lib/task-handler.js';
@@ -12,8 +12,9 @@ import { handlePaymentPeriodAction, type PeriodAction } from './_lib/payment-per
 import { handleCompensationAction } from './_lib/compensation-handler.js';
 import { handleBookAction } from './_lib/book-handler.js';
 import { maybeLogGo0IdentityOnce } from './_lib/go0-db-attestation.js';
+import { hasBranchPermission, isBranchCoordinatorActivationEnabled, validateBranchPermissionDependencies } from './_lib/branch-permissions.js';
 
-const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
+const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
 
 async function ensureCanonicalBranches() {
@@ -51,6 +52,7 @@ function userDto(user: any) {
     province: user.province ? { id: user.province.id, name: user.province.name, region: user.province.region } : null,
     editorGrade: user.editorGrade,
     branchIds: user.branchAssignments?.map((x: any) => x.branchId) ?? [],
+    branchPermissions: user.role?.code === 'BRANS_KOORDINATORU' ? (user.branchPermissions ?? []) : [],
     authorProfile: user.AuthorProfile ?? null
   };
 }
@@ -61,6 +63,7 @@ async function validateAssignment(actor: any, payload: any) {
   const districtName = payload.districtName == null ? null : clean(payload.districtName, 120, true);
   const assignedRegion = payload.assignedRegion == null ? null : clean(payload.assignedRegion, 100, true);
   const editorGrade = payload.editorGrade == null ? null : clean(payload.editorGrade, 50, true);
+  if (roleCode === 'BRANS_KOORDINATORU' && !isBranchCoordinatorActivationEnabled()) return { error: 'Branch coordinator activation is disabled for this release' } as const;
   const branchIds: number[] = [];
   if (Array.isArray(payload.branchIds)) {
     for (const rawBranchId of payload.branchIds) {
@@ -71,10 +74,21 @@ async function validateAssignment(actor: any, payload: any) {
   const province = provinceId ? await prisma.province.findUnique({ where: { id: provinceId } }) : null;
   if (provinceId && !province) return { error: 'Unknown province' } as const;
   if (province && actor.role.code !== 'GENEL_KOORDINATOR' && !canViewProvince(actor, province)) return { error: 'Province is outside your scope' } as const;
-  if (actor.role.code === 'BOLGE_KOORDINATORU' && assignedRegion && assignedRegion !== actor.assignedRegion) return { error: 'Region is outside your scope' } as const;
+  if (actor.role.code === 'BOLGE_KOORDINATORU' && (!actor.assignedRegion || (assignedRegion && assignedRegion !== actor.assignedRegion))) return { error: 'Region is outside your scope' } as const;
   if (actor.role.code === 'IL_KOORDINATORU' && assignedRegion) return { error: 'Province coordinator cannot assign a region-wide scope' } as const;
   if (roleCode === 'BOLGE_KOORDINATORU' && !assignedRegion) return { error: 'Region is required' } as const;
   if (roleCode === 'IL_KOORDINATORU' && !province) return { error: 'Province is required' } as const;
+  const branchPermissions: string[] = roleCode === 'BRANS_KOORDINATORU'
+    ? (payload.branchPermissions === undefined ? [] : payload.branchPermissions) : [];
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    if (!validateBranchPermissionDependencies(branchPermissions)) return { error: 'Invalid or unsafe branch coordinator permissions' } as const;
+    if (!assignedRegion || provinceId !== null || branchIds.length === 0 || !Array.isArray(payload.branchIds) ||
+        payload.branchIds.some((id: unknown) => positiveInt(id) === null) ||
+        (await prisma.province.count({ where: { region: assignedRegion } })) === 0) {
+      return { error: 'Branch coordinator requires a valid region, one or more branches and no province' } as const;
+    }
+    if (editorGrade) return { error: 'Branch coordinator cannot have an editor grade' } as const;
+  }
   if (roleCode === 'EDITOR' && (branchIds.length === 0 || (!province && !assignedRegion) || (province && assignedRegion))) {
     return { error: 'Editor requires branches and exactly one geographic scope' } as const;
   }
@@ -84,20 +98,21 @@ async function validateAssignment(actor: any, payload: any) {
     const count = await prisma.branch.count({ where: { id: { in: branchIds } } });
     if (count !== branchIds.length) return { error: 'Unknown branch' } as const;
   }
-  return { roleCode, provinceId, districtName: roleCode === 'YAZAR' ? districtName : null, assignedRegion, editorGrade, branchIds } as const;
+  return { roleCode, provinceId, districtName: roleCode === 'YAZAR' ? districtName : null, assignedRegion, editorGrade, branchIds, branchPermissions } as const;
 }
 async function applyAssignment(tx: any, userId: number, v: any, status: string) {
   const role = await tx.role.findUnique({ where: { code: v.roleCode } });
   if (!role) throw new Error('ROLE_NOT_FOUND');
   await tx.user.update({ where: { id: userId }, data: {
     roleId: role.id, status,
-    assignedRegion: v.roleCode === 'BOLGE_KOORDINATORU' || (v.roleCode === 'EDITOR' && v.assignedRegion) ? v.assignedRegion : null,
+    branchPermissions: v.roleCode === 'BRANS_KOORDINATORU' ? v.branchPermissions : [],
+    assignedRegion: ['BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(v.roleCode) || (v.roleCode === 'EDITOR' && v.assignedRegion) ? v.assignedRegion : null,
     provinceId: ['IL_KOORDINATORU','YAZAR','EDITOR'].includes(v.roleCode) && v.provinceId ? v.provinceId : null,
     editorBranchId: v.roleCode === 'EDITOR' ? (v.branchIds[0] ?? null) : null,
     editorGrade: v.roleCode === 'EDITOR' ? v.editorGrade : null
   }});
   await tx.userBranchAssignment.deleteMany({ where: { userId } });
-  if (v.roleCode === 'EDITOR' && v.branchIds.length) {
+  if (['EDITOR','BRANS_KOORDINATORU'].includes(v.roleCode) && v.branchIds.length) {
     await tx.userBranchAssignment.createMany({ data: v.branchIds.map((branchId: number) => ({ userId, branchId })) });
   }
   const existingAuthor = await tx.authorProfile.findUnique({ where: { userId } });
@@ -124,10 +139,11 @@ async function targetInActorScope(actor: any, target: any) {
   const actorRole = actor.role.code;
   if (!['BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(actorRole)) return false;
   const allowedTargetRoles = actorRole === 'BOLGE_KOORDINATORU'
-    ? ['IL_KOORDINATORU','EDITOR','YAZAR']
+    ? ['IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR']
     : ['EDITOR','YAZAR'];
   if (!allowedTargetRoles.includes(target.role.code)) return false;
-  if (target.assignedRegion) return actorRole === 'BOLGE_KOORDINATORU' && target.assignedRegion === actor.assignedRegion;
+  if (target.role.code === 'BRANS_KOORDINATORU') return actorRole === 'BOLGE_KOORDINATORU' && Boolean(actor.assignedRegion) && target.assignedRegion === actor.assignedRegion;
+  if (target.assignedRegion) return actorRole === 'BOLGE_KOORDINATORU' && Boolean(actor.assignedRegion) && target.assignedRegion === actor.assignedRegion;
   const provinceId = target.province?.id ?? target.AuthorProfile?.provinceId;
   if (!provinceId) return false;
   const province = target.province ?? await prisma.province.findUnique({ where: { id: provinceId } });
@@ -216,6 +232,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    // BRANS permissions are an explicit small allowlist. Legacy handlers must
+    // not accidentally grant unrelated book/message/announcement/finance rights.
+    if (user.role.code === 'BRANS_KOORDINATORU' &&
+      ['books','book','bookDocx','messages','message','messageRecipients',
+       'announcements','announcement','compensationRules','compensationRule',
+       'compensationEntries','paymentPeriods','paymentPeriod','paymentPeriodPrepare',
+       'paymentPeriodSettle','paymentPeriodClose','paymentPeriodCancel','auditLogs',
+       'applications','application'].includes(action)) {
+      return res.status(403).json({ error: 'Branch coordinator action is outside delegated rights' });
+    }
     if (action === 'books' || action === 'book' || action === 'bookDocx') {
       return handleBookAction(req, res, user, action);
     }
@@ -257,13 +283,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!coordinatorRoles.has(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
 
     if (action === 'metadata' && req.method === 'GET') {
-      await ensureCanonicalBranches();
-      const where = user.role.code === 'GENEL_KOORDINATOR' ? {} : user.role.code === 'BOLGE_KOORDINATORU' ? { region: user.assignedRegion || '__NONE__' } : { id: user.provinceId || -1 };
+      // Catalog writes remain a General/Regional/legacy management operation.
+      // A Branch Coordinator receives only already-assigned branch metadata.
+      if (user.role.code !== 'BRANS_KOORDINATORU') await ensureCanonicalBranches();
+      const where = user.role.code === 'GENEL_KOORDINATOR' ? {}
+        : ['BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(user.role.code)
+          ? { region: user.assignedRegion || '__NONE__' }
+          : { id: user.provinceId || -1 };
+      const assigned = user.role.code === 'BRANS_KOORDINATORU' ? coordinatorBranchIds(user) : null;
       const [provinces, branches] = await Promise.all([
         prisma.province.findMany({ where, orderBy: { name: 'asc' } }),
-        prisma.branch.findMany({ orderBy: { name: 'asc' } })
+        prisma.branch.findMany({
+          where: assigned !== null ? { id: { in: user.assignedRegion ? assigned : [] } } : {},
+          orderBy: { name: 'asc' }
+        })
       ]);
-      return res.status(200).json({ provinces, branches });
+      return res.status(200).json({ provinces, branches, branchCoordinatorActivationEnabled: isBranchCoordinatorActivationEnabled() });
     }
     if (action === 'applications' && req.method === 'GET') {
       const where = buildApplicationReadScope(user);
@@ -287,6 +322,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ application: updated });
     }
     if (action === 'users' && req.method === 'GET') {
+      if (user.role.code === 'BRANS_KOORDINATORU' && !hasBranchPermission(user, 'authors.read')) return res.status(403).json({ error: 'Forbidden' });
       const where = buildUserReadScope(user);
       if (!where) return res.status(403).json({ error: 'Forbidden' });
       const users = await prisma.user.findMany({ where, include: userInclude, orderBy: [{ fullName: 'asc' }, { id: 'asc' }] });
@@ -294,6 +330,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (action === 'users' && req.method === 'POST') {
       if (!['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
+      if (req.body?.role === 'IL_KOORDINATORU') return res.status(409).json({ error: 'New province coordinator accounts are disabled during transition' });
+      if (req.body?.role === 'BRANS_KOORDINATORU' && !isBranchCoordinatorActivationEnabled()) return res.status(409).json({ error: 'Branch coordinator activation is disabled' });
       const fullName = clean(req.body?.fullName,120,true);
       const email = clean(req.body?.email,200,true)?.toLowerCase() || null;
       const password = clean(req.body?.password,200,true);
@@ -313,7 +351,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const base = await tx.user.create({ data: { username: email, email, passwordHash, fullName, roleId: role.id, status: 'Aktif' } });
         await applyAssignment(tx, base.id, v, 'Aktif');
         if (applicationId) await tx.membershipApplication.update({ where: { id: applicationId }, data: { status: 'ONAYLANDI', reviewedByName: user.fullName } });
-        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_CREATED_AND_ASSIGNED', entityType: 'User', entityId: base.id, details: JSON.stringify({ role: v.roleCode, provinceId: v.provinceId, districtName: v.districtName, assignedRegion: v.assignedRegion, branchIds: v.branchIds }) } });
+        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_CREATED_AND_ASSIGNED', entityType: 'User', entityId: base.id, details: JSON.stringify({ role: v.roleCode, provinceId: v.provinceId, districtName: v.districtName, assignedRegion: v.assignedRegion, branchIds: v.branchIds, branchPermissions: v.branchPermissions }) } });
         return tx.user.findUnique({ where: { id: base.id }, include: userInclude });
       });
       return res.status(201).json({ user: userDto(created) });
@@ -411,13 +449,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (id === user.id) return res.status(409).json({ error: 'Self role changes are not allowed here' });
       const target = await prisma.user.findUnique({ where: { id }, include: userInclude });
       if (!target || !(await targetInActorScope(user,target))) return res.status(404).json({ error: 'Not found' });
-      const v = await validateAssignment(user, req.body || {});
+      // Permission updates require an explicit complete grant list; never inherit
+      // grants when changing to or from a different role.
+      const patchPayload = { ...(req.body || {}) };
+      if (patchPayload.role === 'BRANS_KOORDINATORU' && patchPayload.branchPermissions === undefined &&
+        target.role.code === 'BRANS_KOORDINATORU') patchPayload.branchPermissions = target.branchPermissions;
+      const v = await validateAssignment(user, patchPayload);
       if ('error' in v) return res.status(403).json({ error: v.error });
       const status = req.body?.status === undefined ? target.status : clean(req.body.status,30,true);
       if (!status || !['Aktif','Pasif'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
       const updated = await prisma.$transaction(async (tx: any) => {
         await applyAssignment(tx,id,v,status);
-        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_ROLE_SCOPE_UPDATED', entityType: 'User', entityId: id, details: JSON.stringify({ fromRole: target.role.code, toRole: v.roleCode, provinceId: v.provinceId, districtName: v.districtName, assignedRegion: v.assignedRegion, branchIds: v.branchIds, status }) } });
+        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_ROLE_SCOPE_UPDATED', entityType: 'User', entityId: id, details: JSON.stringify({ fromRole: target.role.code, toRole: v.roleCode, fromRegion: target.assignedRegion, toRegion: v.assignedRegion, fromBranchIds: target.branchAssignments.map((item: any) => item.branchId), toBranchIds: v.branchIds, fromBranchPermissions: target.branchPermissions, toBranchPermissions: v.branchPermissions, provinceId: v.provinceId, districtName: v.districtName, status }) } });
         return tx.user.findUnique({ where: { id }, include: userInclude });
       });
       return res.status(200).json({ user: userDto(updated) });

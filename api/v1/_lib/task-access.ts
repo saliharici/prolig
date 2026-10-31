@@ -1,13 +1,21 @@
+import { hasBranchPermission } from './branch-permissions.js';
 import { buildProjectReadScope, canManageProject } from './project-access.js';
 
 export const taskManagerRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU'
+  'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU'
 ]);
 
 export function canCreateTask(user: any): boolean {
-  return taskManagerRoles.has(user?.role?.code);
+  if (!taskManagerRoles.has(user?.role?.code)) return false;
+  if (user.role.code === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'tasks.create')) return false;
+    const scope = buildProjectReadScope(user);
+    return Boolean(scope && !('id' in scope));
+  }
+  return true;
 }
 
 export function buildTaskReadScope(user: any) {
@@ -26,6 +34,13 @@ export function buildTaskReadScope(user: any) {
     };
   }
 
+  if (role === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'tasks.read')) return { id: -1 };
+    const projectScope = buildProjectReadScope(user);
+    if (!projectScope || 'id' in projectScope) return { id: -1 };
+    return { project: projectScope };
+  }
+
   if (role === 'EDITOR') {
     return { assignedCoordinatorId: user.id };
   }
@@ -40,23 +55,26 @@ export function buildTaskReadScope(user: any) {
 
 export function isTaskAssignee(user: any, task: any): boolean {
   if (!user || !task) return false;
+  if (user.role?.code === 'BRANS_KOORDINATORU' && !canManageTask(user, task)) return false;
   if (task.assignedCoordinatorId === user.id) return true;
   return Boolean(user.AuthorProfile?.id) && task.assignedAuthorProfileId === user.AuthorProfile.id;
 }
 
 export function canManageTask(user: any, task: any): boolean {
   if (!taskManagerRoles.has(user?.role?.code)) return false;
+  if (user.role.code === 'BRANS_KOORDINATORU' && !hasBranchPermission(user, 'tasks.update')) return false;
   return canManageProject(user, task?.project);
 }
 
 export function canUpdateTaskStatus(user: any, task: any): boolean {
+  if (user?.role?.code === 'BRANS_KOORDINATORU') return canManageTask(user, task);
   return canManageTask(user, task) || isTaskAssignee(user, task);
 }
 
 export function canAssignTaskUser(actor: any, target: any): boolean {
   if (!taskManagerRoles.has(actor?.role?.code) || !target) return false;
   if (target.status?.toUpperCase?.() !== 'AKTIF') return false;
-  if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'EDITOR'].includes(target.role?.code)) {
+  if (!['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR'].includes(target.role?.code)) {
     return false;
   }
 
@@ -68,6 +86,12 @@ export function canAssignTaskUser(actor: any, target: any): boolean {
     if (target.role.code === 'BOLGE_KOORDINATORU') return target.assignedRegion === actor.assignedRegion;
     if (target.assignedRegion) return target.assignedRegion === actor.assignedRegion;
     return target.province?.region === actor.assignedRegion;
+  }
+
+  if (actor.role.code === 'BRANS_KOORDINATORU') {
+    // Only self-assignment; do not delegate tasks to another region/branch.
+    return Boolean(actor.assignedRegion) && target.id === actor.id &&
+      target.assignedRegion === actor.assignedRegion;
   }
 
   if (actor.role.code === 'IL_KOORDINATORU') {
