@@ -53,8 +53,8 @@ jobs:
           test -f prisma/migrations/20261031011000_release04_seed_branch_coordinator_role/migration.sql
           test ! -e prisma/migrations/20261027010000_branch_coordinator_role
           test ! -e prisma/migrations/20261029030000_unit_production_plan_v4
-      - name: Stage checksum-pinned Production candidate (no DB access, excludes P3)
-        run: node scripts/release04-stage-production-migrations.mjs --local-ci
+      - name: Stage exact-ledger Production candidate (no DB access, excludes P3)
+        run: node scripts/release04-stage-production-migrations.mjs
       - name: Verify isolated production-candidate migration set on ephemeral PostgreSQL
         run: npx prisma migrate deploy --config ./prisma.config.release04.ci.ts
       - name: Verify actual SQL schema, historic IL and additive BRANS
