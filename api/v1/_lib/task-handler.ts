@@ -359,6 +359,7 @@ async function updateTask(id: number, user: any, req: VercelRequest, res: Vercel
 }
 
 async function deleteTask(id: number, user: any, res: VercelResponse) {
+  if (user.role?.code === 'BRANS_KOORDINATORU') return res.status(403).json({ error: 'Branch coordinators cannot permanently delete tasks' });
   const task = await prisma.task.findUnique({ where: { id }, select: taskSelect });
   if (!task || !canManageTask(user, task)) {
     return res.status(404).json({ error: 'Task not found or outside management scope' });
