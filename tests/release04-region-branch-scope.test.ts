@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { coordinatorBranchIds, buildUserReadScope, canAssignRole, canManageUserLifecycle } from '../api/v1/_lib/member-access.js';
 import { buildAuthorReadScope } from '../api/v1/_lib/author-access.js';
 import { buildProjectReadScope, canAssignProjectAuthor, canCreateProject, canManageProject } from '../api/v1/_lib/project-access.js';
@@ -7,7 +7,8 @@ import { buildQuestionReadScope, canWorkflowReview } from '../api/v1/_lib/questi
 
 const branchCoordinator = {
   id: 41, role: { code: 'BRANS_KOORDINATORU' },
-  assignedRegion: 'Doğu Anadolu', branchAssignments: [{ branchId: 7 }, { branchId: 9 }]
+  assignedRegion: 'Doğu Anadolu', branchAssignments: [{ branchId: 7 }, { branchId: 9 }],
+  branchPermissions: ['authors.read','projects.read','projects.create','projects.update','tasks.read','tasks.create','tasks.update','questions.read']
 };
 const profile = (branchId: number, region: string) => ({
   branchId, province: { id: 25, region },
@@ -19,6 +20,8 @@ const project = (authors: ReturnType<typeof profile>[], branchId = 7) => ({
 });
 
 describe('RELEASE-04 — branch coordinator regional scope (pure access policy)', () => {
+  beforeAll(() => vi.stubEnv('RELEASE04_BRANS_ACTIVATION_ENABLED','true'));
+  afterAll(() => vi.unstubAllEnvs());
   it('does not inherit the old editorBranchId when assignments are missing', () => {
     expect(coordinatorBranchIds({ editorBranchId: 7 })).toEqual([]);
     expect(coordinatorBranchIds(branchCoordinator)).toEqual([7, 9]);
