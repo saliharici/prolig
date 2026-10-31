@@ -43,12 +43,8 @@ if (otherDirs.length || missingDirs.length || !present.includes(forbidden)) {
   throw new Error('RELEASE04_MIGRATION_SOURCE_MANIFEST_MISMATCH: ' +
     JSON.stringify({ unexpectedCount: otherDirs.length, missingCount: missingDirs.length, p3Exists: present.includes(forbidden) }));
 }
-// The --local-ci mode demonstrates P3 exclusion on an ephemeral database,
- // but does NOT certify Production's historical checksum provenance.
-const localCi = process.argv.includes('--local-ci');
-if (localCi && process.env.CI !== 'true') throw new Error('RELEASE04_LOCAL_CI_MODE_REQUIRES_CI');
-if (process.argv.some(arg => arg.startsWith('--') && arg !== '--local-ci'))
-  throw new Error('RELEASE04_UNRECOGNIZED_MODE');
+// One strict staging policy for CI and future controlled release preparation.
+if (process.argv.length !== 2) throw new Error('RELEASE04_UNRECOGNIZED_MODE');
 // Preserve bytes of executed SQL in the staged copy. Some historical files
 // were applied from Windows CRLF files; GitHub stores the equivalent LF text.
 // Never change the source or rewrite Prisma's Production ledger.
@@ -101,7 +97,7 @@ writeFileSync(join(output, 'RELEASE04_MANIFEST.json'), JSON.stringify({
   excluded: [forbidden], checksums, sourceChecksums,
   historicalChecksumCertified: true,
   historicalLineEndingRestorations,
-  mode: localCi ? 'EPHEMERAL_CI_PROOF' : 'PRODUCTION_CANDIDATE_STAGED_NOT_EXECUTED'
+  mode: 'PRODUCTION_CANDIDATE_STAGED_NOT_EXECUTED'
 }, null, 2) + '\n');
 console.log('RELEASE04_MIGRATION_STAGE_PASS: 9 historical + 3 pending; P3 omitted; historical staged bytes match Production ledger (9/9).');
 console.log('Recovered historical CRLF bytes from unchanged GitHub source for ' + historicalLineEndingRestorations.length + ' migrations.');
