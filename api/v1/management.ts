@@ -2,7 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcryptjs';
 import { prisma } from './_lib/prisma.js';
 import { getCurrentUser } from './_lib/current-user.js';
-import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canManageUserLifecycle, canViewProvince, coordinatorRoles } from './_lib/member-access.js';
+import { buildApplicationReadScope, buildUserReadScope, canAssignRole, canManageUserLifecycle, canViewProvince, coordinatorRoles, coordinatorBranchIds } from './_lib/member-access.js';
 import { MEB_TEACHING_BRANCHES, isMebTeachingBranch } from '../../shared/branch-catalog.js';
 import { isDistrictInProvince } from '../../shared/district-catalog.js';
 import { handleTaskAction } from './_lib/task-handler.js';
@@ -266,11 +266,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!coordinatorRoles.has(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
 
     if (action === 'metadata' && req.method === 'GET') {
-      await ensureCanonicalBranches();
-      const where = user.role.code === 'GENEL_KOORDINATOR' ? {} : user.role.code === 'BOLGE_KOORDINATORU' ? { region: user.assignedRegion || '__NONE__' } : { id: user.provinceId || -1 };
+      // Catalog writes remain a General/Regional/legacy management operation.
+      // A Branch Coordinator receives only already-assigned branch metadata.
+      if (user.role.code !== 'BRANS_KOORDINATORU') await ensureCanonicalBranches();
+      const where = user.role.code === 'GENEL_KOORDINATOR' ? {}
+        : ['BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(user.role.code)
+          ? { region: user.assignedRegion || '__NONE__' }
+          : { id: user.provinceId || -1 };
+      const assigned = user.role.code === 'BRANS_KOORDINATORU' ? coordinatorBranchIds(user) : null;
       const [provinces, branches] = await Promise.all([
         prisma.province.findMany({ where, orderBy: { name: 'asc' } }),
-        prisma.branch.findMany({ orderBy: { name: 'asc' } })
+        prisma.branch.findMany({
+          where: assigned !== null ? { id: { in: user.assignedRegion ? assigned : [] } } : {},
+          orderBy: { name: 'asc' }
+        })
       ]);
       return res.status(200).json({ provinces, branches });
     }
