@@ -54,6 +54,7 @@ describe('member scope helpers', () => {
     const region = { role: { code: 'BOLGE_KOORDINATORU' } };
     expect(canAssignRole(region, 'IL_KOORDINATORU')).toBe(true);
     expect(canAssignRole(region, 'EDITOR')).toBe(true);
+    expect(canAssignRole(region, 'BRANS_KOORDINATORU')).toBe(true);
     expect(canAssignRole(region, 'YAZAR')).toBe(true);
     expect(canAssignRole(region, 'BOLGE_KOORDINATORU')).toBe(false);
     expect(canAssignRole(region, 'GENEL_KOORDINATOR')).toBe(false);
@@ -61,6 +62,7 @@ describe('member scope helpers', () => {
 
     const province = { role: { code: 'IL_KOORDINATORU' } };
     expect(canAssignRole(province, 'EDITOR')).toBe(true);
+    expect(canAssignRole(province, 'BRANS_KOORDINATORU')).toBe(false);
     expect(canAssignRole(province, 'YAZAR')).toBe(true);
     expect(canAssignRole(province, 'IL_KOORDINATORU')).toBe(false);
     expect(canAssignRole(province, 'BOLGE_KOORDINATORU')).toBe(false);
