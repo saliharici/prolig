@@ -123,6 +123,7 @@ model User {
   roleId         Int
   role           Role      @relation(fields: [roleId], references: [id])
   assignedRegion String? // Bölge / Branş Koordinatörünün sorumlu olduğu bölge (örn: 'Marmara')
+  branchPermissions String[] @default([]) // BRANS per-user least-privilege grants; server-side enforced
 
   editorBranchId Int?
   editorBranch   Branch? @relation("EditorBranch", fields: [editorBranchId], references: [id], onDelete: SetNull)
