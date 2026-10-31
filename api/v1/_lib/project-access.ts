@@ -18,7 +18,10 @@ const supportedProjectReadRoles = new Set([
 ]);
 
 export function canCreateProject(user: any): boolean {
-  return projectManagerRoles.has(user?.role?.code);
+  if (!projectManagerRoles.has(user?.role?.code)) return false;
+  if (user.role.code === 'BRANS_KOORDINATORU')
+    return Boolean(user.assignedRegion) && coordinatorBranchIds(user).length > 0;
+  return true;
 }
 
 function authorProvinceInActorScope(actor: any, province: any): boolean {
