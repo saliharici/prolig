@@ -1,3 +1,4 @@
+import { hasBranchPermission } from './branch-permissions.js';
 import { buildProjectReadScope, canManageProject } from './project-access.js';
 
 export const taskManagerRoles = new Set([
@@ -10,6 +11,7 @@ export const taskManagerRoles = new Set([
 export function canCreateTask(user: any): boolean {
   if (!taskManagerRoles.has(user?.role?.code)) return false;
   if (user.role.code === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'tasks.create')) return false;
     const scope = buildProjectReadScope(user);
     return Boolean(scope && !('id' in scope));
   }
@@ -33,6 +35,7 @@ export function buildTaskReadScope(user: any) {
   }
 
   if (role === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'tasks.read')) return { id: -1 };
     const projectScope = buildProjectReadScope(user);
     if (!projectScope || 'id' in projectScope) return { id: -1 };
     return { project: projectScope };
@@ -59,6 +62,7 @@ export function isTaskAssignee(user: any, task: any): boolean {
 
 export function canManageTask(user: any, task: any): boolean {
   if (!taskManagerRoles.has(user?.role?.code)) return false;
+  if (user.role.code === 'BRANS_KOORDINATORU' && !hasBranchPermission(user, 'tasks.update')) return false;
   return canManageProject(user, task?.project);
 }
 
