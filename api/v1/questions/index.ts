@@ -103,7 +103,15 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const where = buildQuestionReadScope(user);
+  // Legacy publisher pool access is unchanged; projectId=NULL never implies private.
+  if (req.query.library !== undefined && !['personal'].includes(String(req.query.library))) {
+    return res.status(400).json({ error: 'Unknown library scope' });
+  }
+  const personal = req.query.library === 'personal';
+  if (personal && user.role.code !== 'YAZAR') return res.status(403).json({ error: 'Only the owning author may access private questions' });
+  const where = personal
+    ? { authorUserId: user.id, isPersonal: true }
+    : { AND: [buildQuestionReadScope(user), { isPersonal: false }] };
 
   const questions = await prisma.question.findMany({
     where,
@@ -153,6 +161,17 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
   }
 
   const { content, grade, objectiveCode, difficulty, options, correctAnswer, explanation, projectId, taskId, assets } = req.body || {};
+  const isPersonal = req.body?.isPersonal === true;
+  if (req.body?.isPersonal !== undefined && typeof req.body.isPersonal !== 'boolean')
+    return res.status(400).json({ error: 'Invalid personal scope' });
+  if (isPersonal && (projectId != null || taskId != null))
+    return res.status(400).json({ error: 'Private questions cannot be assigned to publishing projects or tasks' });
+  const personalSubject = isPersonal ? req.body?.personalSubject : null;
+  const personalTopic = isPersonal ? req.body?.personalTopic : null;
+  for (const field of [personalSubject, personalTopic]) {
+    if (field != null && (typeof field !== 'string' || !field.trim() || field.length > 100))
+      return res.status(400).json({ error: 'Invalid subject or topic' });
+  }
   if (taskId !== undefined && taskId !== null) {
     if (!Number.isSafeInteger(taskId) || taskId <= 0 || projectId == null)
       return res.status(400).json({ error: 'Valid taskId and projectId required together' });
@@ -252,6 +271,9 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
         explanation: explanation ? explanation.trim() : null,
         projectId: projectId || null,
         taskId: taskId ?? null,
+        isPersonal,
+        personalSubject: isPersonal ? (personalSubject?.trim() ?? null) : null,
+        personalTopic: isPersonal ? (personalTopic?.trim() ?? null) : null,
         authorUserId: user.id,
         status: 'TASLAK',
         assets: parsedAssets.assets.length > 0 ? {
