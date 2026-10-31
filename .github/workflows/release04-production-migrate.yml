@@ -1,13 +1,9 @@
-# INERT TEMPLATE — NOT A GITHUB ACTIONS WORKFLOW UNTIL RENAME TO .yml
-# DO NOT RENAME until Settings > Environments > release04-production-migration
-# has REQUIRED REVIEWERS, ONLY the exact release branch in Deployment branches,
-# the environment-scoped secret and protected SHA/host/gate variables.
-# This file MUST NOT be added to main before the DB migration: merging main
-# may trigger an automatic Production build before the new schema is applied.
-#
-# One-shot trigger: a push that adds/changes the enabled .yml ONLY.
-# A commit touching any other path will NOT launch this workflow.
-# No workflow_dispatch: GitHub requires that workflow file on default branch.
+# ACTIVE RELEASE-04 ONE-SHOT WORKFLOW — release branch only.
+# Production migration requires the release04-production-migration Environment
+# required-reviewer approval plus exact SHA, host, gate and manifest checks.
+# Workflow activation/commit is NOT Production migration approval.
+# Do not merge into main until the approved Production migration is verified.
+# One-shot path-filtered push trigger; no workflow_dispatch on non-default branch.
 name: RELEASE-04 Production Migration (one-shot, approved release branch)
 
 on:
@@ -71,8 +67,18 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Install pinned dependencies without lifecycle scripts
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install exact Prisma 7.10.0 without lifecycle scripts
+        run: |
+          set -euo pipefail
+          npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund prisma@7.10.0 @prisma/client@7.10.0
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { createRequire } from 'node:module';
+          const require = createRequire(import.meta.url);
+          assert.equal(require('prisma/package.json').version, '7.10.0');
+          assert.equal(require('@prisma/client/package.json').version, '7.10.0');
+          console.log('RELEASE04_PINNED_PRISMA_VERSIONS_PASS');
+          NODE
 
       - name: Stage and verify strict historical-checksum manifest (P3 excluded)
         run: |
