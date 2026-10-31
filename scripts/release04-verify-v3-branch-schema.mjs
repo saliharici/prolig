@@ -25,10 +25,11 @@ try {
       WHERE migration_name='20261031011000_release04_seed_branch_coordinator_role' AND finished_at IS NOT NULL) AS branch_seed_applied,
     (SELECT COUNT(*)::int FROM "_prisma_migrations"
       WHERE migration_name LIKE '20261027010000_branch%' OR migration_name LIKE '20261029030000_unit%') AS forbidden_migrations,
+    to_regclass('"PrivateGeometryAsset"') IS NOT NULL AS has_p3,
     to_regclass('"ProjectUnitPlan"') IS NOT NULL AS has_v4`);
   const x = rows[0];
   const expected = ['task_target','task_relation','historical_il','new_branch','branch_role','v3_applied','branch_enum_applied','branch_seed_applied'];
-  if (expected.some(k => x[k] !== 1) || x.enum_count !== 7 || x.has_v4 || x.forbidden_migrations !== 0)
+  if (expected.some(k => x[k] !== 1) || x.enum_count !== 7 || x.has_v4 || x.has_p3 || x.forbidden_migrations !== 0)
     throw new Error('RELEASE04_SCHEMA_INVARIANTS_FAIL: ' + JSON.stringify(x));
   const {rows: constraints} = await db.query(`SELECT COUNT(*)::int AS n FROM information_schema.table_constraints
      WHERE table_name='Question' AND constraint_type='FOREIGN KEY'`);
