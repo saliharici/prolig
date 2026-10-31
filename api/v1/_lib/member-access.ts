@@ -11,6 +11,14 @@ export const regionAssignableRoles = new Set([
   'YAZAR'
 ]);
 
+// Branş Koordinatörü scopes never inherit the legacy editorBranchId fallback.
+export function coordinatorBranchIds(user: any): number[] {
+  if (!Array.isArray(user?.branchAssignments)) return [];
+  return [...new Set<number>(user.branchAssignments
+    .map((assignment: any) => assignment?.branchId)
+    .filter((id: unknown): id is number => typeof id === 'number' && Number.isSafeInteger(id) && id > 0))];
+}
+
 export function editorBranchIds(user: any): number[] {
   const ids: number[] = [];
   if (Array.isArray(user?.branchAssignments)) {
@@ -72,6 +80,17 @@ export function buildUserReadScope(user: any): any {
         { provinceId: user.provinceId },
         { AND: [{ role: { code: 'YAZAR' } }, { AuthorProfile: { provinceId: user.provinceId } }] }
       ]
+    };
+  }
+  if (role === 'BRANS_KOORDINATORU') {
+    const branches = coordinatorBranchIds(user);
+    if (!user.assignedRegion || branches.length === 0) return { id: -1 };
+    return {
+      role: { code: 'YAZAR' },
+      AuthorProfile: {
+        branchId: { in: branches },
+        province: { region: user.assignedRegion }
+      }
     };
   }
   return null;
