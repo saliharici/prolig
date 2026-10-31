@@ -15,6 +15,7 @@ enum RoleCode {
   GENEL_KOORDINATOR
   BOLGE_KOORDINATORU
   IL_KOORDINATORU
+  BRANS_KOORDINATORU
   EDITOR
   YAZAR
   MUHASEBE
@@ -121,7 +122,7 @@ model User {
   fullName       String
   roleId         Int
   role           Role      @relation(fields: [roleId], references: [id])
-  assignedRegion String? // Bölge Koordinatörünün sorumlu olduğu bölge (örn: 'Marmara')
+  assignedRegion String? // Bölge / Branş Koordinatörünün sorumlu olduğu bölge (örn: 'Marmara')
 
   editorBranchId Int?
   editorBranch   Branch? @relation("EditorBranch", fields: [editorBranchId], references: [id], onDelete: SetNull)
