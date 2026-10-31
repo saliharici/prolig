@@ -1,3 +1,4 @@
+import { hasBranchPermission } from './branch-permissions.js';
 import { coordinatorBranchIds, editorBranchIds } from './member-access.js';
 
 const supportedAuthorReadRoles = new Set([
@@ -27,6 +28,7 @@ export function buildAuthorReadScope(user: any) {
   }
 
   if (roleCode === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'authors.read')) return { id: -1 };
     const branches = coordinatorBranchIds(user);
     if (!user.assignedRegion || branches.length === 0) return { id: -1 };
     return { branchId: { in: branches }, province: { region: user.assignedRegion } };
