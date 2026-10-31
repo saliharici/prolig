@@ -3,7 +3,9 @@
 export type RoleCode = 
   | 'SUPER_ADMIN'
   | 'GENEL_KOORDINATOR'
+  | 'BOLGE_KOORDINATORU'
   | 'IL_KOORDINATORU'
+  | 'BRANS_KOORDINATORU'
   | 'EDITOR'
   | 'YAZAR'
   | 'MUHASEBE'
