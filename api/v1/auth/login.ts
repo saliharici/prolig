@@ -49,7 +49,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         fullName: user.fullName,
         role: user.role.code,
         provinceId: user.provinceId,
-        assignedRegion: user.assignedRegion
+        assignedRegion: user.assignedRegion,
+        branchPermissions: user.role.code === 'BRANS_KOORDINATORU' ? user.branchPermissions : []
       }
     });
 
