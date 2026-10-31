@@ -1,11 +1,12 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_lib/prisma.js';
 import { getSessionUserId, clearSessionCookie } from '../_lib/auth.js';
+import { isBranchCoordinatorActivationEnabled } from '../_lib/branch-permissions.js';
 
 const immutableProfileFields = new Set([
   'id', 'email', 'username', 'role', 'roleId', 'status',
   'provinceId', 'districtId', 'districtName', 'assignedRegion',
-  'editorBranchId', 'editorGrade', 'branchIds', 'branchId',
+  'editorBranchId', 'editorGrade', 'branchIds', 'branchId', 'branchPermissions',
   'institutionId', 'iban', 'password', 'passwordHash'
 ]);
 
@@ -105,7 +106,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       include: meInclude
     });
 
-    if (!user || user.status?.toUpperCase() !== 'AKTIF') {
+    if (!user || user.status?.toUpperCase() !== 'AKTIF' ||
+      (user.role.code === 'BRANS_KOORDINATORU' && !isBranchCoordinatorActivationEnabled())) {
       clearSessionCookie(res);
       return res.status(401).json({ error: 'Unauthorized' });
     }
