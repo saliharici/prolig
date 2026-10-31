@@ -59,6 +59,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+    if (user.role?.code === 'BRANS_KOORDINATORU' &&
+      (req.method === 'DELETE' || req.method === 'POST')) {
+      return res.status(403).json({ error: 'Branch coordinators cannot archive or delete projects' });
+    }
     if (req.method === 'GET') return await handleGet(id, user, req, res);
     if (req.method === 'PATCH') return await handlePatch(id, user, req, res);
     if (req.method === 'POST') return await handleLifecycle(id, user, req, res);
