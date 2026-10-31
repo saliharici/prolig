@@ -1,4 +1,5 @@
 import { coordinatorBranchIds, editorBranchIds } from './member-access.js';
+import { buildProjectReadScope } from './project-access.js';
 
 export function buildQuestionReadScope(user: any) {
   const roleCode = user.role.code;
@@ -41,7 +42,7 @@ export function buildQuestionReadScope(user: any) {
           province: { region: user.assignedRegion }
         }
       },
-      project: { branchId: { in: branches } }
+      project: buildProjectReadScope(user)
     };
   }
 
