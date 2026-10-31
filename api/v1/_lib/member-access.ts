@@ -122,7 +122,7 @@ export function canManageUserLifecycle(actor: any, target: any): boolean {
   }
 
   if (actorRole === 'BOLGE_KOORDINATORU') {
-    return ['IL_KOORDINATORU', 'EDITOR', 'YAZAR'].includes(targetRole);
+    return ['IL_KOORDINATORU', 'BRANS_KOORDINATORU', 'EDITOR', 'YAZAR'].includes(targetRole);
   }
 
   if (actorRole === 'IL_KOORDINATORU') {
