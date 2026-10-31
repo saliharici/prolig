@@ -183,7 +183,7 @@ describe('Question API Handlers', () => {
       setupUser('IL_KOORDINATORU', { provinceId: 35 });
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
-      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { AND: [{ authorUser: { AuthorProfile: { provinceId: 35 } } } }, { isPersonal: false }] } }));
+      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { AND: [{ authorUser: { AuthorProfile: { provinceId: 35 } } }, { isPersonal: false }] } }));
     });
 
     it('EDITOR receives branch, geography and grade filters', async () => {
