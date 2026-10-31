@@ -1,3 +1,4 @@
+import { hasBranchPermission } from './branch-permissions.js';
 import { coordinatorBranchIds, editorBranchIds } from './member-access.js';
 import { buildProjectReadScope } from './project-access.js';
 
@@ -33,6 +34,7 @@ export function buildQuestionReadScope(user: any) {
   }
 
   if (roleCode === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'questions.read')) return { id: -1 };
     const branches = coordinatorBranchIds(user);
     if (!user.assignedRegion || branches.length === 0) return { id: -1 };
     return {
