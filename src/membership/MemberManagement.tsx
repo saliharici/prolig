@@ -70,8 +70,8 @@ export function MemberManagement({ currentUser }: { currentUser: AuthUser }) {
   const canManageLifecycle = (target: ManagedUser) => {
     if (target.id === currentUser.id) return false;
     if (currentUser.role === 'GENEL_KOORDINATOR') return target.role !== 'GENEL_KOORDINATOR';
-    if (currentUser.role === 'BOLGE_KOORDINATORU') return ['IL_KOORDINATORU','EDITOR','YAZAR'].includes(target.role);
-    if (currentUser.role === 'IL_KOORDINATORU') return ['EDITOR','YAZAR'].includes(target.role);
+    if (currentUser.role === 'BOLGE_KOORDINATORU') return canEditTarget(target) && ['IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR'].includes(target.role);
+    if (currentUser.role === 'IL_KOORDINATORU') return canEditTarget(target) && ['EDITOR','YAZAR'].includes(target.role);
     return false;
   };
 
