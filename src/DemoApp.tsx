@@ -896,7 +896,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const questionLevels = Object.keys(gradesByLevel);
   const questionGrades = gradesByLevel[questionLevel] || [];
   const selectedProject = selectedProjectId ? apiProjects.find(project => project.id === selectedProjectId) ?? null : null;
-  const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU'].includes(currentUser.role);
+  const canCreateProjects = ['GENEL_KOORDINATOR', 'BOLGE_KOORDINATORU', 'IL_KOORDINATORU', 'BRANS_KOORDINATORU'].includes(currentUser.role);
   const selectedGradeDetail = buildGradeDetail(selectedGrade, apiProjects, apiQuestions);
   // Keep P1/P1-D payloads unchanged unless the separate multi-type UI flag is enabled.
   const guidedStudioOn = questionStudioReleaseFlags.guidedP2;
