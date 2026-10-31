@@ -13,7 +13,7 @@ import { handleCompensationAction } from './_lib/compensation-handler.js';
 import { handleBookAction } from './_lib/book-handler.js';
 import { maybeLogGo0IdentityOnce } from './_lib/go0-db-attestation.js';
 
-const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
+const canonicalRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR','MUHASEBE']);
 const openStatuses = ['ALINDI','INCELEMEDE','UYGUN'];
 
 async function ensureCanonicalBranches() {
@@ -71,10 +71,18 @@ async function validateAssignment(actor: any, payload: any) {
   const province = provinceId ? await prisma.province.findUnique({ where: { id: provinceId } }) : null;
   if (provinceId && !province) return { error: 'Unknown province' } as const;
   if (province && actor.role.code !== 'GENEL_KOORDINATOR' && !canViewProvince(actor, province)) return { error: 'Province is outside your scope' } as const;
-  if (actor.role.code === 'BOLGE_KOORDINATORU' && assignedRegion && assignedRegion !== actor.assignedRegion) return { error: 'Region is outside your scope' } as const;
+  if (actor.role.code === 'BOLGE_KOORDINATORU' && (!actor.assignedRegion || (assignedRegion && assignedRegion !== actor.assignedRegion))) return { error: 'Region is outside your scope' } as const;
   if (actor.role.code === 'IL_KOORDINATORU' && assignedRegion) return { error: 'Province coordinator cannot assign a region-wide scope' } as const;
   if (roleCode === 'BOLGE_KOORDINATORU' && !assignedRegion) return { error: 'Region is required' } as const;
   if (roleCode === 'IL_KOORDINATORU' && !province) return { error: 'Province is required' } as const;
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    if (!assignedRegion || provinceId !== null || branchIds.length === 0 || !Array.isArray(payload.branchIds) ||
+        payload.branchIds.some((id: unknown) => positiveInt(id) === null) ||
+        (await prisma.province.count({ where: { region: assignedRegion } })) === 0) {
+      return { error: 'Branch coordinator requires a valid region, one or more branches and no province' } as const;
+    }
+    if (editorGrade) return { error: 'Branch coordinator cannot have an editor grade' } as const;
+  }
   if (roleCode === 'EDITOR' && (branchIds.length === 0 || (!province && !assignedRegion) || (province && assignedRegion))) {
     return { error: 'Editor requires branches and exactly one geographic scope' } as const;
   }
@@ -91,13 +99,13 @@ async function applyAssignment(tx: any, userId: number, v: any, status: string) 
   if (!role) throw new Error('ROLE_NOT_FOUND');
   await tx.user.update({ where: { id: userId }, data: {
     roleId: role.id, status,
-    assignedRegion: v.roleCode === 'BOLGE_KOORDINATORU' || (v.roleCode === 'EDITOR' && v.assignedRegion) ? v.assignedRegion : null,
+    assignedRegion: ['BOLGE_KOORDINATORU','BRANS_KOORDINATORU'].includes(v.roleCode) || (v.roleCode === 'EDITOR' && v.assignedRegion) ? v.assignedRegion : null,
     provinceId: ['IL_KOORDINATORU','YAZAR','EDITOR'].includes(v.roleCode) && v.provinceId ? v.provinceId : null,
     editorBranchId: v.roleCode === 'EDITOR' ? (v.branchIds[0] ?? null) : null,
     editorGrade: v.roleCode === 'EDITOR' ? v.editorGrade : null
   }});
   await tx.userBranchAssignment.deleteMany({ where: { userId } });
-  if (v.roleCode === 'EDITOR' && v.branchIds.length) {
+  if (['EDITOR','BRANS_KOORDINATORU'].includes(v.roleCode) && v.branchIds.length) {
     await tx.userBranchAssignment.createMany({ data: v.branchIds.map((branchId: number) => ({ userId, branchId })) });
   }
   const existingAuthor = await tx.authorProfile.findUnique({ where: { userId } });
@@ -124,10 +132,11 @@ async function targetInActorScope(actor: any, target: any) {
   const actorRole = actor.role.code;
   if (!['BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(actorRole)) return false;
   const allowedTargetRoles = actorRole === 'BOLGE_KOORDINATORU'
-    ? ['IL_KOORDINATORU','EDITOR','YAZAR']
+    ? ['IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR','YAZAR']
     : ['EDITOR','YAZAR'];
   if (!allowedTargetRoles.includes(target.role.code)) return false;
-  if (target.assignedRegion) return actorRole === 'BOLGE_KOORDINATORU' && target.assignedRegion === actor.assignedRegion;
+  if (target.role.code === 'BRANS_KOORDINATORU') return actorRole === 'BOLGE_KOORDINATORU' && Boolean(actor.assignedRegion) && target.assignedRegion === actor.assignedRegion;
+  if (target.assignedRegion) return actorRole === 'BOLGE_KOORDINATORU' && Boolean(actor.assignedRegion) && target.assignedRegion === actor.assignedRegion;
   const provinceId = target.province?.id ?? target.AuthorProfile?.provinceId;
   if (!provinceId) return false;
   const province = target.province ?? await prisma.province.findUnique({ where: { id: provinceId } });
@@ -294,6 +303,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (action === 'users' && req.method === 'POST') {
       if (!['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU'].includes(user.role.code)) return res.status(403).json({ error: 'Forbidden' });
+      if (req.body?.role === 'IL_KOORDINATORU') return res.status(409).json({ error: 'New province coordinator accounts are disabled during transition' });
       const fullName = clean(req.body?.fullName,120,true);
       const email = clean(req.body?.email,200,true)?.toLowerCase() || null;
       const password = clean(req.body?.password,200,true);
@@ -417,7 +427,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!status || !['Aktif','Pasif'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
       const updated = await prisma.$transaction(async (tx: any) => {
         await applyAssignment(tx,id,v,status);
-        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_ROLE_SCOPE_UPDATED', entityType: 'User', entityId: id, details: JSON.stringify({ fromRole: target.role.code, toRole: v.roleCode, provinceId: v.provinceId, districtName: v.districtName, assignedRegion: v.assignedRegion, branchIds: v.branchIds, status }) } });
+        await tx.activityLog.create({ data: { userName: user.fullName, action: 'USER_ROLE_SCOPE_UPDATED', entityType: 'User', entityId: id, details: JSON.stringify({ fromRole: target.role.code, toRole: v.roleCode, fromRegion: target.assignedRegion, toRegion: v.assignedRegion, fromBranchIds: target.branchAssignments.map((item: any) => item.branchId), toBranchIds: v.branchIds, provinceId: v.provinceId, districtName: v.districtName, status }) } });
         return tx.user.findUnique({ where: { id }, include: userInclude });
       });
       return res.status(200).json({ user: userDto(updated) });
