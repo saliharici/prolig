@@ -1,4 +1,4 @@
-name: RELEASE-03 Minimal V3 isolated PostgreSQL
+name: RELEASE-04 V3 + Additive Branch Role (ephemeral PostgreSQL)
 on:
   push:
     branches: ['release/prolig-pilot-v3-minimal']
@@ -8,10 +8,13 @@ on:
     paths:
       - 'prisma/schema.prisma'
       - 'prisma/migrations/20261029010000_task_question_production_v3/**'
+      - 'prisma/migrations/20261031010000_release04_expand_branch_coordinator_enum/**'
+      - 'prisma/migrations/20261031011000_release04_seed_branch_coordinator_role/**'
       - 'api/v1/questions/**'
       - 'api/v1/_lib/task-*.ts'
       - 'src/tasks/**'
       - 'src/DemoApp.tsx'
+      - 'scripts/release04-verify-v3-branch-schema.mjs'
       - 'scripts/release03-verify-v3-schema.mjs'
       - '.github/workflows/release03-minimal-v3.yml'
 jobs:
@@ -43,15 +46,17 @@ jobs:
           cache: npm
       - name: Install without accessing Production secrets
         run: npm install --package-lock=false --no-audit --no-fund
-      - name: Check only V3 migration is added to main history
+      - name: Check V3 + additive BRANS migrations while rejecting rename/V4
         run: |
           test -f prisma/migrations/20261029010000_task_question_production_v3/migration.sql
+          test -f prisma/migrations/20261031010000_release04_expand_branch_coordinator_enum/migration.sql
+          test -f prisma/migrations/20261031011000_release04_seed_branch_coordinator_role/migration.sql
           test ! -e prisma/migrations/20261027010000_branch_coordinator_role
           test ! -e prisma/migrations/20261029030000_unit_production_plan_v4
       - name: Real migration apply to ephemeral PostgreSQL
         run: npx prisma migrate deploy
-      - name: Verify actual SQL schema and six-role enum
-        run: node scripts/release03-verify-v3-schema.mjs
+      - name: Verify actual SQL schema, historic IL and additive BRANS
+        run: node scripts/release04-verify-v3-branch-schema.mjs
       - name: Prisma validate and generate
         run: |
           npx prisma validate
