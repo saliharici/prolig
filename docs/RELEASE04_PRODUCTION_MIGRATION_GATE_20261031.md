@@ -30,12 +30,12 @@ Production canlı adresi `https://prolig.vercel.app/` korunarak, V3 görev–sor
 
 ## Hazırlanan teknik çözüm — GitHub kaynak kodunda, Production'a uygulanmadı
 
-1. `scripts/release04-stage-production-migrations.mjs`: 9 mevcut tarihsel migration ve 3 yeni migration için açık izin listesi; her tarihsel dosya için özgün SHA-256 veya **CRLF'ye dönüştürülünce bire bir eşleşen SHA-256** gerekir. Başka hiçbir SQL dönüşümüne izin vermez. GitHub'daki tarihsel SQL dosyalarını veya Production ledger'ı değiştirmez.
-2. `prisma/.release04-production-migrations`: Git tarafından izlenmeyen tekil dağıtım aday dizini. Çıktıda tüm **9 tarihsel checksum Production ile aynı**, 3 yeni migration mevcut ve P3 migration **yok**. `RELEASE04_MANIFEST.json`, kaynak hash'lerini, aday hash'lerini ve dönüştürülen beş dosyayı listeler.
+1. `scripts/release04-stage-production-migrations.mjs`: 9 mevcut tarihsel migration ve 4 yeni migration için açık izin listesi; her tarihsel dosya için özgün SHA-256 veya **CRLF'ye dönüştürülünce bire bir eşleşen SHA-256** gerekir. Başka hiçbir SQL dönüşümüne izin vermez. GitHub'daki tarihsel SQL dosyalarını veya Production ledger'ı değiştirmez.
+2. `prisma/.release04-production-migrations`: Git tarafından izlenmeyen tekil dağıtım aday dizini. Çıktıda tüm **9 tarihsel checksum Production ile aynı**, 4 yeni migration mevcut ve P3 migration **yok**. `RELEASE04_MANIFEST.json`, kaynak hash'lerini, aday hash'lerini ve dönüştürülen beş dosyayı listeler.
 3. `prisma.config.release04.ci.ts`: Yalnız `127.0.0.1/localhost` ve `prolig_release03_ci` adlı ephemeral PostgreSQL'i kabul eder, Production'a bağlanmaz.
-   `prisma.config.release04.production.ts`: **Gelecekteki onaylı 02 CANLI işlemi için kaynakta hazır, henüz kullanılmıyor.** Varsayılan Prisma config değildir. Yalnız GitHub `refs/heads/main`, açıkça onaylanmış tam SHA, onaylanmış Neon endpoint hostu, `sslmode=verify-full`, kesin `neondb` ve ayrı yayın onay değişkeniyle çalışır; 12 dosyanın SHA-256 değerleri ve P3 yokluğunu ayrıca doğrular. Bu yapılandırmanın varlığı tek başına migration/deploy izni değildir.
+   `prisma.config.release04.production.ts`: **Gelecekteki onaylı 02 CANLI işlemi için kaynakta hazır, henüz kullanılmıyor.** Varsayılan Prisma config değildir. Yalnız GitHub `refs/heads/main`, açıkça onaylanmış tam SHA, onaylanmış Neon endpoint hostu, `sslmode=verify-full`, kesin `neondb` ve ayrı yayın onay değişkeniyle çalışır; 13 dosyanın SHA-256 değerleri ve P3 yokluğunu ayrıca doğrular. Bu yapılandırmanın varlığı tek başına migration/deploy izni değildir.
 4. `.github/workflows/release03-minimal-v3.yml`: Aynı katı dosya hazırlama mekanizmasını kullanır; ardından izole PostgreSQL'de seçilmiş şemayı uygular. `scripts/release04-verify-v3-branch-schema.mjs` V3, tarihsel IL, yeni BRANS ve **P3 tablosunun bulunmadığını** denetler.
-5. Bekleyen üç migration: `20261029010000_task_question_production_v3` (Task.targetQuestionCount ve Question.taskId), `20261031010000_release04_expand_branch_coordinator_enum` (BRANS enum ADD VALUE), `20261031011000_release04_seed_branch_coordinator_role` (rol satırı).
+5. Bekleyen dört migration: `20261029010000_task_question_production_v3` (Task.targetQuestionCount ve Question.taskId), `20261031010000_release04_expand_branch_coordinator_enum` (BRANS enum ADD VALUE), `20261031011000_release04_seed_branch_coordinator_role` (rol satırı), `20261031012000_release04_branch_permissions` (kişiye özel sekiz işlem hakkı için boş diziyle başlayan kolon).
 
 ## Production geçişi için tamamlanması gereken kapılar
 
@@ -54,6 +54,10 @@ Production canlı adresi `https://prolig.vercel.app/` korunarak, V3 görev–sor
 GitHub commit `bf6ce72476dd687ed2dba639d2cfc08be58561cd`: **4/4 PASS** — Pro-Lig CI, Publishing V2, P2 Isolated PostgreSQL ve RELEASE-04 (P3 hariç, satır sonu uzlaştırılmış 12 migration'lı ephemeral PostgreSQL).
 
 Bu kanıt yalnız belirtilen commit içindir; sonraki kod commitleri ayrıca doğrulanır. Production Neon'a migration, `main` merge ve Vercel Production deploy **yapılmamıştır**.
+
+## Güncel devralma: rol aktivasyon ve rollback
+
+`docs/RELEASE04_ACTIVATION_AND_ROLLBACK_GATE_20261031.md` esas alınır. Yeni BRANS rolü, `RELEASE04_BRANS_ACTIVATION_ENABLED` tam `true` olmadıkça oturum açamaz veya yeni role atanamaz. İlk Production sürümü flag OFF yayınlanmalıdır. BRANS hesabı açıldıktan sonra eski Vercel deployment'ına doğrudan rollback yapılmaz; veri koruyan, iki rolü tanıyan ileri düzeltme/geri dönüş yolu önce ispatlanmalıdır. Son PR SHA üzerinde izin motoru/migration CI PASS olmadan işlem açılmamalıdır.
 
 ## Şimdiki hüküm
 **G1 kaynak provenansı çözüldü. Production: G2–G5 tamamlanana kadar NO-GO.** Sonuç doğrulanmadan `main` merge / deploy / Production migration / gerçek üye rol değiştirme yok. Denetlenmemiş hiçbir adıma PASS yazma.
