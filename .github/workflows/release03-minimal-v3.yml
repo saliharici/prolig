@@ -72,3 +72,17 @@ jobs:
         run: npm run lint
       - name: Candidate build
         run: npm run build
+      - name: Fetch exact currently deployed Production source for legacy rollback read compatibility
+        uses: actions/checkout@v4
+        with:
+          ref: 643cc3a524cb54c497cda550980fbc78f999be4d
+          path: _release04_legacy_production
+          persist-credentials: false
+      - name: Verify legacy Prisma read compatibility on expanded ephemeral schema
+        run: |
+          cp scripts/release04-legacy-rollback-smoke.ts _release04_legacy_production/release04-legacy-rollback-smoke.ts
+          cp prisma.config.release04.legacy.ci.ts _release04_legacy_production/prisma.config.release04.legacy.ci.ts
+          cd _release04_legacy_production
+          npm install --package-lock=false --no-audit --no-fund
+          npx prisma generate --config ./prisma.config.release04.legacy.ci.ts
+          npx tsx release04-legacy-rollback-smoke.ts
