@@ -1,3 +1,4 @@
+import { hasBranchPermission } from './branch-permissions.js';
 import { coordinatorBranchIds, editorBranchIds } from './member-access.js';
 
 export const projectManagerRoles = new Set([
@@ -20,7 +21,7 @@ const supportedProjectReadRoles = new Set([
 export function canCreateProject(user: any): boolean {
   if (!projectManagerRoles.has(user?.role?.code)) return false;
   if (user.role.code === 'BRANS_KOORDINATORU')
-    return Boolean(user.assignedRegion) && coordinatorBranchIds(user).length > 0;
+    return hasBranchPermission(user, 'projects.create') && Boolean(user.assignedRegion) && coordinatorBranchIds(user).length > 0;
   return true;
 }
 
@@ -56,6 +57,7 @@ export function canManageProject(actor: any, project: any): boolean {
   if (!projectManagerRoles.has(roleCode)) return false;
   if (roleCode === 'GENEL_KOORDINATOR') return true;
   if (roleCode === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(actor, 'projects.update')) return false;
     const branches = coordinatorBranchIds(actor);
     const branchId = project?.branchId ?? project?.branch?.id;
     const authorProfiles = Array.isArray(project?.projectAuthors)
@@ -104,6 +106,7 @@ export function buildProjectReadScope(user: any) {
   }
 
   if (roleCode === 'BRANS_KOORDINATORU') {
+    if (!hasBranchPermission(user, 'projects.read')) return { id: -1 };
     const branches = coordinatorBranchIds(user);
     if (!user.assignedRegion || branches.length === 0) return { id: -1 };
     // A project with no authors or mixed-region/mixed-branch authors must not
