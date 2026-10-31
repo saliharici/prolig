@@ -116,7 +116,7 @@ describe('RELEASE-05 owner-only private questions / ordered sets / editable DOCX
     const edit=reply();
     await questionHandler(req('PATCH',{
       content:'Kayıtlı kişisel soru başarıyla yeniden düzenlendi.',
-      personalTopic:'Tam Sayılar',expectedUpdatedAt:reopened.updatedAt
+      personalTopic:'Tam Sayılar',expectedUpdatedAt:new Date(reopened.updatedAt).toISOString()
     },author1,{id:String(id)}),edit as any);
     expect(edit.statusCode,JSON.stringify(edit.data)).toBe(200);
     expect(edit.data.personalTopic).toBe('Tam Sayılar');
