@@ -15,7 +15,7 @@ import type { ApiTask, TaskPriority, TaskStatus } from './types';
 type TaskView = 'kanban' | 'list';
 type QuickFilter = 'all' | 'mine' | 'overdue' | 'week';
 
-const managerRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU']);
+const managerRoles = new Set(['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','BRANS_KOORDINATORU']);
 const statusColumns: Array<{ status: Exclude<TaskStatus,'Gecikti'>; label: string }> = [
   { status: 'Bekliyor', label: 'Bekliyor' },
   { status: 'Devam_Ediyor', label: 'Devam Ediyor' },
@@ -338,7 +338,12 @@ function TaskForm({
   };
   const userMap=new Map<number,ManagedUser>();
   [currentAsManaged,...managedUsers].forEach(user=>{
-    if (['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','EDITOR'].includes(user.role)&&user.status==='Aktif') userMap.set(user.id,user);
+    if (currentUser.role==='BRANS_KOORDINATORU') {
+      // API allows only self-assignment or project-scoped authors for this role.
+      if (user.id===currentUser.id&&user.status==='Aktif') userMap.set(user.id,user);
+    } else if (['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU','BRANS_KOORDINATORU','EDITOR'].includes(user.role)&&user.status==='Aktif') {
+      userMap.set(user.id,user);
+    }
   });
   const eligibleUsers=[...userMap.values()].sort((a,b)=>a.fullName.localeCompare(b.fullName,'tr-TR'));
 
