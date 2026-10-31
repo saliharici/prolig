@@ -53,8 +53,10 @@ jobs:
           test -f prisma/migrations/20261031011000_release04_seed_branch_coordinator_role/migration.sql
           test ! -e prisma/migrations/20261027010000_branch_coordinator_role
           test ! -e prisma/migrations/20261029030000_unit_production_plan_v4
-      - name: Real migration apply to ephemeral PostgreSQL
-        run: npx prisma migrate deploy
+      - name: Stage checksum-pinned Production candidate (no DB access, excludes P3)
+        run: node scripts/release04-stage-production-migrations.mjs
+      - name: Verify isolated production-candidate migration set on ephemeral PostgreSQL
+        run: npx prisma migrate deploy --config ./prisma.config.release04.ci.ts
       - name: Verify actual SQL schema, historic IL and additive BRANS
         run: node scripts/release04-verify-v3-branch-schema.mjs
       - name: Prisma validate and generate
@@ -62,7 +64,7 @@ jobs:
           npx prisma validate
           npx prisma generate
       - name: Targeted role/task/question regression
-        run: npx vitest run tests/task-handlers.test.ts tests/task-access.test.ts tests/question-handlers.test.ts tests/question-api.test.ts tests/publishing-docx-v1.test.ts tests/publishing-book-api-v2.test.ts tests/release03-question-task-draft.test.ts tests/release03-preview-guard.test.ts
+        run: npx vitest run tests/release04-region-branch-scope.test.ts tests/task-handlers.test.ts tests/task-access.test.ts tests/question-handlers.test.ts tests/question-api.test.ts tests/publishing-docx-v1.test.ts tests/publishing-book-api-v2.test.ts tests/release03-question-task-draft.test.ts tests/release03-preview-guard.test.ts
 
       - name: Candidate TypeScript / lint
         run: npm run lint
