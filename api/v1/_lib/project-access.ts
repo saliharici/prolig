@@ -1,15 +1,17 @@
-import { editorBranchIds } from './member-access.js';
+import { coordinatorBranchIds, editorBranchIds } from './member-access.js';
 
 export const projectManagerRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
-  'IL_KOORDINATORU'
+  'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU'
 ]);
 
 const supportedProjectReadRoles = new Set([
   'GENEL_KOORDINATOR',
   'BOLGE_KOORDINATORU',
   'IL_KOORDINATORU',
+  'BRANS_KOORDINATORU',
   'EDITOR',
   'YAZAR',
   'MUHASEBE'
@@ -37,6 +39,12 @@ export function canAssignProjectAuthor(actor: any, authorProfile: any): boolean 
   if (!authorProfile || authorProfile.status !== 'Aktif') return false;
   if (authorProfile.user?.status?.toUpperCase?.() !== 'AKTIF') return false;
   if (authorProfile.user?.role?.code !== 'YAZAR') return false;
+  if (actor.role.code === 'BRANS_KOORDINATORU') {
+    const branches = coordinatorBranchIds(actor);
+    return Boolean(actor.assignedRegion) &&
+      branches.includes(authorProfile.branchId) &&
+      authorProfile.province?.region === actor.assignedRegion;
+  }
   return authorProvinceInActorScope(actor, authorProfile.province);
 }
 
@@ -44,6 +52,16 @@ export function canManageProject(actor: any, project: any): boolean {
   const roleCode = actor?.role?.code;
   if (!projectManagerRoles.has(roleCode)) return false;
   if (roleCode === 'GENEL_KOORDINATOR') return true;
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    const branches = coordinatorBranchIds(actor);
+    const branchId = project?.branchId ?? project?.branch?.id;
+    const authorProfiles = Array.isArray(project?.projectAuthors)
+      ? project.projectAuthors.map((item: any) => item?.authorProfile) : [];
+    return Boolean(actor.assignedRegion) && branches.includes(branchId) &&
+      authorProfiles.length > 0 && authorProfiles.every((profile: any) =>
+        profile?.province?.region === actor.assignedRegion &&
+        profile?.branchId === branchId);
+  }
 
   const assignments = Array.isArray(project?.projectAuthors) ? project.projectAuthors : [];
   const profiles = assignments.map((item: any) => item?.authorProfile).filter(Boolean);
@@ -79,6 +97,31 @@ export function buildProjectReadScope(user: any) {
           }
         }
       ]
+    };
+  }
+
+  if (roleCode === 'BRANS_KOORDINATORU') {
+    const branches = coordinatorBranchIds(user);
+    if (!user.assignedRegion || branches.length === 0) return { id: -1 };
+    // A project with no authors or mixed-region/mixed-branch authors must not
+    // acquire an inferred regional owner. No project metadata field required.
+    const inScope = {
+      branchId: { in: branches },
+      province: { region: user.assignedRegion }
+    };
+    return {
+      branchId: { in: branches },
+      projectAuthors: {
+        some: { authorProfile: inScope },
+        none: {
+          authorProfile: {
+            OR: [
+              { branchId: { notIn: branches } },
+              { province: { region: { not: user.assignedRegion } } }
+            ]
+          }
+        }
+      }
     };
   }
 
