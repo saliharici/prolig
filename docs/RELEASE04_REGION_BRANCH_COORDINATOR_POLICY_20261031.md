@@ -77,8 +77,8 @@ PR #117'nin `20261027010000_branch_coordinator_role/migration.sql` dosyası `ALT
 ## 7. Durum
 
 **Karar:** KABUL EDİLDİ.  
-**GitHub kod entegrasyonu:** PARTIAL — Üyelik, rol atama, geçici UI ve eklemeli migration dosyaları PR #118 üzerinde; diğer BRANS modül API'leri henüz yapılmadı.  
-**Yeni migration:** NOT IMPLEMENTED.  
+**GitHub kod entegrasyonu:** PARTIAL — Üyelik, rol atama, yazar/proje/görev/soru bölge+branş kapsamı ve eklemeli migration dosyaları PR #118 üzerinde; rapor/kitap/mesaj/telif gibi diğer modüller tamamlanmadı.  
+**Yeni migration:** SQL PREPARED / NOT APPLIED.  
 **Production:** DEĞİŞMEDİ.  
 **Sıradaki sahip:** 01 TEST mevcut PR #118'de kod ve minimum CI; 02 CANLI kontrollü yayın; 03 MİMARİ kapsam ve kabul matrisi.
 
@@ -90,7 +90,27 @@ PR #117'nin `20261027010000_branch_coordinator_role/migration.sql` dosyası `ALT
 - `src/membership/MemberManagement.tsx`: Genel tüm bölgeleri, Bölge yalnız kendi bölgesini seçer; Branş Koordinatörü için birden çok branş seçimi ve geçerli rol dönüşümü. Aktif eski IL hesapları düzenleme sırasında geçiş rolü olarak görünür.
 - `prisma/schema.prisma`: IL değerini koruyarak BRANS enum'u eklendi. `User.assignedRegion` ve `UserBranchAssignment` zaten vardır; yeni tablo gerekmemiştir.
 - `20261031010000_release04_expand_branch_coordinator_enum` ve `20261031011000_release04_seed_branch_coordinator_role`: ADD VALUE ve rol seed işlemleri ayrıldı. **Migration SQL'i yalnız hazırlandı, Neon'a uygulanmadı.**
-- `src/demo/model.ts`, `src/types.ts`, `src/DemoApp.tsx`: geçici ikili rol tipi ve gösterim. **BRANS yeni rolü yalnız overview bölümüne erişir**; proje/görev/yazar/rapor API'lerinde bölge∩branş denetimi tamamlanıncaya kadar bu modüller açılmaz.
+- `src/demo/model.ts`, `src/types.ts`, `src/DemoApp.tsx`: geçici ikili rol tipi ve gösterim. **31.10 ilk üyelik paketinde BRANS yalnız overview bölümüne erişiyordu**; aşağıdaki bölüm 9 ile yazar/proje/görev/soru için erişim kapsamı eklendi. Rapor/kitap/mesaj/finans yetkileri kapalı.
 - `tests/member-access.test.ts`: yeni rol atama hiyerarşisi için mevcut test sözleşmesine asgari doğrulama eklendi. **CI sonucu henüz PASS olarak doğrulanmadı.**
 
 **Açık kalan geliştirmeler:** Tüm işlevsel API'lerin BRANS bölge∩branş kapsamı, proje bölgesel sahiplik modeli, rol içi özelleştirilebilir izinler (ayrı açık sözleşme), P3'ü dışlayan kalıcı Production migration yolu ve DB+Vercel uyumlu geri dönüş mekanizması. Sadece bu üyelik paketinin tamamlanması yayın izni değildir. PR #117 ve #118'in 18 ortak dosyası hâlâ genel bütünleşme kapsamında çözülmelidir.
+
+## 9. 31.10.2026 — Üretim kapsamlı yetkilendirme (GitHub PR #118, Production değil)
+
+**Kod: IMPLEMENTED; otomatik CI sonuçları son kontrolde PENDING.**
+- `member-access.ts`: `coordinatorBranchIds` yalnız `UserBranchAssignment` kayıtlarını kabul eder; eski `editorBranchId` kolay yoluna başvurmaz. BRANS için üye okuma yalnız aynı bölgedeki atanmış branş yazarıdır. Üyelik başvurusu, üst rol yaratma ve yabancı bölge erişimi verilmez. Bölge Koordinatörü kendi bölgesindeki BRANS hesabını pasifleştirebilir.
+- `author-access.ts`: Yazar havuzu filtreleri **atanmış bölge ∩ atanmış branşlar**.
+- `project-access.ts`: Proje okuma/yönetimi için atanmış proje branşı, **en az bir yazar**, projedeki **tüm** yazarların aynı bölge ve proje branşında bulunması zorunlu. Boş, çok bölgeli veya farklı branşlı proje BRANS tarafından görülmez/yönetilmez; açık coğrafi sahipliği belirsiz olan proje fail-closed. Yeni projede en az bir kapsam içi yazar gerekir.
+- `task-access.ts`: Görev okuma **yalnız izinli proje kapsamı**; `assignedCoordinatorId` üzerinden kapsam atlatılamaz. BRANS başka koordinatöre görev devredemez, yalnız uygun projede kendine veya o projeye atanmış yazara atayabilir. Durum güncellemede dolaylı assignee bypass'ı engellendi.
+- `question-access.ts`: Soru havuzu okuma **yazarın bölge+branşı VE projenin tüm-yazar kapsamı** birlikte sağlandığında mümkün. Editör onayı/değerlendirme yetkisi BRANS'a verilmedi; arşiv/silme işlemleri de şu aşamada kapalı.
+- `src/demo/model.ts`, `DemoApp.tsx`, `PublisherExperience.tsx`: BRANS için yazar/proje/görev/soru modülleri açıldı, diğer modüller kapalı. Tasarım prototipi gerçek rol API'siyle karıştırılmıyor.
+- `projects/[id].ts`: BRANS başka branşa proje taşıyamaz, son yazarı kaldıramaz, **proje `Tamamlandi` statüsüyle telif tahakkuku tetikleyemez**. Muhasebe ve editörün yetkileri devredilmez.
+- `tests/release04-region-branch-scope.test.ts`: Sınırlı birim politikası testi eklendi; önceki uzun test kampanyaları manuel başlatılmadı.
+- `scripts/release04-verify-v3-branch-schema.mjs` ve mevcut `.github/workflows/release03-minimal-v3.yml` güncellendi: Eski `RELEASE-03` şema doğrulama dosyası korundu, mevcut otomatik GitHub CI'da `RELEASE-04` şema denetimi **yerel geçici PostgreSQL** üzerinde hem IL hem BRANS enum değerini ve V3 ilişkilerini doğrulamaya ayarlandı. Bu, **Production migration güvenliğine veya P3'e izin vermez**.
+
+**Bilinen sınırlamalar / NO-GO**
+1. `Project` tablosunda bağımsız `managingRegion` yok. Proje kapsamı **tüm yazarların coğrafyasından muhafazakâr şekilde türetiliyor**; yazarsız veya bölgeler arası projeler BRANS'a kapalı. İleride tekil bölgesel proje sahipliği gereksinimi ayrı ürün kararıdır.
+2. Mevcut PR #118'de P3 Preview migration'ı hâlâ varsayılan Prisma migration dizininde; **Production'a körlemesine `prisma migrate deploy` yapılamaz**. SQL dosyaları hazır fakat Production'a uygulanmadı.
+3. İki mevcut İl Koordinatörü hesabına bölge/branşlar otomatik atanmadı. Onaylı gerçek kullanıcı ataması olmadan rol dönüşümü yapılmaz.
+4. Rapor, kitap, duyuru, mesaj, finans ve kişiye özel alt-izin motoru BRANS için henüz açılmadı. Yetkilerin tüm API uçlarında tamamlandığı iddia edilmez.
+5. Mevcut GitHub Actions CI (yeni commitler için) PASS olarak henüz doğrulanmadı. Değişiklikler Production'a alınmadı; release ve geri dönüş aşaması ayrıca kontrol edilecek.
