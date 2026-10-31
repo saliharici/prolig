@@ -116,7 +116,7 @@ export const permissions: Record<Role, Section[]> = {
   GENEL_KOORDINATOR: ['overview', 'grades', 'questions', 'publishing', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'payments', 'members', 'roles', 'audit'],
   BOLGE_KOORDINATORU: ['overview', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'grades', 'reports', 'members', 'payments'],
       // Fail closed until project/task/report APIs enforce region + branch scopes.
-  BRANS_KOORDINATORU: ['overview'],
+  BRANS_KOORDINATORU: ['overview','authors','projects','tasks','questions'],
 IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'authors', 'reports', 'members', 'payments'],
   EDITOR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
   YAZAR: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messages', 'announcements', 'reports', 'payments'],
@@ -126,7 +126,7 @@ IL_KOORDINATORU: ['overview', 'grades', 'questions', 'projects', 'tasks', 'messa
 export const dataScopes: Record<Role, string> = {
   GENEL_KOORDINATOR: 'Tüm örnek kayıtlar',
   BOLGE_KOORDINATORU: 'Bölge Koordinatörü',
-      BRANS_KOORDINATORU: 'Bölge ve branş atamalı (üretim modülleri geçiş boyunca kapalı)',
+      BRANS_KOORDINATORU: 'Bölge ve atanmış branşlarla sınırlı; editör onayı ve ödeme işlemleri yok',
 IL_KOORDINATORU: 'İl Koordinatörü',
   EDITOR: 'Tüm sorular ve proje özetleri',
   YAZAR: 'Kendi soruları ve atanmış proje',
