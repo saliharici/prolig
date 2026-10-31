@@ -47,6 +47,7 @@ export function buildTaskReadScope(user: any) {
 
 export function isTaskAssignee(user: any, task: any): boolean {
   if (!user || !task) return false;
+  if (user.role?.code === 'BRANS_KOORDINATORU' && !canManageTask(user, task)) return false;
   if (task.assignedCoordinatorId === user.id) return true;
   return Boolean(user.AuthorProfile?.id) && task.assignedAuthorProfileId === user.AuthorProfile.id;
 }
