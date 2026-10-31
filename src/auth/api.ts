@@ -70,8 +70,10 @@ export const fetchMe = async (): Promise<AuthUser | null> => {
     role: validatedRole,
     provinceId: provinceId ?? null,
     assignedRegion: assignedRegion ?? null,
-    branchPermissions: Array.isArray(data.user.branchPermissions)
-      ? data.user.branchPermissions.filter((value: unknown): value is string => typeof value === 'string') : [],
+    ...(validatedRole === 'BRANS_KOORDINATORU' ? {
+      branchPermissions: Array.isArray(data.user.branchPermissions)
+        ? data.user.branchPermissions.filter((value: unknown): value is string => typeof value === 'string') : []
+    } : {}),
     ...(data.user.phone !== undefined ? { phone: data.user.phone } : {}),
     ...(data.user.avatarUrl !== undefined ? { avatarUrl: data.user.avatarUrl } : {}),
     ...(data.user.province !== undefined ? { province: data.user.province } : {}),
