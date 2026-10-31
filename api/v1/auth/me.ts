@@ -58,6 +58,7 @@ function userDto(user: any) {
       region: user.province.region
     } : null,
     assignedRegion: user.assignedRegion,
+    branchPermissions: user.role.code === 'BRANS_KOORDINATORU' ? user.branchPermissions : [],
     editorGrade: user.editorGrade ?? null,
     editorBranches: user.branchAssignments?.map((item: any) => ({
       id: item.branch.id,
