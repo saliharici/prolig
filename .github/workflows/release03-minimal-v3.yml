@@ -22,7 +22,7 @@ jobs:
   postgresql-16:
     # Historical RELEASE-04 no-P3 release manifest intentionally excludes
     # future migrations. RELEASE-05 has its own scoped ephemeral-PG acceptance.
-    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'feat/release05-')
+    if: github.event_name != 'pull_request' || (!startsWith(github.head_ref, 'feat/release05-') && !startsWith(github.head_ref, 'feat/release06-'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:

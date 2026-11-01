@@ -6,6 +6,7 @@ import { formatQuestionDto } from '../_lib/question-dto.js';
 import { parseQuestionAssets } from '../_lib/question-assets.js';
 import { parseTypedQuestion, usesTypedQuestion } from '../_lib/question-type-validation.js';
 import { handlePersonalSetAction } from '../_lib/personal-question-library.js';
+import { handlePersonalPublisherCopy } from '../_lib/personal-publisher-copy.js';
 import { getQuestionArchiveStateMap } from '../_lib/question-archive.js';
 import { Client } from 'pg';
 import { isP1DPreviewSandboxTarget, p1dPreviewRefusalCode, P1D_SANDBOX_DATABASE } from '../_lib/p1d-preview-identity.js';
@@ -19,6 +20,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       return await handleGet(req, res);
     } else if (req.method === 'POST') {
+      if (req.body?.action === 'copyPersonalToPublisher') {
+        const author = await getCurrentUser(req);
+        if (!author) return res.status(401).json({ error: 'Unauthorized' });
+        return await handlePersonalPublisherCopy(req.body, author, res);
+      }
       if (['listPersonalSets','createPersonalSet','updatePersonalSet','deletePersonalSet','exportPersonalSet'].includes(req.body?.action)) {
         const author = await getCurrentUser(req);
         if (!author) return res.status(401).json({ error: 'Unauthorized' });
