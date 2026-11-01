@@ -81,3 +81,39 @@ describe('RELEASE-07 edit-in-place action contract',()=>{
   expect(source).toContain('canReplaceSelectedGeometry(geometrySelection, editor.state.doc)');
  });
 });
+
+describe('RELEASE-07 visual in-stem geometry / persistent source',()=>{
+ it('renders valid markers as atomic visual HTML while preserving legacy v1/v2 source',()=>{
+  for(const shape of ['triangle','circle','square'] as const){
+    const v1=geometryMarker(shape);
+    const v2=editableGeometryMarker(defaultGeometry(shape));
+    for(const token of [v1,v2]){
+      const source='Soru: '+token+' seçenekler';
+      const html=legacyMarkupToHtml(source);
+      expect(html).toContain('data-prolig-geometry="'+token+'"');
+      expect(htmlToLegacyMarkup(html)).toBe(source);
+    }
+  }
+ });
+ it('never transforms unsupported marker formats into visual geometry nodes',()=>{
+  const text='[[prolig-geometry:v9:circle:12,12,5]]';
+  expect(legacyMarkupToHtml(text)).not.toContain('data-prolig-geometry=');
+  expect(htmlToLegacyMarkup(legacyMarkupToHtml(text))).toBe(text);
+ });
+ it('finds and validates atomic geometry locations without exposing raw marker to the editor',()=>{
+  const marker=editableGeometryMarker(defaultGeometry('triangle'));
+  const atomSchema=new Schema({nodes:{
+    doc:{content:'paragraph+'},paragraph:{group:'block',content:'inline*'},text:{group:'inline'},
+    geometryShape:{group:'inline',inline:true,atom:true,attrs:{marker:{default:null}}}
+  },marks:{}});
+  const atom=atomSchema.nodes.geometryShape.create({marker});
+  const doc=atomSchema.nodes.doc.create(null,atomSchema.nodes.paragraph.create(null,[atom]));
+  const found=listEditableGeometry(doc);
+  expect(found).toHaveLength(1);
+  expect(found[0].original).toBe(marker);
+  expect(found[0].to-found[0].from).toBe(1);
+  expect(canReplaceSelectedGeometry({...found[0],document:doc},doc)).toBe(true);
+  const stale=atomSchema.nodes.doc.create(null,atomSchema.nodes.paragraph.create(null,[atomSchema.nodes.geometryShape.create({marker:geometryMarker('circle')})]));
+  expect(canReplaceSelectedGeometry({...found[0],document:stale},stale)).toBe(false);
+ });
+});

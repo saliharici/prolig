@@ -10,6 +10,7 @@
  */
 
 import { safeStudioHref } from './studio-document';
+import { geometryTokenPattern, readGeometryMarker } from './geometry-parameters';
 
 export function sanitizeHtml(html: string): string {
   // Disallow scripts, iframe, object, embed, handlers
@@ -68,6 +69,11 @@ export function legacyMarkupToHtml(markdown: string): string {
       }
       return match;
     });
+
+    // Valid v1/v2 markers are visual, selectable Tiptap inline nodes.
+    // Invalid/future markers stay literal text (never silently discarded).
+    safe = safe.replace(geometryTokenPattern, marker =>
+      readGeometryMarker(marker) ? '<span data-prolig-geometry="' + marker + '"></span>' : marker);
 
     return safe;
   };
@@ -137,6 +143,9 @@ export function htmlToLegacyMarkup(html: string): string {
 
   // Fallback regex-based converter if DOMParser is unavailable
   return html
+    // Preserve atomic geometry nodes in Node/SSR export too.
+    .replace(/<span\b[^>]*data-prolig-geometry="([^"]+)"[^>]*><\/span>/gi,
+      (_, marker: string) => readGeometryMarker(marker) ? marker : '')
     .replace(/<ol\b[^>]*>([\s\S]*?)<\/ol>/gi, (_, olContent) => {
       let index = 1;
       return olContent.replace(/<li\b[^>]*>([\s\S]*?)<\/li>/gi, (_2: string, item: string) => `${index++}. ${item.trim()}\n`) + '\n';
@@ -191,6 +200,10 @@ function nodeToMarkdown(node: Node): string {
       return `_${childrenMarkdown}_`;
     case 'u':
       return `<u>${childrenMarkdown}</u>`;
+    case 'span': {
+      const marker = el.getAttribute('data-prolig-geometry');
+      return marker && readGeometryMarker(marker) ? marker : childrenMarkdown;
+    }
     case 'code':
       // Check if formula
       if (childrenMarkdown.startsWith('$') && childrenMarkdown.endsWith('$')) {

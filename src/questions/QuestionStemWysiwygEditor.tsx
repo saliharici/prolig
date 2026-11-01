@@ -20,6 +20,7 @@ import { safeStudioHref } from './studio-document';
 import { geometrySvg, geometryFileName } from './geometry-svg';
 import { editableGeometryMarker, readGeometryMarker, defaultGeometry, type GeometryDrawing } from './geometry-parameters';
 import { DraggableGeometry } from './DraggableGeometry';
+import { GeometryInlineNode } from './GeometryInlineNode';
 import { parseSelectedGeometry, canReplaceSelectedGeometry, listEditableGeometry, type GeometryLocation, type GeometryEditorSelection } from './geometry-revision';
 import './question-editor-p2.css';
 
@@ -78,6 +79,7 @@ export function QuestionStemWysiwygEditor({
         underline: false
       }),
       Underline,
+      GeometryInlineNode,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -143,8 +145,9 @@ export function QuestionStemWysiwygEditor({
    */
   const persistGeometryIntoStem = () => {
     const marker = editableGeometryMarker(drawing);
+    const geometryNode = { type: 'geometryShape', attrs: { marker } };
     if (!geometrySelection) {
-      const didInsert = editor.chain().focus().insertContent(marker).run();
+      const didInsert = editor.chain().focus().insertContent(geometryNode).run();
       setGeometryRevisionMessage(didInsert
         ? 'Yeni v2 çizim soru köküne eklendi. Soruyu kaydet düğmesiyle işlemi tamamlayın.'
         : 'Çizim eklenemedi; metin alanını kontrol edin.');
@@ -156,7 +159,7 @@ export function QuestionStemWysiwygEditor({
       return;
     }
     const changed = editor.chain().focus().insertContentAt(
-      { from: geometrySelection.from, to: geometrySelection.to }, marker
+      { from: geometrySelection.from, to: geometrySelection.to }, geometryNode
     ).run();
     setGeometrySelection(null);
     setGeometryRevisionMessage(changed
@@ -494,11 +497,14 @@ export function QuestionStemWysiwygEditor({
             <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
               onClick={() => {
                 const { from, to } = editor.state.selection;
-                const original = editor.state.doc.textBetween(from, to, '');
+                const selectedNode = editor.state.doc.nodeAt(from);
+                const original = selectedNode?.type.name === 'geometryShape' && selectedNode.nodeSize === to - from
+                  ? String(selectedNode.attrs.marker || '')
+                  : editor.state.doc.textBetween(from, to, '');
                 const existing = parseSelectedGeometry(original);
                 if (!existing) {
                   setGeometrySelection(null);
-                  setGeometryRevisionMessage('Önce soru metnindeki tam geometrik şekil işaretini seçin.');
+                  setGeometryRevisionMessage('Önce metin içindeki şekle tıklayın veya Kayıtlı şekiller listesini kullanın.');
                   return;
                 }
                 setShapeType(existing);

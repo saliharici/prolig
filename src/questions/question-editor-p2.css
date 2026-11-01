@@ -298,3 +298,9 @@
 .release07-drag-canvas .release07-handle:active{cursor:grabbing;fill:#ffd6e7}
 .release07-drag-canvas .release07-handle:focus-visible{stroke:#065f46;stroke-width:3;outline:none}
 .release07-geometry-editor small{max-width:380px;font-size:11px;color:#53655b}
+
+/* RELEASE-07: live geometry stays a visual inline atom inside the writing area. */
+.release07-inline-geometry{display:inline-flex;vertical-align:middle;max-width:220px;min-width:130px;margin:5px 8px;padding:3px;border:1px solid #dfebe8;background:#fff;border-radius:8px;cursor:pointer;user-select:none}
+.release07-inline-geometry .studio-geometry-diagram{display:block;width:185px;max-width:100%;height:134px}
+.release07-inline-geometry.is-selected,.ProseMirror-selectednode.release07-inline-geometry{outline:2px solid #8b3156;outline-offset:1px}
+.release07-inline-geometry-error{color:#9b253f;border:1px solid currentColor}
