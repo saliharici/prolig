@@ -59,7 +59,9 @@ export async function handlePersonalPublisherCopy(input: any, user: any, res: Ve
 
       // Serialize concurrent clicks for this source within PostgreSQL.
       // No migration or permanent lock table is required.
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(17006, ${sourceQuestionId})`;
+      // pg_advisory_xact_lock returns PostgreSQL void; Prisma/adapter-pg cannot deserialize void.
+      // Return a boolean expression instead, retaining the transaction-scoped lock.
+      await tx.$queryRaw`SELECT (pg_advisory_xact_lock(17006, ${sourceQuestionId}) IS NULL) AS lock_result`;
 
       // Find an earlier publisher copy, including copies made before this
       // idempotency fix. Audit content is only a candidate index: parse it and

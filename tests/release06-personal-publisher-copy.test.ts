@@ -82,7 +82,7 @@ describe('RELEASE-06 personal-to-publisher copy — minimal ownership contract',
       project: null, assets: []
     };
     const tx = {
-      $queryRaw: vi.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
+      $queryRaw: vi.fn().mockResolvedValue([{ lock_result: false }]),
       question: {
         findFirst: vi.fn().mockResolvedValue(source),
         create: vi.fn().mockResolvedValue(created)
@@ -112,6 +112,8 @@ describe('RELEASE-06 personal-to-publisher copy — minimal ownership contract',
     expect(source.isPersonal).toBe(true);
     expect(prisma.question.findFirst).toHaveBeenCalledTimes(1);
     expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    // Prevent Prisma P2010: raw-query output must be bool, never PostgreSQL void.
+    expect(tx.$queryRaw.mock.calls[0][0].join('?')).toContain('IS NULL');
     expect(tx.activityLog.findMany).toHaveBeenCalledTimes(1);
   });
 
@@ -127,7 +129,7 @@ describe('RELEASE-06 personal-to-publisher copy — minimal ownership contract',
       assets: [], authorUser: { fullName: user.fullName, AuthorProfile: { branch: { name: 'Matematik' } } }
     };
     const tx = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: vi.fn().mockResolvedValue([{ lock_result: false }]),
       question: {
         findFirst: vi.fn().mockResolvedValueOnce(source).mockResolvedValueOnce(existing),
         create: vi.fn()
@@ -154,7 +156,7 @@ describe('RELEASE-06 personal-to-publisher copy — minimal ownership contract',
     };
     const existingLog = { entityId: 18, details: '{"sourceQuestionId":42,"status":"TASLAK"}' };
     const tx = {
-      $queryRaw: vi.fn().mockResolvedValue([]),
+      $queryRaw: vi.fn().mockResolvedValue([{ lock_result: false }]),
       question: {
         findFirst: vi.fn().mockResolvedValueOnce(source).mockResolvedValueOnce(null),
         create: vi.fn().mockResolvedValue({
