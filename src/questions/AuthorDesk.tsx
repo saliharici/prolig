@@ -205,7 +205,7 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
         <p>Kendi sorularınızı hazırlayın, düzenleyin, setlerinizde sıralayın ve Word olarak dışa aktarın.</p>
       </div>
       <div className="author-desk-actions">
-        <button type="button" className="secondary-button" onClick={onPublisher}>Yayınevi soru havuzu <BookMarked size={16}/></button>
+        <button type="button" className="secondary-button" onClick={() => onPublisher()}>Yayınevi soru havuzu <BookMarked size={16}/></button>
         <button type="button" className="primary-button" onClick={() => { setDraft(emptyDraft()); setError(''); }}><Plus size={17}/> Yeni kişisel soru</button>
       </div>
     </header>
