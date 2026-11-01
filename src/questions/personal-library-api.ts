@@ -21,6 +21,11 @@ async function action<T>(value: Record<string, unknown>): Promise<T> {
     body: JSON.stringify(value)
   }));
 }
+/** Copies one private draft to a separate, editable publisher-pool draft. */
+export async function copyPersonalToPublisher(sourceQuestionId: number, expectedUpdatedAt: string): Promise<ApiQuestion> {
+  return action<ApiQuestion>({ action: 'copyPersonalToPublisher', sourceQuestionId, expectedUpdatedAt });
+}
+
 export async function fetchPersonalQuestions(): Promise<ApiQuestion[]> {
   return response<ApiQuestion[]>(await fetch('/api/v1/questions?library=personal', { credentials: 'include' }));
 }

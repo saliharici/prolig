@@ -7,7 +7,10 @@ import type { Release03Environment } from './release03-db-policy.js';
  * Other Previews continue to use their existing RELEASE-03 fail-closed guard.
  * This file never changes Production connection behavior.
  */
-const REF = 'feat/release05-author-desk-20261101';
+const APPROVED_PREVIEW_REFS = new Set([
+  'feat/release05-author-desk-20261101',
+  'feat/release06-publisher-flow-v1'
+]);
 const HOST = 'ep-withered-sunset-baxau75t-pooler.c-8.eu-central-1.aws.neon.tech';
 const DB = 'ux02_test';
 const USER = 'ux02_owner';
@@ -17,12 +20,12 @@ type PgClientWithStream = { connection?: { stream?: unknown } };
 function reject(): never { throw new Error(BLOCKED); }
 
 export function isRelease05Preview(env: Release03Environment = process.env): boolean {
-  return env.VERCEL_ENV === 'preview' && env.VERCEL_GIT_COMMIT_REF === REF;
+  return env.VERCEL_ENV === 'preview' && APPROVED_PREVIEW_REFS.has(env.VERCEL_GIT_COMMIT_REF || '');
 }
 
 function verifiedConnectionString(config: PoolConfig, env: Release03Environment): string {
   if (env.VERCEL !== '1' || env.VERCEL_ENV !== 'preview' ||
-      env.VERCEL_GIT_COMMIT_REF !== REF ||
+      !APPROVED_PREVIEW_REFS.has(env.VERCEL_GIT_COMMIT_REF || '') ||
       env.VERCEL_GIT_REPO_OWNER !== 'saliharici' ||
       env.VERCEL_GIT_REPO_SLUG !== 'prolig' ||
       !config.connectionString || config.connectionString !== env.DATABASE_URL ||

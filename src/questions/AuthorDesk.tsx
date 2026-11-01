@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, BookMarked, Check, Download, FilePlus2, FolderPlus, PencilLine, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookMarked, Check, Copy, Download, FilePlus2, FolderPlus, PencilLine, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, X } from 'lucide-react';
 import type { ApiQuestion, CreateQuestionInput, PatchQuestionInput } from './types';
 import { createQuestion, patchQuestion } from './api';
 import { QuestionStemWysiwygEditor } from './QuestionStemWysiwygEditor';
 import { QuestionTypePreview } from './QuestionTypePreview';
-import { deletePersonalSet, downloadPersonalSet, fetchPersonalQuestions, fetchPersonalSets, savePersonalSet, type PersonalQuestionSet } from './personal-library-api';
+import { copyPersonalToPublisher, deletePersonalSet, downloadPersonalSet, fetchPersonalQuestions, fetchPersonalSets, savePersonalSet, type PersonalQuestionSet } from './personal-library-api';
 import './author-desk.css';
 
 type Kind = 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'OPEN_ENDED';
@@ -41,6 +41,7 @@ export function AuthorDesk({ onPublisher }: { onPublisher: () => void }) {
   const [sets, setSets] = useState<PersonalQuestionSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [copyingId, setCopyingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -172,6 +173,17 @@ export function AuthorDesk({ onPublisher }: { onPublisher: () => void }) {
     catch (e: any) { setError(e.message || 'Word oluşturulamadı.'); }
     finally { setBusy(false); }
   };
+  const copyForPublisher = async (question: ApiQuestion) => {
+    if (copyingId !== null || busy) return;
+    setCopyingId(question.id); setError(''); setNotice('');
+    try {
+      const copied = await copyPersonalToPublisher(question.id, question.updatedAt);
+      setNotice(`#${copied.id} numaralı yayınevi taslağı oluşturuldu. Kişisel sorunuz ve setleriniz korundu. Üstteki “Yayınevi soru havuzu” bölümünden taslağı incelemeye gönderebilirsiniz.`);
+    } catch (err: any) {
+      setError(err?.message || 'Yayınevi taslağı oluşturulamadı.');
+    } finally { setCopyingId(null); }
+  };
+
   const eraseSet = async () => {
     if (!setId || !window.confirm('Bu soru setini silmek istiyor musunuz? Sorular silinmez.')) return;
     setBusy(true); setError('');
@@ -196,7 +208,7 @@ export function AuthorDesk({ onPublisher }: { onPublisher: () => void }) {
       </div>
     </header>
     <div className="author-desk-alert"><ShieldCheck size={18}/>
-      <span>Bu kütüphane yayınevi havuzundan ayrıdır. Kişisel sorular editör onayına, otomatik yayına veya telif tahakkukuna girmez.</span>
+      <span>Kişisel sorular editör incelemesine veya telife otomatik girmez. Yayınevine göndermek isterseniz ayrı bir taslak kopyası oluşturun; kişisel asıl soru korunur.</span>
     </div>
     {error && <p role="alert" className="author-desk-error">{error}</p>}
     {notice && <p role="status" className="author-desk-success"><Check size={16}/>{notice}</p>}
@@ -224,7 +236,12 @@ export function AuthorDesk({ onPublisher }: { onPublisher: () => void }) {
             <div className="author-desk-question-text">{q.content.slice(0,190)}{q.content.length>190?'…':''}</div>
             <small>{typeNames[q.questionType||'MULTIPLE_CHOICE']} · Son kayıt: {new Date(q.updatedAt).toLocaleDateString('tr-TR')}</small>
           </div>
-          <button className="secondary-button" type="button" onClick={()=>{setDraft(formFromQuestion(q));setError('');}}><PencilLine size={15}/> Aç / düzenle</button>
+          <div className="author-desk-question-actions">
+            <button className="secondary-button" type="button" disabled={busy || copyingId !== null} onClick={()=>{setDraft(formFromQuestion(q));setError('');}}><PencilLine size={15}/> Aç / düzenle</button>
+            <button className="secondary-button" type="button" disabled={busy || copyingId !== null || q.status !== 'TASLAK'} aria-busy={copyingId === q.id} onClick={() => void copyForPublisher(q)}>
+              <Copy size={15}/> {copyingId === q.id ? 'Kopyalanıyor…' : 'Yayınevi taslağına kopyala'}
+            </button>
+          </div>
         </article>)}
       </div>
     </section>
