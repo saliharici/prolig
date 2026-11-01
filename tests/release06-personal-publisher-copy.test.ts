@@ -113,6 +113,8 @@ describe('RELEASE-06 personal-to-publisher copy — minimal ownership contract',
     expect(prisma.question.findFirst).toHaveBeenCalledTimes(1);
     expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
     expect(tx.activityLog.findMany).toHaveBeenCalledTimes(1);
+  });
+
   it('reuses an existing authorized publisher copy without creating a duplicate', async () => {
     vi.mocked(prisma.question.findFirst).mockResolvedValue(ownedQuestion as any);
     const source = {
@@ -172,6 +174,5 @@ describe('RELEASE-06 personal-to-publisher copy — minimal ownership contract',
       where: expect.objectContaining({ id: 18, authorUserId: 7, isPersonal: false })
     }));
     expect(tx.question.create).toHaveBeenCalledTimes(1);
-  });
   });
 });
