@@ -59,6 +59,9 @@ export function DraggableGeometry({value,onChange,disabled=false}:{value:Geometr
           e.preventDefault();onChange(updateGeometryHandle(value,i,nextX,nextY));
         }}/>)}
     </svg>
-    <small>Noktaları sürükleyin veya ok tuşlarını kullanın (Shift: 5 birim). Çizimi metne eklemek/güncellemek için aşağıdaki düğmeyi kullanın.</small>
+    <small role="status" aria-live="polite">
+      Şekil koordinatları: {value.values.join(', ')}. Noktaları sürükleyin veya ok tuşlarını kullanın (Shift: 5 birim).
+      İşlemi tamamlamak için “Şekli soruya kalıcı ekle” veya “Seçili şekli güncelle” düğmesine, ardından soru kaydetmeye basın.
+    </small>
   </div>;
 }

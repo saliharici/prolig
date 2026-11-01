@@ -71,3 +71,13 @@ describe('RELEASE-07 server ESM module resolution',()=>{
   expect(source).not.toContain("from './geometry-parameters'");
  });
 });
+
+describe('RELEASE-07 edit-in-place action contract',()=>{
+ it('uses one primary action for new drawings and selected saved drawings',()=>{
+  const source=readFileSync('src/questions/QuestionStemWysiwygEditor.tsx','utf8');
+  expect(source).toContain('const persistGeometryIntoStem = () => {');
+  expect(source).toContain('onClick={persistGeometryIntoStem}');
+  expect(source).toContain("geometrySelection ? 'Seçili şekli güncelle' : 'Şekli soruya kalıcı ekle'");
+  expect(source).toContain('canReplaceSelectedGeometry(geometrySelection, editor.state.doc)');
+ });
+});

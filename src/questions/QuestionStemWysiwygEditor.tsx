@@ -136,6 +136,34 @@ export function QuestionStemWysiwygEditor({
     return null;
   }
 
+  /**
+   * One primary action for both new and selected saved geometry. This avoids
+   * accidentally appending a duplicate marker while editing an existing shape.
+   * Saving to the question database remains the separate form Save action.
+   */
+  const persistGeometryIntoStem = () => {
+    const marker = editableGeometryMarker(drawing);
+    if (!geometrySelection) {
+      const didInsert = editor.chain().focus().insertContent(marker).run();
+      setGeometryRevisionMessage(didInsert
+        ? 'Yeni v2 çizim soru köküne eklendi. Soruyu kaydet düğmesiyle işlemi tamamlayın.'
+        : 'Çizim eklenemedi; metin alanını kontrol edin.');
+      return;
+    }
+    if (!canReplaceSelectedGeometry(geometrySelection, editor.state.doc)) {
+      setGeometrySelection(null);
+      setGeometryRevisionMessage('Soru metni değişti. Kayıtlı şekli yeniden seçerek deneyin.');
+      return;
+    }
+    const changed = editor.chain().focus().insertContentAt(
+      { from: geometrySelection.from, to: geometrySelection.to }, marker
+    ).run();
+    setGeometrySelection(null);
+    setGeometryRevisionMessage(changed
+      ? 'Seçili çizim v2 koordinatlarıyla güncellendi. Şimdi soruyu kaydedin.'
+      : 'Şekil güncellenemedi.');
+  };
+
   const handleSetLink = () => {
     if (!linkUrl.trim()) {
       editor.chain().focus().unsetLink().run();
@@ -421,7 +449,7 @@ export function QuestionStemWysiwygEditor({
           <DraggableGeometry value={drawing} onChange={setDrawing} disabled={disabled}/>
           <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
             onClick={() => editor.chain().focus().insertContent(shapeType === 'triangle' ? '△ABC' : shapeType === 'circle' ? '◯O' : '□ABCD').run()}>
-            Şekil gösterimini ekle
+            Yalnızca △ simgesi ekle (çizim değildir)
           </button>
           <button type="button" disabled={disabled} onClick={() => {
             const blob = new Blob([geometrySvg(shapeType, drawing)], { type: 'image/svg+xml;charset=utf-8' });
@@ -436,8 +464,8 @@ export function QuestionStemWysiwygEditor({
           }}>SVG dosyasını indir</button>
           <small>SVG önizlemesi bilgisayarınıza indirilebilir. Kalıcı çizim soruyla birlikte saklanır.</small>
           <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
-            onClick={() => editor.chain().focus().insertContent(editableGeometryMarker(drawing)).run()}>
-            Şekli soruya kalıcı ekle
+            onClick={persistGeometryIntoStem}>
+            {geometrySelection ? 'Seçili şekli güncelle' : 'Şekli soruya kalıcı ekle'}
           </button>
           <div className="p3-geometry-saved-list" role="group" aria-label="Soruya kaydedilen şekiller">
             <strong>Kayıtlı şekiller ({savedGeometry.length})</strong>
@@ -456,7 +484,7 @@ export function QuestionStemWysiwygEditor({
                   setShapeType(current.shape);
                   setDrawing({ shape: current.drawing.shape, values: [...current.drawing.values] });
                   setGeometrySelection({ from: current.from, to: current.to, original: current.original, document: editor.state.doc });
-                  setGeometryRevisionMessage('Kayıtlı şekil seçildi. Yeni türü belirleyip Güncelle düğmesine basın.');
+                  setGeometryRevisionMessage('Kayıtlı çizim yüklendi. Köşeleri sürükleyin; ardından ana “Seçili şekli güncelle” düğmesine basın.');
                 }}>
                 {index + 1}. {entry.shape === 'triangle' ? 'Üçgen ABC' : entry.shape === 'circle' ? 'Çember O' : 'Kare ABCD'} · Düzenle
               </button>)
@@ -477,22 +505,11 @@ export function QuestionStemWysiwygEditor({
                 const selectedDrawing = readGeometryMarker(original);
                 if (selectedDrawing) setDrawing(selectedDrawing);
                 setGeometrySelection({ from, to, original, document: editor.state.doc });
-                setGeometryRevisionMessage('Şekil yüklendi. Türü seçip Güncelle düğmesine basabilirsiniz.');
+                setGeometryRevisionMessage('Çizim yüklendi. Düzenledikten sonra ana “Seçili şekli güncelle” düğmesini kullanın.');
               }}>Seçili kayıtlı şekli yükle</button>
-            <button type="button" disabled={disabled || !geometrySelection} onMouseDown={event => event.preventDefault()}
-              onClick={() => {
-                if (!canReplaceSelectedGeometry(geometrySelection, editor.state.doc)) {
-                  setGeometrySelection(null);
-                  setGeometryRevisionMessage('Soru metni değişti; şekli yeniden seçmeniz gerekiyor.');
-                  return;
-                }
-                const didReplace = editor.chain().focus().insertContentAt(
-                  { from: geometrySelection!.from, to: geometrySelection!.to },
-                  editableGeometryMarker(drawing)
-                ).run();
-                setGeometrySelection(null);
-                setGeometryRevisionMessage(didReplace ? 'Şekil değiştirildi. Kaydetme işlemini tamamlayın.' : 'Şekil değiştirilemedi.');
-              }}>Seçili şekli güncelle</button>
+            <small>{geometrySelection
+              ? 'Düzenleme modu açık. Köşeleri taşıdıktan sonra yukarıdaki “Seçili şekli güncelle” düğmesine basın.'
+              : 'Eski v1 çizimler de “Kayıtlı şekiller” bölümünden yüklenip v2 olarak güncellenebilir.'}</small>
             {geometryRevisionMessage && <small role="status" aria-live="polite">{geometryRevisionMessage}</small>}
           </div>
           <small>Çizimin konum ve ölçüleri v2 olarak soruyla birlikte kaydedilir; Word'de vektör çizim olarak aktarılır.</small>
