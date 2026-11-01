@@ -43,9 +43,9 @@ export async function handlePersonalPublisherCopy(input: any, user: any, res: Ve
     return res.status(409).json({ error: 'Arşivlenmiş soru kopyalanamaz.' });
   }
 
-  let question;
+  let result;
   try {
-    question = await prisma.$transaction(async tx => {
+    result = await prisma.$transaction(async tx => {
       // Reconfirm scope and version inside the write transaction.
       const source = await tx.question.findFirst({
         where: {
@@ -56,6 +56,41 @@ export async function handlePersonalPublisherCopy(input: any, user: any, res: Ve
         include: { assets: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] } }
       });
       if (!source) throw new Error('RELEASE06_STALE_SOURCE');
+
+      // Serialize concurrent clicks for this source within PostgreSQL.
+      // No migration or permanent lock table is required.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(17006, ${sourceQuestionId})`;
+
+      // Find an earlier publisher copy, including copies made before this
+      // idempotency fix. Audit content is only a candidate index: parse it and
+      // re-authorize the destination question before returning anything.
+      const history = await tx.activityLog.findMany({
+        where: {
+          entityType: 'Question',
+          action: 'QUESTION_PERSONAL_COPIED_TO_PUBLISHER',
+          details: { contains: '"sourceQuestionId":' + sourceQuestionId + ',' }
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { entityId: true, details: true }
+      });
+      for (const log of history) {
+        if (!Number.isSafeInteger(log.entityId) || !log.details) continue;
+        let provenance: any;
+        try { provenance = JSON.parse(log.details); } catch { continue; }
+        if (provenance.sourceQuestionId !== sourceQuestionId) continue;
+        const existing = await tx.question.findFirst({
+          where: {
+            id: log.entityId!, authorUserId: user.id,
+            isPersonal: false
+          },
+          include: {
+            authorUser: { include: { AuthorProfile: { include: { branch: true } } } },
+            project: true,
+            assets: { orderBy: { sortOrder: 'asc' } }
+          }
+        });
+        if (existing) return { question: existing, reused: true };
+      }
 
       const created = await tx.question.create({
         data: {
@@ -104,7 +139,7 @@ export async function handlePersonalPublisherCopy(input: any, user: any, res: Ve
           })
         }
       });
-      return created;
+      return { question: created, reused: false };
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'RELEASE06_STALE_SOURCE') {
@@ -113,5 +148,8 @@ export async function handlePersonalPublisherCopy(input: any, user: any, res: Ve
     throw error;
   }
   // Not submitted for review. No approval, Book, Payment or royalty writes.
-  return res.status(201).json(formatQuestionDto(question));
+  return res.status(result.reused ? 200 : 201).json({
+    ...formatQuestionDto(result.question),
+    existingCopy: result.reused
+  });
 }

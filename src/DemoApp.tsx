@@ -1159,6 +1159,11 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   
   const navigate = (target: Section) => {
     if (!allowed.includes(target)) return;
+    if (target === 'questions') {
+      // Questions may have been created in AuthorDesk since initial app load.
+      void loadApiQuestions();
+      setQuestionView('active');
+    }
     setSection(target);
     setQuery('');
     setAuthorProvince('');
@@ -2176,7 +2181,12 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             })}</div>}
             {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state corporate-project-empty"><BookOpen size={24} aria-hidden="true" /><strong>{apiProjects.length === 0 ? 'Henüz erişilebilir proje bulunmuyor' : 'Arama ölçütlerine uygun proje yok'}</strong><p>{apiProjects.length === 0 ? 'Yeni bir projeye atandığınızda burada görüntülenecektir.' : 'Arama ifadesini veya sınıf filtresini değiştirerek yeniden deneyin.'}</p></div>}
           </>}
-        {section === 'authorDesk' && currentUser.role === 'YAZAR' && <AuthorDesk onPublisher={() => navigate('questions')}/>}
+        {section === 'authorDesk' && currentUser.role === 'YAZAR' && <AuthorDesk onPublisher={copied => {
+    navigate('questions');
+    if (copied) setToast(copied.existingCopy
+      ? `Yayınevi taslağı #${copied.id} zaten mevcut; yeni kopya oluşturulmadı.`
+      : `Yayınevi taslağı #${copied.id} oluşturuldu. Kişisel asıl soru korundu.`);
+  }}/>}
         {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} onStartProjectDraft={openTaskLinkedQuestionDraft} />}
         {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
         {section === 'announcements' && <AnnouncementCenter onUnreadChange={setAnnouncementUnreadCount} />}

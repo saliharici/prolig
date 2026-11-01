@@ -82,11 +82,15 @@ describe('RELEASE-06 personal-to-publisher copy — minimal ownership contract',
       project: null, assets: []
     };
     const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
       question: {
         findFirst: vi.fn().mockResolvedValue(source),
         create: vi.fn().mockResolvedValue(created)
       },
-      activityLog: { create: vi.fn().mockResolvedValue({ id: 1 }) }
+      activityLog: {
+        findMany: vi.fn().mockResolvedValue([]),
+        create: vi.fn().mockResolvedValue({ id: 1 })
+      }
     };
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
     const res = response();
@@ -107,5 +111,67 @@ describe('RELEASE-06 personal-to-publisher copy — minimal ownership contract',
     }));
     expect(source.isPersonal).toBe(true);
     expect(prisma.question.findFirst).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.activityLog.findMany).toHaveBeenCalledTimes(1);
+  it('reuses an existing authorized publisher copy without creating a duplicate', async () => {
+    vi.mocked(prisma.question.findFirst).mockResolvedValue(ownedQuestion as any);
+    const source = {
+      ...ownedQuestion, authorUserId: user.id, isPersonal: true,
+      projectId: null, taskId: null, status: 'TASLAK', assets: []
+    };
+    const existing = {
+      id: 3, authorUserId: user.id, isPersonal: false, status: 'TASLAK',
+      content: 'Önceden yayınevine kopyalandı', questionType: 'MULTIPLE_CHOICE',
+      assets: [], authorUser: { fullName: user.fullName, AuthorProfile: { branch: { name: 'Matematik' } } }
+    };
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      question: {
+        findFirst: vi.fn().mockResolvedValueOnce(source).mockResolvedValueOnce(existing),
+        create: vi.fn()
+      },
+      activityLog: {
+        findMany: vi.fn().mockResolvedValue([{ entityId: 3, details: '{"sourceQuestionId":42,"status":"TASLAK","privateOriginalPreserved":true}' }]),
+        create: vi.fn()
+      }
+    };
+    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+    const res = response();
+    await handlePersonalPublisherCopy(body, user, res);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ id: 3, existingCopy: true }));
+    expect(tx.question.create).not.toHaveBeenCalled();
+    expect(tx.activityLog.create).not.toHaveBeenCalled();
+  });
+
+  it('does not reuse a copy that does not belong to the authenticated author', async () => {
+    vi.mocked(prisma.question.findFirst).mockResolvedValue(ownedQuestion as any);
+    const source = {
+      ...ownedQuestion, authorUserId: user.id, isPersonal: true,
+      projectId: null, taskId: null, status: 'TASLAK', assets: []
+    };
+    const existingLog = { entityId: 18, details: '{"sourceQuestionId":42,"status":"TASLAK"}' };
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      question: {
+        findFirst: vi.fn().mockResolvedValueOnce(source).mockResolvedValueOnce(null),
+        create: vi.fn().mockResolvedValue({
+          ...source, id: 90, isPersonal: false, status: 'TASLAK', assets: []
+        })
+      },
+      activityLog: {
+        findMany: vi.fn().mockResolvedValue([existingLog]),
+        create: vi.fn()
+      }
+    };
+    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+    const res = response();
+    await handlePersonalPublisherCopy(body, user, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(tx.question.findFirst).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      where: expect.objectContaining({ id: 18, authorUserId: 7, isPersonal: false })
+    }));
+    expect(tx.question.create).toHaveBeenCalledTimes(1);
+  });
   });
 });

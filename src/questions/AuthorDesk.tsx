@@ -36,7 +36,7 @@ const typeNames: Record<Kind, string> = {
   MULTIPLE_CHOICE: 'Çoktan Seçmeli', TRUE_FALSE: 'Doğru / Yanlış', OPEN_ENDED: 'Açık Uçlu'
 };
 
-export function AuthorDesk({ onPublisher }: { onPublisher: () => void }) {
+export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion & { existingCopy?: boolean }) => void }) {
   const [questions, setQuestions] = useState<ApiQuestion[]>([]);
   const [sets, setSets] = useState<PersonalQuestionSet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,7 +178,9 @@ export function AuthorDesk({ onPublisher }: { onPublisher: () => void }) {
     setCopyingId(question.id); setError(''); setNotice('');
     try {
       const copied = await copyPersonalToPublisher(question.id, question.updatedAt);
-      setNotice(`#${copied.id} numaralı yayınevi taslağı oluşturuldu. Kişisel sorunuz ve setleriniz korundu. Üstteki “Yayınevi soru havuzu” bölümünden taslağı incelemeye gönderebilirsiniz.`);
+      // Open a freshly loaded publisher list immediately, instead of leaving
+      // the author on a stale Questions screen that encourages duplicate clicks.
+      onPublisher(copied);
     } catch (err: any) {
       setError(err?.message || 'Yayınevi taslağı oluşturulamadı.');
     } finally { setCopyingId(null); }
