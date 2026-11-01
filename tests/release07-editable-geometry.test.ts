@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {describe,expect,it} from 'vitest';
 import {Schema} from '@tiptap/pm/model';
 import {defaultGeometry,validGeometry,readGeometryMarker,editableGeometryMarker} from '../src/questions/geometry-parameters';
@@ -59,5 +60,14 @@ describe('RELEASE-07 mouse-editable persisted shapes',()=>{
   expect(validGeometry(updateGeometryHandle(defaultGeometry('triangle'),0,100,15))).toBe(true);
   expect(validGeometry(updateGeometryHandle(defaultGeometry('circle'),1,150,65))).toBe(true);
   expect(validGeometry(updateGeometryHandle(defaultGeometry('square'),1,125,110))).toBe(true);
+ });
+});
+
+// Vercel Node ESM must resolve this server-reachable source import at runtime.
+describe('RELEASE-07 server ESM module resolution',()=>{
+ it('uses explicit .js specifiers for geometry-parameters from server-reachable geometry-markup',()=>{
+  const source=readFileSync('src/questions/geometry-markup.ts','utf8');
+  expect(source).toContain("from './geometry-parameters.js'");
+  expect(source).not.toContain("from './geometry-parameters'");
  });
 });

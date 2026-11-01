@@ -1,4 +1,4 @@
-import { defaultGeometry, validGeometry, type GeometryDrawing } from './geometry-parameters';
+import { defaultGeometry, validGeometry, type GeometryDrawing } from './geometry-parameters.js';
 export type GeometryShape='triangle'|'circle'|'square';
 export function geometrySvg(shape:GeometryShape,drawing:GeometryDrawing=defaultGeometry(shape)):string{
  if(!validGeometry(drawing)||drawing.shape!==shape)throw new Error('Invalid geometry');

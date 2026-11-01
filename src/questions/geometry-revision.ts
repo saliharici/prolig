@@ -1,6 +1,6 @@
 import type { GeometryShape } from './geometry-svg';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
-import { geometryTokenPattern,readGeometryMarker,type GeometryDrawing } from './geometry-parameters';
+import { geometryTokenPattern,readGeometryMarker,type GeometryDrawing } from './geometry-parameters.js';
 export function parseSelectedGeometry(source:string):GeometryShape|null{return readGeometryMarker(source)?.shape??null;}
 export interface GeometryEditorSelection {from:number;to:number;original:string;document:unknown}
 export interface GeometryLocation {from:number;to:number;original:string;shape:GeometryShape;drawing:GeometryDrawing}

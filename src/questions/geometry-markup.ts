@@ -1,5 +1,5 @@
 import type { GeometryShape } from './geometry-svg';
-import { geometryTokenPattern,readGeometryMarker } from './geometry-parameters';
+import { geometryTokenPattern,readGeometryMarker } from './geometry-parameters.js';
 export type GeometryMarkupPiece={kind:'text';value:string}|{kind:'geometry';shape:GeometryShape;values?:number[]};
 /** Existing v1 markers are unchanged, and stay fully readable. */
 export function geometryMarker(shape:GeometryShape):string{
