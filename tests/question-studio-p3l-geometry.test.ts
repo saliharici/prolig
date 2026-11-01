@@ -6,9 +6,9 @@ describe('P3-L symbolic geometry', () => {
   const source = readFileSync('src/questions/QuestionStemWysiwygEditor.tsx', 'utf8');
   it('distinguishes text-only symbols from the later persistent-shape option', () => {
     expect(source).toContain('Sembolik gösterim ekleme yalnızca karakter yazar');
-    expect(source).toContain('geometryMarker(shapeType)');
+    expect(source).toContain('editableGeometryMarker(drawing)');
     expect(source).toContain("shapeType === 'triangle' ? '△ABC'");
-    expect(source).toContain('p3-shape-preview');
+    expect(source).toContain('<DraggableGeometry');
   });
   it('preserves symbolic geometry across legacy conversion', () => {
     for (const value of ['△ABC', '◯O', '□ABCD']) {

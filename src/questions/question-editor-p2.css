@@ -290,3 +290,11 @@
 .p3-geometry-saved-list strong{font-size:12px;color:#4b6056;flex-basis:100%}
 .p3-geometry-saved-list small{font-size:12px;color:#64766e}
 .p3-geometry-saved-list button{font-size:12px}
+
+/* RELEASE-07: editable SVG handles for mouse, pen, touch and keyboard. */
+.release07-geometry-editor{display:grid;gap:8px;justify-items:start}
+.release07-drag-canvas{width:min(360px,100%);height:auto;min-height:180px;max-width:100%;overflow:visible;touch-action:none}
+.release07-drag-canvas .release07-handle{fill:#fff;stroke:#8b3156;stroke-width:2;cursor:grab;touch-action:none}
+.release07-drag-canvas .release07-handle:active{cursor:grabbing;fill:#ffd6e7}
+.release07-drag-canvas .release07-handle:focus-visible{stroke:#065f46;stroke-width:3;outline:none}
+.release07-geometry-editor small{max-width:380px;font-size:11px;color:#53655b}

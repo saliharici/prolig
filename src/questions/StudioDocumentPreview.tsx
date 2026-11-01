@@ -25,7 +25,7 @@ function renderInline(nodes: StudioInline[]): ReactNode {
         if (!node.text.includes('[[prolig-geometry:')) return <span key={key}>{node.text}</span>;
         return <span key={key}>{splitGeometryMarkup(node.text).map((piece, j) =>
           piece.kind === 'geometry'
-            ? <GeometryDiagram key={j} shape={piece.shape} />
+            ? <GeometryDiagram key={j} shape={piece.shape} values={piece.values}/>
             : <span key={j}>{piece.value}</span>
         )}</span>;
       }
