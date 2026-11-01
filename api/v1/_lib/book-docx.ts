@@ -74,7 +74,7 @@ function paragraphRuns(nodes: StudioInline[], drawings: DrawingSequence, style =
     if (node.kind === 'underline') flags = '<w:u w:val="single"/>';
     if (node.kind === 'math') return inlineMathXml(node.text);
     return splitGeometryMarkup(node.text).map(piece => piece.kind === 'geometry'
-      ? wordGeometryDrawing(piece.shape, drawings.nextId++) + run(' (' + wordGeometryCaption(piece.shape) + ')', flags)
+      ? wordGeometryDrawing(piece.shape, drawings.nextId++, piece.values) + run(' (' + wordGeometryCaption(piece.shape) + ')', flags)
       : run(piece.value, flags)).join('');
   }).join('');
   return '<w:p>' + (style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '') +
