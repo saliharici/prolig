@@ -67,11 +67,13 @@ import './workspace/corporate-workspace-v3.css';
 import './workspace/corporate-modules-v3b.css';
 import './workspace/corporate-finance-v3c.css';
 import { QuestionStemWysiwygEditor } from './questions/QuestionStemWysiwygEditor';
+import { AuthorDesk } from './questions/AuthorDesk';
 
 const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', icon: LayoutDashboard },
   { id: 'grades', icon: GraduationCap },
   { id: 'questions', icon: FileQuestion },
+  { id: 'authorDesk', icon: BookOpen },
   { id: 'publishing', icon: BookOpen },
   { id: 'projects', icon: BookOpen },
   { id: 'tasks', icon: ClipboardList },
@@ -86,7 +88,7 @@ const sections: { id: Section; icon: typeof LayoutDashboard }[] = [
 ];
 const navigationGroups: { id: string; label: string; sections: Section[] }[] = [
   { id: 'overview', label: 'Genel Bakış', sections: ['overview', 'reports'] },
-  { id: 'production', label: 'Üretim', sections: ['projects', 'tasks', 'grades', 'questions', 'publishing', 'authors'] },
+  { id: 'production', label: 'Üretim', sections: ['authorDesk', 'projects', 'tasks', 'grades', 'questions', 'publishing', 'authors'] },
   { id: 'communication', label: 'İletişim', sections: ['messages', 'announcements'] },
   { id: 'management', label: 'Hesap ve Yönetim', sections: ['payments', 'members', 'roles', 'audit'] },
 ];
@@ -2165,6 +2167,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             })}</div>}
             {!projectsLoading && !projectsError && filteredProjects.length === 0 && <div className="panel empty-state corporate-project-empty"><BookOpen size={24} aria-hidden="true" /><strong>{apiProjects.length === 0 ? 'Henüz erişilebilir proje bulunmuyor' : 'Arama ölçütlerine uygun proje yok'}</strong><p>{apiProjects.length === 0 ? 'Yeni bir projeye atandığınızda burada görüntülenecektir.' : 'Arama ifadesini veya sınıf filtresini değiştirerek yeniden deneyin.'}</p></div>}
           </>}
+        {section === 'authorDesk' && currentUser.role === 'YAZAR' && <AuthorDesk onPublisher={() => navigate('questions')}/>}
         {section === 'tasks' && <TaskTracking currentUser={currentUser} projects={apiProjects} authors={apiAuthors} initialProjectId={taskProjectFilter} onProjectFilterChange={setTaskProjectFilter} onStartProjectDraft={openTaskLinkedQuestionDraft} />}
         {section === 'messages' && <MessageCenter onUnreadChange={setMessageUnreadCount} />}
         {section === 'announcements' && <AnnouncementCenter onUnreadChange={setAnnouncementUnreadCount} />}

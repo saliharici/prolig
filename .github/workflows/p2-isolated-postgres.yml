@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'tests/integration/p2-multitype-db.test.ts'
+      - 'tests/integration/release05-author-library-db.test.ts'
       - '.github/workflows/p2-isolated-postgres.yml'
       - 'api/v1/questions/**'
       - 'api/v1/_lib/question-**'
@@ -54,4 +55,4 @@ jobs:
       - name: Apply all migrations to temporary empty PostgreSQL
         run: npx prisma migrate deploy
       - name: Real POST/GET/PATCH acceptance for three question types and legacy format
-        run: npx vitest run tests/integration/p2-multitype-db.test.ts
+        run: npx vitest run tests/integration/p2-multitype-db.test.ts && npx vitest run tests/integration/release05-author-library-db.test.ts

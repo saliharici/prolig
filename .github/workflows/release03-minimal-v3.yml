@@ -20,6 +20,9 @@ on:
       - '.github/workflows/release03-minimal-v3.yml'
 jobs:
   postgresql-16:
+    # Historical RELEASE-04 no-P3 release manifest intentionally excludes
+    # future migrations. RELEASE-05 has its own scoped ephemeral-PG acceptance.
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'feat/release05-')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:

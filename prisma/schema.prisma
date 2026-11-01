@@ -144,6 +144,7 @@ model User {
   AuthorProfile     AuthorProfile?
   Payment           Payment[]
   Question          Question[]
+  personalQuestionSets PersonalQuestionSet[]
   booksCreated      Book[] @relation("BookCreatedBy")
   branchAssignments UserBranchAssignment[]
   compensationRulesCreated CompensationRule[] @relation("CompensationRuleCreatedBy")
@@ -577,6 +578,10 @@ model Question {
   // Havuz sistemi: Soru havuza bağımsız düşer, sonradan kitaba çekilir.
   projectId Int?
   project   Project? @relation(fields: [projectId], references: [id])
+  isPersonal Boolean @default(false) // Explicit scope; legacy projectId=NULL remains publisher pool
+  personalSubject String?
+  personalTopic String?
+  personalSetItems PersonalQuestionSetItem[]
   taskId    Int?
   task      Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
@@ -606,6 +611,7 @@ model Question {
   bookQuestions BookQuestion[]
 
   @@index([authorUserId])
+  @@index([authorUserId, isPersonal])
   @@index([projectId])
   @@index([taskId])
   @@index([status])
@@ -647,3 +653,29 @@ model QuestionAsset {
 
 
 
+
+/** Author-owned private grouping; a set is never a publishing book or financial event. */
+model PersonalQuestionSet {
+  id          Int      @id @default(autoincrement())
+  authorUserId Int
+  author      User     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  title       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       PersonalQuestionSetItem[]
+
+  @@index([authorUserId])
+}
+
+model PersonalQuestionSetItem {
+  id          Int @id @default(autoincrement())
+  setId       Int
+  questionId  Int
+  sortOrder   Int
+  set         PersonalQuestionSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([setId, questionId])
+  @@unique([setId, sortOrder])
+  @@index([questionId])
+}

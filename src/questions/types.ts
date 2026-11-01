@@ -36,6 +36,9 @@ export interface ApiQuestion extends QuestionTypeFields {
   status: QuestionStatus;
   editorNote: string | null;
   projectId: number | null;
+  isPersonal?: boolean;
+  personalSubject?: string | null;
+  personalTopic?: string | null;
   /** Optional in legacy question fixtures; API returns taskId when available. */
   taskId?: number | null;
   createdAt: string;
@@ -56,6 +59,9 @@ export interface ApiQuestion extends QuestionTypeFields {
 
 export interface CreateQuestionInput extends QuestionTypeFields {
   taskId?: number | null;
+  isPersonal?: boolean;
+  personalSubject?: string | null;
+  personalTopic?: string | null;
   content: string;
   grade: string;
   options: string[];
@@ -70,6 +76,8 @@ export interface CreateQuestionInput extends QuestionTypeFields {
 export interface PatchQuestionInput extends QuestionTypeFields {
   /** Mandatory for PATCH: last server question revision observed by the author. */
   expectedUpdatedAt: string;
+  personalSubject?: string | null;
+  personalTopic?: string | null;
   content?: string;
   grade?: string | null;
   objectiveCode?: string | null;

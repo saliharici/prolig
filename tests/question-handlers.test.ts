@@ -158,32 +158,32 @@ describe('Question API Handlers', () => {
       vi.mocked(prisma.question.findMany).mockResolvedValue([]);
     };
 
-    it('GENEL passes unrestricted where', async () => {
+    it('GENEL excludes explicitly personal questions from publisher pool', async () => {
       setupUser('GENEL_KOORDINATOR');
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
-      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { AND: [{}, { isPersonal: false }] } }));
     });
 
     it('YAZAR findMany receives authorUserId=current user', async () => {
       setupUser('YAZAR');
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
-      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { authorUserId: 1 } }));
+      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { AND: [{ authorUserId: 1 }, { isPersonal: false }] } }));
     });
 
     it('BOLGE findMany receives AuthorProfile.province.region', async () => {
       setupUser('BOLGE_KOORDINATORU', { assignedRegion: 'Ege' });
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
-      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { authorUser: { AuthorProfile: { province: { region: 'Ege' } } } } }));
+      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { AND: [{ authorUser: { AuthorProfile: { province: { region: 'Ege' } } } }, { isPersonal: false }] } }));
     });
 
     it('IL findMany receives AuthorProfile.provinceId', async () => {
       setupUser('IL_KOORDINATORU', { provinceId: 35 });
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
-      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { authorUser: { AuthorProfile: { provinceId: 35 } } } }));
+      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { AND: [{ authorUser: { AuthorProfile: { provinceId: 35 } } }, { isPersonal: false }] } }));
     });
 
     it('EDITOR receives branch, geography and grade filters', async () => {
@@ -191,10 +191,10 @@ describe('Question API Handlers', () => {
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
       expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: {
+        where: { AND: [{
           authorUser: { AuthorProfile: { branchId: { in: [2] }, provinceId: 34 } },
           grade: 'Lise'
-        }
+        }, { isPersonal: false }] }
       }));
     });
 
@@ -202,7 +202,7 @@ describe('Question API Handlers', () => {
       setupUser('EDITOR');
       const { req, res } = mockReqRes('GET');
       await handlerGetPost(req, res);
-      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { id: -1 } }));
+      expect(prisma.question.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { AND: [{ id: -1 }, { isPersonal: false }] } }));
     });
 
     it('MUHASEBE -> 403', async () => {
