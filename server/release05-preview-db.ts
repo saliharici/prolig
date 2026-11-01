@@ -9,7 +9,8 @@ import type { Release03Environment } from './release03-db-policy.js';
  */
 const APPROVED_PREVIEW_REFS = new Set([
   'feat/release05-author-desk-20261101',
-  'feat/release06-publisher-flow-v1'
+  'feat/release06-publisher-flow-v1',
+  'feat/release07-editable-geometry-v1'
 ]);
 const HOST = 'ep-withered-sunset-baxau75t-pooler.c-8.eu-central-1.aws.neon.tech';
 const DB = 'ux02_test';
