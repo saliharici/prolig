@@ -6,6 +6,7 @@ import { formatQuestionDto } from '../_lib/question-dto.js';
 import { parseQuestionAssets } from '../_lib/question-assets.js';
 import { parseTypedQuestion, usesTypedQuestion } from '../_lib/question-type-validation.js';
 import { getQuestionArchiveStateMap } from '../_lib/question-archive.js';
+import { handlePersonalQuestionDocx } from '../_lib/personal-question-docx.js';
 import { Client } from 'pg';
 import { isP1DPreviewSandboxTarget, p1dPreviewRefusalCode, P1D_SANDBOX_DATABASE } from '../_lib/p1d-preview-identity.js';
 
@@ -18,6 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       return await handleGet(req, res);
     } else if (req.method === 'POST') {
+      if (req.query.export === 'personalDocx') return await handlePersonalQuestionDocx(req, res);
       return await handlePost(req, res);
     } else {
       res.setHeader('Allow', ['GET', 'POST']);

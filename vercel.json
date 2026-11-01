@@ -145,7 +145,8 @@
     "deploymentEnabled": {
       "feat/p2-professional-question-editor-20261012": false,
       "feature/corporate-landing-v1-20261014": false,
-      "release/prolig-pilot-v3-minimal": false
+      "release/prolig-pilot-v3-minimal": false,
+      "feat/release05-author-desk-v1": false
     }
   }
 }

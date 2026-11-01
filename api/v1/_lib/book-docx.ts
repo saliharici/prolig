@@ -14,6 +14,8 @@ export type DocxBook = {
   id: number;
   title: string;
   layoutColumns: number;
+  /** Personal author worksheet; never a publisher book or approval event. */
+  personalUsage?: boolean;
   chapters: Array<{
     title: string;
     sortOrder: number;
@@ -228,11 +230,11 @@ function buildDocument(book: DocxBook, includeAnswers: boolean, images: Prepared
   let count = 0;
   const answerRows: string[] = [];
   const body: string[] = [
-    p('PRO-LİG  /  YAYIN HAZIRLIK', 'Subtitle'),
-    p('SORU KİTABI', 'CoverEyebrow'),
+    p(book.personalUsage ? 'PRO-LİG  /  YAZAR MASASI' : 'PRO-LİG  /  YAYIN HAZIRLIK', 'Subtitle'),
+    p(book.personalUsage ? 'KİŞİSEL SORU SETİ' : 'SORU KİTABI', 'CoverEyebrow'),
     p(book.title.trim(), 'Title'),
-    p('ÖĞRENCİ ÇALIŞMA KİTABI  •  ' + (includeAnswers ? 'CEVAP ANAHTARLI' : 'ÖĞRENCİ NÜSHASI'), 'CoverDetail'),
-    p('Kitap #' + book.id + '  |  A4  |  ' + (book.layoutColumns === 2 ? 'Çift sütun' : 'Tek sütun'), 'Subtitle'),
+    p(book.personalUsage ? 'KİŞİSEL ÇALIŞMA KÂĞIDI  •  ' + (includeAnswers ? 'CEVAP ANAHTARLI' : 'ÖĞRENCİ NÜSHASI') : 'ÖĞRENCİ ÇALIŞMA KİTABI  •  ' + (includeAnswers ? 'CEVAP ANAHTARLI' : 'ÖĞRENCİ NÜSHASI'), 'CoverDetail'),
+    p((book.personalUsage ? '' : 'Kitap #' + book.id + '  |  ') + 'A4  |  ' + (book.layoutColumns === 2 ? 'Çift sütun' : 'Tek sütun'), 'Subtitle'),
     coverSectionBreak()
   ];
   for (const chapter of ordered) {
@@ -268,7 +270,7 @@ function buildDocument(book: DocxBook, includeAnswers: boolean, images: Prepared
     body.push(pageBreak(), p('Cevap Anahtarı', 'Heading1'));
     answerRows.forEach(answer => body.push(p(answer)));
   }
-  body.push(p('PRO-LİG taslak Word çıktısı · Matbaa yayını değildir.', 'Footnote'));
+  body.push(p(book.personalUsage ? 'Kişisel kullanım · Editör onayı veya telif tahakkuku oluşturmaz.' : 'PRO-LİG taslak Word çıktısı · Matbaa yayını değildir.', 'Footnote'));
   const sect = '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/>' +
     '<w:footerReference w:type="default" r:id="rId3"/><w:pgSz w:w="11906" w:h="16838"/>' +
     '<w:pgMar w:top="1250" w:right="1200" w:bottom="1250" w:left="1200" w:header="500" w:footer="500" w:gutter="0"/>' +
