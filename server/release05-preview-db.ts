@@ -10,11 +10,13 @@ import type { Release03Environment } from './release03-db-policy.js';
 const APPROVED_PREVIEW_REFS = new Set([
   'feat/release05-author-desk-20261101',
   'feat/release06-publisher-flow-v1',
-  'feat/release07-editable-geometry-v1'
+  'feat/release07-editable-geometry-v1',
+  'release/release07b-preview-20261104'
 ]);
 const HOST = 'ep-withered-sunset-baxau75t-pooler.c-8.eu-central-1.aws.neon.tech';
 const DB = 'ux02_test';
 const USER = 'ux02_owner';
+export const RELEASE07B_BOOK_PREVIEW_REF = 'release/release07b-preview-20261104';
 const BLOCKED = 'RELEASE05_PREVIEW_DB_GUARD_BLOCKED';
 
 type PgClientWithStream = { connection?: { stream?: unknown } };
@@ -77,6 +79,21 @@ async function attestSession(connectionString: string): Promise<void> {
     if (result.rows.length !== 1 || result.rows[0]?.db !== DB || result.rows[0]?.role !== USER) reject();
   } catch { reject(); }
   finally { try { await client.end(); } catch { /* no secrets in logs */ } }
+}
+
+/** RELEASE-07B books: exact existing isolated DB guard, never a generic Preview bypass. */
+export function isRelease07BBookPreviewAllowed(env: Release03Environment = process.env): boolean {
+  if (env.PROLIG_BOOKS_V2_ENABLED !== 'true' ||
+      env.PROLIG_BOOKS_V2_DB_NAME !== DB ||
+      env.VERCEL_ENV !== 'preview' ||
+      env.VERCEL_GIT_COMMIT_REF !== RELEASE07B_BOOK_PREVIEW_REF ||
+      env.PROLIG_P3_PNG_UPLOAD_ENABLED === 'true' ||
+      env.PROLIG_P3_BOOK_EXPORT_ENABLED === 'true') return false;
+  try {
+    // Same exact URL, TLS, repository and branch checks used by the guarded pool.
+    verifiedConnectionString({ connectionString: env.DATABASE_URL }, env);
+    return true;
+  } catch { return false; }
 }
 
 /** Check the actual TLS socket and database session before allowing app queries. */
