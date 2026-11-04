@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import type { ApiQuestion } from '../questions/types';
 import type { BookDraftInput, FrozenBookQuestionV1 } from './book-draft-contract';
 import { approvedForPublishing } from './book-assembly';
@@ -42,6 +43,8 @@ export function publishingV2PreviewEnabled(env: {
   VITE_PUBLISHING_V2_PRODUCTION_ENABLED?: string;
   VITE_VERCEL_ENV?: string;
 }): boolean {
+  // RELEASE07B LOCAL BOOKS: frontend visibility only; server independently enforces exact Docker DB identity.
+  if (import.meta.env.DEV === true && (env as { VITE_PUBLISHING_LOCAL_BOOKS_V2?: string }).VITE_PUBLISHING_LOCAL_BOOKS_V2 === 'true') return true;
   if (env.VITE_VERCEL_ENV === 'preview')
     return env.VITE_PUBLISHING_V2_PREVIEW === 'true';
   if (env.VITE_VERCEL_ENV === 'production')
@@ -186,6 +189,8 @@ export interface BookWorkbenchInput {
   chapter: string;
   columns: 1 | 2;
   selectedIds: number[];
+  /** PUBLISHING-CHAPTERS-01: explicit ordered section plan; legacy single section stays supported. */
+  chapters?: Array<{ title: string; questionIds: number[] }>;
 }
 
 /**
@@ -209,21 +214,27 @@ export function prepareBookSave(
   if (saved && saved.status !== 'Dizgi Aşamasında') {
     throw new PublishingApiError(409, 'Yayınlanmış kitap bu ekrandan düzenlenemez.');
   }
-  if (view.title.trim().length < 3 || view.title.trim().length > 120 ||
-      view.chapter.trim().length < 1 || view.chapter.trim().length > 120) {
-    throw new PublishingApiError(400, 'Kitap adı 3–120, bölüm başlığı 1–120 karakter olmalı.');
+  if (view.title.trim().length < 3 || view.title.trim().length > 120) {
+    throw new PublishingApiError(400, 'Kitap adı 3–120 karakter olmalı.');
+  }
+  const chapters = view.chapters ?? [{title:view.chapter, questionIds:view.selectedIds}];
+  if (chapters.length < 1 || chapters.length > 30 || chapters.some(ch =>
+    ch.title.trim().length < 1 || ch.title.trim().length > 120 || ch.questionIds.length < 1)) {
+    throw new PublishingApiError(400, 'Kitap 1–30 dolu bölüm içermeli; her bölüm başlığı 1–120 karakter olmalı.');
   }
   if (view.columns !== 1 && view.columns !== 2) {
     throw new PublishingApiError(400, 'Yalnız tek veya çift sütun seçin.');
   }
-  if (!view.selectedIds.length || view.selectedIds.length > 300 ||
-      new Set(view.selectedIds).size !== view.selectedIds.length) {
-    throw new PublishingApiError(400, 'Kitapta 1–300 benzersiz soru bulunmalı.');
+  const plannedIds = chapters.flatMap(ch => ch.questionIds);
+  if (plannedIds.length < 1 || plannedIds.length > 300 ||
+      new Set(plannedIds).size !== plannedIds.length ||
+      !sameQuestionOrder(view.selectedIds, plannedIds)) {
+    throw new PublishingApiError(400, 'Kitapta 1–300 benzersiz soru bulunmalı; bölüm ve görünüm sırası aynı olmalı.');
   }
   const available = new Map(approvedForPublishing(source).map(q => [q.id, q]));
   const frozen = new Map(saved?.chapters.flatMap(c => c.questions)
     .map(row => [row.snapshot.sourceQuestionId, row.sourceQuestionUpdatedAt] as const) ?? []);
-  for (const id of view.selectedIds) {
+  for (const id of plannedIds) {
     const q = available.get(id);
     if (!q || q.projectId !== projectId) {
       throw new PublishingApiError(409, 'Seçilen sorulardan biri artık onaylı, aktif veya bu projede değil. Soruları yenileyin.');
@@ -238,6 +249,6 @@ export function prepareBookSave(
     title: view.title.trim(),
     layoutColumns: view.columns,
     expectedRevision: saved?.revision ?? null,
-    chapters: [{ title: view.chapter.trim(), questionIds: [...view.selectedIds] }]
+    chapters: chapters.map(ch => ({title:ch.title.trim(),questionIds:[...ch.questionIds]}))
   };
 }

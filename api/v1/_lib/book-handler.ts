@@ -20,6 +20,19 @@ export type BookAction = 'books' | 'book' | 'bookDocx';
  */
 export function bookApiPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.PROLIG_BOOKS_V2_ENABLED !== 'true') return false;
+  // RELEASE07B LOCAL BOOKS: only explicit local development on the pinned Docker DB.
+  if (env.PROLIG_LOCAL_BOOKS_V2_ENABLED === 'true') {
+    // Never activate on Vercel Preview/Production even if local flag is present.
+    if (env.VERCEL_ENV && env.VERCEL_ENV !== 'development') return false;
+    if (process.cwd().replaceAll(String.fromCharCode(92), '/').toLowerCase().split('/').at(-1) !== 'pro-lig-release07b') return false;
+    try {
+      const db = new URL(env.DATABASE_URL || '');
+      return (db.protocol === 'postgresql:' || db.protocol === 'postgres:') &&
+        (db.hostname === '127.0.0.1' || db.hostname === 'localhost') &&
+        db.port === '55432' && db.pathname === '/prolig_local' &&
+        decodeURIComponent(db.username) === 'prolig_dev';
+    } catch { return false; }
+  }
   if (env.VERCEL_ENV === 'production') {
     if (env.PROLIG_BOOKS_V2_PRODUCTION_ENABLED !== 'true' ||
         env.PROLIG_BOOKS_V2_RELEASE_APPROVED !== 'true') return false;

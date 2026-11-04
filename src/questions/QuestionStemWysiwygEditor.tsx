@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useId } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -18,11 +18,33 @@ import {
 import { legacyMarkupToHtml, htmlToLegacyMarkup } from './question-editor-converter';
 import { safeStudioHref } from './studio-document';
 import { geometrySvg, geometryFileName } from './geometry-svg';
-import { editableGeometryMarker, readGeometryMarker, defaultGeometry, type GeometryDrawing } from './geometry-parameters';
+import { editableGeometryMarker, readGeometryMarker, defaultGeometry, geometryLabelsFor, withGeometryLabel, type GeometryDrawing, type GeometryLabels } from './geometry-parameters';
 import { DraggableGeometry } from './DraggableGeometry';
+import { geometryConsistencyWarnings } from './geometry-consistency';
 import { GeometryInlineNode } from './GeometryInlineNode';
+import { MathInlineNode } from './MathInlineNode';
 import { parseSelectedGeometry, canReplaceSelectedGeometry, listEditableGeometry, type GeometryLocation, type GeometryEditorSelection } from './geometry-revision';
 import './question-editor-p2.css';
+
+/** A searchable, non-persistent symbol palette: only plain Unicode is inserted. */
+const SYMBOL_CATALOG = {
+  math: [
+    ['π', 'pi'], ['√', 'karekök'], ['∑', 'toplam sigma'], ['∞', 'sonsuz'],
+    ['≤', 'küçük eşit'], ['≥', 'büyük eşit'], ['≠', 'eşit değil'], ['±', 'artı eksi'],
+    ['×', 'çarpı'], ['÷', 'bölü'], ['²', 'kare üs'], ['³', 'küp üs'],
+    ['₁', 'alt indis 1'], ['₂', 'alt indis 2'], ['α', 'alfa'], ['β', 'beta'],
+    ['θ', 'teta'], ['Δ', 'delta'], ['∈', 'eleman'], ['∉', 'eleman değil'],
+    ['∪', 'birleşim'], ['∩', 'kesişim'], ['⊆', 'alt küme'], ['∠', 'açı'],
+    ['⊥', 'dik'], ['∥', 'paralel'], ['≈', 'yaklaşık'], ['γ', 'gama']
+  ],
+  science: [
+    ['°', 'derece'], ['℃', 'santigrat'], ['Ω', 'ohm'], ['μ', 'mikro'],
+    ['λ', 'lambda'], ['ν', 'nü'], ['→', 'tepkime oku'], ['⇌', 'denge tepkimesi'],
+    ['↑', 'yukarı gaz'], ['↓', 'aşağı çökelti'], ['₀', 'alt indis 0'], ['₁', 'alt indis 1'],
+    ['₂', 'alt indis 2'], ['₃', 'alt indis 3'], ['²', 'üst 2'], ['³', 'üst 3'],
+    ['Δ', 'delta'], ['·', 'çarpım nokta']
+  ]
+} as const;
 
 interface QuestionStemWysiwygEditorProps {
   value: string;
@@ -46,12 +68,16 @@ export function QuestionStemWysiwygEditor({
 }: QuestionStemWysiwygEditorProps) {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [symbolPalette, setSymbolPalette] = useState<'math' | 'science' | null>(null);
+  const [symbolSearch, setSymbolSearch] = useState('');
+  const [recentSymbols, setRecentSymbols] = useState<string[]>([]);
+  const editorId = useId();
   const [equationTemplatesOpen, setEquationTemplatesOpen] = useState(false);
   const [equationSource, setEquationSource] = useState('');
   const [tableOpen, setTableOpen] = useState(false);
   const [shapeOpen, setShapeOpen] = useState(false);
   const [shapeType, setShapeType] = useState<'triangle' | 'circle' | 'square'>('triangle');
   const [drawing, setDrawing] = useState<GeometryDrawing>(defaultGeometry('triangle'));
+  const [showGeometryCheck, setShowGeometryCheck] = useState(false);
   const [geometrySelection, setGeometrySelection] = useState<GeometryEditorSelection | null>(null);
   const [savedGeometry, setSavedGeometry] = useState<GeometryLocation[]>([]);
   const [geometryRevisionMessage, setGeometryRevisionMessage] = useState('');
@@ -80,6 +106,7 @@ export function QuestionStemWysiwygEditor({
       }),
       Underline,
       GeometryInlineNode,
+      MathInlineNode,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -149,7 +176,7 @@ export function QuestionStemWysiwygEditor({
     if (!geometrySelection) {
       const didInsert = editor.chain().focus().insertContent(geometryNode).run();
       setGeometryRevisionMessage(didInsert
-        ? 'Yeni v2 çizim soru köküne eklendi. Soruyu kaydet düğmesiyle işlemi tamamlayın.'
+        ? 'Çizim soru köküne eklendi. Şimdi soruyu kaydedin.'
         : 'Çizim eklenemedi; metin alanını kontrol edin.');
       return;
     }
@@ -163,7 +190,7 @@ export function QuestionStemWysiwygEditor({
     ).run();
     setGeometrySelection(null);
     setGeometryRevisionMessage(changed
-      ? 'Seçili çizim v2 koordinatlarıyla güncellendi. Şimdi soruyu kaydedin.'
+      ? 'Seçili çizim koordinat ve açıklamalarıyla güncellendi. Şimdi soruyu kaydedin.'
       : 'Şekil güncellenemedi.');
   };
 
@@ -317,39 +344,50 @@ export function QuestionStemWysiwygEditor({
         </button>
       </div>
 
-      {variant !== 'option' && (
-        <div className="question-p2-symbol-controls" aria-label="Soru sembolleri">
-          <button type="button" aria-expanded={symbolPalette === 'math'} disabled={disabled} onClick={() => setSymbolPalette(x => x === 'math' ? null : 'math')}>∑ Matematik</button>
-          <button type="button" aria-expanded={symbolPalette === 'science'} disabled={disabled} onClick={() => setSymbolPalette(x => x === 'science' ? null : 'science')}>⚗ Fen sembolleri</button>
-        </div>
-      )}
-      {symbolPalette && variant !== 'option' && (
-        <div className="question-p2-symbol-palette" role="group" aria-label={symbolPalette === 'math' ? 'Matematik sembolleri' : 'Fen sembolleri'}>
-          {(symbolPalette === 'math'
-            ? ['π', '√', '∑', '∞', '≤', '≥', '≠', '±', '×', '÷', '²', '³', '₁', '₂', 'α', 'β', 'θ', 'Δ']
-            : ['°', '℃', 'Ω', 'μ', 'λ', 'ν', '→', '⇌', '↑', '↓', '₀', '₁', '₂', '₃', '²', '³', 'Δ', '·']
-          ).map(symbol => <button key={symbol} type="button" disabled={disabled} aria-label={symbol + ' ekle'}
+      <div className="question-p2-symbol-controls p3-ux-tool-switcher" role="group" aria-label="Sembol ve ifade araçları">
+        <button type="button" aria-expanded={symbolPalette === 'math'} disabled={disabled}
+          onClick={() => { setSymbolPalette(x => x === 'math' ? null : 'math'); setEquationTemplatesOpen(false); setSymbolSearch(''); }}>∑ Semboller</button>
+        <button type="button" aria-expanded={symbolPalette === 'science'} disabled={disabled}
+          onClick={() => { setSymbolPalette(x => x === 'science' ? null : 'science'); setEquationTemplatesOpen(false); setSymbolSearch(''); }}>⚗ Fen</button>
+        <button type="button" aria-expanded={equationTemplatesOpen} disabled={disabled}
+          onClick={() => { setEquationTemplatesOpen(x => !x); setSymbolPalette(null); }}>ƒ(x) Matematiksel ifade</button>
+      </div>
+      {symbolPalette && <div className="question-p2-symbol-palette p3-ux-searchable-palette" role="group"
+          aria-label={symbolPalette === 'math' ? 'Matematik sembolleri' : 'Fen sembolleri'}>
+        <label className="p3-ux-symbol-search">Sembol ara
+          <input type="search" placeholder="Örn. karekök, sigma, derece" value={symbolSearch} disabled={disabled}
+            onChange={event => setSymbolSearch(event.target.value)} />
+        </label>
+        {recentSymbols.length > 0 && <div className="p3-ux-recent-symbols"><small>Son kullanılanlar</small>
+          {recentSymbols.map(symbol => <button type="button" key={symbol} disabled={disabled}
+            aria-label={symbol + ' yeniden ekle'} title={symbol}
             onMouseDown={event => event.preventDefault()}
             onClick={() => editor.chain().focus().insertContent(symbol).run()}>{symbol}</button>)}
-          <span className="question-p2-symbol-note">Semboller metin olarak eklenir; denklem nesnesi değildir.</span>
-        </div>
-      )}
-      {variant !== 'option' && <div className="question-p3-equation-controls">
-        <button type="button" disabled={disabled} aria-expanded={equationTemplatesOpen} onClick={() => setEquationTemplatesOpen(open => !open)}>ƒ(x) Denklem şablonları</button>
-        {equationTemplatesOpen && <div className="question-p3-equation-templates" role="group" aria-label="Denklem şablonları">
+        </div>}
+        {SYMBOL_CATALOG[symbolPalette]
+          .filter(([symbol, label]) => (symbol + ' ' + label).toLocaleLowerCase('tr-TR').includes(symbolSearch.trim().toLocaleLowerCase('tr-TR')))
+          .map(([symbol, label]) => <button key={symbol} type="button" disabled={disabled}
+            aria-label={`${label}: ${symbol} ekle`} title={label}
+            onMouseDown={event => event.preventDefault()}
+            onClick={() => { editor.chain().focus().insertContent(symbol).run(); setRecentSymbols(previous => [symbol, ...previous.filter(x => x !== symbol)].slice(0, 6)); }}>{symbol}</button>)}
+        <span className="question-p2-symbol-note">Semboller normal metin olarak eklenir. Kesir, kök ve üs için “Matematiksel ifade”yi kullanın.</span>
+      </div>}
+      {equationTemplatesOpen && <div className="question-p3-equation-controls p3-ux-equation-drawer">
+        <div className="question-p3-equation-templates" role="group" aria-label="Matematiksel ifadeler">
+          <strong className="p3-ux-equation-title">Hazır ifadeler</strong>
           {([['Kesir', '\\frac{a}{b}'], ['Karekök', '\\sqrt{x}'], ['Üs', 'x^{2}'], ['Alt indis', 'x_{1}']] as const).map(([label, template]) =>
             <button type="button" key={label} disabled={disabled} title={template}
               onMouseDown={event => event.preventDefault()}
-              onClick={() => editor.chain().focus().insertContent('$' + template + '$').run()}>{label}</button>)}
+              onClick={() => editor.chain().focus().insertContent({ type: 'mathInline', attrs: { source: template } }).run()}>{label}</button>)}
           <div className="question-p3-fraction-builder" aria-label="Görsel kesir oluşturucu">
             <strong>Kesir oluştur</strong>
             <div className="question-p3-fraction-layout">
               <div className="question-p3-fraction-fields">
-                <label htmlFor="p3-fraction-numerator">Pay</label>
-                <input id="p3-fraction-numerator" value={fractionNumerator} maxLength={30} disabled={disabled}
+                <label htmlFor={`${editorId}-p3-fraction-numerator`}>Pay</label>
+                <input id={`${editorId}-p3-fraction-numerator`} value={fractionNumerator} maxLength={30} disabled={disabled}
                   onChange={event => setFractionNumerator(event.target.value)} />
-                <label htmlFor="p3-fraction-denominator">Payda</label>
-                <input id="p3-fraction-denominator" value={fractionDenominator} maxLength={30} disabled={disabled}
+                <label htmlFor={`${editorId}-p3-fraction-denominator`}>Payda</label>
+                <input id={`${editorId}-p3-fraction-denominator`} value={fractionDenominator} maxLength={30} disabled={disabled}
                   onChange={event => setFractionDenominator(event.target.value)} />
               </div>
               <div className="question-p3-fraction-live" aria-label="Kesir görünümü">
@@ -359,10 +397,10 @@ export function QuestionStemWysiwygEditor({
             <button type="button"
               disabled={disabled || !fractionNumerator.trim() || !fractionDenominator.trim() || !/^[a-zA-Z0-9+*/(). -]+$/.test(fractionNumerator) || !/^[a-zA-Z0-9+*/(). -]+$/.test(fractionDenominator)}
               onMouseDown={event => event.preventDefault()}
-              onClick={() => editor.chain().focus().insertContent('$\\frac{' + fractionNumerator.trim() + '}{' + fractionDenominator.trim() + '}$').run()}>
+              onClick={() => editor.chain().focus().insertContent({ type: 'mathInline', attrs: { source: '\\frac{' + fractionNumerator.trim() + '}{' + fractionDenominator.trim() + '}' } }).run()}>
               Kesri soru metnine ekle
             </button>
-            <small>Görünüm, oluşturma önizlemesidir. Soru metninde LaTeX olarak saklanır; Word çıktısı ayrıca kontrol edilmelidir.</small>
+            <small>Kesir editörde görsel gösterilir. Kayıtta LaTeX kaynağı korunur; Word çıktısı ayrıca kontrol edilmelidir.</small>
           </div>
           <div className="question-p3-math-builder" aria-label="Kök üs ve alt indis oluşturucu">
             <strong>Matematiksel ifade oluştur</strong>
@@ -372,11 +410,11 @@ export function QuestionStemWysiwygEditor({
                   onClick={() => setMathBuilderType(kind)}>{label}</button>)}
             </div>
             <div className="question-p3-math-builder-fields">
-              {mathBuilderType !== 'root' && <label htmlFor="p3-math-base">Taban
-                <input id="p3-math-base" value={mathBase} maxLength={30} disabled={disabled} onChange={event => setMathBase(event.target.value)} />
+              {mathBuilderType !== 'root' && <label htmlFor={`${editorId}-p3-math-base`}>Taban
+                <input id={`${editorId}-p3-math-base`} value={mathBase} maxLength={30} disabled={disabled} onChange={event => setMathBase(event.target.value)} />
               </label>}
-              <label htmlFor="p3-math-argument">{mathBuilderType === 'root' ? 'Kök içi' : mathBuilderType === 'power' ? 'Üs değeri' : 'Alt indis'}
-                <input id="p3-math-argument" value={mathArgument} maxLength={30} disabled={disabled} onChange={event => setMathArgument(event.target.value)} />
+              <label htmlFor={`${editorId}-p3-math-argument`}>{mathBuilderType === 'root' ? 'Kök içi' : mathBuilderType === 'power' ? 'Üs değeri' : 'Alt indis'}
+                <input id={`${editorId}-p3-math-argument`} value={mathArgument} maxLength={30} disabled={disabled} onChange={event => setMathArgument(event.target.value)} />
               </label>
             </div>
             <div className="question-p3-math-builder-preview" aria-label="Matematiksel ifade önizlemesi">
@@ -390,14 +428,18 @@ export function QuestionStemWysiwygEditor({
               onClick={() => {
                 const value = mathBuilderType === 'root' ? '\\sqrt{' + mathArgument.trim() + '}' :
                   mathBase.trim() + (mathBuilderType === 'power' ? '^{' : '_{') + mathArgument.trim() + '}';
-                editor.chain().focus().insertContent('$' + value + '$').run();
+                editor.chain().focus().insertContent({ type: 'mathInline', attrs: { source: value } }).run();
               }}>İfadeyi soru metnine ekle</button>
-            <small>Görsel oluşturma önizlemesi. Kayıt LaTeX metnidir; tam görsel denklem nesnesi değildir.</small>
+            <small>İfade editörde görsel gösterilir. Kayıtta LaTeX kaynağı korunur.</small>
           </div>
+          <details className="p3-ux-advanced-source"><summary>Gelişmiş: LaTeX kaynak düzenleme</summary>
           <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
             onClick={() => {
               const { from, to } = editor.state.selection;
-              const selected = editor.state.doc.textBetween(from, to, '');
+              const selectedNode = editor.state.doc.nodeAt(from);
+              const selected = selectedNode?.type.name === 'mathInline' && selectedNode.nodeSize === to - from
+                ? '$' + String(selectedNode.attrs.source || '') + '$'
+                : editor.state.doc.textBetween(from, to, '');
               if (selected.length >= 3 && selected.startsWith('$') && selected.endsWith('$') && !selected.slice(1, -1).includes('$')) {
                 setEquationSource(selected.slice(1, -1));
                 setEquationEditRange({ from, to });
@@ -406,21 +448,21 @@ export function QuestionStemWysiwygEditor({
               }
             }}>Seçili LaTeX ifadesini düzenle</button>
           {equationEditRange && <small role="status">Seçili ifade yüklendi. Yeni metin, aynı konumda değiştirilecek.</small>}
-          <label className="question-p3-equation-compose-label" htmlFor="p3-equation-source">Denklem kaynağı (LaTeX)</label>
-          <input id="p3-equation-source" className="question-p3-equation-compose-input" type="text" value={equationSource}
+          <label className="question-p3-equation-compose-label" htmlFor={`${editorId}-p3-equation-source`}>Denklem kaynağı (LaTeX)</label>
+          <input id={`${editorId}-p3-equation-source`} className="question-p3-equation-compose-input" type="text" value={equationSource}
             disabled={disabled} maxLength={150} placeholder="\\frac{a}{b}"
             onChange={event => setEquationSource(event.target.value)}
             onKeyDown={event => { if (event.key === 'Enter') event.preventDefault(); }} />
           <button type="button" disabled={disabled || !equationSource.trim() || equationSource.includes('$') || /[<>]/.test(equationSource)}
             onMouseDown={event => event.preventDefault()}
-            onClick={() => { const markup = '$' + equationSource.trim() + '$'; if (equationEditRange) { editor.chain().focus().insertContentAt(equationEditRange, markup).run(); setEquationEditRange(null); } else { editor.chain().focus().insertContent(markup).run(); } setEquationSource(''); }}>
+            onClick={() => { const math = { type: 'mathInline', attrs: { source: equationSource.trim() } }; if (equationEditRange) { editor.chain().focus().insertContentAt(equationEditRange, math).run(); setEquationEditRange(null); } else { editor.chain().focus().insertContent(math).run(); } setEquationSource(''); }}>
             Denklemi metne ekle
           </button>
-          <small>Kaynağı düzenleyip ekleyebilirsiniz. Bu alan henüz görsel denklem oluşturmaz; çıktı doğrulaması gereklidir.</small>
-          <small>Şablonlar LaTeX metni olarak eklenir; Word çıktısında ayrıca doğrulanmalıdır.</small>
-        </div>}
-      </div>}
-      {variant === 'stem' && <section className="p3-table-composer" aria-label="Tablo taslağı oluştur">
+          <small>Kaynağı düzenleyip ekleyebilirsiniz. Matematik ifadesi görsel nesne olarak eklenir; Word çıktısı ayrıca kontrol edilmelidir.</small>
+          <small>Şablonlar görsel görünür; kayıt biçimi korunur. Word çıktısını ayrıca kontrol edin.</small>
+          </details>
+        </div>
+      </div>}      {variant === 'stem' && <section className="p3-table-composer" aria-label="Tablo taslağı oluştur">
         <button type="button" disabled={disabled} aria-expanded={tableOpen} onClick={() => setTableOpen(open => !open)}>Tablo oluştur</button>
         {tableOpen && <div className="p3-table-panel">
           <p>Hücreleri doldurun. Metin tablosu oluşturulur; Word'de düzenlenebilir tablo desteği henüz yoktur.</p>
@@ -450,9 +492,41 @@ export function QuestionStemWysiwygEditor({
               <button type="button" key={kind} disabled={disabled} aria-pressed={shapeType === kind} onClick={() => { setShapeType(kind); setDrawing(defaultGeometry(kind)); }}>{label}</button>)}
           </div>
           <DraggableGeometry value={drawing} onChange={setDrawing} disabled={disabled}/>
+          {/* RELEASE-07B-V6 advisory-only check */}
+          <div className="release07b-geometry-consistency">
+            <button type="button" disabled={disabled} onClick={() => setShowGeometryCheck(value => !value)}
+              aria-expanded={showGeometryCheck} aria-controls="release07b-geometry-check-results">
+              {showGeometryCheck ? 'Ölçü denetimini gizle' : 'Ölçüleri denetle (isteğe bağlı)'}
+            </button>
+            {showGeometryCheck && <div id="release07b-geometry-check-results" role="status" aria-live="polite">
+              {geometryConsistencyWarnings(drawing).length
+                ? <ul>{geometryConsistencyWarnings(drawing).map((warning, index) => <li key={index}>{warning}</li>)}</ul>
+                : <small>Girilen ölçülerde belirgin bir tutarsızlık saptanmadı. Bu sonuç matematiksel doğruluğu garanti etmez.</small>}
+              <small>Uyarılar bilgi amaçlıdır; soru kaydetmeyi engellemez.</small>
+            </div>}
+          </div>
+           <section className="release07b-annotation-panel" aria-label="Şekil açıklamaları">
+             <strong>Nokta adları, kenar uzunlukları ve açı ölçüleri</strong>
+             <small>Boş bırakılan ölçüler gösterilmez. Nokta adları tekil büyük Latin harfleriyle, ölçüler 5 cm ve 30° gibi yazılır.</small>
+             {([['points', 'Nokta'], ['sides', shapeType === 'circle' ? 'Yarıçap' : 'Kenar'], ['angles', 'Açı']] as const).map(([field, title]) =>
+               geometryLabelsFor(drawing)[field].length > 0 && <div key={field} className="release07b-annotation-row">
+                 {geometryLabelsFor(drawing)[field].map((entry, i) =>
+                   <label key={field + i}>{title} {i + 1}
+                     <input type="text" disabled={disabled} value={entry}
+                       maxLength={field === 'points' ? 2 : field === 'angles' ? 9 : 12}
+                       aria-label={title + ' ' + (i + 1)}
+                       onChange={event => setDrawing(current => withGeometryLabel(current, field as keyof GeometryLabels, i, event.target.value))}/>
+                   </label>)}
+               </div>)}
+             <button type="button" disabled={disabled} onClick={() => {
+               setGeometrySelection(null);
+               setDrawing(defaultGeometry(shapeType));
+               setGeometryRevisionMessage('Yeni çizim hazır. Önceki kaydedilmiş şekil değiştirilmedi.');
+             }}>Yeni çizim başlat / düzenlemeyi iptal et</button>
+           </section>
           <button type="button" disabled={disabled} onMouseDown={event => event.preventDefault()}
             onClick={() => editor.chain().focus().insertContent(shapeType === 'triangle' ? '△ABC' : shapeType === 'circle' ? '◯O' : '□ABCD').run()}>
-            Yalnızca △ simgesi ekle (çizim değildir)
+            Yalnızca simge ekle (çizim değildir)
           </button>
           <button type="button" disabled={disabled} onClick={() => {
             const blob = new Blob([geometrySvg(shapeType, drawing)], { type: 'image/svg+xml;charset=utf-8' });
@@ -515,10 +589,10 @@ export function QuestionStemWysiwygEditor({
               }}>Seçili kayıtlı şekli yükle</button>
             <small>{geometrySelection
               ? 'Düzenleme modu açık. Köşeleri taşıdıktan sonra yukarıdaki “Seçili şekli güncelle” düğmesine basın.'
-              : 'Eski v1 çizimler de “Kayıtlı şekiller” bölümünden yüklenip v2 olarak güncellenebilir.'}</small>
+              : 'Eski v1/v2 çizimler de “Kayıtlı şekiller” bölümünden yüklenip güncellenebilir.'}</small>
             {geometryRevisionMessage && <small role="status" aria-live="polite">{geometryRevisionMessage}</small>}
           </div>
-          <small>Çizimin konum ve ölçüleri v2 olarak soruyla birlikte kaydedilir; Word'de vektör çizim olarak aktarılır.</small>
+          <small>Şeklin koordinatları ve etiketleri soruyla birlikte saklanır; Word'de vektör çizim olarak aktarılır.</small>
           <small>Sembolik gösterim ekleme yalnızca karakter yazar; kalıcı şekil düğmesi ise sürümlü çizim bilgisini kaydeder.</small>
         </div>}
       </section>}

@@ -59,7 +59,7 @@ export function legacyMarkupToHtml(markdown: string): string {
     safe = safe.replace(/_([^_\n]+)_/g, '<em>$1</em>');
 
     // Formula: $formula$
-    safe = safe.replace(/\$([^$\n]+)\$/g, '<code>$$$1$$</code>');
+    safe = safe.replace(/\$([^$\n]+)\$/g, (_match, latex: string) => '<span data-prolig-math="' + latex.replace(/"/g, '&quot;') + '"></span>');
 
     // Links: [text](https://...)
     safe = safe.replace(/\[([^\]\n]+)\]\(([^\s)]+)\)/g, (match, label, href) => {
@@ -143,6 +143,8 @@ export function htmlToLegacyMarkup(html: string): string {
 
   // Fallback regex-based converter if DOMParser is unavailable
   return html
+    // Preserve visual math atoms without changing canonical $LaTeX$ storage.
+    .replace(/<span\b[^>]*data-prolig-math="([^"]*)"[^>]*><\/span>/gi, (_, latex: string) => '$' + latex.replace(/&quot;/g, '"').replace(/&amp;/g, '&') + '$')
     // Preserve atomic geometry nodes in Node/SSR export too.
     .replace(/<span\b[^>]*data-prolig-geometry="([^"]+)"[^>]*><\/span>/gi,
       (_, marker: string) => readGeometryMarker(marker) ? marker : '')
@@ -201,6 +203,8 @@ function nodeToMarkdown(node: Node): string {
     case 'u':
       return `<u>${childrenMarkdown}</u>`;
     case 'span': {
+      const latex = el.getAttribute('data-prolig-math');
+      if (latex !== null) return '$' + latex + '$';
       const marker = el.getAttribute('data-prolig-geometry');
       return marker && readGeometryMarker(marker) ? marker : childrenMarkdown;
     }

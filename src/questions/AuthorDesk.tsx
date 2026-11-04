@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, BookMarked, Check, Copy, Download, FilePlus2, FolderPlus, PencilLine, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, X } from 'lucide-react';
-import type { ApiQuestion, CreateQuestionInput, PatchQuestionInput } from './types';
+import type { ApiQuestion, CreateQuestionInput, PatchQuestionInput, QuestionAssetInput, QuestionAssetPlacement } from './types';
+import type { QuestionStudioFormValues } from './studio-state';
+import { GuidedQuestionStudio } from './GuidedQuestionStudio';
+import { GRADES_BY_LEVEL, levelForGrade } from '../projects/integration';
+import './personal-studio.css';
 import { createQuestion, patchQuestion } from './api';
-import { QuestionStemWysiwygEditor } from './QuestionStemWysiwygEditor';
-import { QuestionTypePreview } from './QuestionTypePreview';
+import { allowsFiveOptions } from '../../shared/question-contract';
+import { personalGradeSelection } from './question-editor-consistency';
 import { copyPersonalToPublisher, deletePersonalSet, downloadPersonalSet, fetchPersonalQuestions, fetchPersonalSets, savePersonalSet, type PersonalQuestionSet } from './personal-library-api';
+import { PersonalQuestionSummary, summarizePersonalQuestion } from './PersonalQuestionSummary';
 import './author-desk.css';
 
 type Kind = 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'OPEN_ENDED';
@@ -12,13 +17,19 @@ type Draft = {
   id: number | null; expectedUpdatedAt: string | null; content: string; grade: string;
   personalSubject: string; personalTopic: string; questionType: Kind;
   optionCount: 4 | 5; options: string[]; correctAnswer: string;
-  booleanAnswer: boolean; modelAnswer: string; explanation: string; difficulty: string;
+  booleanAnswer: boolean | null; modelAnswer: string; explanation: string; difficulty: string;
+  objectiveCode: string; scoringRubric: string; evaluationCriteria: string;
+  assets: QuestionAssetInput[]; assetsTouched: boolean;
+  assetPlacement: QuestionAssetPlacement; assetType: 'IMAGE'|'VIDEO_URL'|'LINK';
+  assetUrl: string; assetTitle: string; assetAltText: string;
 };
 const emptyDraft = (): Draft => ({
   id: null, expectedUpdatedAt: null, content: '', grade: '8. Sınıf',
   personalSubject: '', personalTopic: '', questionType: 'MULTIPLE_CHOICE',
-  optionCount: 4, options: ['', '', '', '', ''], correctAnswer: 'A',
-  booleanAnswer: true, modelAnswer: '', explanation: '', difficulty: ''
+  optionCount: 4, options: ['', '', '', '', ''], correctAnswer: '',
+  booleanAnswer: null, modelAnswer: '', explanation: '', difficulty: '',
+  objectiveCode: '', scoringRubric: '', evaluationCriteria: '', assets: [], assetsTouched: false,
+  assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
 });
 function formFromQuestion(q: ApiQuestion): Draft {
   return {
@@ -27,8 +38,11 @@ function formFromQuestion(q: ApiQuestion): Draft {
     questionType: q.questionType || 'MULTIPLE_CHOICE',
     optionCount: q.optionCount === 5 ? 5 : 4,
     options: [...(q.options || []), '', '', '', '', ''].slice(0, 5),
-    correctAnswer: q.correctAnswer || 'A', booleanAnswer: q.booleanAnswer ?? true,
-    modelAnswer: q.modelAnswer || '', explanation: q.explanation || '', difficulty: q.difficulty || ''
+    correctAnswer: q.correctAnswer || '', booleanAnswer: q.booleanAnswer ?? null,
+    modelAnswer: q.modelAnswer || '', explanation: q.explanation || '', difficulty: q.difficulty || '',
+    objectiveCode: q.objectiveCode || '', scoringRubric: q.scoringRubric || '', evaluationCriteria: q.evaluationCriteria || '',
+    assets: (q.assets || []).map(asset => ({ ...asset })), assetsTouched: false,
+    assetPlacement: 'STEM', assetType: 'IMAGE', assetUrl: '', assetTitle: '', assetAltText: ''
   };
 }
 const grades = Array.from({length: 12}, (_, i) => `${i + 1}. Sınıf`).concat('Mezun');
@@ -45,6 +59,7 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [personalStep, setPersonalStep] = useState(1);
   const [query, setQuery] = useState('');
   const [gradeFilter, setGradeFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
@@ -80,6 +95,66 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
   const setDirty = !currentSet || currentSet.title !== setTitle.trim() ||
     JSON.stringify(currentSet.questionIds) !== JSON.stringify(selectedIds);
   const updateDraft = (changes: Partial<Draft>) => setDraft(old => old ? { ...old, ...changes } : old);
+  // PERSONAL-STUDIO-01: same five-stage component, separate personal API target.
+  const personalLevel = draft ? (levelForGrade(draft.grade) ?? 'Ortaokul') : 'Ortaokul';
+  const personalValues: QuestionStudioFormValues | null = draft ? {
+    content: draft.content, level: personalLevel, grade: draft.grade, projectId: null,
+    options: draft.options, correctAnswer: draft.correctAnswer, explanation: draft.explanation,
+    questionType: draft.questionType, optionCount: draft.optionCount,
+    booleanAnswer: draft.booleanAnswer, modelAnswer: draft.modelAnswer,
+    scoringRubric: draft.scoringRubric, evaluationCriteria: draft.evaluationCriteria,
+    objectiveCode: draft.objectiveCode, difficulty: draft.difficulty,
+    assets: draft.assets, assetPlacement: draft.assetPlacement, assetType: draft.assetType,
+    assetUrl: draft.assetUrl, assetTitle: draft.assetTitle, assetAltText: draft.assetAltText
+  } : null;
+  const onPersonalValues = (next: QuestionStudioFormValues) => {
+    setDraft(old => old ? {
+      ...old, content: next.content, grade: next.grade, options: next.options,
+      correctAnswer: next.correctAnswer, explanation: next.explanation,
+      questionType: next.questionType ?? old.questionType,
+      optionCount: next.optionCount === 5 ? 5 : (next.optionCount === 4 ? 4 : old.optionCount),
+      booleanAnswer: typeof next.booleanAnswer === 'boolean' ? next.booleanAnswer : null,
+      modelAnswer: next.modelAnswer || '', scoringRubric: next.scoringRubric || '',
+      evaluationCriteria: next.evaluationCriteria || '', objectiveCode: next.objectiveCode || '',
+      difficulty: next.difficulty || '',
+      assets: next.assets, assetPlacement: next.assetPlacement, assetType: next.assetType,
+      assetUrl: next.assetUrl, assetTitle: next.assetTitle, assetAltText: next.assetAltText
+    } : old);
+  };
+  const choosePersonalGrade = (grade: string) => {
+    if (!draft) return;
+    if (draft.id && draft.optionCount === 5 && !allowsFiveOptions(grade)) {
+      setError('Kayıtlı beş seçenekli soru yalnız lise ve mezun düzeyindedir.'); return;
+    }
+    updateDraft(personalGradeSelection(draft, grade));
+  };
+  const addPersonalAsset = (placement: QuestionAssetPlacement) => {
+    if (!draft) return;
+    const url = draft.assetUrl.trim();
+    let valid = false;
+    try { const parsed = new URL(url); valid = ['https:','http:'].includes(parsed.protocol); } catch { /* invalid */ }
+    if (!valid) { setError('Medya için geçerli bir http/https bağlantısı girin.'); return; }
+    if (draft.assets.length >= 12) { setError('Bir soruya en fazla 12 medya öğesi eklenebilir.'); return; }
+    updateDraft({
+      assets: [...draft.assets, { placement, assetType: draft.assetType, url,
+        title: draft.assetTitle.trim() || null, altText: draft.assetAltText.trim() || null,
+        sortOrder: draft.assets.length }], assetsTouched: true,
+      assetUrl: '', assetTitle: '', assetAltText: ''
+    });
+    setError('');
+  };
+  const removePersonalAsset = (index: number) => {
+    if (!draft) return;
+    updateDraft({ assets: draft.assets.filter((_, i) => i !== index), assetsTouched: true });
+  };
+  const renderPersonalAssets = (placement: QuestionAssetPlacement) => <>
+    {draft?.assets.filter(a => a.placement === placement).map((asset, index) =>
+      asset.assetType === 'IMAGE'
+        ? <img key={index} className="personal-studio-media-preview" src={asset.url} alt={asset.altText || asset.title || 'Soru görseli'} />
+        : <a key={index} href={asset.url} target="_blank" rel="noopener noreferrer">{asset.title || 'Soru bağlantısı'}</a>
+    )}
+  </>;
+
 
   const saveQuestion = async () => {
     if (!draft || busy) return;
@@ -91,6 +166,12 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
     if (draft.questionType === 'MULTIPLE_CHOICE' &&
       (options.some(x => !x) || !'ABCDE'.slice(0, draft.optionCount).includes(draft.correctAnswer))) {
       setError('Seçenekleri ve doğru cevabı tamamlayın.'); return;
+    }
+    if (draft.questionType === 'MULTIPLE_CHOICE' && draft.optionCount === 5 && !allowsFiveOptions(draft.grade)) {
+      setError('Beş seçenek yalnızca 9–12. sınıflar ve mezun düzeyinde kullanılabilir.'); return;
+    }
+    if (draft.questionType === 'TRUE_FALSE' && typeof draft.booleanAnswer !== 'boolean') {
+      setError('Doğru/Yanlış cevabını açıkça seçin.'); return;
     }
     if (draft.questionType === 'OPEN_ENDED' && !draft.modelAnswer.trim()) {
       setError('Açık uçlu sorunun model cevabını girin.'); return;
@@ -105,11 +186,15 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
           difficulty: draft.difficulty || null, options,
           correctAnswer: draft.questionType === 'MULTIPLE_CHOICE' ? draft.correctAnswer : null,
           personalSubject: draft.personalSubject.trim(), personalTopic: draft.personalTopic.trim(),
+          objectiveCode: draft.objectiveCode || null,
+          ...(draft.assetsTouched ? { assets: draft.assets } : {}),
           ...(typed ? {
             questionType: draft.questionType,
             optionCount: draft.questionType === 'MULTIPLE_CHOICE' ? draft.optionCount : null,
             booleanAnswer: draft.questionType === 'TRUE_FALSE' ? draft.booleanAnswer : null,
-            modelAnswer: draft.questionType === 'OPEN_ENDED' ? draft.modelAnswer.trim() : null
+            modelAnswer: draft.questionType === 'OPEN_ENDED' ? draft.modelAnswer.trim() : null,
+            scoringRubric: draft.questionType === 'OPEN_ENDED' ? draft.scoringRubric.trim() || null : null,
+            evaluationCriteria: draft.questionType === 'OPEN_ENDED' ? draft.evaluationCriteria.trim() || null : null
           } : {})
         };
         await patchQuestion(draft.id, patch);
@@ -118,6 +203,8 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
         const input: CreateQuestionInput = {
           content: draft.content.trim(), grade: draft.grade,
           personalSubject: draft.personalSubject.trim(), personalTopic: draft.personalTopic.trim(),
+          objectiveCode: draft.objectiveCode || null,
+          ...(draft.assetsTouched ? { assets: draft.assets } : {}),
           isPersonal: true, projectId: null, options,
           correctAnswer: draft.questionType === 'MULTIPLE_CHOICE' ? draft.correctAnswer : null,
           difficulty: draft.difficulty || null, explanation: draft.explanation || null,
@@ -125,7 +212,9 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
             questionType: draft.questionType,
             optionCount: draft.questionType === 'MULTIPLE_CHOICE' ? draft.optionCount : null,
             booleanAnswer: draft.questionType === 'TRUE_FALSE' ? draft.booleanAnswer : null,
-            modelAnswer: draft.questionType === 'OPEN_ENDED' ? draft.modelAnswer.trim() : null
+            modelAnswer: draft.questionType === 'OPEN_ENDED' ? draft.modelAnswer.trim() : null,
+            scoringRubric: draft.questionType === 'OPEN_ENDED' ? draft.scoringRubric.trim() || null : null,
+            evaluationCriteria: draft.questionType === 'OPEN_ENDED' ? draft.evaluationCriteria.trim() || null : null
           } : {})
         };
         await createQuestion(input);
@@ -206,7 +295,7 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
       </div>
       <div className="author-desk-actions">
         <button type="button" className="secondary-button" onClick={() => onPublisher()}>Yayınevi soru havuzu <BookMarked size={16}/></button>
-        <button type="button" className="primary-button" onClick={() => { setDraft(emptyDraft()); setError(''); }}><Plus size={17}/> Yeni kişisel soru</button>
+        <button type="button" className="primary-button" onClick={() => { setPersonalStep(1);setDraft(emptyDraft()); setError(''); }}><Plus size={17}/> Yeni kişisel soru</button>
       </div>
     </header>
     <div className="author-desk-alert"><ShieldCheck size={18}/>
@@ -235,11 +324,11 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
         {visible.map(q => <article key={q.id} className="author-desk-question">
           <label className="author-desk-select"><input aria-label={`Set için soru #${q.id} seç`} type="checkbox" checked={selectedIds.includes(q.id)} onChange={()=>changeSelection(q.id)}/></label>
           <div className="author-desk-question-main"><div className="author-desk-meta"><span>{q.personalSubject||'Ders belirtilmemiş'}</span><span>{q.grade||'-'}</span><span>{q.personalTopic||'Konu belirtilmemiş'}</span><span>#{q.id}</span></div>
-            <div className="author-desk-question-text">{q.content.slice(0,190)}{q.content.length>190?'…':''}</div>
+            <PersonalQuestionSummary content={q.content}/>
             <small>{typeNames[q.questionType||'MULTIPLE_CHOICE']} · Son kayıt: {new Date(q.updatedAt).toLocaleDateString('tr-TR')}</small>
           </div>
           <div className="author-desk-question-actions">
-            <button className="secondary-button" type="button" disabled={busy || copyingId !== null} onClick={()=>{setDraft(formFromQuestion(q));setError('');}}><PencilLine size={15}/> Aç / düzenle</button>
+            <button className="secondary-button" type="button" disabled={busy || copyingId !== null} onClick={()=>{setPersonalStep(1);setDraft(formFromQuestion(q));setError('');}}><PencilLine size={15}/> Aç / düzenle</button>
             <button className="secondary-button" type="button" disabled={busy || copyingId !== null || q.status !== 'TASLAK'} aria-busy={copyingId === q.id} onClick={() => void copyForPublisher(q)}>
               <Copy size={15}/> {copyingId === q.id ? 'Kopyalanıyor…' : 'Yayınevi taslağına kopyala'}
             </button>
@@ -263,7 +352,7 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
           <p>Seçili sorular: <strong>{selectedIds.length}</strong> · Yukarı / aşağı düğmeleriyle baskı sırasını belirleyin.</p>
           <ol className="author-desk-set-order">{selectedIds.map((id,i)=>{
             const q=questions.find(q=>q.id===id);
-            return <li key={id}><span><b>{i+1}.</b> {q?.content.slice(0,72)||`#${id}`}</span>
+            return <li key={id}><span><b>{i+1}.</b> {q ? summarizePersonalQuestion(q.content, 72).text : `#${id}`}</span>
               <div><button type="button" title="Yukarı taşı" aria-label={`Soru ${id} yukarı taşı`} disabled={i===0} onClick={()=>move(i,-1)}><ArrowUp size={15}/></button>
                 <button type="button" title="Aşağı taşı" aria-label={`Soru ${id} aşağı taşı`} disabled={i===selectedIds.length-1} onClick={()=>move(i,1)}><ArrowDown size={15}/></button>
                 <button type="button" title="Setten çıkar" aria-label={`Soru ${id} setten çıkar`} onClick={()=>changeSelection(id)}><X size={15}/></button></div>
@@ -283,41 +372,34 @@ export function AuthorDesk({ onPublisher }: { onPublisher: (copied?: ApiQuestion
       </div>
     </section>
 
-    {draft&&<div className="author-desk-overlay" role="presentation">
-      <section className="author-desk-modal" role="dialog" aria-modal="true" aria-label={draft.id?'Kişisel soruyu düzenle':'Kişisel soru oluştur'}>
-        <div className="author-desk-modal-head"><div><span>KİŞİSEL SORU EDİTÖRÜ</span><h2>{draft.id?'Soru düzenle':'Yeni kişisel soru'}</h2></div>
-          <button type="button" aria-label="Editörü kapat" disabled={busy} onClick={()=>setDraft(null)}><X size={20}/></button></div>
-        <div className="author-desk-edit-grid">
-          <label className="author-desk-field">Ders<input value={draft.personalSubject} maxLength={100} onChange={e=>updateDraft({personalSubject:e.target.value})} placeholder="Örn. Matematik" /></label>
-          <label className="author-desk-field">Sınıf<select value={draft.grade} onChange={e=>updateDraft({grade:e.target.value})}>{grades.map(g=><option key={g} value={g}>{g}</option>)}</select></label>
-          <label className="author-desk-field">Konu<input value={draft.personalTopic} maxLength={100} onChange={e=>updateDraft({personalTopic:e.target.value})} placeholder="Örn. Rasyonel sayılar" /></label>
-          <label className="author-desk-field">Soru türü<select value={draft.questionType} disabled={!!draft.id} onChange={e=>updateDraft({questionType:e.target.value as Kind})}>
-            {Object.entries(typeNames).map(([key,label])=><option key={key} value={key}>{label}</option>)}
-          </select></label>
+    {draft && personalValues && <div className="author-desk-overlay personal-studio-overlay" role="presentation">
+      <section className="author-desk-modal personal-studio-modal" role="dialog" aria-modal="true" aria-label={draft.id ? 'Kişisel soruyu düzenle' : 'Kişisel soru oluştur'}>
+        <header className="author-desk-modal-head">
+          <div><span>KİŞİSEL KÜTÜPHANE / ORTAK EDİTÖR</span><h2>{draft.id ? 'Kişisel soruyu düzenle' : 'Yeni kişisel soru'}</h2></div>
+          <button type="button" disabled={busy} aria-label="Editörü kapat" onClick={() => { if (window.confirm('Kaydedilmemiş değişiklikler kaybolabilir. Editörü kapatmak istiyor musunuz?')) setDraft(null); }}><X size={20} /></button>
+        </header>
+        <div className="personal-studio-context" role="note"><ShieldCheck size={17} aria-hidden="true"/>
+          <span><strong>Kişisel mod.</strong> Kaydettiğiniz soru yalnızca sizin kütüphanenize eklenir. Yayınevine otomatik gönderilmez.</span>
         </div>
-        <div className="author-desk-question-editor"><strong>Soru kökü</strong>
-          <QuestionStemWysiwygEditor value={draft.content} onChange={content=>updateDraft({content})} maxLength={1200} />
-        </div>
-        {draft.questionType==='MULTIPLE_CHOICE'&&<>
-          <label className="author-desk-field">Seçenek sayısı
-            <select value={draft.optionCount} disabled={!!draft.id} onChange={e=>updateDraft({optionCount:Number(e.target.value) as 4|5,correctAnswer:'A'})}>
-              <option value={4}>4 seçenek</option><option value={5}>5 seçenek</option>
-            </select></label>
-          <div className="author-desk-option-grid">{draft.options.slice(0,draft.optionCount).map((option,i)=>
-            <label key={i} className="author-desk-field">{String.fromCharCode(65+i)} seçeneği
-              <input value={option} maxLength={500} onChange={e=>{const next=[...draft.options];next[i]=e.target.value;updateDraft({options:next});}}/>
-            </label>)}</div>
-          <label className="author-desk-field">Doğru cevap<select value={draft.correctAnswer} onChange={e=>updateDraft({correctAnswer:e.target.value})}>
-            {draft.options.slice(0,draft.optionCount).map((_,i)=>{const c=String.fromCharCode(65+i);return <option key={c} value={c}>{c}</option>;})}
-          </select></label>
-        </>}
-        {draft.questionType==='TRUE_FALSE'&&<label className="author-desk-field">Doğru cevap<select value={draft.booleanAnswer?'dogru':'yanlis'} onChange={e=>updateDraft({booleanAnswer:e.target.value==='dogru'})}><option value="dogru">Doğru</option><option value="yanlis">Yanlış</option></select></label>}
-        {draft.questionType==='OPEN_ENDED'&&<label className="author-desk-field">Model cevap<textarea value={draft.modelAnswer} onChange={e=>updateDraft({modelAnswer:e.target.value})}/></label>}
-        <label className="author-desk-field">Çözüm / açıklama (isteğe bağlı)<textarea maxLength={600} value={draft.explanation} onChange={e=>updateDraft({explanation:e.target.value})}/></label>
-        <div className="author-desk-preview"><h3>Canlı önizleme</h3><QuestionTypePreview question={{content:draft.content,questionType:draft.questionType,optionCount:draft.questionType==='MULTIPLE_CHOICE'?draft.optionCount:null,options:draft.questionType==='MULTIPLE_CHOICE'?draft.options.slice(0,draft.optionCount):[],correctAnswer:draft.questionType==='MULTIPLE_CHOICE'?draft.correctAnswer:null,booleanAnswer:draft.questionType==='TRUE_FALSE'?draft.booleanAnswer:null,modelAnswer:draft.questionType==='OPEN_ENDED'?draft.modelAnswer:null,explanation:draft.explanation}}/></div>
-        <p className="author-desk-hint">Kaydetmek yalnız kişisel kütüphaneyi günceller. Editör onayı veya telif oluşturulmaz.</p>
-        <div className="author-desk-modal-footer"><button type="button" className="secondary-button" disabled={busy} onClick={()=>setDraft(null)}>Vazgeç</button>
-          <button type="button" className="primary-button" disabled={busy} onClick={()=>void saveQuestion()}><FilePlus2 size={17}/>{busy?'Kaydediliyor…':'Soruyu kaydet'}</button></div>
+        {error && <p className="author-desk-error" role="alert">{error}</p>}
+        <GuidedQuestionStudio
+          values={personalValues} onChange={onPersonalValues}
+          step={personalStep} onStepChange={setPersonalStep}
+          projects={[]} projectsLoading={false} projectsError="" originalProjectId={null}
+          levels={Object.keys(GRADES_BY_LEVEL)} grades={[...GRADES_BY_LEVEL[personalLevel]]}
+          onProject={() => {}} onLevel={level => choosePersonalGrade(GRADES_BY_LEVEL[level as keyof typeof GRADES_BY_LEVEL]?.[0] ?? draft.grade)}
+          onGrade={choosePersonalGrade}
+          branchName={draft.personalSubject} editing={Boolean(draft.id)} disabled={busy} sandbox={false}
+          onAddAsset={addPersonalAsset} onRemoveAsset={removePersonalAsset} renderAssets={renderPersonalAssets}
+          personal={{ subject: draft.personalSubject, topic: draft.personalTopic,
+            onSubjectChange: personalSubject => updateDraft({personalSubject}),
+            onTopicChange: personalTopic => updateDraft({personalTopic}) }}
+        />
+        <footer className="author-desk-modal-footer personal-studio-save">
+          <span>Yalnızca kişisel kütüphanenize kaydedilir.</span>
+          <button type="button" className="secondary-button" disabled={busy} onClick={() => { if (window.confirm('Kaydedilmemiş değişiklikler kaybolabilir. Vazgeçilsin mi?')) setDraft(null); }}>Vazgeç</button>
+          <button type="button" className="primary-button" disabled={busy} onClick={() => void saveQuestion()}><FilePlus2 size={17}/>{busy ? 'Kaydediliyor…' : 'Kişisel kütüphaneme kaydet'}</button>
+        </footer>
       </section></div>}
   </div>;
 }

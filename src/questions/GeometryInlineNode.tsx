@@ -16,7 +16,7 @@ function GeometryShapeView({ node, selected }: NodeViewProps) {
   return <NodeViewWrapper as="span" className={'release07-inline-geometry'+(selected?' is-selected':'')}
     contentEditable={false} title="Geometrik şekil: Kayıtlı şekiller bölümünden düzenleyin"
     aria-label="Soruya eklenmiş geometrik şekil">
-    <GeometryDiagram shape={drawing.shape} values={drawing.values}/>
+    <GeometryDiagram shape={drawing.shape} values={drawing.values} labels={drawing.labels}/>
   </NodeViewWrapper>;
 }
 

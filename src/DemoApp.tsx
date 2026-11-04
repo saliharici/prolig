@@ -20,6 +20,7 @@ import { buildQuestionCreateInput, buildQuestionEditPatch, hasFourValidQuestionO
 import { getQuestionVideoEmbedUrl, questionVideoProviderLabel } from './questions/media';
 import { legacyQuestionToStudioDocument } from './questions/studio-document';
 import { StudioDocumentPreview } from './questions/StudioDocumentPreview';
+import { QuestionListSummary } from './questions/QuestionListSummary';
 import { GuidedQuestionStudio } from './questions/GuidedQuestionStudio';
 import { QuestionTypePreview } from './questions/QuestionTypePreview';
 import { questionTypeDraft } from './questions/question-type-state';
@@ -2135,7 +2136,7 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
   const hasAction = canEdit || canReview || canArchive || canDelete;
   const authorSubmitting = authorSubmittingIds.includes(q.id);
   const authorSubmissionError = authorSubmitError?.questionId === q.id ? authorSubmitError.message : null;
-  return <tr key={q.id}><td><strong>{q.content}</strong><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}{q.taskId?' · Görev #'+q.taskId:''}</small>{q.status === 'REVIZYON' && currentUser.role === 'YAZAR'
+  return <tr key={q.id}><td><QuestionListSummary content={q.content} /><small>{q.objectiveCode || 'Kazanım yok'} · {q.grade} · #{q.id}{q.taskId?' · Görev #'+q.taskId:''}</small>{q.status === 'REVIZYON' && currentUser.role === 'YAZAR'
     ? <div className="question-revision-feedback" role="note" aria-label="Editör revizyon geri bildirimi">
         <strong><MessageSquareText size={15} aria-hidden="true" /> Editörden revizyon isteği</strong>
         <p>{q.editorNote?.trim() || 'Revizyon gerekçesi görüntülenemiyor; editörle iletişime geçin.'}</p>
