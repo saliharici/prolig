@@ -1,0 +1,26 @@
+/* PUBLISHING-CHAPTERS-01: localized multi-section layout. */
+.publishing-chapters-panel{display:grid;gap:9px;padding:12px;background:#fbf6f8;border:1px solid #e7d4db;border-radius:10px;margin:12px 0;}
+.publishing-chapter-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.publishing-chapter-tools strong{font-size:13px;color:#4b2a39;}
+.publishing-chapter-row{display:flex;flex-wrap:wrap;gap:7px;align-items:center;padding:9px;border:1px solid #e9dae0;background:white;border-radius:7px;}
+.publishing-chapter-row.active{border-color:#955770;box-shadow:0 0 0 1px #95577022;}
+.publishing-chapter-row label{flex:1 1 145px;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:10px;color:#725260;}
+.publishing-chapter-row label input{width:100%;min-width:0;box-sizing:border-box;border:1px solid #e1ccd5;border-radius:5px;padding:6px;font-size:12px;color:#4b2a39;}
+.publishing-chapter-row small{font-size:10px;color:#805a6b;}
+.publishing-chapter-row button{font-size:11px;border:1px solid #e1ccd5;border-radius:5px;padding:5px 8px;color:#5c3146;background:#fff;cursor:pointer;}
+.publishing-chapter-row button[aria-pressed=true]{background:#6d364e;color:white;}
+.publishing-chapter-row button:disabled{opacity:.45;cursor:not-allowed;}
+.publishing-chapters-panel>p{font-size:11px;line-height:1.5;color:#7a6070;margin:0;}
+.publishing-order li>div select{max-width:130px;min-width:85px;border:1px solid #d9c6d0;background:#fff;border-radius:5px;padding:5px;color:#502d3d;font-size:11px;}
+.publishing-print-chapter{break-before:page;page-break-before:always;}
+.publishing-print-chapter:first-of-type{break-before:auto;page-break-before:auto;}
+@media print{.publishing-print-chapter{break-before:page!important;page-break-before:always!important;}}
+
+/* Override the generic workbench input and label rules for compact chapter rows. */
+.publishing-controls .publishing-chapter-row label{display:flex;flex-direction:column;gap:3px;margin-top:0;font-size:10px;font-weight:600;}
+.publishing-controls .publishing-chapter-row label input{height:32px;width:100%;padding:4px 7px;}
+.publishing-controls .publishing-order li>div select{width:auto;height:30px;}
+
+/* Let the section organizer use the full horizontal space on desktop. */
+.publishing-controls > .publishing-order { grid-column: 1 / -1; }
+@media print { .publishing-cover + .publishing-print-chapter { break-before:auto!important; page-break-before:auto!important; } }

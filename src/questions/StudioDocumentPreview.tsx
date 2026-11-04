@@ -4,6 +4,7 @@ import type { StudioBlock, StudioDocumentV1, StudioInline } from './studio-docum
 import { parseStudioInline, parseStudioBlocks } from './studio-document';
 import { splitGeometryMarkup } from './geometry-markup';
 import { GeometryDiagram } from './GeometryDiagram';
+import { InlineMath } from './InlineMath';
 
 /**
  * Non-editable, React-escaped proof of concept. Never uses dangerouslySetInnerHTML.
@@ -17,7 +18,7 @@ function renderInline(nodes: StudioInline[]): ReactNode {
       case 'bold': return <strong key={key}>{renderInline(parseStudioInline(node.text))}</strong>;
       case 'italic': return <em key={key}>{renderInline(parseStudioInline(node.text))}</em>;
       case 'underline': return <u key={key}>{renderInline(parseStudioInline(node.text))}</u>;
-      case 'math': return <code key={key} className="studio-math-source" aria-label={`Matematik ifadesi: ${node.text}`}>{node.text}</code>;
+      case 'math': return <InlineMath key={key} source={node.text}/>;
       case 'link': return <a key={key} href={node.href} target="_blank" rel="noopener noreferrer">{renderInline(parseStudioInline(node.text))}</a>;
       default: {
         // Preserve the exact pre-P3 HTML tree for ordinary text formatting.
@@ -25,7 +26,7 @@ function renderInline(nodes: StudioInline[]): ReactNode {
         if (!node.text.includes('[[prolig-geometry:')) return <span key={key}>{node.text}</span>;
         return <span key={key}>{splitGeometryMarkup(node.text).map((piece, j) =>
           piece.kind === 'geometry'
-            ? <GeometryDiagram key={j} shape={piece.shape} values={piece.values}/>
+            ? <span className="prolig-preview-geometry" key={j}><GeometryDiagram shape={piece.shape} values={piece.values} labels={piece.labels}/></span>
             : <span key={j}>{piece.value}</span>
         )}</span>;
       }
@@ -57,11 +58,13 @@ export function StudioMarkup({ value }: { value: string }) {
 export function StudioDocumentPreview({
   document,
   renderAssets,
-  previewNote
+  previewNote,
+  showAnswers = true
 }: {
   document: StudioDocumentV1;
   renderAssets?: (placement: QuestionAssetPlacement) => ReactNode;
   previewNote?: string;
+  showAnswers?: boolean;
 }) {
   return <article className="question-preview-card studio-p1-preview" aria-label="Yapılandırılmış soru önizlemesi">
     <div className="studio-preview-note">
@@ -72,13 +75,13 @@ export function StudioDocumentPreview({
     <ol className="studio-choices" type="A">
       {document.choices.map((blocks, index) => {
         const letter = String.fromCharCode(65 + index);
-        return <li key={letter} className={document.legacy.correctAnswer === letter ? 'correct' : ''}>
+        return <li key={letter} className={showAnswers && document.legacy.correctAnswer === letter ? 'correct' : ''}>
           {blocks.length ? renderBlocks(blocks, `choice-${letter}`) : `${letter} seçeneği`}
           {renderAssets?.(`OPTION_${letter}` as QuestionAssetPlacement)}
         </li>;
       })}
     </ol>
-    {document.legacy.explanation.trim() && <section className="question-preview-solution" aria-label="Çözüm">
+    {showAnswers && document.legacy.explanation.trim() && <section className="question-preview-solution" aria-label="Çözüm">
       <strong>Çözüm</strong>
       <div className="formatted-question-text compact">{renderBlocks(document.explanation, 'explanation')}</div>
       {renderAssets?.('EXPLANATION')}

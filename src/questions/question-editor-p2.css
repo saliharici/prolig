@@ -304,3 +304,45 @@
 .release07-inline-geometry .studio-geometry-diagram{display:block;width:185px;max-width:100%;height:134px}
 .release07-inline-geometry.is-selected,.ProseMirror-selectednode.release07-inline-geometry{outline:2px solid #8b3156;outline-offset:1px}
 .release07-inline-geometry-error{color:#9b253f;border:1px solid currentColor}
+
+/* RELEASE-07B: readably grouped geometry annotations; no other editor styles altered. */
+.release07b-annotation-panel{border:1px solid #dae6e4;border-radius:10px;padding:10px 12px;display:grid;gap:9px;background:#fafdfc}
+.release07b-annotation-panel strong{font-size:13px;color:#28483e}
+.release07b-annotation-panel small{font-size:12px;color:#63756e}
+.release07b-annotation-row{display:flex;flex-wrap:wrap;gap:8px}
+.release07b-annotation-row label{font-size:12px;display:grid;gap:3px;min-width:90px;flex:1 1 90px}
+.release07b-annotation-row input{max-width:140px;min-width:65px;padding:6px 8px;border:1px solid #c6d5d0;border-radius:7px;background:white}
+.release07b-annotation-row input:focus{outline:2px solid #148b81;outline-offset:1px}
+
+/* RELEASE-07B UX-01: compact, discoverable tools for stem, explanations AND options. */
+.question-p2-editor .p3-ux-tool-switcher{gap:6px;padding:7px 10px}
+.question-p2-editor .p3-ux-tool-switcher button{min-height:36px;font-size:12px;font-weight:650}
+.question-p2-editor .p3-ux-searchable-palette{gap:6px;align-items:center}
+.question-p2-editor .p3-ux-symbol-search{flex:1 0 100%;display:grid;gap:5px;font-size:12px;color:#53685f;font-weight:650}
+.question-p2-editor .p3-ux-symbol-search input{width:100%;min-height:35px;border:1px solid #d8cdd5;border-radius:8px;padding:7px 10px;background:white;color:#273e36}
+.question-p2-editor .p3-ux-symbol-search input:focus-visible{outline:2px solid #945777;outline-offset:1px}
+.question-p2-editor .p3-ux-recent-symbols{flex-basis:100%;display:flex;align-items:center;flex-wrap:wrap;gap:5px;border-bottom:1px dashed #e6dce1;padding-bottom:8px;margin-bottom:3px}
+.question-p2-editor .p3-ux-recent-symbols small{margin-right:7px;font-size:11px;color:#6a756e}
+.question-p2-editor .p3-ux-equation-drawer{padding:12px;max-height:380px;overflow-y:auto}
+.question-p2-editor .p3-ux-equation-title{font-size:12px;color:#634053;align-self:center;margin-right:4px}
+.question-p2-editor .p3-ux-advanced-source{flex-basis:100%;padding:10px 0;border-top:1px solid #e8dde3;font-size:12px}
+.question-p2-editor .p3-ux-advanced-source summary{cursor:pointer;font-weight:650;color:#69314d;margin-bottom:8px}
+.question-p2-editor .p3-ux-advanced-source button{margin:6px 6px 6px 0}
+.question-p2-editor .p3-ux-advanced-source input{max-width:100%}
+.question-p2-editor--option .p3-ux-equation-drawer{max-height:310px}
+.question-p2-editor--option .p3-ux-tool-switcher{flex-wrap:wrap;overflow-x:visible}
+@media(max-width:620px){.question-p2-editor .p3-ux-equation-drawer{max-height:270px}.question-p2-editor .p3-ux-tool-switcher{gap:4px}}
+
+/* RELEASE-07B UX-02: supported mathematical expressions rendered visually; canonical source unchanged. */
+.prolig-math-inline{display:inline-flex;align-items:center;vertical-align:middle;white-space:nowrap;font-family:"Cambria Math","STIX Two Math",Georgia,serif;font-size:1.06em;line-height:1.25;gap:0.02em;color:inherit;max-width:100%}
+.prolig-math-fraction{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .14em;line-height:1.05}
+.prolig-math-num{display:block;text-align:center;padding:0 .16em .09em;border-bottom:1px solid currentColor}
+.prolig-math-den{display:block;text-align:center;padding:.09em .16em 0}
+.prolig-math-root{display:inline-flex;align-items:stretch;white-space:nowrap}
+.prolig-math-root>span:first-child{font-size:1.2em;line-height:1}
+.prolig-math-radicand{border-top:1px solid currentColor;padding:0 .13em}
+.prolig-math-base sup,.prolig-math-base sub{font-size:.68em;line-height:0}
+.prolig-math-editable{display:inline-flex;vertical-align:middle;cursor:pointer;margin:0 2px;padding:2px 4px;border:1px solid transparent;border-radius:4px;user-select:none}
+.prolig-math-editable.is-selected,.ProseMirror-selectednode.prolig-math-editable{outline:2px solid #8b3156;outline-offset:1px}
+.prolig-math-unsupported{white-space:normal;font-family:ui-monospace,monospace;font-size:.88em;background:#fdf3f5;padding:1px 3px}
+.author-desk-question-text .prolig-math-inline{font-size:1.06em}

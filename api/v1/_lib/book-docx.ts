@@ -1,6 +1,6 @@
 import { parseStudioBlocks, type StudioBlock, type StudioInline } from '../../../src/questions/studio-document.js';
 import { containsGeometryMarkup, splitGeometryMarkup } from '../../../src/questions/geometry-markup.js';
-import { knownGeometryOnly, wordGeometryCaption, wordGeometryDrawing } from './docx-geometry.js';
+import { knownGeometryOnly, wordGeometryDrawing } from './docx-geometry.js';
 import { prepareTrustedDocxPngs, privatePngWordDrawing, privatePngRelationshipEntries, type TrustedDocxPrivatePng, type PreparedPrivateDocxPng } from './docx-private-png.js';
 import type { FrozenBookQuestionV1 } from '../../../src/publishing/book-draft-contract.js';
 
@@ -39,46 +39,184 @@ function p(text: string, style = ''): string {
   return '<w:p>' + (style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '') +
     run(text) + '</w:p>';
 }
-// Conservative editable OMML subset: plain algebra, one-level superscripts,
-// fractions and square roots. Unsupported expressions fail rather than flatten.
+// RELEASE07B-WORDMATH-01: editable OMML for bounded math syntax.
+// Preserve the exact stored expression. Unsupported operations are rejected,
+// never flattened to misleading plain text.
 function mathAtom(value: string): string {
   const source = value.trim();
   if (!source || !/^[\p{L}\p{N}\s+\-=×÷·.,()]+$/u.test(source))
     throw new DocxExportError('Matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
   return '<m:r><m:t xml:space="preserve">' + safeText(source) + '</m:t></m:r>';
 }
+
 function inlineMathXml(value: string): string {
   const source = value.trim();
-  const fraction = /^\\frac\{([^{}]+)\}\{([^{}]+)\}$/.exec(source);
-  const root = /^\\sqrt\{([^{}]+)\}$/.exec(source);
-  const power = /^([\p{L}\p{N}]+)\^\{?([\p{L}\p{N}]+)\}?$/u.exec(source);
-  let expression: string;
-  if (fraction) {
-    expression = '<m:f><m:num>' + mathAtom(fraction[1]) + '</m:num><m:den>' +
-      mathAtom(fraction[2]) + '</m:den></m:f>';
-  } else if (root) {
-    expression = '<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/>' +
-      '<m:e>' + mathAtom(root[1]) + '</m:e></m:rad>';
-  } else if (power) {
-    expression = '<m:sSup><m:e>' + mathAtom(power[1]) + '</m:e><m:sup>' +
-      mathAtom(power[2]) + '</m:sup></m:sSup>';
-  } else expression = mathAtom(source);
-  return '<m:oMath>' + expression + '</m:oMath>';
+  const unsupported = (): never => {
+    throw new DocxExportError('Matematik ifadesinin Word denklem dizgisi henüz desteklenmiyor.');
+  };
+  if (!source || source.length > 500) return unsupported();
+  // Backward compatibility: plain algebra is emitted as one editable math run.
+  if (/^[\p{L}\p{N}\s+\-=×÷·.,()]+$/u.test(source)) {
+    return '<m:oMath>' + mathAtom(source) + '</m:oMath>';
+  }
+  const glyphs: Record<string, string> = {
+    alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', theta: 'θ',
+    pi: 'π', lambda: 'λ', mu: 'μ', sigma: 'σ', omega: 'ω',
+    Delta: 'Δ', Sigma: 'Σ', Omega: 'Ω',
+    infty: '∞', infinity: '∞',
+    times: '×', cdot: '·', div: '÷', pm: '±', mp: '∓',
+    le: '≤', leq: '≤', ge: '≥', geq: '≥', ne: '≠', neq: '≠',
+    approx: '≈',
+  };
+  const atom = (s: string): string => '<m:r><m:t xml:space="preserve">' + safeText(s) + '</m:t></m:r>';
+  const readGroup = (input: string, start: number): { body: string; end: number } => {
+    if (input[start] !== '{') return unsupported();
+    let depth = 0;
+    for (let i = start; i < input.length; i++) {
+      if (input[i] === '{') depth++;
+      if (input[i] === '}') {
+        depth--;
+        if (depth === 0) return { body: input.slice(start + 1, i), end: i + 1 };
+      }
+    }
+    return unsupported();
+  };
+  const parse = (input: string, level = 0): string => {
+    if (!input || input.length > 500 || level > 12) return unsupported();
+    const pieces: string[] = [];
+    let i = 0;
+    while (i < input.length) {
+      const char = input[i];
+      if (char === '\\') {
+        const command = /^\\([A-Za-z]+)/.exec(input.slice(i));
+        if (!command) return unsupported();
+        i += command[0].length;
+        if (command[1] === 'frac') {
+          const numerator = readGroup(input, i);
+          const denominator = readGroup(input, numerator.end);
+          pieces.push('<m:f><m:num>' + parse(numerator.body, level + 1) +
+            '</m:num><m:den>' + parse(denominator.body, level + 1) + '</m:den></m:f>');
+          i = denominator.end;
+          continue;
+        }
+        if (command[1] === 'sqrt') {
+          let degree = '';
+          if (input[i] === '[') {
+            const end = input.indexOf(']', i + 1);
+            if (end < 0 || end - i > 12) return unsupported();
+            degree = input.slice(i + 1, end);
+            if (!/^[1-9][0-9]?$/.test(degree)) return unsupported();
+            i = end + 1;
+          }
+          const radicand = readGroup(input, i);
+          pieces.push('<m:rad><m:radPr><m:degHide m:val="' + (degree ? '0' : '1') +
+            '"/></m:radPr><m:deg>' + (degree ? atom(degree) : '') + '</m:deg><m:e>' +
+            parse(radicand.body, level + 1) + '</m:e></m:rad>');
+          i = radicand.end;
+          continue;
+        }
+        const replacement = glyphs[command[1]];
+        if (replacement === undefined) return unsupported();
+        pieces.push(atom(replacement));
+        continue;
+      }
+      if (char === '^' || char === '_') {
+        if (pieces.length === 0 || i + 1 >= input.length) return unsupported();
+        const isSuper = char === '^';
+        const script = input[i + 1] === '{'
+          ? readGroup(input, i + 1)
+          : { body: input[i + 1], end: i + 2 };
+        if (!script.body || /[{}^_]/.test(script.body[0])) return unsupported();
+        const argument = parse(script.body, level + 1);
+        let base = pieces.pop()!;
+        let sup: string | null = isSuper ? argument : null;
+        let sub: string | null = isSuper ? null : argument;
+        i = script.end;
+        // x_1^2 and x^2_1 become one native Word sub/sup expression.
+        if ((input[i] === '^' || input[i] === '_') && (input[i] === '^') !== isSuper) {
+          const secondIsSuper = input[i] === '^';
+          const next = input[i + 1] === '{'
+            ? readGroup(input, i + 1)
+            : { body: input[i + 1] || '', end: i + 2 };
+          if (!next.body || /[{}^_]/.test(next.body[0])) return unsupported();
+          const second = parse(next.body, level + 1);
+          if (secondIsSuper) sup = second;
+          else sub = second;
+          i = next.end;
+        }
+        if (sup !== null && sub !== null) {
+          base = '<m:sSubSup><m:e>' + base + '</m:e><m:sub>' + sub +
+            '</m:sub><m:sup>' + sup + '</m:sup></m:sSubSup>';
+        } else if (sup !== null) {
+          base = '<m:sSup><m:e>' + base + '</m:e><m:sup>' + sup + '</m:sup></m:sSup>';
+        } else {
+          base = '<m:sSub><m:e>' + base + '</m:e><m:sub>' + sub + '</m:sub></m:sSub>';
+        }
+        pieces.push(base);
+        continue;
+      }
+      if (char === '{') {
+        const group = readGroup(input, i);
+        pieces.push(parse(group.body, level + 1));
+        i = group.end;
+        continue;
+      }
+      if (char === '}' || char === '$' || char === '&' || char === '<' || char === '>') return unsupported();
+      if (!/^[\p{L}\p{N}\s+\-=×÷·.,()±≤≥≠≈∞∑∫*\[\]]$/u.test(char)) return unsupported();
+      pieces.push(atom(char === '*' ? '×' : char));
+      i++;
+    }
+    return pieces.join('');
+  };
+  return '<m:oMath>' + parse(source) + '</m:oMath>';
 }
 type DrawingSequence = { nextId: number };
 function paragraphRuns(nodes: StudioInline[], drawings: DrawingSequence, style = ''): string {
-  const text = nodes.map(node => {
+  // WORD-LAYOUT-01: layout-only separation of independent math runs. Never
+  // rewrite the frozen question or change the editable OMML expressions.
+  const sections: string[] = [];
+  let buffer = '';
+  let hasMath = false;
+  let previousTail: 'math' | 'word' | 'other' | null = null;
+  const styleXml = style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '';
+  const mathGap = (betweenEquations = false) => run(betweenEquations ? '\u2002' : '\u2009'); // en/thin typographic space, outside OMML
+  const flush = () => {
+    if (!buffer) return;
+    // Fractions/radicals may need a taller automatic line and more breathing room.
+    const paragraphProperties = (style ? '<w:pStyle w:val="' + style + '"/>' : '') +
+      (hasMath ? '<w:widowControl/><w:spacing w:before="45" w:after="125" w:line="330" w:lineRule="auto"/>' : '');
+    sections.push('<w:p>' + (paragraphProperties ? '<w:pPr>' + paragraphProperties + '</w:pPr>' : '') + buffer + '</w:p>');
+    buffer = '';
+    hasMath = false;
+    previousTail = null;
+  };
+  for (const node of nodes) {
     let flags = '';
     if (node.kind === 'bold') flags = '<w:b/>';
     if (node.kind === 'italic') flags = '<w:i/>';
     if (node.kind === 'underline') flags = '<w:u w:val="single"/>';
-    if (node.kind === 'math') return inlineMathXml(node.text);
-    return splitGeometryMarkup(node.text).map(piece => piece.kind === 'geometry'
-      ? wordGeometryDrawing(piece.shape, drawings.nextId++, piece.values) + run(' (' + wordGeometryCaption(piece.shape) + ')', flags)
-      : run(piece.value, flags)).join('');
-  }).join('');
-  return '<w:p>' + (style ? '<w:pPr><w:pStyle w:val="' + style + '"/></w:pPr>' : '') +
-    text + '</w:p>';
+    if (node.kind === 'math') {
+      if (previousTail === 'math' || previousTail === 'word') buffer += mathGap(previousTail === 'math');
+      buffer += inlineMathXml(node.text);
+      hasMath = true;
+      previousTail = 'math';
+      continue;
+    }
+    for (const piece of splitGeometryMarkup(node.text)) {
+      if (piece.kind === 'text' && piece.value) {
+        // Do not insert whitespace before punctuation or when one already exists.
+        if (previousTail === 'math' && /^[\p{L}\p{N}(\u221a]/u.test(piece.value)) buffer += mathGap();
+        buffer += run(piece.value, flags);
+        previousTail = /[\p{L}\p{N})\]}]/u.test(piece.value.slice(-1)) ? 'word' : 'other';
+      } else if (piece.kind !== 'text') {
+        flush();
+        sections.push('<w:p><w:pPr><w:keepLines/><w:spacing w:before="75" w:after="75"/></w:pPr>' +
+          wordGeometryDrawing(piece.shape, drawings.nextId++, piece.values, piece.labels) + '</w:p>');
+      }
+    }
+  }
+  flush();
+  return sections.join('') || '<w:p>' + styleXml + '</w:p>';
 }
 function cell(text: string, header = false): string {
   return '<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/></w:tcPr>' +
@@ -105,10 +243,10 @@ function optionXml(value: string, index: number, drawings: DrawingSequence): str
   // Keep the option label in the same editable paragraph as its first text run.
   if (blocks[0]?.kind === 'paragraph') {
     const [first, ...rest] = blocks;
-    return paragraphRuns([{ kind: 'text', text: label }, ...first.children], drawings) + blocksToXml(rest, drawings);
+    return paragraphRuns([{ kind: 'text', text: label }, ...first.children], drawings, 'QuestionOption') + blocksToXml(rest, drawings);
   }
   // Tables cannot share a paragraph with text; retain the label before the table.
-  return p(label) + blocksToXml(blocks, drawings);
+  return p(label, 'QuestionOption') + blocksToXml(blocks, drawings);
 }
 function pageBreak(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
 function coverSectionBreak(): string {
@@ -200,25 +338,78 @@ function validate(book: DocxBook): void {
  * keep a table / multi-page question intact can result in oversized pages.
  * No content, image relationships or answer text is rewritten here.
  */
-function keepQuestionOnOnePage(parts: readonly string[]): string {
+function keepQuestionOnOnePage(parts: readonly string[], layoutColumns: number): string {
   const xml = parts.join('');
   if (xml.includes('<w:tbl>')) return xml;
   const paragraphs = xml.match(/<w:p>[\s\S]*?<\/w:p>/g);
-  if (!paragraphs || !paragraphs.length || paragraphs.length > 20 ||
-      paragraphs.join('') !== xml) return xml;
+  if (!paragraphs || !paragraphs.length || paragraphs.join('') !== xml) return xml;
+  // A hard chain of keepNext on a long question can create enormous blank
+  // columns/pages. Reserve the whole-question rule for modest-size questions.
+  const visibleText = [...xml.matchAll(/<(?:w|m):t(?:\s[^>]*)?>([\s\S]*?)<\/(?:w|m):t>/g)]
+    .reduce((sum, match) => sum + match[1].length, 0);
+  const drawings = (xml.match(/<w:drawing>/g) || []).length;
+  const mathGroups = (xml.match(/<m:oMath>/g) || []).length;
+  const estimatedLines = paragraphs.length + Math.ceil(visibleText / (layoutColumns === 2 ? 34 : 70)) +
+    drawings * 7 + mathGroups * 0.3;
+  // Moderate vector-geometric questions can fit one A4 column even when
+  // their line estimate is inflated by two drawings and several OMML items.
+  // Keep these intact; never force oversized questions or private PNGs into
+  // one column, since those must be allowed to flow naturally.
+  const moderateGeometry = layoutColumns === 2 &&
+    paragraphs.length <= 12 && drawings >= 1 && drawings <= 2 &&
+    mathGroups <= 10 && visibleText <= 180 && estimatedLines <= 32 &&
+    !xml.includes('<a:blip');
+  const keepTogether = paragraphs.length <= 14 &&
+    (estimatedLines <= (layoutColumns === 2 ? 18 : 34) || moderateGeometry);
+  // In a long question, keep a short A–D/E option group in one column.
+  // The question itself may still continue naturally across columns/pages.
+  const optionStarts = paragraphs.flatMap((paragraph, index) => {
+    const firstText = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/.exec(paragraph)?.[1] ?? '';
+    return /^[A-E]\) /.test(firstText) ? [index] : [];
+  });
+  const optionStart = optionStarts.length >= 4 ? optionStarts[0] : -1;
+  const optionXml = optionStart >= 0 ? paragraphs.slice(optionStart).join('') : '';
+  const optionText = [...optionXml.matchAll(/<(?:w|m):t(?:\s[^>]*)?>([\s\S]*?)<\/(?:w|m):t>/g)]
+    .reduce((sum, match) => sum + match[1].length, 0);
+  const optionDrawings = (optionXml.match(/<w:drawing>/g) || []).length;
+  const optionLines = (optionStart >= 0 ? paragraphs.length - optionStart : 0) +
+    Math.ceil(optionText / (layoutColumns === 2 ? 34 : 70)) + optionDrawings * 7;
+  const groupOptions = layoutColumns === 2 && !keepTogether &&
+    optionStart >= 0 && optionLines <= 12;
   return paragraphs.map((paragraph, index) => {
-    const following = index < paragraphs.length - 1;
+    // If it won't safely fit, keep only its question number with the next
+    // paragraph; individual paragraphs still resist line/orphan splitting.
+    const keepNext = (keepTogether && index < paragraphs.length - 1) || index === 0 ||
+      (groupOptions && index >= optionStart && index < paragraphs.length - 1);
+    const paragraphLength = [...paragraph.matchAll(/<(?:w|m):t(?:\s[^>]*)?>([\s\S]*?)<\/(?:w|m):t>/g)]
+      .reduce((sum, match) => sum + match[1].length, 0);
+    const keepLines = paragraphLength <= (layoutColumns === 2 ? 110 : 220);
     const hasProperties = paragraph.startsWith('<w:p><w:pPr>');
+    const flags = (keepNext ? '<w:keepNext/>' : '') + (keepLines ? '<w:keepLines/>' : '') + '<w:widowControl/>';
     if (!hasProperties) {
-      return paragraph.replace('<w:p>', '<w:p><w:pPr>' +
-        (following ? '<w:keepNext/>' : '') + '<w:keepLines/></w:pPr>');
+      return paragraph.replace('<w:p>', '<w:p><w:pPr>' + flags + '</w:pPr>');
     }
     const closing = paragraph.indexOf('</w:pPr>');
     if (closing < 0) return paragraph;
-    const properties = paragraph.slice(0, closing);
-    const flags = (following && !properties.includes('<w:keepNext') ? '<w:keepNext/>' : '') +
-      (!properties.includes('<w:keepLines') ? '<w:keepLines/>' : '');
-    return paragraph.slice(0, closing) + flags + paragraph.slice(closing);
+    // OOXML paragraph properties must preserve schema ordering:
+    // pStyle, keepNext, keepLines, widowControl, spacing. Existing flags
+    // from questionLabel/geometry must not be moved after incompatible tags.
+    const openEnd = '<w:p><w:pPr>'.length;
+    const originalProperties = paragraph.slice(openEnd, closing);
+    const plainFlags = /<w:(?:keepNext|keepLines|widowControl)\/>/g;
+    const unknownFlags = originalProperties.replace(plainFlags, '');
+    // Do not rewrite customized pagination controls not produced by this module.
+    if (/<w:(?:keepNext|keepLines|widowControl)\b[^>]*>/.test(unknownFlags)) return paragraph;
+    const effectiveNext = keepNext || originalProperties.includes('<w:keepNext/>');
+    const effectiveLines = keepLines || originalProperties.includes('<w:keepLines/>');
+    const effectiveWidow = true;
+    const styleMatch = /^<w:pStyle\b[^>]*\/>/.exec(unknownFlags);
+    const splitAt = styleMatch ? styleMatch[0].length : 0;
+    const pagination = (effectiveNext ? '<w:keepNext/>' : '') +
+      (effectiveLines ? '<w:keepLines/>' : '') +
+      (effectiveWidow ? '<w:widowControl/>' : '');
+    const orderedProperties = unknownFlags.slice(0, splitAt) + pagination + unknownFlags.slice(splitAt);
+    return paragraph.slice(0, openEnd) + orderedProperties + paragraph.slice(closing);
   }).join('');
 }
 
@@ -260,13 +451,14 @@ function buildDocument(book: DocxBook, includeAnswers: boolean, images: Prepared
         questionParts.push(p('________________________________________________________________'));
         answerRows.push(String(count) + '. ' + question.modelAnswer);
       }
-      body.push(keepQuestionOnOnePage(questionParts));
-      body.push(p(''));
+      body.push(keepQuestionOnOnePage(questionParts, book.layoutColumns));
+      // The next QuestionLabel style already supplies spacing in narrow columns.
+      if (book.layoutColumns === 1) body.push(p(''));
     }
   }
   if (includeAnswers) {
     body.push(pageBreak(), p('Cevap Anahtarı', 'Heading1'));
-    answerRows.forEach(answer => body.push(p(answer)));
+    answerRows.forEach(answer => body.push(p(answer, 'AnswerEntry')));
   }
   body.push(p('PRO-LİG taslak Word çıktısı · Matbaa yayını değildir.', 'Footnote'));
   const sect = '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/>' +
@@ -310,27 +502,31 @@ const footer = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '</w:p></w:ftr>';
 const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
-  '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos" w:eastAsia="Aptos"/>' +
-  '<w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>' +
+  '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Georgia" w:hAnsi="Georgia" w:eastAsia="Georgia"/>' +
+  '<w:sz w:val="21"/></w:rPr></w:rPrDefault></w:docDefaults>' +
   '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/>' +
-  '<w:pPr><w:spacing w:after="120" w:line="300" w:lineRule="auto"/></w:pPr></w:style>' +
+  '<w:pPr><w:widowControl/><w:spacing w:after="105" w:line="300" w:lineRule="auto"/></w:pPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/>' +
   '<w:pPr><w:jc w:val="center"/><w:spacing w:before="600" w:after="360"/><w:keepNext/></w:pPr>' +
   '<w:rPr><w:b/><w:sz w:val="48"/><w:color w:val="6D2948"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Subtitle"><w:name w:val="Subtitle"/>' +
   '<w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:sz w:val="22"/><w:color w:val="886777"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/>' +
-  '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="340" w:after="200"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="30"/></w:rPr></w:style>' +
+  '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="245" w:after="145"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="30"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/>' +
   '<w:pPr><w:keepNext/><w:spacing w:before="160" w:after="90"/></w:pPr><w:rPr><w:b/><w:sz w:val="23"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="CoverEyebrow"><w:name w:val="Cover Eyebrow"/>' +
-  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="1300" w:after="380"/><w:keepNext/></w:pPr>' +
+  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="1060" w:after="315"/><w:keepNext/></w:pPr>' +
   '<w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="30"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="CoverDetail"><w:name w:val="Cover Detail"/>' +
-  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="280" w:after="480"/></w:pPr>' +
+  '<w:pPr><w:jc w:val="center"/><w:spacing w:before="250" w:after="400"/></w:pPr>' +
   '<w:rPr><w:color w:val="886777"/><w:sz w:val="20"/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="QuestionLabel"><w:name w:val="Question Label"/>' +
-  '<w:pPr><w:keepNext/><w:spacing w:before="220" w:after="90"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="23"/></w:rPr></w:style>' +
+  '<w:pPr><w:keepNext/><w:spacing w:before="180" w:after="70"/></w:pPr><w:rPr><w:b/><w:color w:val="6D2948"/><w:sz w:val="23"/></w:rPr></w:style>' +
+  '<w:style w:type="paragraph" w:styleId="QuestionOption"><w:name w:val="Question Option"/>' +
+  '<w:pPr><w:widowControl/><w:spacing w:before="0" w:after="80" w:line="290" w:lineRule="auto"/></w:pPr></w:style>' +
+  '<w:style w:type="paragraph" w:styleId="AnswerEntry"><w:name w:val="Answer Entry"/>' +
+  '<w:pPr><w:widowControl/><w:spacing w:before="0" w:after="100"/></w:pPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/></w:style>' +
   '<w:style w:type="paragraph" w:styleId="TableHead"><w:name w:val="TableHead"/><w:rPr><w:b/></w:rPr></w:style>' +
   '<w:style w:type="paragraph" w:styleId="Footnote"><w:name w:val="Footnote"/><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/></w:rPr></w:style>' +

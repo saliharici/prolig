@@ -89,15 +89,23 @@ export function parseStudioBlocks(source: string): StudioBlock[] {
     const trimmed = lines[index].trim();
     if (!trimmed) { index++; continue; }
 
+    // RELEASE-07B-V6 tolerant table paragraphs
+    // Tiptap serializes consecutive paragraphs as lines separated by ONE
+    // blank line. Accept that harmless gap only after a valid table header.
+    const nextTableLine = (from: number) =>
+      from < lines.length && !lines[from].trim() ? from + 1 : from;
     const headerCells = trimmed.includes('|') ? tableCells(trimmed) : [];
-    if (index + 1 < lines.length && isTableSeparator(lines[index + 1], headerCells.length)) {
+    const separator = nextTableLine(index + 1);
+    if (separator < lines.length && isTableSeparator(lines[separator], headerCells.length)) {
       const rows: string[][] = [];
-      index += 2;
-      while (index < lines.length && lines[index].trim() && lines[index].includes('|')) {
-        const cells = tableCells(lines[index]);
+      index = separator + 1;
+      while (index < lines.length) {
+        const next = nextTableLine(index);
+        if (next >= lines.length || !/^\s*\|/.test(lines[next])) break;
+        const cells = tableCells(lines[next]);
         if (cells.length !== headerCells.length) break;
         rows.push(cells);
-        index++;
+        index = next + 1;
       }
       blocks.push({ kind: 'table', columns: headerCells, rows });
       continue;

@@ -201,3 +201,41 @@
   .p3-attached-image-summary { flex-direction: column; align-items: stretch; }
   .p3-attached-image-summary button { align-self: flex-start; }
 }
+
+/* RELEASE-07B UX-01: compact context and easier 5-step authoring, no API changes. */
+.p3-studio-shell .p3-studio-heading{min-width:0;flex:1 1 410px}
+.p3-studio-shell .p3-studio-header-actions{display:grid;justify-items:end;gap:10px}
+.p3-studio-shell .p3-ux-context{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.p3-studio-shell .p3-ux-context span{display:inline-flex;padding:5px 10px;border-radius:999px;background:#f1e7ec;color:#6e3450;font-size:12px;font-weight:650}
+.p3-studio-shell .p3-ux-quick-review{white-space:nowrap}
+.p3-studio-shell .p2-steps{margin-bottom:14px}
+.p3-studio-shell .p2-steps button{min-height:62px;padding:10px}
+.p3-studio-shell .p2-progress-summary{padding:10px 14px;margin:0 0 14px}
+.p3-studio-shell .p3-ux-option-list{display:grid;gap:7px;margin-bottom:14px}
+.p3-studio-shell .p3-ux-option-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;padding:5px;border:1px solid #e6e3e6;border-radius:10px;background:#fff}
+.p3-studio-shell .p3-ux-option-row.is-active{border-color:#8d4b6b;background:#fcf7fa;box-shadow:0 0 0 2px #8d4b6b14}
+.p3-studio-shell .p2-option-tabs .p3-ux-option-row>button{min-width:0;display:flex;flex:1;flex-direction:row;justify-content:flex-start;align-items:center;gap:12px;text-align:left;border:0;background:transparent;color:#344b44;padding:8px 10px;font-weight:500}
+.p3-studio-shell .p2-option-tabs .p3-ux-option-row>button[aria-pressed=true]{background:#f3e7ed;color:#5e2d48}
+.p3-studio-shell .p2-option-tabs .p3-ux-letter{display:grid;place-items:center;flex:0 0 30px;height:30px;border:1px solid #dcd1d7;border-radius:7px;font-size:14px}
+.p3-studio-shell .p3-ux-option-text{min-width:0;flex:1;display:block;overflow:hidden;max-height:42px;overflow-wrap:anywhere;font-size:13px;line-height:1.35}
+.p3-studio-shell .p3-ux-option-text .formatted-question-text{max-height:40px;overflow:hidden}
+.p3-studio-shell .p3-ux-option-text p{margin:0;line-height:1.35}
+.p3-studio-shell .p3-ux-empty{color:#89948d;font-style:italic}
+.p3-studio-shell .p3-ux-answer-toggle{margin:0;padding:7px 10px;display:flex;align-items:center;gap:7px;border-left:1px solid #eee4e9;cursor:pointer;flex-direction:row;font-size:12px}
+.p3-studio-shell .p3-ux-answer-toggle input{accent-color:#6d2948;flex:none}
+.p3-studio-shell .p3-ux-answer-text{font-weight:650;color:#6b3450}
+.p3-studio-shell .p3-ux-option-editor{padding:14px;border:1px solid #e6e2e5;border-radius:11px;background:#fbfafb;min-width:0}
+.p3-studio-shell .p3-ux-active-option-heading{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;color:#5b2943}
+.p3-studio-shell .p3-ux-active-option-heading strong{font-size:14px}
+.p3-studio-shell .p3-ux-active-option-heading small{font-size:11px;color:#687870}
+.p3-studio-shell .p3-ux-answer-help{font-size:13px;color:#536b61;background:#f1f8f4;padding:10px;border-radius:8px}
+@media(max-width:780px){
+  .p3-studio-shell .p3-studio-header-actions{justify-items:start}
+  .p3-studio-shell .p2-steps{display:flex;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding-bottom:7px}
+  .p3-studio-shell .p2-steps button{flex:0 0 145px;scroll-snap-align:start}
+}
+@media(max-width:520px){
+  .p3-studio-shell .p3-ux-answer-text{display:none}
+  .p3-studio-shell .p3-ux-option-editor{padding:8px}
+  .p3-studio-shell .p3-ux-option-row{gap:2px}
+}

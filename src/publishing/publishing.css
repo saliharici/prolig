@@ -129,3 +129,111 @@
 .publishing-saved-book strong { font-size:12px; overflow-wrap:anywhere; }
 .publishing-saved-book small { font-size:10px; color:#82646f; }
 .publishing-controls select:disabled { background: #f0e9ec; cursor:not-allowed; }
+
+/* P0-4: print-only column fragmentation and content fitting. */
+@media print {
+  .publishing-page-body.two-columns {
+    column-fill: auto;
+    column-gap: 9mm;
+  }
+  /* An entire short question moves to the next column when it fits there. */
+  .publishing-page-body.two-columns .publishing-question--compact {
+    break-inside: avoid-column;
+    page-break-inside: avoid;
+  }
+  /* Long questions must be allowed to continue without blank columns. */
+  .publishing-page-body.two-columns .publishing-question--long {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  .publishing-page-body.two-columns .publishing-question-number {
+    break-after: avoid-column;
+    page-break-after: avoid;
+  }
+  .publishing-page-body.two-columns .publishing-choices--compact {
+    break-inside: avoid-column;
+    page-break-inside: avoid;
+  }
+  .publishing-page-body.two-columns .publishing-choices > li,
+  .publishing-page-body.two-columns .publishing-image,
+  .publishing-page-body.two-columns .studio-content-table {
+    break-inside: avoid-column;
+    page-break-inside: avoid;
+  }
+  .publishing-page-body.two-columns .publishing-question {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  .publishing-page-body.two-columns .publishing-question :is(svg, img) {
+    max-inline-size: 100% !important;
+    height: auto;
+  }
+  .publishing-page-body.two-columns .publishing-question :is(.katex, .katex-display, mjx-container) {
+    font-size: .88em;
+    max-inline-size: 100%;
+  }
+}
+
+/* P1: print typography refinement. Screen/editor styles and P0-4 breaking rules stay unchanged. */
+@media print {
+  .demo-shell:has(.publishing-workbench) .publishing-page {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 10.5pt;
+    line-height: 1.42;
+    overflow-wrap: break-word;
+  }
+  .publishing-cover { gap: 12px; min-height: 80mm; }
+  .publishing-cover h2 { font-size: 24pt; line-height: 1.18; }
+  .publishing-cover p { font-size: 11pt; }
+  .publishing-chapter-heading {
+    font-size: 15pt;
+    line-height: 1.25;
+    margin: 7mm 0 5mm;
+    padding-bottom: 2.5mm;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .publishing-question { margin-bottom: 6mm; padding-bottom: 2mm; }
+  .publishing-question-number { margin-bottom: 2mm; }
+  .publishing-question .formatted-question-text p { margin-bottom: 3mm; }
+  .publishing-choices { margin-top: 3mm; padding-left: 6.5mm; }
+  .publishing-choices li { margin-bottom: 2.4mm; }
+  .publishing-image { margin: 2.8mm 0; }
+  .publishing-key h3 { font-size: 15pt; padding-bottom: 2.5mm; }
+  .publishing-key li { margin-bottom: 2.5mm; }
+  .publishing-footnote { margin-top: 7mm; padding-top: 2.5mm; }
+  /* Do not force landscape or global @page settings; the A4 portrait option
+     is selected in the browser print dialog, where headers/footers are disabled. */
+}
+
+/* P1-FLOW-02: print-only geometry flow and mathematical separation.
+   These selectors are intentionally scoped to the publisher's question body;
+   edit mode, saved question markup, P0-4 column-break rules and Word stay unchanged. */
+@media print {
+  .publishing-workbench .publishing-page .publishing-question .formatted-question-text .prolig-preview-geometry {
+    display: block;
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    margin-block: 2.5mm 2mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .publishing-workbench .publishing-page .publishing-question .formatted-question-text .prolig-preview-geometry :is(svg, .studio-geometry-diagram) {
+    display: block;
+    max-inline-size: 100%;
+    block-size: auto;
+  }
+  /* Adjacent InlineMath nodes previously had no external spacing. */
+  .publishing-workbench .publishing-page .publishing-question .formatted-question-text .prolig-math-inline {
+    margin-inline: 0.17em;
+    line-height: 1.38;
+    vertical-align: middle;
+    break-inside: avoid;
+  }
+  .publishing-workbench .publishing-page .publishing-question .formatted-question-text p:has(.prolig-math-inline) {
+    line-height: 1.65;
+  }
+  .publishing-workbench .publishing-page .publishing-question .formatted-question-text .prolig-math-base :is(sup, sub) {
+    line-height: 1;
+  }
+}

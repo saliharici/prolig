@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, Download, RefreshCw, Save } from 'lucide-react';
 import type { ApiQuestion } from '../questions/types';
 import {
-  fetchSavedBookDocx, formatQuestionOrder, flattenSingleChapter, listBookDrafts, loadBookDraft,
+  fetchSavedBookDocx, formatQuestionOrder, listBookDrafts, loadBookDraft,
   prepareBookSave, PublishingApiError, sameQuestionOrder, saveBookDraft,
   type BookWorkbenchInput, type SavedBook, type SavedBookSummary
 } from './book-persistence-client';
@@ -50,8 +50,8 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
     setBusy(true); setError(''); setNotice('');
     try {
       const loaded = await loadBookDraft(id);
-      if (loaded.chapters.length !== 1) {
-        throw new PublishingApiError(422, 'Bu kayıt birden fazla bölüm içeriyor; tek bölümlü atölye ile değiştirilemez.');
+      if (!loaded.chapters.length || loaded.chapters.length > 30) {
+        throw new PublishingApiError(422, 'PUBLISHING-CHAPTERS-01: Kayıtlı kitapta desteklenen sayıda bölüm bulunamadı.');
       }
       onOpen(loaded);
       setCommittedPendingId(null);
@@ -83,9 +83,14 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
         setError('Kitap sunucuya kaydedildi (#' + result.id + '), ancak yeniden açma isteği başarısız. Tekrar Kaydet düğmesine basmayın; Kaydı Geri Getir seçeneğini kullanın.');
         return;
       }
-      const storedOrder = flattenSingleChapter(reopened).questionIds;
-      const requestedOrder = payload.chapters[0].questionIds;
-      if (!sameQuestionOrder(requestedOrder, storedOrder)) {
+      const storedChapters = [...reopened.chapters].sort((a,b)=>a.sortOrder-b.sortOrder).map(ch=>({
+        title:ch.title,questionIds:[...ch.questions].sort((a,b)=>a.sortOrder-b.sortOrder).map(row=>row.snapshot.sourceQuestionId)
+      }));
+      const storedOrder = storedChapters.flatMap(ch=>ch.questionIds);
+      const requestedOrder = payload.chapters.flatMap(ch=>ch.questionIds);
+      const samePlan = payload.chapters.length === storedChapters.length && payload.chapters.every((ch,i)=>
+        ch.title === storedChapters[i]?.title && sameQuestionOrder(ch.questionIds,storedChapters[i]?.questionIds??[]));
+      if (!sameQuestionOrder(requestedOrder, storedOrder) || !samePlan) {
         // Preserve the visible selection instead of silently replacing it
         // with the wrong server order. The write already committed: no retry.
         setError('Revizyon ' + result.revision + ' sunucuya kaydedildi, ancak soru sırası uyuşmuyor. '
@@ -162,7 +167,7 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
     </div>
     <p className="publishing-panel-explanation">Bu alan yalnızca özel test önizlemesinde açılır. Kaydetme işlemleri sadece bu önizlemenin ayrı test veritabanında yapılabilir. Yayınlanmış kitaplar düzenlenemez.</p>
     <p className="publishing-order-intent" role="status">Kaydedilecek soru sırası: <strong>{formatQuestionOrder(view.selectedIds)}</strong>
-      {activeBook && <span> · {sameQuestionOrder(view.selectedIds, flattenSingleChapter(activeBook).questionIds)
+      {activeBook && <span> · {sameQuestionOrder(view.selectedIds, [...activeBook.chapters].sort((a,b)=>a.sortOrder-b.sortOrder).flatMap(c=>[...c.questions].sort((a,b)=>a.sortOrder-b.sortOrder).map(q=>q.snapshot.sourceQuestionId)))
         ? 'Kayıtlı sırayla aynı' : 'Kayıtlı sıradan farklı'}</span>}
     </p>
     <div className="publishing-persistence-actions">
@@ -173,17 +178,17 @@ export function PublishingPersistencePanel({ questions, loading, sourceError, vi
         onClick={() => void recoverCommitted()}>Kayıtlı Sürümü İncele #{committedPendingId}</button>}
       {activeBook && <>
         <button type="button" className="secondary-button"
-          disabled={busy || committedPendingId !== null || activeBook.layoutColumns !== 1}
-          title={activeBook.layoutColumns !== 1 ? 'Word V1 yalnız tek sütunlu kitapları destekler.' : 'Kayıtlı öğrenci nüshasını Word olarak al'}
+          disabled={busy || committedPendingId !== null}
+          title="Kayıtlı öğrenci nüshasını Word olarak al"
           onClick={() => void downloadWord(false)}><Download size={15}/> Öğrenci Word</button>
         <button type="button" className="secondary-button"
-          disabled={busy || committedPendingId !== null || activeBook.layoutColumns !== 1}
-          title={activeBook.layoutColumns !== 1 ? 'Word V1 yalnız tek sütunlu kitapları destekler.' : 'Kayıtlı cevap anahtarlı nüshayı Word olarak al'}
+          disabled={busy || committedPendingId !== null}
+          title="Kayıtlı cevap anahtarlı nüshayı Word olarak al"
           onClick={() => void downloadWord(true)}><Download size={15}/> Cevap Anahtarlı Word</button>
         <span className="publishing-revision">#{activeBook.id} · Revizyon {activeBook.revision} · {activeBook.status}</span>
       </>}
     </div>
-    {activeBook && <p className="publishing-word-note" role="note">Word çıktısı yalnızca kaydedilmiş, tek sütunlu kitap taslağından üretilir. İzole P3 ortamında soruya bağlı özel PNG çizimleri desteklenir; harici medya ve desteklenmeyen matematik dizgisi engellenir. Dosya ekrandaki kaydedilmemiş değişiklikleri içermez.</p>}
+    {activeBook && <p className="publishing-word-note" role="note">Word çıktısı kaydedilmiş kitabın tek veya çift sütunlu sayfa düzeninden üretilir. İzole P3 ortamında soruya bağlı özel PNG çizimleri desteklenir; harici medya ve desteklenmeyen matematik dizgisi engellenir. Dosya ekrandaki kaydedilmemiş değişiklikleri içermez.</p>}
     {listing && <p role="status">Kayıtlı kitaplar yükleniyor…</p>}
     {error && <p role="alert" className="publishing-error">{error}</p>}
     {notice && <p role="status" className="publishing-success">{notice}</p>}

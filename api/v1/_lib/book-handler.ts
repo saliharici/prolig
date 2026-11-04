@@ -5,6 +5,7 @@ import { DocxExportError, exportBookDocxWithVerifiedPrivateGeometry } from './bo
 import { isP3IsolatedPngUploadEnvironment } from './p3-png-upload-environment.js';
 import { isRelease03BookPreviewAllowed } from '../../../server/release03-book-preview.js';
 import { RELEASE03_REF } from '../../../server/release03-db-policy.js';
+import { RELEASE07B_BOOK_PREVIEW_REF, isRelease07BBookPreviewAllowed } from '../../../server/release05-preview-db.js';
 import { privateGeometryPngKey, readVerifiedPrivatePng } from './p3-png-s3.js';
 import {
   BookDraftValidationError, canEditBookDraft, prepareBookDraft,
@@ -20,6 +21,19 @@ export type BookAction = 'books' | 'book' | 'bookDocx';
  */
 export function bookApiPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.PROLIG_BOOKS_V2_ENABLED !== 'true') return false;
+  // RELEASE07B LOCAL BOOKS: only explicit local development on the pinned Docker DB.
+  if (env.PROLIG_LOCAL_BOOKS_V2_ENABLED === 'true') {
+    // Never activate on Vercel Preview/Production even if local flag is present.
+    if (env.VERCEL_ENV && env.VERCEL_ENV !== 'development') return false;
+    if (process.cwd().replaceAll(String.fromCharCode(92), '/').toLowerCase().split('/').at(-1) !== 'pro-lig-release07b') return false;
+    try {
+      const db = new URL(env.DATABASE_URL || '');
+      return (db.protocol === 'postgresql:' || db.protocol === 'postgres:') &&
+        (db.hostname === '127.0.0.1' || db.hostname === 'localhost') &&
+        db.port === '55432' && db.pathname === '/prolig_local' &&
+        decodeURIComponent(db.username) === 'prolig_dev';
+    } catch { return false; }
+  }
   if (env.VERCEL_ENV === 'production') {
     if (env.PROLIG_BOOKS_V2_PRODUCTION_ENABLED !== 'true' ||
         env.PROLIG_BOOKS_V2_RELEASE_APPROVED !== 'true') return false;
@@ -34,6 +48,10 @@ export function bookApiPreviewEnabled(env: NodeJS.ProcessEnv = process.env): boo
         db.pathname === '/' + expectedName &&
         db.hostname.endsWith('.neon.tech');
     } catch { return false; }
+  }
+  // RELEASE-07B: branch-specific isolated ux02_test gate; no Production or generic Preview relaxation.
+  if (env.VERCEL_ENV === 'preview' && env.VERCEL_GIT_COMMIT_REF === RELEASE07B_BOOK_PREVIEW_REF) {
+    return isRelease07BBookPreviewAllowed(env);
   }
   // Release-03 must pass its own strict identity policy, even in test mode.
   if (env.VERCEL_GIT_COMMIT_REF === RELEASE03_REF) {

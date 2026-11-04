@@ -76,3 +76,12 @@
 .release06-flow-shortcuts button strong{font-size:16px;color:#192d48}
 .release06-flow-shortcuts button.active{border-color:#0f766e;background:#edf9f5;color:#08665c}
 @media(max-width:860px){.author-desk-question-actions{width:100%;justify-content:flex-end}.release06-flow-shortcuts button{flex:1 1 145px}}
+
+/* RELEASE-07B: versioned shapes become real mini-previews, not raw markers. */
+.author-desk-question-summary{min-width:0}
+.author-desk-question-summary .author-desk-question-text{margin:0 0 7px;white-space:normal;overflow-wrap:break-word}
+.author-desk-geometry-thumbnails{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.author-desk-geometry-thumbnails figure{margin:0;padding:6px;border:1px solid #dbe6e9;border-radius:9px;background:#fff;width:118px;box-sizing:border-box;display:grid;justify-items:center;gap:3px}
+.author-desk-geometry-thumbnails figure svg.studio-geometry-diagram{display:block;width:104px!important;height:77px!important;max-width:100%;margin:0;flex:none}
+.author-desk-geometry-thumbnails figcaption{font-size:11px;font-weight:650;color:#516c77}
+.author-desk-more-shapes{font-size:12px;color:#516c77}

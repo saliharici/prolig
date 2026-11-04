@@ -1,0 +1,12 @@
+/* RELEASE-07B LIST-01: scoped publisher-pool table excerpt. */
+.prolig-question-list-summary { width: min(100%, 380px); max-width: 380px; min-width: 0; }
+.prolig-question-list-summary__excerpt { font-weight: 600; font-size: 13px; line-height: 1.5; max-width: 100%; overflow-wrap: anywhere; word-break: normal; white-space: normal; }
+.prolig-question-list-summary__excerpt .prolig-math-inline { display: inline-flex; max-width: 100%; vertical-align: middle; }
+.prolig-question-list-summary__details { margin-top: 6px; font-size: 12px; font-weight: 400; }
+.prolig-question-list-summary__details > summary { cursor: pointer; display: inline-block; color: #6d2948; font-weight: 650; padding: 4px 0; }
+.prolig-question-list-summary__details > summary:hover { text-decoration: underline; }
+.prolig-question-list-summary__details > summary:focus-visible { outline: 2px solid #6d2948; outline-offset: 2px; }
+.prolig-question-list-summary__body { margin-top: 6px; max-width: 100%; max-height: 300px; overflow: auto; background: #fff; border: 1px solid #e7dce2; border-radius: 8px; padding: 12px; line-height: 1.6; font-size: 13px; overflow-wrap: anywhere; }
+.prolig-question-list-summary__body .studio-table-scroll { overflow-x: auto; }
+.prolig-question-list-summary__body .studio-geometry-diagram { max-width: 100%; }
+@media(max-width: 800px) { .prolig-question-list-summary { width: 250px; } }
