@@ -65,7 +65,7 @@ async function generateJson(question: ReviewQuestion): Promise<{ payload: unknow
       const ai = new GoogleGenAI({ apiKey: key });
       const result = await ai.models.generateContent({
         model, contents: instruction + '\n\n<question_data>' + contents + '</question_data>',
-        config: { responseMimeType: 'application/json', responseSchema: schema,
+        config: { responseMimeType: 'application/json',
           temperature: 0.1, maxOutputTokens: 1700, abortSignal: controller.signal }
       });
       if (!result.text) throw new Error('EMPTY_AI_RESPONSE');
