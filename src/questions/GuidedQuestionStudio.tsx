@@ -9,6 +9,7 @@ import { QuestionTypePreview } from './QuestionTypePreview';
 import { StudioMarkup } from './StudioDocumentPreview';
 import { setQuestionOption } from './question-editor-consistency';
 import { PrivateGeometryWorkspace, type PrivateGeometryPreviewImage } from './PrivateGeometryWorkspace';
+import { AiQuestionReviewPanel } from './AiQuestionReviewPanel';
 import './guided-question-studio.css';
 
 const steps = ['Tür ve bilgiler', 'Soru ve seçenekler', 'Cevap anahtarı', 'Çözüm ve değerlendirme', 'Önizleme ve kayıt'];
@@ -37,7 +38,7 @@ export function guidedQuestionIssues(v: QuestionStudioFormValues) {
 
 export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, projects, projectsLoading, projectsError,
   originalProjectId, levels, grades, onProject, onLevel, onGrade, branchName, editing, disabled, sandbox,
-  onAddAsset, onRemoveAsset, renderAssets, privateGeometryQuestionId, privateGeometryUpdatedAt, onPrivateGeometryRevision, privateGeometryEnabled, onSaveForPrivateImage, personal
+  onAddAsset, onRemoveAsset, renderAssets, privateGeometryQuestionId, privateGeometryUpdatedAt, onPrivateGeometryRevision, privateGeometryEnabled, onSaveForPrivateImage, personal, aiReviewQuestionId, aiReviewUpdatedAt
 }: {
   values: QuestionStudioFormValues; onChange: (values: QuestionStudioFormValues) => void;
   step: number; onStepChange: (step: number) => void;
@@ -54,6 +55,9 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
   privateGeometryUpdatedAt?: string;
   onPrivateGeometryRevision?: (updatedAt: string) => void;
   onSaveForPrivateImage?: () => Promise<void>;
+  /** RELEASE-08: existing saved question only, never an unsaved draft. */
+  aiReviewQuestionId?: number | null;
+  aiReviewUpdatedAt?: string;
 }) {
   const [activeOption, setActiveOption] = useState(0);
   const [preview, setPreview] = useState(true);
@@ -147,6 +151,10 @@ export function GuidedQuestionStudio({ values: v, onChange, step, onStepChange, 
         {step !== 5 && <button type="button" className="secondary-button p3-ux-quick-review" disabled={disabled} onClick={() => onStepChange(5)} title="Kayıt ekranına geçer; soruyu henüz kaydetmez">Kayıt ekranına geç →</button>}
       </div>
     </header>
+    {import.meta.env.VITE_AI_REVIEW_ENABLED === 'true' && editing && !personal &&
+      aiReviewQuestionId && aiReviewUpdatedAt && <AiQuestionReviewPanel
+        questionId={aiReviewQuestionId} expectedUpdatedAt={aiReviewUpdatedAt}
+        values={v} onChange={onChange} disabled={disabled} onStepChange={onStepChange} />}
     <nav aria-label="Soru hazırlama aşamaları" className="p2-steps">{steps.map((label, i) => <button type="button" key={label} aria-current={step === i + 1 ? 'step' : undefined} onClick={() => onStepChange(i + 1)}><span>{i + 1}</span><strong>{label}</strong><small>{i === 4 ? 'Son kontrol' : issues.some(x => x.step === i + 1) ? 'Eksik alan' : 'Eksik yok'}</small></button>)}</nav>
     {editing && privateGeometryQuestionId && privateGeometryEnabled && <div className="p3-attached-image-summary" role="status" aria-live="polite">
       <div>

@@ -2464,6 +2464,8 @@ export default function DemoApp({ currentUser, onLogoutRequest, onProfileUpdated
             privateGeometryEnabled={import.meta.env.VITE_P3_PRIVATE_GEOMETRY_ENABLED === 'true'}
             onSaveForPrivateImage={saveNewDraftAndContinueWithPng}
             privateGeometryQuestionId={editingQuestion?.id ?? null}
+            aiReviewQuestionId={editingQuestion?.id ?? null}
+            aiReviewUpdatedAt={editingQuestion?.updatedAt}
             privateGeometryUpdatedAt={editingQuestion?.updatedAt ?? undefined}
             onPrivateGeometryRevision={updatedAt => {
               setEditingQuestion(previous => previous ? { ...previous, updatedAt } : previous);
