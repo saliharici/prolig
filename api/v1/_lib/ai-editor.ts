@@ -52,7 +52,7 @@ const schema = {
 async function generateJson(question: ReviewQuestion): Promise<{ payload: unknown; model: string }> {
   const provider = process.env.AI_REVIEW_PROVIDER || 'google';
   const model = process.env.AI_REVIEW_MODEL ||
-    (provider === 'gateway' ? 'google/gemini-2.5-flash' : 'gemini-2.5-flash');
+    (provider === 'gateway' ? 'google/gemini-3.6-flash' : 'gemini-3.6-flash');
   if (!/^[a-zA-Z0-9._/-]{2,85}$/.test(model)) throw new Error('AI_PROVIDER_NOT_CONFIGURED');
   // Exact stored rich content and math/geometry markup are preserved in the prompt.
   const contents = JSON.stringify(question);
