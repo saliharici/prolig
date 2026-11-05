@@ -39,10 +39,10 @@ export function AiQuestionReviewPanel({ questionId, expectedUpdatedAt, values, o
     setBusy(true); setError(''); setNotice(''); setReport(null);
     const initialSnapshot = currentSnapshot;
     try {
-      const response = await fetch('/api/v1/questions/' + questionId + '/ai-review', {
+      const response = await fetch('/api/v1/questions/' + questionId, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expectedUpdatedAt })
+        body: JSON.stringify({ action: 'aiReview', expectedUpdatedAt })
       });
       const data = await response.json().catch(() => ({})) as {
         report?: AiReviewReport; error?: string

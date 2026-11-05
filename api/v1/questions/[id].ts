@@ -5,6 +5,7 @@ import { formatQuestionDto } from '../_lib/question-dto.js';
 import { parseQuestionAssets } from '../_lib/question-assets.js';
 import { parseTypedQuestion, usesTypedQuestion } from '../_lib/question-type-validation.js';
 import { isQuestionArchived } from '../_lib/question-archive.js';
+import { reviewRateAllowed, reviewStoredQuestion } from '../_lib/ai-editor.js';
 import { handleP3IsolatedGeometryUpload } from '../_lib/p3-png-upload-handler.js';
 import { handleP3PrivateGeometryBind } from '../_lib/p3-png-bind-handler.js';
 import { handleP3PrivateGeometryRead } from '../_lib/p3-png-read-handler.js';
@@ -56,6 +57,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'PATCH') return await handlePatch(req, res);
+    if (req.method === 'POST' && req.body?.action === 'aiReview') {
+      return await handleAiReview(req, res);
+    }
     if (req.method === 'POST' && req.body?.action === 'geometryUpload') {
       return await handleP3IsolatedGeometryUpload(req, res);
     }
@@ -75,6 +79,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     console.error(error);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+/** RELEASE-08 gated AI review inside the EXISTING question function (Hobby function limit). */
+async function handleAiReview(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  if (process.env.VERCEL_ENV === 'production' || process.env.AI_REVIEW_ENABLED !== 'true')
+    return res.status(404).json({ error: 'AI inceleme bu ortamda kapalı.' });
+  if (!req.headers['content-type']?.toLowerCase().startsWith('application/json'))
+    return res.status(415).json({ error: 'JSON gerekli.' });
+  const id = parseId(req);
+  if (!id) return res.status(400).json({ error: 'Geçersiz soru kimliği.' });
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body) ||
+      Object.keys(body).some(key => !['action', 'expectedUpdatedAt'].includes(key)) ||
+      body.action !== 'aiReview' || typeof body.expectedUpdatedAt !== 'string' ||
+      Number.isNaN(Date.parse(body.expectedUpdatedAt))) {
+    return res.status(400).json({ error: 'Kayıtlı soru sürümü gerekli.' });
+  }
+  try {
+    const user = await getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: 'Oturum gerekli.' });
+    if (!['GENEL_KOORDINATOR','BOLGE_KOORDINATORU','IL_KOORDINATORU',
+          'BRANS_KOORDINATORU','EDITOR','YAZAR'].includes(user.role.code))
+      return res.status(403).json({ error: 'Yetkisiz işlem.' });
+    const question = await prisma.question.findFirst({
+      where: { AND: [{ id }, buildQuestionReadScope(user)] },
+      select: { id: true, updatedAt: true, content: true, options: true,
+        correctAnswer: true, explanation: true, questionType: true, grade: true,
+        objectiveCode: true, difficulty: true, booleanAnswer: true, modelAnswer: true,
+        scoringRubric: true, evaluationCriteria: true }
+    });
+    if (!question) return res.status(404).json({ error: 'Soru bulunamadı veya kapsam dışı.' });
+    if (question.updatedAt.toISOString() !== new Date(body.expectedUpdatedAt).toISOString())
+      return res.status(409).json({ error: 'Soru güncellenmiş; yeniden açın.' });
+    if (!reviewRateAllowed(user.id)) {
+      res.setHeader('Retry-After', '3600');
+      return res.status(429).json({ error: 'Saatlik AI inceleme sınırı doldu.' });
+    }
+    const report = await reviewStoredQuestion(question, question.updatedAt);
+    return res.status(200).json({ report });
+  } catch (error) {
+    const cause = error instanceof Error ? error.message : '';
+    if (cause === 'AI_PROVIDER_NOT_CONFIGURED')
+      return res.status(503).json({ error: 'AI sağlayıcısı yapılandırılmadı.' });
+    if (cause === 'INVALID_AI_REVIEW_OUTPUT' || cause === 'EMPTY_AI_RESPONSE' ||
+        error instanceof SyntaxError)
+      return res.status(502).json({ error: 'AI yanıtı geçersiz; soru değiştirilmedi.' });
+    if (error instanceof Error && error.name === 'AbortError')
+      return res.status(504).json({ error: 'AI incelemesi zaman aşımına uğradı.' });
+    // No question text, tokens, connection URLs, or model error bodies in logs.
+    return res.status(502).json({ error: 'AI incelemesi tamamlanamadı; soru değiştirilmedi.' });
   }
 }
 
