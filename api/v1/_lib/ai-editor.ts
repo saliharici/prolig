@@ -59,7 +59,8 @@ async function generateJson(question: ReviewQuestion): Promise<{ payload: unknow
       return { payload: JSON.parse(result.text), model };
     }
     if (provider === 'gateway') {
-      const key = process.env.AI_GATEWAY_API_KEY;
+      // On Vercel, prefer the deployment's short-lived OIDC identity when no Gateway key is set.
+      const key = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
       if (!key) throw new Error('AI_PROVIDER_NOT_CONFIGURED');
       const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
         method: 'POST', signal: controller.signal,
