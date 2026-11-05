@@ -36,19 +36,6 @@ const instruction = [
   'LaTeX, OMML, HTML, geometrik veri ve biçimleme kodu üzerinde edit önerme.',
   'Sorunda kanıt yoksa issues boş olabilir. İki uzman işlevin bulgularını birlikte raporla.',
 ].join('\n');
-const schema = {
-  type: 'OBJECT',
-  properties: {
-    summary: { type: 'STRING' },
-    issues: { type: 'ARRAY', maxItems: 8, items: { type: 'OBJECT', properties: {
-      category: { type: 'STRING' }, severity: { type: 'STRING' },
-      expert: { type: 'STRING' }, explanation: { type: 'STRING' },
-      suggestion: { type: 'STRING' },
-      edit: { type: 'OBJECT', properties: { field: { type: 'STRING' },
-        before: { type: 'STRING' }, after: { type: 'STRING' } } }
-    }, required: ['category','severity','expert','explanation','suggestion'] } }
-  }, required: ['summary','issues']
-};
 async function generateJson(question: ReviewQuestion): Promise<{ payload: unknown; model: string }> {
   const provider = process.env.AI_REVIEW_PROVIDER || 'google';
   const model = process.env.AI_REVIEW_MODEL ||
