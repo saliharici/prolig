@@ -86,7 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 async function handleAiReview(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  if (process.env.VERCEL_ENV === 'production' || process.env.AI_REVIEW_ENABLED !== 'true')
+  if (process.env.AI_REVIEW_ENABLED !== 'true')
     return res.status(404).json({ error: 'AI inceleme bu ortamda kapalı.' });
   if (!req.headers['content-type']?.toLowerCase().startsWith('application/json'))
     return res.status(415).json({ error: 'JSON gerekli.' });
